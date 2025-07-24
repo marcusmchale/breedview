@@ -58,6 +58,7 @@ defineEmits(['badge-click'])
 // Computed property to check user affiliations (excluding revoked ones)
 const userAffiliations = computed(() => {
   const affiliations = props.teamAffiliations || {}
+
   const userId = props.currentUserId
 
   const findUserAffiliation = (affiliationList) => {

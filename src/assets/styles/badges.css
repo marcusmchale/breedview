@@ -41,6 +41,9 @@
 /* Badge states */
 .badge-pending {
   opacity: 0.7;
+  border: 2px dashed rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
+
 }
 
 .badge-authorised {

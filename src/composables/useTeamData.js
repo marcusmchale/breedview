@@ -27,7 +27,7 @@ export function useTeamData(initialTeamData, currentUserId) {
       // Check direct admin affiliations on this team
       const adminAffiliations = team.affiliations?.admin || []
       const hasDirectAdmin = adminAffiliations.some(affiliation =>
-        affiliation.user.id == userId && affiliation.authorisation === 'AUTHORISED'
+        affiliation.user.id === userId && affiliation.authorisation === 'AUTHORISED'
       )
 
       if (hasDirectAdmin) return true
@@ -36,7 +36,7 @@ export function useTeamData(initialTeamData, currentUserId) {
       if (team.parent) {
         const parentAdminAffiliations = team.parent.affiliations?.admin || []
         const hasHeritableAdminFromParent = parentAdminAffiliations.some(affiliation =>
-          affiliation.user.id == userId &&
+          affiliation.user.id === userId &&
           affiliation.authorisation === 'AUTHORISED' &&
           affiliation.heritable === true
         )

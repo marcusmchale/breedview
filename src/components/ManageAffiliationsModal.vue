@@ -1,3 +1,4 @@
+
 <template>
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal modal-large">
@@ -10,8 +11,9 @@
           <div class="affiliation-list">
             <div
               v-for="affiliation in allTeamAffiliations.read"
-              :key="`read-${affiliation.user.id}`"
+              :key="`read-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
+              :class="{ 'inherited-affiliation': affiliation.isInherited }"
             >
               <div class="affiliation-info">
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
@@ -24,29 +26,57 @@
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
+                  <span v-if="affiliation.isInherited" class="inherited-badge">
+                    (Inherited)
+                  </span>
                 </span>
               </div>
               <div class="affiliation-actions">
+                <div v-if="affiliation.authorisation === 'REQUESTED'" class="approval-controls">
+                  <div class="approval-buttons">
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'READ', false)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
+                    </button>
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'READ', true)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success btn-heritable"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                    </button>
+                  </div>
+                  <button
+                    v-if="!affiliation.isInherited"
+                    @click="handleRevokeAffiliation(affiliation.user.id, 'READ')"
+                    :disabled="revokeAffiliationLoading"
+                    class="btn btn-sm btn-warning"
+                  >
+                    {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
+                  </button>
+                  <span v-if="affiliation.isInherited" class="inherited-note">
+                    (Cannot revoke inherited request - manage from parent team)
+                  </span>
+                </div>
                 <button
-                  v-if="affiliation.authorisation === 'REQUESTED'"
-                  @click="handleApproveAffiliation(affiliation.user.id, 'READ', affiliation.heritable)"
-                  :disabled="approveAffiliationLoading"
-                  class="btn btn-sm btn-success"
-                >
-                  {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
-                </button>
-                <button
-                  v-if="affiliation.authorisation === 'AUTHORISED'"
+                  v-if="affiliation.authorisation === 'AUTHORISED' && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'READ')"
                   :disabled="revokeAffiliationLoading"
                   class="btn btn-sm btn-warning"
                 >
                   {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
                 </button>
+                <span v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.isInherited" class="inherited-note">
+                  (Managed on parent team)
+                </span>
               </div>
             </div>
           </div>
         </div>
+
 
         <!-- Write Affiliations -->
         <div v-if="allTeamAffiliations.write?.length > 0" class="affiliation-section">
@@ -54,8 +84,9 @@
           <div class="affiliation-list">
             <div
               v-for="affiliation in allTeamAffiliations.write"
-              :key="`write-${affiliation.user.id}`"
+              :key="`write-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
+              :class="{ 'inherited-affiliation': affiliation.isInherited }"
             >
               <div class="affiliation-info">
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
@@ -68,25 +99,43 @@
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
+                  <span v-if="affiliation.isInherited" class="inherited-badge">
+                    (Inherited)
+                  </span>
                 </span>
               </div>
               <div class="affiliation-actions">
+                <div v-if="affiliation.authorisation === 'REQUESTED'" class="approval-controls">
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'WRITE', false)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-success"
+                  >
+                    {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
+                  </button>
+                  <button
+                    v-if="!affiliation.isInherited"
+                    @click="handleRevokeAffiliation(affiliation.user.id, 'WRITE')"
+                    :disabled="revokeAffiliationLoading"
+                    class="btn btn-sm btn-warning"
+                  >
+                    {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
+                  </button>
+                  <span v-if="affiliation.isInherited" class="inherited-note">
+                    (Cannot revoke inherited request - manage from parent team)
+                  </span>
+                </div>
                 <button
-                  v-if="affiliation.authorisation === 'REQUESTED'"
-                  @click="handleApproveAffiliation(affiliation.user.id, 'WRITE', affiliation.heritable)"
-                  :disabled="approveAffiliationLoading"
-                  class="btn btn-sm btn-success"
-                >
-                  {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
-                </button>
-                <button
-                  v-if="affiliation.authorisation === 'AUTHORISED'"
+                  v-if="affiliation.authorisation === 'AUTHORISED' && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'WRITE')"
                   :disabled="revokeAffiliationLoading"
                   class="btn btn-sm btn-warning"
                 >
                   {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
                 </button>
+                <span v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.isInherited" class="inherited-note">
+                  (Managed on parent team)
+                </span>
               </div>
             </div>
           </div>
@@ -98,8 +147,9 @@
           <div class="affiliation-list">
             <div
               v-for="affiliation in allTeamAffiliations.admin"
-              :key="`admin-${affiliation.user.id}`"
+              :key="`admin-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
+              :class="{ 'inherited-affiliation': affiliation.isInherited }"
             >
               <div class="affiliation-info">
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
@@ -112,19 +162,43 @@
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
+                  <span v-if="affiliation.isInherited" class="inherited-badge">
+                    (Inherited)
+                  </span>
                 </span>
               </div>
               <div class="affiliation-actions">
+                <div v-if="affiliation.authorisation === 'REQUESTED'" class="approval-controls">
+                  <div class="approval-buttons">
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'ADMIN', false)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
+                    </button>
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'ADMIN', true)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success btn-heritable"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                    </button>
+                  </div>
+                  <button
+                    v-if="!affiliation.isInherited"
+                    @click="handleRevokeAffiliation(affiliation.user.id, 'ADMIN')"
+                    :disabled="revokeAffiliationLoading"
+                    class="btn btn-sm btn-warning"
+                  >
+                    {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
+                  </button>
+                  <span v-if="affiliation.isInherited" class="inherited-note">
+                    (Cannot revoke inherited request - manage from parent team)
+                  </span>
+                </div>
                 <button
-                  v-if="affiliation.authorisation === 'REQUESTED'"
-                  @click="handleApproveAffiliation(affiliation.user.id, 'ADMIN', affiliation.heritable)"
-                  :disabled="approveAffiliationLoading"
-                  class="btn btn-sm btn-success"
-                >
-                  {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
-                </button>
-                <button
-                  v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.user.id != currentUserId"
+                  v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.user.id != currentUserId && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'ADMIN')"
                   :disabled="revokeAffiliationLoading"
                   class="btn btn-sm btn-warning"
@@ -133,6 +207,9 @@
                 </button>
                 <span v-if="affiliation.user.id == currentUserId" class="self-admin-note">
                   (You cannot revoke your own admin access)
+                </span>
+                <span v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.isInherited && affiliation.user.id != currentUserId" class="inherited-note">
+                  (Managed on parent team)
                 </span>
               </div>
             </div>
@@ -145,8 +222,9 @@
           <div class="affiliation-list">
             <div
               v-for="affiliation in allTeamAffiliations.curate"
-              :key="`curate-${affiliation.user.id}`"
+              :key="`curate-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
+              :class="{ 'inherited-affiliation': affiliation.isInherited }"
             >
               <div class="affiliation-info">
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
@@ -159,25 +237,52 @@
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
+                  <span v-if="affiliation.isInherited" class="inherited-badge">
+                    (Inherited)
+                  </span>
                 </span>
               </div>
               <div class="affiliation-actions">
+                <div v-if="affiliation.authorisation === 'REQUESTED'" class="approval-controls">
+                  <div class="approval-buttons">
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'CURATE', false)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
+                    </button>
+                    <button
+                      @click="handleApproveAffiliation(affiliation.user.id, 'CURATE', true)"
+                      :disabled="approveAffiliationLoading"
+                      class="btn btn-sm btn-success btn-heritable"
+                    >
+                      {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                    </button>
+                  </div>
+                  <button
+                    v-if="!affiliation.isInherited"
+                    @click="handleRevokeAffiliation(affiliation.user.id, 'CURATE')"
+                    :disabled="revokeAffiliationLoading"
+                    class="btn btn-sm btn-warning"
+                  >
+                    {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
+                  </button>
+                  <span v-if="affiliation.isInherited" class="inherited-note">
+                    (Cannot revoke inherited request - manage from parent team)
+                  </span>
+                </div>
                 <button
-                  v-if="affiliation.authorisation === 'REQUESTED'"
-                  @click="handleApproveAffiliation(affiliation.user.id, 'CURATE', affiliation.heritable)"
-                  :disabled="approveAffiliationLoading"
-                  class="btn btn-sm btn-success"
-                >
-                  {{ approveAffiliationLoading ? 'Approving...' : 'Approve' }}
-                </button>
-                <button
-                  v-if="affiliation.authorisation === 'AUTHORISED'"
+                  v-if="affiliation.authorisation === 'AUTHORISED' && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'CURATE')"
                   :disabled="revokeAffiliationLoading"
                   class="btn btn-sm btn-warning"
                 >
                   {{ revokeAffiliationLoading ? 'Revoking...' : 'Revoke' }}
                 </button>
+                <span v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.isInherited" class="inherited-note">
+                  (Managed on parent team)
+                </span>
               </div>
             </div>
           </div>
@@ -189,16 +294,16 @@
         </div>
       </div>
 
-      <div v-if="error" class="error-message">
-        {{ error }}
+      <div v-if="approveError" class="error-message">
+        {{ approveError }}
       </div>
 
-      <div v-if="success" class="success-message">
-        {{ success }}
+      <div v-if="revokeError" class="error-message">
+        {{ revokeError }}
       </div>
 
-      <div class="form-actions right">
-        <button type="button" @click="closeModal" class="btn btn-secondary">
+      <div class="modal-buttons">
+        <button @click="$emit('close')" class="btn btn-secondary">
           Close
         </button>
       </div>
@@ -206,17 +311,17 @@
   </div>
 </template>
 
-
 <script setup>
-import { computed, ref } from 'vue'
-import { useMutation, useApolloClient } from '@vue/apollo-composable'
+import { ref, computed, watch } from 'vue'
+import { useQuery, useMutation } from '@vue/apollo-composable'
+import INHERITED_AFFILIATIONS_QUERY from '../graphql/organisations/inherited_affiliations.graphql'
 import APPROVE_AFFILIATION_MUTATION from '../graphql/account/approveAffiliation.graphql'
 import REVOKE_AFFILIATION_MUTATION from '../graphql/account/revokeAffiliation.graphql'
 
 const props = defineProps({
   isOpen: {
     type: Boolean,
-    required: true
+    default: false
   },
   teamInfo: {
     type: Object,
@@ -230,69 +335,104 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'affiliation-updated'])
 
-const { client } = useApolloClient()
+// Reactive data
+const approveError = ref('')
+const revokeError = ref('')
 
-// State
-const error = ref('')
-const success = ref('')
+// Apollo query for inherited affiliations
+const { result: inheritedAffiliationsResult, refetch: refetchInherited } = useQuery(
+  INHERITED_AFFILIATIONS_QUERY,
+  () => ({ team_id: props.teamInfo?.id }),
+  () => ({
+    enabled: props.isOpen && !!props.teamInfo?.id,
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all'
+  })
+)
 
-// Use Apollo mutations
+// Apollo mutations
 const { mutate: approveAffiliationMutation, loading: approveAffiliationLoading } = useMutation(APPROVE_AFFILIATION_MUTATION)
 const { mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading } = useMutation(REVOKE_AFFILIATION_MUTATION)
 
-// Computed property to get all team affiliations (excluding revoked ones)
+// Computed property to combine direct and inherited affiliations
 const allTeamAffiliations = computed(() => {
-  const affiliations = props.teamInfo?.affiliations || {}
-
-  return {
-    read: (affiliations.read || []).filter(aff => aff.authorisation !== 'REVOKED'),
-    write: (affiliations.write || []).filter(aff => aff.authorisation !== 'REVOKED'),
-    admin: (affiliations.admin || []).filter(aff => aff.authorisation !== 'REVOKED'),
-    curate: (affiliations.curate || []).filter(aff => aff.authorisation !== 'REVOKED')
+  const directAffiliations = props.teamInfo?.affiliations || {}
+  const inheritedData = inheritedAffiliationsResult.value?.inherited_affiliations?.result || {}
+  
+  const result = {
+    read: [],
+    write: [],
+    admin: [],
+    curate: []
   }
+
+  // Helper function to filter out revoked affiliations
+  const filterActiveAffiliations = (affiliations) => {
+    return affiliations.filter(aff => aff.authorisation !== 'REVOKED')
+  }
+
+  // Helper function to prioritize direct affiliations over inherited ones
+  const prioritizeDirectAffiliations = (directAffs, inheritedAffs) => {
+    const directUserIds = new Set(directAffs.map(aff => aff.user.id))
+    // Filter out inherited affiliations where a direct one exists for the same user
+    const filteredInherited = inheritedAffs.filter(aff => !directUserIds.has(aff.user.id))
+    return [...directAffs, ...filteredInherited]
+  }
+
+  // Process each access type
+  const accessTypes = ['read', 'write', 'admin', 'curate']
+
+  accessTypes.forEach(accessType => {
+    // Get filtered direct affiliations
+    const directAffs = directAffiliations[accessType] && Array.isArray(directAffiliations[accessType])
+      ? filterActiveAffiliations(directAffiliations[accessType]).map(aff => ({...aff, isInherited: false}))
+      : []
+
+    // Get filtered inherited affiliations
+    const inheritedAffs = inheritedData[accessType] && Array.isArray(inheritedData[accessType])
+      ? filterActiveAffiliations(inheritedData[accessType]).map(aff => ({...aff, isInherited: true}))
+      : []
+
+    // Combine with prioritization of direct affiliations
+    result[accessType] = prioritizeDirectAffiliations(directAffs, inheritedAffs)
+  })
+
+  return result
 })
 
-// Computed property to check if there are any affiliations to display
+
+// Computed property to check if there are any affiliations
 const hasAnyAffiliations = computed(() => {
   const affiliations = allTeamAffiliations.value
   return (
-    affiliations.read.length > 0 ||
-    affiliations.write.length > 0 ||
-    affiliations.admin.length > 0 ||
-    affiliations.curate.length > 0
+    (affiliations.read && affiliations.read.length > 0) ||
+    (affiliations.write && affiliations.write.length > 0) ||
+    (affiliations.admin && affiliations.admin.length > 0) ||
+    (affiliations.curate && affiliations.curate.length > 0)
   )
 })
 
-// Helper function to get status CSS class
+// Helper functions
 const getStatusClass = (status) => {
   switch (status) {
-    case 'AUTHORISED':
-      return 'status-authorised'
-    case 'REQUESTED':
-      return 'status-pending'
-    default:
-      return 'status-unknown'
+    case 'AUTHORISED': return 'status-authorised'
+    case 'REQUESTED': return 'status-pending'
+    default: return 'status-unknown'
   }
 }
 
-// Helper function to get readable status text
 const getStatusText = (status) => {
   switch (status) {
-    case 'AUTHORISED':
-      return 'Authorised'
-    case 'REQUESTED':
-      return 'Pending Approval'
-    default:
-      return 'Unknown'
+    case 'AUTHORISED': return 'Authorised'
+    case 'REQUESTED': return 'Requested'
+    default: return 'Unknown'
   }
 }
 
-// Handle approve affiliation
+// Event handlers
 const handleApproveAffiliation = async (userId, accessType, heritable) => {
   try {
-    error.value = ''
-    success.value = ''
-
+    approveError.value = ''
     const response = await approveAffiliationMutation({
       user: userId,
       team: props.teamInfo.id,
@@ -301,32 +441,20 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
     })
 
     if (response?.data?.approve_affiliation?.status === 'SUCCESS') {
-      success.value = `${accessType} affiliation approved successfully`
-
-      // Clear cache and emit event to refresh team data
-      try {
-        client.cache.evict({ fieldName: 'teams' })
-        client.cache.gc()
-      } catch (cacheError) {
-        console.warn('Error clearing teams cache:', cacheError)
-      }
-
+      await refetchInherited()
       emit('affiliation-updated')
     } else {
-      error.value = response?.data?.approve_affiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
+      approveError.value = response?.data?.approve_affiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
     }
-  } catch (err) {
-    console.error('Approve affiliation error:', err)
-    error.value = err.message || 'An unexpected error occurred'
+  } catch (error) {
+    console.error('Approve affiliation error:', error)
+    approveError.value = error.message || 'An unexpected error occurred'
   }
 }
 
-// Handle revoke affiliation
 const handleRevokeAffiliation = async (userId, accessType) => {
   try {
-    error.value = ''
-    success.value = ''
-
+    revokeError.value = ''
     const response = await revokeAffiliationMutation({
       user: userId,
       team: props.teamInfo.id,
@@ -334,105 +462,32 @@ const handleRevokeAffiliation = async (userId, accessType) => {
     })
 
     if (response?.data?.revoke_affiliation?.status === 'SUCCESS') {
-      success.value = `${accessType} affiliation revoked successfully`
-
-      // Clear cache and emit event to refresh team data
-      try {
-        client.cache.evict({ fieldName: 'teams' })
-        client.cache.gc()
-      } catch (cacheError) {
-        console.warn('Error clearing teams cache:', cacheError)
-      }
-
+      await refetchInherited()
       emit('affiliation-updated')
     } else {
-      error.value = response?.data?.revoke_affiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
+      revokeError.value = response?.data?.revoke_affiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
     }
-  } catch (err) {
-    console.error('Revoke affiliation error:', err)
-    error.value = err.message || 'An unexpected error occurred'
+  } catch (error) {
+    console.error('Revoke affiliation error:', error)
+    revokeError.value = error.message || 'An unexpected error occurred'
   }
 }
 
-// Close modal and clear messages
-const closeModal = () => {
-  error.value = ''
-  success.value = ''
-  emit('close')
-}
+// Watch for modal open/close to refetch data
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    approveError.value = ''
+    revokeError.value = ''
+    if (props.teamInfo?.id) {
+      refetchInherited()
+    }
+  }
+})
 </script>
 
 <style scoped>
-.affiliations-management {
-  margin-bottom: 1.5rem;
-}
-
-.affiliation-section {
-  margin-bottom: 2rem;
-}
-
-.affiliation-section h4 {
-  margin: 0 0 1rem 0;
-  color: #495057;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 0.5rem;
-}
-
-.affiliation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.affiliation-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-}
-
-.affiliation-info {
-  flex: 1;
-}
-
-.user-meta {
-  display: flex;
-  gap: 1rem;
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-  color: #6c757d;
-}
-
-.username {
-  font-weight: 500;
-}
-
-.affiliation-meta {
-  font-size: 0.875rem;
-  color: #495057;
-}
-
-.affiliation-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.self-admin-note {
-  font-size: 0.875rem;
-  color: #6c757d;
-  font-style: italic;
-}
-
-.no-affiliations {
-  text-align: center;
-  padding: 2rem;
-  color: #6c757d;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
+/* Only component-specific styles that aren't reusable */
+.modal-large {
+  max-width: 1000px;
 }
 </style>

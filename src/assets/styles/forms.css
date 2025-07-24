@@ -1,3 +1,4 @@
+
 /* Form layouts and components */
 .form-actions {
   display: flex;
@@ -46,4 +47,14 @@
   border-radius: 4px;
   border: 1px solid #ffeaa7;
   margin-top: 1rem;
+}
+
+/* Helper notes */
+.heritable-note {
+  margin-top: 0.25rem;
+}
+
+.text-muted {
+  color: #6c757d !important;
+  font-style: italic;
 }

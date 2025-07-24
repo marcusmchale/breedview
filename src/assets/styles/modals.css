@@ -39,3 +39,138 @@
 .modal-xl {
   max-width: 1200px;
 }
+
+/* Modal content areas */
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Affiliation management specific styles */
+.affiliations-management {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.affiliation-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.affiliation-section:last-child {
+  border-bottom: none;
+}
+
+.affiliation-section h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.affiliation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.affiliation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.inherited-affiliation {
+  background-color: #e3f2fd;
+  border-color: #bbdefb;
+}
+
+.affiliation-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.affiliation-info strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #212529;
+}
+
+.user-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.username {
+  color: #6c757d;
+  font-family: monospace;
+}
+
+.email {
+  color: #495057;
+}
+
+.affiliation-meta {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.inherited-badge {
+  color: #0056b3;
+  font-weight: 500;
+}
+
+.affiliation-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.inherited-note,
+.self-admin-note {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+  text-align: right;
+}
+
+.no-affiliations {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .affiliation-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .affiliation-info {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+
+  .affiliation-actions {
+    align-items: stretch;
+    min-width: auto;
+  }
+
+  .inherited-note,
+  .self-admin-note {
+    text-align: left;
+  }
+}
