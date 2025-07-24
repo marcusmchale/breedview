@@ -1,0 +1,12 @@
+mutation removeTeam(
+    $team: Int!
+) {
+    remove_team(
+        team: $team
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

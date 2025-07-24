@@ -1,0 +1,8 @@
+mutation addEmail($email: String!) {
+  add_email(email: $email) {
+    status
+    errors {
+      message
+    }
+  }
+}

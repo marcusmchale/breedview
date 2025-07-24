@@ -1,0 +1,21 @@
+query teams($team_ids: [Int!]) {
+    teams(team_ids: $team_ids){
+        status
+        result {
+            id
+            name
+            fullname
+            parent {id}
+            children {id}
+            affiliations {
+                read {user {id name fullname email} authorisation heritable}
+                write {user {id name fullname email} authorisation heritable}
+                admin {user {id name fullname email} authorisation heritable}
+                curate {user {id name fullname email} authorisation heritable}
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

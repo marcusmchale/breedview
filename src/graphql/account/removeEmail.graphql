@@ -1,0 +1,8 @@
+mutation removeEmail($email: String!) {
+  remove_email(email: $email) {
+    status
+    errors {
+      message
+    }
+  }
+}

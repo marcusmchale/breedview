@@ -1,0 +1,18 @@
+mutation editUser(
+    $name: String,
+    $fullname: String,
+    $email: String,
+    $password: String
+) {
+    edit_user(
+        name: $name,
+        fullname: $fullname,
+        email: $email,
+        password: $password
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

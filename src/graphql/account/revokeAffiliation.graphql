@@ -1,0 +1,8 @@
+mutation revokeAffiliation($user: Int!, $team: Int!, $access: Access!) {
+  revoke_affiliation(user: $user, team: $team, access: $access) {
+    status
+    errors {
+      message
+    }
+  }
+}

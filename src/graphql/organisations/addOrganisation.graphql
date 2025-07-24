@@ -1,0 +1,14 @@
+mutation addTeam(
+    $name: String!,
+    $fullname: String
+) {
+    add_team(
+        name: $name,
+        fullname: $fullname
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

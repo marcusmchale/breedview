@@ -1,0 +1,20 @@
+query organisations {
+    organisations{
+        status
+        result {
+            id
+            name
+            fullname
+            children {id}
+            affiliations {
+                read {user {id name fullname email} authorisation heritable}
+                write {user {id name fullname email} authorisation heritable}
+                admin {user {id name fullname email} authorisation heritable}
+                curate {user {id name fullname email} authorisation heritable}
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

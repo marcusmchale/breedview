@@ -1,0 +1,8 @@
+mutation removeAffiliation($team: Int!, $access: Access!) {
+  remove_affiliation(team: $team, access: $access) {
+    status
+    errors {
+      message
+    }
+  }
+}

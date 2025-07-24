@@ -1,0 +1,11 @@
+query account {
+    account{
+        status
+        result {
+            user {id name fullname email}
+        }
+        errors {
+            message
+        }
+    }
+}
