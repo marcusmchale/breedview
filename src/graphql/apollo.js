@@ -1,6 +1,6 @@
 import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
-import { useCsrf } from '../composables/useCsrf'
+import { useCsrf } from '@/composables/useCsrf'
 
 const graphqlUri = `${process.env.VUE_APP_API_HOST}${process.env.VUE_APP_GRAPHQL_PATH}`
 
