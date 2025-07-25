@@ -1,3 +1,4 @@
+
 /* Modal system */
 .modal-overlay {
   position: fixed;
@@ -40,6 +41,39 @@
   max-width: 1200px;
 }
 
+/* Modal header styles */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  color: #333;
+}
+
 /* Modal content areas */
 .modal-buttons {
   display: flex;
@@ -48,6 +82,60 @@
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid #e9ecef;
+}
+
+/* Email management specific styles */
+.allowed-emails-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.allowed-emails-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.loading-text {
+  color: #666;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.allowed-emails-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.allowed-email-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.email-text {
+  font-family: monospace;
+  color: #333;
+  flex: 1;
+}
+
+.no-emails-message {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e5e5;
+  text-align: center;
+  color: #666;
+}
+
+.no-emails-message p {
+  margin: 0;
+  font-style: italic;
 }
 
 /* Affiliation management specific styles */

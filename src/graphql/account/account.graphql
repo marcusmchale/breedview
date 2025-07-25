@@ -3,6 +3,7 @@ query account {
         status
         result {
             user {id name fullname email}
+            allowed_emails
         }
         errors {
             message

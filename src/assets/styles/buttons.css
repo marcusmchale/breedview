@@ -23,6 +23,12 @@
   font-size: 0.75rem;
 }
 
+.btn-small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  min-width: 80px;
+}
+
 .btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;

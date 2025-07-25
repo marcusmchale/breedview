@@ -54,7 +54,6 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
@@ -85,13 +84,20 @@ const submitHandler = async (formData) => {
       password: formData.password
     })
 
+    console.log('Registration response:', response.data.add_account)
+
     if (response.data.add_account.status === 'SUCCESS') {
       success.value = 'Registration successful! Redirecting to login...'
       setTimeout(() => {
         emit('registrationComplete')
       }, 2000)
+    } else {
+      // Handle server-side validation errors
+      const errorMsg = response.data.add_account.errors?.[0]?.message || 'Registration failed. Please try again.'
+      error.value = errorMsg
     }
   } catch (e) {
+    console.error('Registration error:', e)
     error.value = e.message || 'An unexpected error occurred during registration.'
   }
 }
