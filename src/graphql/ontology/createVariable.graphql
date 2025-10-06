@@ -1,0 +1,12 @@
+mutation ontologyCreateVariable(
+    $variable: VariableInput!
+) {
+    ontologyCreateVariable(
+        variable: $variable,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

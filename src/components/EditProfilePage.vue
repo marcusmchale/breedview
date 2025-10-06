@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h1>Edit Profile</h1>
+      <h1>Update Profile</h1>
       <button @click="$emit('back-to-home')" class="btn btn-secondary">Back to Home</button>
     </div>
 
@@ -80,7 +80,7 @@
 import { ref, watch } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import ACCOUNT_QUERY from '../graphql/account/account.graphql'
-import EDIT_USER_MUTATION from '../graphql/account/editUser.graphql'
+import UPDATE_USER_MUTATION from '../graphql/account/updateUser.graphql'
 
 const account = ref(null)
 const loading = ref(true)
@@ -96,8 +96,8 @@ const { result, loading: queryLoading, error: queryError } = useQuery(ACCOUNT_QU
   errorPolicy: 'all'
 })
 
-// Use edit user mutation
-const { mutate: editUserMutation, loading: updateLoading, onError: onUpdateError } = useMutation(EDIT_USER_MUTATION)
+// Use update user mutation
+const { mutate: updateUserMutation, loading: updateLoading, onError: onUpdateError } = useMutation(UPDATE_USER_MUTATION)
 
 // Handle update errors
 onUpdateError((err) => {
@@ -121,7 +121,7 @@ watch([queryLoading, queryError, result], () => {
   }
 
   // Check if we have a valid result
-  const accountData = result.value?.account
+  const accountData = result.value?.accountsAccount
   if (!accountData) {
     error.value = true
     return
@@ -163,11 +163,11 @@ const updateProfile = async (formData) => {
       variables.password = formData.password
     }
 
-    const response = await editUserMutation(variables)
+    const response = await updateUserMutation(variables)
 
-    console.log('Update response:', response?.data?.edit_user)
+    console.log('Update response:', response?.data?.accountsUpdateUser)
 
-    if (response?.data?.editUser?.status === 'SUCCESS') {
+    if (response?.data?.accountsUpdateUser?.status === 'SUCCESS') {
       successMessage.value = 'Profile updated successfully!'
       // Emit profile-updated event to trigger refetch in parent
       setTimeout(() => {
@@ -175,7 +175,7 @@ const updateProfile = async (formData) => {
       }, 2000)
     } else {
       // Update failed, show error
-      const errorMsg = response?.data?.edit_user?.errors?.[0]?.message || 'Update failed'
+      const errorMsg = response?.data?.accountsUpdateUser?.errors?.[0]?.message || 'Update failed'
       updateError.value = errorMsg
     }
   } catch (error) {

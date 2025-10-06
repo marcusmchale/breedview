@@ -1,8 +1,3 @@
-schema {
-  query: Query
-  mutation: Mutation
-}
-scalar DateTime
 type File {
   id: Int
   filename: String!
@@ -10,79 +5,562 @@ type File {
   encoding: String!
   path: String!
 }
-type Mutation {
-  add_account(name: String!, fullname: String, email: String!, password: String!): BooleanPayload!
-  edit_user(name: String, fullname: String, email: String, password: String): BooleanPayload!
-  verify_email(token: String!): BooleanPayload!
-  request_password_reset(email: String!): BooleanPayload
-  reset_password(token: String!, password: String!): BooleanPayload!
-  login(username: String!, password: String!): BooleanPayload!
-  logout: BooleanPayload!
-  add_email(email: String!): BooleanPayload!
-  remove_email(email: String!): BooleanPayload!
-  request_affiliation(team: Int!, access: Access!, heritable: Boolean): BooleanPayload!
-  approve_affiliation(user: Int!, team: Int!, access: Access!, heritable: Boolean): BooleanPayload!
-  remove_affiliation(team: Int!, access: Access!): BooleanPayload!
-  revoke_affiliation(user: Int!, team: Int!, access: Access!): BooleanPayload!
-  add_layout(layout: LayoutInput!): BooleanPayload!
-  blocks_add_unit(unit: UnitInput!): BooleanPayload!
-  blocks_add_position(unit_id: Int!, position: PositionInput): BooleanPayload!
-  "For each dataset the term is the Variable/Condition or Event from the Ontology to which this data corresponds"
-  data_add_dataset(term: Int!): BooleanPayload!
-  data_add_record(record: RecordInput): BooleanPayload!
-  ontology_add_entry(entry: OntologyEntryInput): BooleanPayload!
-  add_team(name: String!, fullname: String, parent: Int): BooleanPayload!
-  remove_team(team: Int!): BooleanPayload!
-  edit_team(team: Int!, name: String, fullname: String): BooleanPayload!
-  add_location(location: LocationInput!): BooleanPayload!
+
+input LayoutInput {
+  """ Location ID from Region """
+  locationId: Int!
+
+  """ Ontology LayoutType identifier """
+  typeId: Int!
+
+  """ Axis labels """
+  axes: [String!]
+
+  """ Optional name for the layout """
+  name: String
+
+  """ Optional parent layout to construct multiplexed layout arrangements"""
+  parentId: Int
+
+  """ When parent is supplied, position according to parent layout axes must be provided.
+  """
+  position: [String]
 }
+
+input PositionInput {
+  """ID of Location in a Region"""
+  locationId: Int!
+
+  """ID of Layout in and Arrangement"""
+  layoutId: Int
+
+  """
+  Coordinates should be a list of values corresponding to the stored layout axes.
+  """
+  coordinates: [String]
+  start: DateTime
+  end: DateTime
+}
+
+input UnitInput {
+  """ID of Subject in the ontology"""
+  subjectId: Int!
+  name: String
+  synonyms: [String]
+  description: String
+
+  """IDs of parent Units, of which this unit forms a component"""
+  parentIds: [Int]
+
+  """IDs of child Units, which represent a component of this unit."""
+  childrenIds: [Int]
+}
+
+input RecordInput {
+  datasetId: Int!
+  unitId: Int!
+  value: String
+  start: DateTime
+  end: DateTime
+  referenceIds: [Int]
+}
+
+type Mutation {
+  accountsCreateAccount(name: String!, fullname: String, email: String!, password: String!): BooleanPayload!
+  accountsUpdateUser(name: String, fullname: String, email: String, password: String): BooleanPayload!
+  accountsVerifyEmail(token: String!): BooleanPayload!
+  accountsRequestPasswordReset(email: String!): BooleanPayload
+  accountsResetPassword(token: String!, password: String!): BooleanPayload!
+  accountsLogin(username: String!, password: String!): BooleanPayload!
+  accountsLogout: BooleanPayload!
+  accountsAddEmail(email: String!): BooleanPayload!
+  accountsRemoveEmail(email: String!): BooleanPayload!
+  accountsRequestAffiliation(teamId: Int!, access: Access!, heritable: Boolean): BooleanPayload!
+  accountsApproveAffiliation(userId: Int!, teamId: Int!, access: Access!, heritable: Boolean): BooleanPayload!
+  accountsRemoveAffiliation(teamId: Int!, access: Access!): BooleanPayload!
+  accountsRevokeAffiliation(userId: Int!, teamId: Int!, access: Access!): BooleanPayload!
+  arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
+  blocksCreateUnit(unit: UnitInput!): BooleanPayload!
+  blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
+  controlsSetControls(entityLabel: ControlledModelLabel, entityIds: [Int], release: ReadRelease): BooleanPayload!
+
+  """
+  For each dataset the concept is the Variable or Factor from the Ontology to which this data corresponds
+  """
+  datasetsCreateDataset(conceptId: Int!): BooleanPayload!
+  datasetsAddRecord(record: RecordInput): BooleanPayload!
+  ontologyCreateTerm(term: TermInput!): BooleanPayload!
+  ontologyCreateSubject(subject: SubjectInput!): BooleanPayload!
+  ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
+  ontologyCreateCondition(condition: ConditionInput!): BooleanPayload!
+  ontologyCreateScale(scale: ScaleInput!): BooleanPayload!
+  ontologyCreateCategory(category: CategoryInput!): BooleanPayload!
+  ontologyCreateObservationMethod(observationMethod: ObservationMethodInput!): BooleanPayload!
+  ontologyCreateVariable(variable: VariableInput!): BooleanPayload!
+  ontologyCreateControlMethod(controlMethod: ControlMethodInput!): BooleanPayload!
+  ontologyCreateFactor(factor: FactorInput!): BooleanPayload!
+  ontologyCreateEvent(event: EventInput!): BooleanPayload!
+  ontologyCreateLocationType(locationType: LocationTypeInput!): BooleanPayload!
+  ontologyCreateDesign(design: DesignInput!): BooleanPayload!
+  ontologyCreateLayoutType(layoutType: LayoutTypeInput!): BooleanPayload!
+  ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: Int, copyrightId: Int): BooleanPayload!
+  organisationsCreateTeam(name: String!, fullname: String, parentId: Int): BooleanPayload!
+  organisationsDeleteTeam(teamId: Int!): BooleanPayload!
+  organisationsUpdateTeam(teamId: Int!, name: String, fullname: String): BooleanPayload!
+  programsCreateProgram(program: CreateProgramInput!): BooleanPayload
+  programsUpdateProgram(program: UpdateProgramInput!): BooleanPayload
+  programsDeleteProgram(programId: Int!): BooleanPayload
+  programsCreateTrial(trial: CreateTrialInput!): BooleanPayload
+  programsUpdateTrial(trial: UpdateTrialInput!): BooleanPayload
+  programsDeleteTrial(trialId: Int!): BooleanPayload
+  programsCreateStudy(study: CreateStudyInput!): BooleanPayload
+  programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
+  programsDeleteStudy(studyId: Int!): BooleanPayload
+  regionsCreateLocation(location: LocationInput!): BooleanPayload!
+}
+
+enum VersionChange {
+  MAJOR
+  MINOR
+  PATCH
+}
+
+input TermInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+
+  """People stored in the database that established this entry"""
+  authorIds: [Int]
+
+  """
+  References stored in the database for additional details, e.g. a link to another ontology.
+  """
+  referenceIds: [Int]
+
+  """
+  To establish a hierarchy and relationships among terms.
+  Parents or children may be defined for any entry.
+  """
+  parentIds: [Int]
+  childIds: [Int]
+  subjectIds: [Int]
+  scaleIds: [Int]
+  categoryIds: [Int]
+  observationMethodIds: [Int]
+  traitIds: [Int]
+  variableIds: [Int]
+  controlMethodIds: [Int]
+  conditionIds: [Int]
+  factorIds: [Int]
+  eventIds: [Int]
+  locationTypeIds: [Int]
+  layoutTypeIDs: [Int]
+  designIds: [Int]
+  roleIds: [Int]
+  titleIds: [Int]
+}
+
+input SubjectInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input TraitInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """When creating a trait, subjects must be specified by ID"""
+  subjectIds: [Int]
+}
+
+input ConditionInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input ScaleInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """Scale entries require an additional type parameter."""
+  scaleType: ScaleType!
+
+  """
+  When defining a scale using existing categories, their identifiers may be listed in their proposed rank order.
+  """
+  categoryIds: [Int]
+}
+
+input CategoryInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """
+  When creating a category for an ordinal scale, a rank should be provided.
+  """
+  rankId: Int
+}
+
+input ObservationMethodInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """ObservationMethod entries require an additional type parameter."""
+  observationType: ObservationMethodType!
+}
+
+input VariableInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """When creating a variable, a Trait identifier is required."""
+  traitId: Int!
+
+  """When defining a Variable an ObservationMethod is required."""
+  observationMethodId: Int!
+
+  """When defining a Variable, a Scale identifier is required."""
+  scaleId: Int!
+}
+
+input ControlMethodInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """ControlMethod entries require an additional type parameter."""
+  controlType: ControlMethodType!
+}
+
+input FactorInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """When creating a factor, a Condition identifier is required."""
+  conditionId: Int!
+
+  """When defining a factor a ControlMethod identifier is required."""
+  controlMethodId: Int!
+
+  """When defining a factor, a Scale identifier is required."""
+  scaleId: Int!
+}
+
+input EventInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  variableIds: [Int]
+  factorIds: [Int]
+  termIds: [Int]
+}
+
+input LocationTypeInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input DesignInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input LayoutTypeInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+
+  """
+  When creating a LayoutType, each axis type for position descriptions is required
+  """
+  axes: [AxisType]!
+}
+
+input CreateProgramInput {
+  name: String!
+  fullname: String
+  description: String
+  contactIds: [Int!] = []
+  referenceIds: [Int!] = []
+}
+
+input UpdateProgramInput {
+  programId: Int!
+  name: String
+  fullname: String
+  description: String
+  contactIds: [Int!]
+  referenceIds: [Int!]
+}
+
+input CreateTrialInput {
+  programId: Int!
+  name: String!
+  fullname: String
+  description: String
+  start: DateTime
+  end: DateTime
+  contactIds: [Int!] = []
+  referenceIds: [Int!] = []
+}
+
+input UpdateTrialInput {
+  trialId: Int!
+  name: String
+  fullname: String
+  description: String
+  start: DateTime
+  end: DateTime
+  contactIds: [Int!]
+  referenceIds: [Int!]
+}
+
+input CreateStudyInput {
+  trialId: Int!
+  name: String!
+  fullname: String
+  description: String
+  practices: String
+  start: DateTime
+  end: DateTime
+  datasetIds: [Int!] = []
+  designId: Int
+  licenceId: Int
+  referenceIds: [Int!] = []
+}
+
+input UpdateStudyInput {
+  studyId: Int!
+  name: String
+  fullname: String
+  description: String
+  practices: String
+  start: DateTime
+  end: DateTime
+  datasetIds: [Int!]
+  designId: Int
+  licenceId: Int
+  referenceIds: [Int!]
+}
+
+input GeoCoordinateInput {
+  """Latitude in degrees according to ISO 6709"""
+  latitude: Float!
+
+  """Longitude in degrees according to ISO 6709"""
+  longitude: Float!
+
+  """Meters above WGS84 reference ellipsoid"""
+  altitude: Float
+
+  """Uncertainty in meters associated with these coordinates"""
+  uncertainty: Float
+
+  """Additional coordinate description"""
+  description: String
+}
+
+input LocationInput {
+  name: String!
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinateInput]
+
+  """ Ontology LocationType identifier """
+  typeId: Int!
+
+  """ A parent location, required unless a country (see countries) """
+  parentId: Int
+}
+
 type User {
   id: Int!
   name: String!
   fullname: String!
   email: String!
 }
+
 type Account {
   user: User!
-  allowed_emails: [String]
-  allowed_users: [User]
+  allowedEmails: [String]
+  allowedUsers: [User]
 }
+
 type Layout {
   id: Int!
   name: String!
-  type: OntologyEntry!
+  type: OntologyEntryInterface!
   axes: [String]
   parent: Layout
-  "Position within parent layout"
+
+  """Position within parent layout"""
   position: [String]
   children: [Layout]
-  release: Release
 }
+
 type Token {
-  access_token: String!
-  token_type: String!
+  accessToken: String!
+  tokenType: String!
 }
+
 type Position {
-  "ID of Location in a Region"
+  """ID of Location in a Region"""
   location: Int!
-  "ID of Layout in and Arrangement"
+
+  """ID of Layout in and Arrangement"""
   layout: Int
-  "Coordinates should be a list of values corresponding to the stored layout axes."
+
+  """
+  Coordinates should be a list of values corresponding to the stored layout axes.
+  """
   coordinates: [String]
   start: DateTime
   end: DateTime
 }
+
 type Unit {
   id: Int!
-  subject: OntologyEntry
+  subject: OntologyEntryInterface
   name: String
   synonyms: [String]
   description: String
   positions: [Position]
   parents: [Unit]
   children: [Unit]
-  release: Release
 }
+
+enum ReadRelease {
+  PRIVATE
+  REGISTERED
+  PUBLIC
+}
+
+enum ControlledModelLabel {
+  GERMPLASM
+  UNIT
+  PERSON
+  STUDY
+  TRIAL
+  PROGRAM
+  RECORD
+  DATASET
+  LAYOUT
+  LOCATION
+  REFERENCE
+}
+
+type Control {
+  team: Team!
+  release: ReadRelease!
+  time: DateTime!
+}
+
+type WriteStamp {
+  user: User!
+  time: DateTime!
+}
+
+type Controller {
+  controls: [Control!]!
+  writes: [WriteStamp!]!
+  teams: [Team!]!
+  release: ReadRelease!
+  created: DateTime!
+  updated: DateTime!
+}
+
 type Record {
   id: Int!
   unit: Unit
@@ -92,13 +570,22 @@ type Record {
   references: [Int]
   submitted: DateTime
 }
+
 type DataSet {
   id: Int!
-  term: OntologyEntry
+  concept: OntologyEntryInterface
   records: [Record]
   contributors: [Int]
   references: [Int]
 }
+
+"""
+Ontology entries with a given label should form directed acyclic graphs with source and sink
+relationships described for each label type as parents and children.
+Relationships across labels may be formed through the term type,
+or through type specific links for other types,
+such as the subject type which is associated with traits and conditions.
+"""
 type Version {
   id: Int!
   major: Int!
@@ -106,286 +593,71 @@ type Version {
   patch: Int!
   comment: String!
 }
-type OntologyEntry {
-  """
-  Ontology Version that the entry was retrieved from.
-  For current terms this will be the latest ontology version.
-  For retired terms it will be the last ontology version they were seen in.
-  """
-  version: Version!
-  label: OntologyLabel!
-  id: Int!
-  name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String]
-  authors: [Int]
-  references: [Int]
-  parents: [OntologyEntry]
-  children: [OntologyEntry]
-  "Either ObservationMethodType for ObservationMethod, or ScaleType for Scale"
-  scale_type: ScaleType
-  observation_type: ObservationMethodType
-  "Subjects for trait"
-  subjects: [OntologyEntry]
-  "Categories for scale"
-  categories: [OntologyEntry]
-  "Trait for variable"
-  trait: OntologyEntry
-  "Condition for parameter"
-  condition: OntologyEntry
-  "Exposure for event"
-  exposure: OntologyEntry
-  "Either ControlMethod or ObservationMethod for variable/parameter/event"
-  method: OntologyEntry
-  "Scale for variable/parameter/event"
-  scale: OntologyEntry
-  "Rank for ordinal scale categories"
-  rank: Int
-  "Axes for layout type"
-  axes: [AxisType]
-}
-type Affiliation {
+
+type OntologyCommit {
+  version: Version
+  comment: String
+  time: DateTime
   user: User
-  authorisation: Authorisation
-  heritable: Boolean!
+  licence: Int
+  copyright: Int
 }
-type Affiliations {
-  read: [Affiliation]
-  write: [Affiliation]
-  admin: [Affiliation]
-  curate: [Affiliation]
-}
-type Team {
-  id: Int!
-  name: String!
-  fullname: String!
-  parent: Team
-  children: [Team]
-  affiliations: Affiliations
-}
-type Error {
-  name: String!
-  message: String!
-}
-type BooleanPayload {
-  status: QueryStatus!
-  result: Boolean
-  errors: [Error]
-}
-type LoginPayload {
-  status: QueryStatus!
-  result: Token
-  errors: [Error]
-}
-type TeamsPayload {
-  status: QueryStatus!
-  result: [Team]
-  errors: [Error]
-}
-type TeamPayload {
-  status: QueryStatus!
-  result: Team
-  errors: [Error]
-}
-type AffiliationsPayload {
-  status: QueryStatus!
-  result: Affiliations
-  errors: [Error]
-}
-type AccountPayload {
-  status: QueryStatus!
-  result: Account
-  errors: [Error]
-}
-type UsersPayload {
-  status: QueryStatus!
-  result: [User]
-  errors: [Error]
-}
-type VersionPayload {
-  status: QueryStatus!
-  result: Version
-  errors: [Error]
-}
-type OntologyEntryPayload {
-  status: QueryStatus!
-  result: OntologyEntry
-  errors: [Error]
-}
-type OntologyEntriesPayload {
-  status: QueryStatus!
-  result: [OntologyEntry]
-  errors: [Error]
-}
-type LocationsPayload {
-  status: QueryStatus!
-  result: [Location]
-  errors: [Error]
-}
-type LocationPayload {
-  status: QueryStatus!
-  result: Location
-  errors: [Error]
-}
-type LayoutsPayload {
-  status: QueryStatus!
-  result: [Layout]
-  errors: [Error]
-}
-type LayoutPayload {
-  status: QueryStatus!
-  result: Layout
-  errors: [Error]
-}
-type UnitsPayload {
-  status: QueryStatus!
-  result: [Unit]
-  errors: [Error]
-}
-type UnitPayload {
-  status: QueryStatus!
-  result: Unit
-  errors: [Error]
-}
-type DatasetsPayload {
-  status: QueryStatus!
-  result: [DataSet]
-  errors: [Error]
-}
-type Query {
-  "Get own account details for administrative tasks"
-  account: AccountPayload!
-  "Get user details for administrative tasks"
-  users(user_id: Int): UsersPayload!
-  """
-  Get a list of organisation "root" teams.
-  These are top-level team in the organisation hierarchy.
-  Visibility of teams within an organisation is dependent on controls, read-release and affiliations.
-  Navigation of the organisation graph is achieved by resolvers on the parent/children attributes.
-  """
-  organisations: TeamsPayload!
-  """
-  Get a single team details
-  As with organisations, the organisation can be explored from this node.
-  """
-  team(team_id: Int!): TeamPayload!
-  """
-  Get a multiple team details
-  """
-  teams (team_ids: [Int!]): TeamsPayload! # see team
-  """Get affiliations that result from heritable affiliations to parent teams"""
-  inherited_affiliations(team_id: Int!): AffiliationsPayload!
-  "Get the latest ontology version"
-  ontology_version(entry_id: Int, entry_name: String): VersionPayload!
-  "Get an ontology entry"
-  ontology_entry(entry_id: Int!): OntologyEntryPayload
-  "Get a list of ontology entries"
-  ontology_entries(name: String, label: OntologyLabel): OntologyEntriesPayload
-  "Get a list of countries for use in top level region creation"
-  countries: LocationsPayload!
-  """
-  Get a list of region "root" locations.
-  These are all countries that form the top-level location in the region.
-  """
-  regions: LocationsPayload!
-  "Get a single location details"
-  location(location_id: Int!): LocationPayload!
-  """
-  Get a list of arrangement roots.
-  These are all layouts that form the top-level layout in an arrangement.
-  Optionally retrieve only those at a given location by supplying location_id.
-  """
-  arrangements(location_id: Int): LayoutsPayload!
-  "Get a single layout details"
-  layout(layout_id: Int!): LayoutPayload!
-  """
-  Get a list of block "root" units.
-  These are top-level unit in the block hierarchy.
-  """
-  blocks(location_id: Int): UnitsPayload
-  "Get a single unit."
-  unit(unit_id: Int!): UnitPayload
-  datasets(dataset_id: Int, term_id: Int): DatasetsPayload
-}
-type GeoCoordinate {
-  "Latitude in degrees according to ISO 6709"
-  latitude: Float!
-  "Longitude in degrees according to ISO 6709"
-  longitude: Float!
-  "Meters above WGS84 reference ellipsoid"
-  altitude: Float
-  "Uncertainty in meters associated with these coordinates"
-  uncertainty: Float
-  "Additional coordinate description"
-  description: String
-}
-type Location {
-  """
-  ID is not always required for location
-  We return Country LocationInputs that are not yet stored using this type
-  """
-  id: Int
-  name: String!
-  type: OntologyEntry!
-  code: String
-  synonyms: [String]
-  description: String
-  address: String
-  coordinates: [GeoCoordinate]
-  parent: Location
-  children: [Location]
-  release: Release
-}
+
 """
-Ontology entries form a directed acyclic graph with source and sink
-relationships described for each node as arents and children.
-Each entry has an OntologyLabel to distinguish various classes of entry.
-Contributions for some entry classes requires additional parameters (detailed below).
+Ontology entries form a graph
+Each label is represented by directed acyclic graphs with source and sink
+relationships described for each node as parents and children.
+Each entry has an OntologyEntryLabel to distinguish various classes of entry.
 """
-enum OntologyLabel {
+enum OntologyEntryLabel {
   """
   Term entries may be used to relate other key terms in the ontology.
   Example: "Metabolism" may be a term.
   """
-  Term
+  TERM
+
   """
   Subject entries describe Units (see Blocks) being observed in a study.
   These are linked to Unit and Trait.
   Examples: "Leaf", "Tree", "Field", "Rhizosphere"
   """
-  Subject
+  SUBJECT
+
   """
   Scale entries describe units or classes used for values in a Dataset.
-  These are linked to Variable, Parameter or Event.
+  These are linked to Variable or Factor .
   Scale entries require a ScaleType.
   For Nominal and Ordinal types, additional Category references may be provided.
   Examples:
   "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
   "Plant Genetic Material" is ScaleType nominal, and categories should include references to GermplasmEntries.
   """
-  Scale
+  SCALE
+
   """
   Category entries describe classes for Scale entries with type Nominal or Ordinal.
   These are linked to Scale entries.
   Ordinal scales require a "rank" parameter for each category.
   Examples: "High", "Medium", "Low" with ranks 2, 1 and 0, respectively.
   """
-  Category
+  CATEGORY
+
   """
   Observation method entries describe the way a value is determined.
-  These are linked to Variable or Event.
+  These are linked to Variable.
   Observation method entries require an ObservationMethodType.
   Examples: "Distance measurement with calibrated reference", "Short-read sequencing", "Rain Gauge".
   """
-  ObservationMethod
+  OBSERVATION_METHOD
+
   """
   Trait entries describe observed properties of a subject (phenotype for a plant subject)
   These are linked to Variable and Subject.
   Examples:
   "Height", "Gene expression" linked to a tree subject.
   """
-  Trait
+  TRAIT
+
   """
   Variable entries link a Trait, ObservationMethod and Scale
   to form a single reference term for a Dataset (see Datasets).
@@ -399,21 +671,24 @@ enum OntologyLabel {
       Method = "Short read sequencing",
       Scale = "Counts per million"
   """
-  Variable
+  VARIABLE
+
   """
   Control method entries describe the way a value is maintained for an experiment.
-  These are linked to Parameter or Event.
+  These are linked to Factor.
   Examples: "Fluorescent Lighting", "Fertilizer application", "Germplasm selection"
   """
-  ControlMethod
+  CONTROL_METHOD
+
   """
   Condition entries describe the quantities/qualities that are fixed/controlled throughout an experiment.
-  These are linked to Parameter or Event entries.
+  These are linked to Factor entries.
   Examples: "Light level", "Controlled Grafting", "Water availability"
   """
-  Condition
+  CONDITION
+
   """
-  Parameter entries link a Condition, ControlMethod and Scale
+  Factor entries link a Condition, ControlMethod and Scale
   to form a single entry for a Dataset (see Datasets).
   Examples:
   "Controlled lighting" where:
@@ -425,76 +700,71 @@ enum OntologyLabel {
   "Grafted Material" where:
       Condition = "Genetic material", ControlMethod = "Controlled Grafting", Scale = "Plant Genetic Material"
   """
-  Parameter
+  FACTOR
+
   """
-  Exposure entries describe temporary occurrences within an experimental setting.
-  These are linked to Event entries.
+  Event entries link multiple Variables and Factors
   Examples:
-  "Fertilizer application", "Rainfall"
+  "Harvest" event with "Harvest method" factor, and "Yield" variable.
   """
-  Exposure
-  """
-  Event entries link an Exposure, ObservationMethod and Scale
-  to form a single entry for a Dataset (see Datasets).
-  Examples:
-  "Pellet Fertilizer Application" where:
-      Exposure = "Fertilizer application", Method = "Pellet Dispersion", Scale = "kg/ha"
-  """
-  Event
-  """
-  Germplasm method entries describe maintenance or sourcing of germplasm.
-  These are linked to GermplasmEntry (see Germplasms).
-  Examples: "Controlled cross", "Mutagenesis", "Ecological survey"
-  """
-  GermplasmMethod
+  EVENT
+
   """
   LocationType entries describe types of locations.
   These are linked to Location (see Regions).
   Examples: "Country", "State", "Field"
   """
-  LocationType
+  LOCATION_TYPE
+
   """
   LayoutType entries describe types of arrangements.
   These are linked to Layout (see Arrangements).
   Examples: "Grid", "Rows"
   """
-  LayoutType
+  LAYOUT_TYPE
+
   """
   Design entries describe statistical designs for a study.
   These are linked to Study (see Programs).
   Examples: "Split-plot", "Randomized block"
   """
-  Design
+  DESIGN
+
   """
   Role entries describe roles for people.
   These are linked to Person (see People).
   Examples: "Post-doctoral researcher", "Principal Investigator"
   """
-  Role
+  ROLE
+
   """
   Title entries describe titles for people.
   These are linked to Person (see People).
   Examples: "Professor", "Doctor"
   """
-  Title
+  TITLE
 }
+
 enum AxisType {
   """
   String values with no implied directional relationship
   e.g. Growth Facility
   """
   NOMINAL
+
   """
   String values values that convey a sequence.
   e.g. Row number
   """
   ORDINAL
+
   """
   Numeric values that convey position within Euclidean space.
   This may be a curvilinear/affine space with unknown transformations.
   e.g. Distance from start of row when rows follow the surface topology.
   """
   COORDINATE
+
   """
   Cartesian coordinates are a subset of the AxisType.COORDINATE that additionally allow distance calculations.
   AxisType.CARTESIAN should be preferred when the coordinate space is approximately Cartesian,
@@ -506,6 +776,7 @@ enum AxisType {
   """
   CARTESIAN
 }
+
 enum ObservationMethodType {
   MEASUREMENT
   COUNTING
@@ -515,6 +786,28 @@ enum ObservationMethodType {
   DESCRIPTION
   CLASSIFICATION
 }
+
+enum ControlMethodType {
+  """ Environmental controls, e.g. light, temperature, humidity. """
+  ENVIRONMENTAL
+
+  """ Nutritional controls, e.g. fertilizer application. """
+  NUTRITIONAL
+
+  """ Chemical controls (non-nutritive) .e.g. herbicides, hormones etc. """
+  CHEMICAL
+
+  """ Biological controls, e.g. microbial treatment, fungal inoculation, insect colonization
+  """
+  BIOLOGICAL
+
+  """ Genetic controls, e.g. germplasm selection """
+  GENETIC
+
+  """ Management controls, e.g. cropping density, pruning """
+  MANAGEMENT
+}
+
 enum ScaleType {
   DATE
   DURATION
@@ -522,149 +815,727 @@ enum ScaleType {
   NOMINAL
   ORDINAL
   TEXT
-  germplasm
+  GERMPLASM
 }
+
+interface OntologyEntryInterface {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [OntologyEntryInterface]
+  children: [OntologyEntryInterface]
+}
+
+interface RelatedToTerms {
+  terms: [Term]
+}
+
+"""
+Term entries may be used to relate other key terms in the ontology.
+Example: "Metabolism" may be a term.
+"""
+type Term implements OntologyEntryInterface {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Term]
+  children: [Term]
+  subjects: [Subject]
+  scales: [Scale]
+  categories: [Category]
+  observationMethods: [ObservationMethod]
+  traits: [Trait]
+  variables: [Variable]
+  controlMethods: [ControlMethod]
+  conditions: [Condition]
+  factors: [Factor]
+  events: [Event]
+  locationTypes: [LocationType]
+  layoutTypes: [LayoutType]
+  designs: [Design]
+  roles: [Role]
+  titles: [Title]
+}
+
+"""
+Subject entries describe Units (see Blocks) being observed in a study.
+These are linked to Unit and Trait.
+Examples: "Leaf", "Tree", "Field", "Rhizosphere"
+"""
+type Subject implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Subject]
+  children: [Subject]
+  terms: [Term]
+  traits: [Trait]
+  conditions: [Condition]
+}
+
+"""
+Trait entries describe observed properties of a subject (phenotype for a plant subject)
+These are linked to Variable and Subject.
+Examples:
+"Height", "Gene expression" linked to a tree subject.
+"""
+type Trait implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Trait]
+  children: [Trait]
+  terms: [Term]
+  subjects: [Subject]
+  variables: [Variable]
+}
+
+"""
+Condition entries describe the quantities/qualities that are fixed/controlled throughout an experiment.
+These are linked to Factor entries.
+Examples: "Light level", "Controlled Grafting", "Water availability"
+"""
+type Condition implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Condition]
+  children: [Condition]
+  terms: [Term]
+  subjects: [Subject]
+  factors: [Factor]
+}
+
+"""
+Scale entries describe units or classes used for values in a Dataset.
+These are linked to Variable or Factor.
+Scale entries require a ScaleType.
+For Nominal and Ordinal types, additional Category references may be provided.
+Ordinal scales represent the rank of categories by their presentation order.
+Examples:
+"Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
+"Plant Genetic Material" is ScaleType nominal, and categories should include references to GermplasmEntries.
+"""
+type Scale implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Scale]
+  children: [Scale]
+  terms: [Term]
+  scaleType: ScaleType!
+  categories: [Category]
+  variables: [Variable]
+  factors: [Factor]
+}
+
+"""
+Category entries describe classes for Scale entries with type Nominal or Ordinal.
+These are linked to Scale entries.
+"""
+type Category implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Category]
+  children: [Category]
+  terms: [Term]
+  scales: [Scale]
+}
+
+"""
+Observation method entries describe the way a value is determined.
+These are linked to Variable.
+Observation method entries require an ObservationMethodType.
+Examples: "Distance measurement with calibrated reference", "Short-read sequencing", "Rain Gauge".
+"""
+type ObservationMethod implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [ObservationMethod]
+  children: [ObservationMethod]
+  terms: [Term]
+  observationType: ObservationMethodType!
+  variables: [Variable]
+}
+
+"""
+Variable entries link a Trait, ObservationMethod and Scale
+to form a single reference term for a Dataset (see Datasets).
+Examples:
+"Tree height" where:
+    Trait = "Height",
+    Method = "Distance measurement with calibrated reference",
+    Scale = "Centimeters".
+"Normalised Expression" where:
+    Trait = "Gene expression",
+    Method = "Short read sequencing",
+    Scale = "Counts per million"
+"""
+type Variable implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Variable]
+  children: [Variable]
+  terms: [Term]
+  trait: Trait!
+  observationMethod: ObservationMethod!
+  scale: Scale!
+}
+
+"""
+Control method entries describe the way a value is maintained for an experiment.
+These are linked to Factor.
+Examples: "Fluorescent Lighting", "Fertilizer application", "Germplasm selection"
+"""
+type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [ControlMethod]
+  children: [ControlMethod]
+  terms: [Term]
+  controlType: ControlMethodType!
+  factors: [Factor]
+}
+
+"""
+Factor entries link a Condition, ControlMethod and Scale
+to form a single entry for a Dataset (see Datasets).
+Examples:
+"Controlled lighting" where:
+    Condition = "Light level", ControlMethod = "Fluorescent lighting", Scale = "Micro Einsteins"
+OR
+"Controlled water availability" where:
+    Condition = "Water availability", ControlMethod = "Controlled water application", Scale = "L/m2/day"
+OR
+"Grafted Material" where:
+    Condition = "Genetic material", ControlMethod = "Controlled Grafting", Scale = "Plant Genetic Material"
+"""
+type Factor implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Factor]
+  children: [Factor]
+  terms: [Term]
+  condition: Condition!
+  controlMethod: ControlMethod!
+  scale: Scale!
+}
+
+"""
+Event entries link multiple Variables and Factors
+Examples:
+"Harvest" where "harvest method" may be a factor and "yield" may be a variable.
+"""
+type Event implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Event]
+  children: [Event]
+  terms: [Term]
+  variables: [Variable]
+  factors: [Factor]
+}
+
+"""
+Germplasm method entries describe maintenance or sourcing of germplasm.
+These are linked to GermplasmEntry (see Germplasms).
+Examples: "Controlled cross", "Mutagenesis", "Ecological survey"
+"""
+type GermplasmMethod implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [GermplasmMethod]
+  children: [GermplasmMethod]
+  terms: [Term]
+}
+
+"""
+LocationType entries describe types of locations.
+These are linked to Location (see Regions).
+Examples: "Country", "State", "Field"
+"""
+type LocationType implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [LocationType]
+  children: [LocationType]
+  terms: [Term]
+}
+
+"""
+LayoutType entries describe types of arrangements.
+These are linked to Layout (see Arrangements).
+Examples: "Grid", "Rows"
+"""
+type LayoutType implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [LayoutType]
+  children: [LayoutType]
+  terms: [Term]
+  axes: [String]
+}
+
+"""
+Design entries describe statistical designs for a study.
+These are linked to Study (see Programs).
+Examples: "Split-plot", "Randomized block"
+"""
+type Design implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Design]
+  children: [Design]
+  terms: [Term]
+}
+
+"""
+Role entries describe roles for people.
+These are linked to Person (see People).
+Examples: "Post-doctoral researcher", "Principal Investigator"
+"""
+type Role implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Role]
+  children: [Role]
+  terms: [Term]
+}
+
+"""
+Title entries describe titles for people.
+These are linked to Person (see People).
+Examples: "Professor", "Doctor"
+"""
+type Title implements OntologyEntryInterface & RelatedToTerms {
+  id: Int!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authors: [Int]
+  references: [Int]
+  parents: [Title]
+  children: [Title]
+  terms: [Term]
+}
+
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | GermplasmMethod | LocationType | LayoutType | Design | Role | Title
+
 enum Access {
   READ
   WRITE
   ADMIN
   CURATE
 }
+
 enum Authorisation {
   REQUESTED
   AUTHORISED
   REVOKED
 }
+
+type Affiliation {
+  user: User
+  authorisation: Authorisation
+  heritable: Boolean!
+}
+
+type Affiliations {
+  read: [Affiliation]
+  write: [Affiliation]
+  admin: [Affiliation]
+  curate: [Affiliation]
+}
+
+type Team {
+  id: Int!
+  name: String!
+  fullname: String!
+  parent: Team
+  children: [Team]
+  affiliations: Affiliations
+  directAffiliations: Affiliations
+  inheritedAffiliations: Affiliations
+}
+
+type UserAccess {
+  read: [Team]
+  write: [Team]
+  admin: [Team]
+  curate: [Team]
+}
+
 enum QueryStatus {
   SUCCESS
   NOT_FOUND
   ERROR
 }
-enum Release {
-  PRIVATE
-  REGISTERED
-  PUBLIC
-}
-input LayoutInput {
-  " Location ID from Region "
-  location: Int!
-  " Ontology LayoutType identifier "
-  type: Int!
-  " Axis labels "
-  axes: [String!]
-  " Optional name for the layout "
-  name: String
-  " Optional parent layout to construct multiplexed layout arrangements"
-  parent: Int
-  " When parent is supplied, position according to parent layout axes must be provided."
-  position: [String]
-  " Read access to this layout "
-  release: Release
-}
-input PositionInput {
-  "ID of Location in a Region"
-  location: Int!
-  "ID of Layout in and Arrangement"
-  layout: Int
-  "Coordinates should be a list of values corresponding to the stored layout axes."
-  coordinates: [String]
-  start: DateTime
-  end: DateTime
-}
-input UnitInput {
-  "ID of Subject in the ontology"
-  subject: Int!
-  name: String
-  synonyms: [String]
-  description: String
-  "IDs of parent Units, of which this unit forms a component"
-  parents: [Int]
-  "IDs of child Units, which represent a component of this unit."
-  children: [Int]
-  release: Release
-}
-input RecordInput {
-  dataset: Int!
-  unit: Int!
-  value: String
-  start: DateTime
-  end: DateTime
-  references: [Int]
-}
-input OntologyEntryInput {
-  label: OntologyLabel!
+
+type Error {
   name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String]
-  "People stored in the database that established this entry"
-  authors: [Int]
-  "References stored in the database for additional details, e.g. a link to another ontology."
-  references: [Int]
-  """
-  To establish a hierarchy and relationships among terms.
-  Parents or children may be defined for any entry.
-  """
-  parents: [Int]
-  children: [Int]
-  """
-  Scale and ObservationMethod entries require an additional type parameter,
-  ScaleType or ObservationMethodType respectively.
-  """
-  scale_type: ScaleType
-  observation_type: ObservationMethodType
-  "When defining a scale using existing categories, their identifiers may be listed in their proposed rank order."
-  categories: [Int]
-  "When defining a Variable, Parameter or Event, a Scale identifier is required."
-  scale: Int
-  "When creating a category for an ordinal scale, a rank must be provided."
-  rank: Int
-  "When creating a trait, subjects must be specified by ID"
-  subjects: [Int]
-  "When creating a variable, a Trait identifier is required."
-  trait: Int
-  """
-  When defining a Variable an ObservationMethod is required.
-  When defining a Parameter a ControlMethod identifier is required.
-  When defining an Event, either ObservationMethod or ControlMethod is required.
-  """
-  method: Int
-  "When creating a parameter, a Condition identifier is required."
-  condition: Int
-  "When creating an Event, an Exposure identifier is required."
-  exposure: Int
-  "When creating a LayoutType, each axis type for position descriptions is required"
-  axes: [AxisType]
+  message: String!
 }
-input GeoCoordinateInput {
-  "Latitude in degrees according to ISO 6709"
+
+type StatusPayload {
+  status: QueryStatus
+  errors: [Error]
+}
+
+type BooleanPayload {
+  status: QueryStatus!
+  result: Boolean
+  errors: [Error]
+}
+
+type LoginPayload {
+  status: QueryStatus!
+  result: Token
+  errors: [Error]
+}
+
+type TeamsPayload {
+  status: QueryStatus!
+  result: [Team]
+  errors: [Error]
+}
+
+type AffiliationsPayload {
+  status: QueryStatus!
+  result: Affiliations
+  errors: [Error]
+}
+
+type UserAccessPayload {
+  status: QueryStatus!
+  result: UserAccess
+  errors: [Error]
+}
+
+type TeamPayload {
+  status: QueryStatus!
+  result: Team
+  errors: [Error]
+}
+
+type AccountPayload {
+  status: QueryStatus!
+  result: Account
+  errors: [Error]
+}
+
+type UsersPayload {
+  status: QueryStatus!
+  result: [User]
+  errors: [Error]
+}
+
+type VersionPayload {
+  status: QueryStatus!
+  result: Version
+  errors: [Error]
+}
+
+type OntologyCommitsPayload {
+  status: QueryStatus!
+  result: [OntologyCommit]
+  errors: [Error]
+}
+
+type OntologyEntryPayload {
+  status: QueryStatus!
+  result: OntologyEntryInterface
+  errors: [Error]
+}
+
+type OntologyEntriesPayload {
+  status: QueryStatus!
+  result: [OntologyEntryInterface]
+  errors: [Error]
+}
+
+type LocationsPayload {
+  status: QueryStatus!
+  result: [Location]
+  errors: [Error]
+}
+
+type LocationPayload {
+  status: QueryStatus!
+  result: Location
+  errors: [Error]
+}
+
+type LayoutsPayload {
+  status: QueryStatus!
+  result: [Layout]
+  errors: [Error]
+}
+
+type LayoutPayload {
+  status: QueryStatus!
+  result: Layout
+  errors: [Error]
+}
+
+type UnitsPayload {
+  status: QueryStatus!
+  result: [Unit]
+  errors: [Error]
+}
+
+type UnitPayload {
+  status: QueryStatus!
+  result: Unit
+  errors: [Error]
+}
+
+type DatasetsPayload {
+  status: QueryStatus!
+  result: [DataSet]
+  errors: [Error]
+}
+
+type ProgramsPayload {
+  status: QueryStatus!
+  result: [Program]
+  errors: [Error]
+}
+
+type ControllersPayload {
+  status: QueryStatus!
+  result: [Controller]
+  errors: [Error]
+}
+
+type Program {
+  id: Int!
+  name: String!
+  fullname: String
+  description: String
+  contacts: [Int]
+  references: [Int]
+  trials: [Trial]
+}
+
+type Trial {
+  id: Int!
+  name: String!
+  fullname: String
+  description: String
+  start: DateTime
+  end: DateTime
+  contacts: [Int]
+  references: [Int]
+  studies: [Study]
+}
+
+type Study {
+  id: Int!
+  name: String!
+  fullname: String
+  description: String
+  externalId: String
+  practices: String
+  start: DateTime
+  end: DateTime
+  factors: [Int]
+  observations: [Int]
+  design: Int
+  licence: Int
+  references: [Int]
+}
+
+type Query {
+  """Get own account details for administrative tasks"""
+  accountsAccount: AccountPayload!
+
+  """Get user details for administrative tasks"""
+  accountsUsers(userId: Int): UsersPayload!
+
+  """Get the user access map of access type to team"""
+  accountsUserAccess: UserAccessPayload!
+
+  """
+  Get a list of organisation "root" teams.
+  These are top-level team in the organisation hierarchy.
+  Visibility of teams within an organisation is dependent on controls, read-release and affiliations.
+  Navigation of the organisation graph is achieved by resolvers on the parent/children attributes.
+  """
+  organisations: TeamsPayload!
+
+  """
+  Get a single team details
+  As with organisations, the organisation can be explored from this node.
+  """
+  organisationsTeam(teamId: Int!): TeamPayload!
+
+  """Get a multiple team details"""
+  organisationsTeams(teamIds: [Int!]): TeamsPayload!
+
+  """Get the latest ontology version"""
+  ontologyVersion: VersionPayload!
+
+  """Get an ontology entry"""
+  ontologyEntry(entryId: Int!): OntologyEntryPayload!
+
+  """Get an ontology commit history"""
+  ontologyCommitHistory(limit: Int): OntologyCommitsPayload!
+
+  """Get a list of ontology entries"""
+  ontologyEntries(entryIds: [Int], names: [String], labels: [OntologyEntryLabel], versionId: Int): OntologyEntriesPayload!
+
+  """Get a list of countries for use in top level region creation"""
+  regionsCountries: LocationsPayload!
+
+  """
+  Get a list of region "root" locations.
+  These are all countries that form the top-level location in the region.
+  """
+  regions: LocationsPayload!
+
+  """Get a single location details"""
+  regionsLocation(locationId: Int!): LocationPayload!
+
+  """Search for locations by ontology Location type"""
+  regionsLocations(locationTypeId: Int!): LocationsPayload!
+
+  """
+  Get a list of arrangement roots.
+  These are all layouts that form the top-level layout in an arrangement.
+  Optionally retrieve only those at a given location by supplying locationId.
+  """
+  arrangements(locationId: Int): LayoutsPayload!
+
+  """Get a single layout details"""
+  arrangementsLayout(layoutId: Int!): LayoutPayload!
+
+  """
+  Get a list of block "root" units.
+  These are top-level unit in the block hierarchy.
+  """
+  blocks(locationId: Int): UnitsPayload!
+
+  """Get a single unit."""
+  blocksUnit(unitId: Int!): UnitPayload!
+
+  """Get a list of programs"""
+  programs(programId: Int, trialId: Int, studyId: Int): ProgramsPayload
+  datasets(datasetId: Int, conceptId: Int): DatasetsPayload
+  controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [Int]!): ControllersPayload!
+}
+
+type GeoCoordinate {
+  """Latitude in degrees according to ISO 6709"""
   latitude: Float!
-  "Longitude in degrees according to ISO 6709"
+
+  """Longitude in degrees according to ISO 6709"""
   longitude: Float!
-  "Meters above WGS84 reference ellipsoid"
+
+  """Meters above WGS84 reference ellipsoid"""
   altitude: Float
-  "Uncertainty in meters associated with these coordinates"
+
+  """Uncertainty in meters associated with these coordinates"""
   uncertainty: Float
-  "Additional coordinate description"
+
+  """Additional coordinate description"""
   description: String
 }
-input LocationInput {
+
+type Location {
+  """
+  ID is not always required for location
+  We return Country LocationInputs that are not yet stored using this type
+  """
+  id: Int
   name: String!
-  synonyms: [String]
-  " Optional code for location, e.g. zip-code "
+  type: OntologyEntryInterface!
   code: String
+  synonyms: [String]
   description: String
   address: String
-  coordinates: [GeoCoordinateInput]
-  " Ontology LocationType identifier "
-  type: Int!
-  " A parent location, required unless a country (see countries) "
-  parent: Int
-  release: Release
+  coordinates: [GeoCoordinate]
+  parent: Location
+  children: [Location]
 }
-"Exposes a URL that specifies the behaviour of this scalar."
-directive @specifiedBy(
-    "The URL that specifies the behaviour of this scalar."
-    url: String!
-  ) on SCALAR
 
+scalar DateTime

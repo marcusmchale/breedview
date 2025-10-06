@@ -1,0 +1,12 @@
+mutation ontologyCreateCategory(
+    $category: CategoryInput!
+) {
+    ontologyCreateCategory(
+        category: $category,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

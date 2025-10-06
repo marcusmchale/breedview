@@ -1,0 +1,12 @@
+mutation ontologyCreateTerm(
+    $term: TermInput!
+) {
+    ontologyCreateTerm(
+        term: $term,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -33,12 +33,12 @@
     <TeamActions
       :user-is-admin="userIsAdminForTeam"
       :has-children="hasChildren"
-      :remove-team-loading="removeTeamLoading"
-      :remove-team-error="removeTeamError"
+      :delete-team-loading="deleteTeamLoading"
+      :delete-team-error="deleteTeamError"
       @request-affiliation="emit('request-affiliation', teamInfo)"
       @manage-affiliations="showManageAffiliationsModal"
-      @add-team="emit('add-team', teamInfo)"
-      @remove-team="handleRemoveTeam"
+      @create-team="emit('create-team', teamInfo)"
+      @delete-team="handleDeleteTeam"
     />
 
     <div v-if="isExpanded" class="children-section">
@@ -51,10 +51,10 @@
           :team-data="child"
           :depth="depth + 1"
           :current-user-id="currentUserId"
-          @add-team="emit('add-team', $event)"
+          @create-team="emit('create-team', $event)"
           @request-affiliation="emit('request-affiliation', $event)"
-          @team-removed="handleChildTeamRemoved"
-          @team-added="handleTeamAdded"
+          @team-deleted="handleChildTeamDeleted"
+          @team-created="handleTeamCreated"
         />
       </div>
       <div v-else class="no-teams">
@@ -86,9 +86,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
-import REMOVE_TEAM_MUTATION from '../graphql/organisations/removeTeam.graphql'
+import DELETE_TEAM_MUTATION from '../graphql/organisations/deleteTeam.graphql'
 import REMOVE_AFFILIATION_MUTATION from '../graphql/account/removeAffiliation.graphql'
-import { useTeamData } from '../composables/useTeamData.js'
+import { useTeamData } from '@/composables/useTeamData'
 import AffiliationBadges from './AffiliationBadges.vue'
 import TeamActions from './TeamActions.vue'
 import AffiliationDetailsModal from './AffiliationDetailsModal.vue'
@@ -100,7 +100,7 @@ const props = defineProps({
   currentUserId: { type: [String, Number], required: true }
 })
 
-const emit = defineEmits(['add-team', 'request-affiliation', 'team-removed', 'team-added'])
+const emit = defineEmits(['create-team', 'request-affiliation', 'team-deleted', 'team-created'])
 
 // Use the composable for team data management
 const {
@@ -113,10 +113,10 @@ const showAffiliationModal = ref(false)
 const selectedAffiliation = ref({ accessType: '', data: null })
 const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
-const removeTeamError = ref('')
+const deleteTeamError = ref('')
 
 // Mutations
-const { mutate: removeTeamMutation, loading: removeTeamLoading } = useMutation(REMOVE_TEAM_MUTATION)
+const { mutate: deleteTeamMutation, loading: deleteTeamLoading } = useMutation(DELETE_TEAM_MUTATION)
 const { mutate: removeAffiliationMutation, loading: removeAffiliationLoading } = useMutation(REMOVE_AFFILIATION_MUTATION)
 
 // Event handlers
@@ -152,11 +152,11 @@ const handleRemoveAffiliation = async () => {
       access: selectedAffiliation.value.accessType
     })
 
-    if (response?.data?.remove_affiliation?.status === 'SUCCESS') {
+    if (response?.data?.accountsRemoveAffiliation?.status === 'SUCCESS') {
       closeAffiliationDialog()
       await refreshTeamData()
     } else {
-      removeAffiliationError.value = response?.data?.remove_affiliation?.errors?.[0]?.message || 'Failed to remove affiliation'
+      removeAffiliationError.value = response?.data?.accountsRemoveAffiliation?.errors?.[0]?.message || 'Failed to remove affiliation'
     }
   } catch (error) {
     console.error('Remove affiliation error:', error)
@@ -164,22 +164,22 @@ const handleRemoveAffiliation = async () => {
   }
 }
 
-const handleRemoveTeam = async () => {
+const handleDeleteTeam = async () => {
   try {
-    removeTeamError.value = ''
-    const response = await removeTeamMutation({ team: props.teamData.id })
+    deleteTeamError.value = ''
+    const response = await deleteTeamMutation({ team: props.teamData.id })
 
-    if (response?.data?.remove_team?.status === 'SUCCESS') {
-      emit('team-removed', props.teamData.id)
+    if (response?.data?.organisationsDeleteTeam?.status === 'SUCCESS') {
+      emit('team-deleted', props.teamData.id)
     } else {
-      removeTeamError.value = response?.data?.remove_team?.errors?.[0]?.message || 'Failed to remove team'
+      deleteTeamError.value = response?.data?.organisationsDeleteTeam?.errors?.[0]?.message || 'Failed to delete team'
     }
   } catch (error) {
-    removeTeamError.value = error.message || 'An error occurred'
+    deleteTeamError.value = error.message || 'An error occurred'
   }
 }
 
-const handleChildTeamRemoved = (teamId) => {
+const handleChildTeamDeleted = (teamId) => {
   childrenData.value = childrenData.value.filter(child => child.id !== teamId)
   if (teamInfo.value.children) {
     teamInfo.value.children = teamInfo.value.children.filter(child => child.id !== teamId)
@@ -189,12 +189,12 @@ const handleChildTeamRemoved = (teamId) => {
   }
 }
 
-const handleTeamAdded = (teamId) => {
-  emit('team-added', teamId)
+const handleTeamCreated = (teamId) => {
+  emit('team-created', teamId)
 }
 
 // Global event listeners (keeping the existing functionality)
-const handleGlobalTeamAdded = async (event) => {
+const handleGlobalTeamCreated = async (event) => {
   const { parentTeamId } = event.detail
   if (parentTeamId === props.teamData.id) {
     await refreshTeamData()
@@ -209,12 +209,12 @@ const handleGlobalAffiliationRequested = async (event) => {
 }
 
 onMounted(() => {
-  window.addEventListener('team-added', handleGlobalTeamAdded)
+  window.addEventListener('team-created', handleGlobalTeamCreated)
   window.addEventListener('affiliation-requested', handleGlobalAffiliationRequested)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('team-added', handleGlobalTeamAdded)
+  window.removeEventListener('team-created', handleGlobalTeamCreated)
   window.removeEventListener('affiliation-requested', handleGlobalAffiliationRequested)
 })
 </script>

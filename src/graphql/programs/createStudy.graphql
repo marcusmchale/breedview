@@ -1,0 +1,8 @@
+mutation programsCreateStudy($study: CreateStudyInput!) {
+  programsCreateStudy(study: $study) {
+    status
+    errors {
+      message
+    }
+  }
+}

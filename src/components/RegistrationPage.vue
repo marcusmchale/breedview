@@ -57,13 +57,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
-import ADD_ACCOUNT from '../graphql/account/addAccount.graphql'
+import CREATE_ACCOUNT from '../graphql/account/createAccount.graphql'
 
 const error = ref('')
 const success = ref('')
 const formValues = ref({})
 
-const { mutate, loading, onError } = useMutation(ADD_ACCOUNT)
+const { mutate, loading, onError } = useMutation(CREATE_ACCOUNT)
 
 onError((err) => {
   console.error('Registration error:', err)
@@ -84,16 +84,16 @@ const submitHandler = async (formData) => {
       password: formData.password
     })
 
-    console.log('Registration response:', response.data.add_account)
+    console.log('Registration response:', response.data.accountsCreateAccount)
 
-    if (response.data.add_account.status === 'SUCCESS') {
+    if (response.data.accountsCreateAccount.status === 'SUCCESS') {
       success.value = 'Registration successful! Redirecting to login...'
       setTimeout(() => {
         emit('registrationComplete')
       }, 2000)
     } else {
       // Handle server-side validation errors
-      const errorMsg = response.data.add_account.errors?.[0]?.message || 'Registration failed. Please try again.'
+      const errorMsg = response.data.accountsCreateAccount.errors?.[0]?.message || 'Registration failed. Please try again.'
       error.value = errorMsg
     }
   } catch (e) {

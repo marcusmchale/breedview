@@ -1,5 +1,5 @@
-mutation addEmail($email: String!) {
-  add_email(email: $email) {
+mutation accountsAddEmail($email: String!) {
+  accountsAddEmail(email: $email) {
     status
     errors {
       message

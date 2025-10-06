@@ -69,17 +69,17 @@ export function useTeamData(initialTeamData, currentUserId) {
 
       const result = await client.query({
         query: TEAMS_QUERY,
-        variables: { team_ids: childIds },
+        variables: { teamIds: childIds },
         fetchPolicy: 'network-only',
         errorPolicy: 'all'
       })
 
-      if (result?.data?.teams?.status === 'SUCCESS' && result.data.teams.result) {
-        const sortedTeams = [...result.data.teams.result].sort((a, b) => a.id - b.id)
+      if (result?.data?.organisationsTeams?.status === 'SUCCESS' && result.data.organisationsTeams.result) {
+        const sortedTeams = [...result.data.organisationsTeams.result].sort((a, b) => a.id - b.id)
         childrenData.value = sortedTeams
         childrenError.value = ''
       } else {
-        const errorMsg = result?.data?.teams?.errors?.[0]?.message || 'Failed to load children'
+        const errorMsg = result?.data?.organisationsTeams?.errors?.[0]?.message || 'Failed to load children'
         childrenError.value = errorMsg
       }
     } catch (error) {
@@ -94,13 +94,13 @@ export function useTeamData(initialTeamData, currentUserId) {
     try {
       const result = await client.query({
         query: TEAMS_QUERY,
-        variables: { team_ids: [initialTeamData.id] },
+        variables: { teamIds: [initialTeamData.id] },
         fetchPolicy: 'network-only',
         errorPolicy: 'all'
       })
 
-      if (result?.data?.teams?.status === 'SUCCESS' && result.data.teams.result?.length > 0) {
-        const freshData = result.data.teams.result[0]
+      if (result?.data?.organisationsTeams?.status === 'SUCCESS' && result.data.organisationsTeams.result?.length > 0) {
+        const freshData = result.data.organisisationsTeams.result[0]
         teamInfo.value = { ...freshData }
         return freshData
       }

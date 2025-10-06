@@ -73,14 +73,14 @@ const submitHandler = async (formData) => {
     }
     const response = await resetPassword(variables)
     
-    if (response?.data?.reset_password?.status === 'SUCCESS') {
+    if (response?.data?.accountsResetPassword?.status === 'SUCCESS') {
       success.value = 'Password has been reset successfully'
       // Redirect to login page after timeout
       setTimeout(() => {
         router.push('/login')
       }, 2000)
     } else {
-      error.value = response?.data?.reset_password?.errors?.[0]?.message || 'Failed to reset password'
+      error.value = response?.data?.accountsResetPassword?.errors?.[0]?.message || 'Failed to reset password'
     }
   } catch (e) {
     error.value = e.message

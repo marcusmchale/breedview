@@ -6,11 +6,11 @@
 
       <div class="affiliations-management">
         <!-- Read Affiliations -->
-        <div v-if="allTeamAffiliations.read?.length > 0" class="affiliation-section">
+        <div v-if="allAffiliations.read?.length > 0" class="affiliation-section">
           <h4>Read Access</h4>
           <div class="affiliation-list">
             <div
-              v-for="affiliation in allTeamAffiliations.read"
+              v-for="affiliation in allAffiliations.read"
               :key="`read-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
               :class="{ 'inherited-affiliation': affiliation.isInherited }"
@@ -79,11 +79,11 @@
 
 
         <!-- Write Affiliations -->
-        <div v-if="allTeamAffiliations.write?.length > 0" class="affiliation-section">
+        <div v-if="allAffiliations.write?.length > 0" class="affiliation-section">
           <h4>Write Access</h4>
           <div class="affiliation-list">
             <div
-              v-for="affiliation in allTeamAffiliations.write"
+              v-for="affiliation in allAffiliations.write"
               :key="`write-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
               :class="{ 'inherited-affiliation': affiliation.isInherited }"
@@ -142,11 +142,11 @@
         </div>
 
         <!-- Admin Affiliations -->
-        <div v-if="allTeamAffiliations.admin?.length > 0" class="affiliation-section">
+        <div v-if="allAffiliations.admin?.length > 0" class="affiliation-section">
           <h4>Admin Access</h4>
           <div class="affiliation-list">
             <div
-              v-for="affiliation in allTeamAffiliations.admin"
+              v-for="affiliation in allAffiliations.admin"
               :key="`admin-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
               :class="{ 'inherited-affiliation': affiliation.isInherited }"
@@ -217,11 +217,11 @@
         </div>
 
         <!-- Curate Affiliations -->
-        <div v-if="allTeamAffiliations.curate?.length > 0" class="affiliation-section">
+        <div v-if="allAffiliations.curate?.length > 0" class="affiliation-section">
           <h4>Curate Access</h4>
           <div class="affiliation-list">
             <div
-              v-for="affiliation in allTeamAffiliations.curate"
+              v-for="affiliation in allAffiliations.curate"
               :key="`curate-${affiliation.user.id}-${affiliation.isInherited ? 'inherited' : 'direct'}`"
               class="affiliation-item"
               :class="{ 'inherited-affiliation': affiliation.isInherited }"
@@ -312,9 +312,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useQuery, useMutation } from '@vue/apollo-composable'
-import INHERITED_AFFILIATIONS_QUERY from '../graphql/organisations/inherited_affiliations.graphql'
+import {ref, computed, watch} from 'vue'
+import {useMutation} from '@vue/apollo-composable'
 import APPROVE_AFFILIATION_MUTATION from '../graphql/account/approveAffiliation.graphql'
 import REVOKE_AFFILIATION_MUTATION from '../graphql/account/revokeAffiliation.graphql'
 
@@ -339,149 +338,121 @@ const emit = defineEmits(['close', 'affiliation-updated'])
 const approveError = ref('')
 const revokeError = ref('')
 
-// Apollo query for inherited affiliations
-const { result: inheritedAffiliationsResult, refetch: refetchInherited } = useQuery(
-  INHERITED_AFFILIATIONS_QUERY,
-  () => ({ team_id: props.teamInfo?.id }),
-  () => ({
-    enabled: props.isOpen && !!props.teamInfo?.id,
-    fetchPolicy: 'network-only',
-    errorPolicy: 'all'
-  })
-)
+
+//const inheritedAffiliations = computed(() => ({
+//  read: [],
+//  write: [],
+//  admin: [],
+//  curate: [],
+//  ...props.teamInfo?.inheritedAffiliations
+//}))
+//
+//const directAffiliations = computed(() => ({
+//  read: [],
+//  write: [],
+//  admin: [],
+//  curate: [],
+//  ...props.teamInfo?.directAffiliations
+//}))
+//
+
+const allAffiliations = computed(() => ({
+  read: [],
+  write: [],
+  admin: [],
+  curate: [],
+  ...props.teamInfo?.affiliations
+}))
+console.log(allAffiliations.value)
+console.log(props.teamInfo.affiliations)
 
 // Apollo mutations
-const { mutate: approveAffiliationMutation, loading: approveAffiliationLoading } = useMutation(APPROVE_AFFILIATION_MUTATION)
-const { mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading } = useMutation(REVOKE_AFFILIATION_MUTATION)
-
-// Computed property to combine direct and inherited affiliations
-const allTeamAffiliations = computed(() => {
-  const directAffiliations = props.teamInfo?.affiliations || {}
-  const inheritedData = inheritedAffiliationsResult.value?.inherited_affiliations?.result || {}
-  
-  const result = {
-    read: [],
-    write: [],
-    admin: [],
-    curate: []
-  }
-
-  // Helper function to filter out revoked affiliations
-  const filterActiveAffiliations = (affiliations) => {
-    return affiliations.filter(aff => aff.authorisation !== 'REVOKED')
-  }
-
-  // Helper function to prioritize direct affiliations over inherited ones
-  const prioritizeDirectAffiliations = (directAffs, inheritedAffs) => {
-    const directUserIds = new Set(directAffs.map(aff => aff.user.id))
-    // Filter out inherited affiliations where a direct one exists for the same user
-    const filteredInherited = inheritedAffs.filter(aff => !directUserIds.has(aff.user.id))
-    return [...directAffs, ...filteredInherited]
-  }
-
-  // Process each access type
-  const accessTypes = ['read', 'write', 'admin', 'curate']
-
-  accessTypes.forEach(accessType => {
-    // Get filtered direct affiliations
-    const directAffs = directAffiliations[accessType] && Array.isArray(directAffiliations[accessType])
-      ? filterActiveAffiliations(directAffiliations[accessType]).map(aff => ({...aff, isInherited: false}))
-      : []
-
-    // Get filtered inherited affiliations
-    const inheritedAffs = inheritedData[accessType] && Array.isArray(inheritedData[accessType])
-      ? filterActiveAffiliations(inheritedData[accessType]).map(aff => ({...aff, isInherited: true}))
-      : []
-
-    // Combine with prioritization of direct affiliations
-    result[accessType] = prioritizeDirectAffiliations(directAffs, inheritedAffs)
-  })
-
-  return result
-})
-
-
-// Computed property to check if there are any affiliations
-const hasAnyAffiliations = computed(() => {
-  const affiliations = allTeamAffiliations.value
+const {
+  mutate: approveAffiliationMutation,
+  loading: approveAffiliationLoading
+} = useMutation(APPROVE_AFFILIATION_MUTATION)
+const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = useMutation(REVOKE_AFFILIATION_MUTATION)
+  // Computed property to check if there are any affiliations
+  const hasAnyAffiliations = computed(() => {
   return (
-    (affiliations.read && affiliations.read.length > 0) ||
-    (affiliations.write && affiliations.write.length > 0) ||
-    (affiliations.admin && affiliations.admin.length > 0) ||
-    (affiliations.curate && affiliations.curate.length > 0)
+  (allAffiliations.value.read && allAffiliations.value.read.length > 0) ||
+  (allAffiliations.value.write && allAffiliations.value.write.length > 0) ||
+  (allAffiliations.value.admin && allAffiliations.value.admin.length > 0) ||
+  (allAffiliations.value.curate && allAffiliations.value.curate.length > 0)
   )
 })
 
-// Helper functions
-const getStatusClass = (status) => {
+  // Helper functions
+  const getStatusClass = (status) => {
   switch (status) {
-    case 'AUTHORISED': return 'status-authorised'
-    case 'REQUESTED': return 'status-pending'
-    default: return 'status-unknown'
-  }
+  case 'AUTHORISED': return 'status-authorised'
+  case 'REQUESTED': return 'status-pending'
+  default: return 'status-unknown'
+}
 }
 
-const getStatusText = (status) => {
+  const getStatusText = (status) => {
   switch (status) {
-    case 'AUTHORISED': return 'Authorised'
-    case 'REQUESTED': return 'Requested'
-    default: return 'Unknown'
-  }
+  case 'AUTHORISED': return 'Authorised'
+  case 'REQUESTED': return 'Requested'
+  case 'REVOKED': return 'Revoked'
+  default: return 'Unknown'
+}
 }
 
-// Event handlers
-const handleApproveAffiliation = async (userId, accessType, heritable) => {
+  // Event handlers
+  const handleApproveAffiliation = async (userId, accessType, heritable) => {
   try {
-    approveError.value = ''
-    const response = await approveAffiliationMutation({
-      user: userId,
-      team: props.teamInfo.id,
-      access: accessType,
-      heritable: heritable
-    })
+  approveError.value = ''
+  const response = await approveAffiliationMutation({
+  user: userId,
+  team: props.teamInfo.id,
+  access: accessType,
+  heritable: heritable
+})
 
-    if (response?.data?.approve_affiliation?.status === 'SUCCESS') {
-      await refetchInherited()
-      emit('affiliation-updated')
-    } else {
-      approveError.value = response?.data?.approve_affiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
-    }
-  } catch (error) {
-    console.error('Approve affiliation error:', error)
-    approveError.value = error.message || 'An unexpected error occurred'
-  }
+  if (response?.data?.approve_affiliation?.status === 'SUCCESS') {
+  //await refetchInherited()  TODO reload team affiliation data
+  emit('affiliation-updated')
+} else {
+  approveError.value = response?.data?.approve_affiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
+}
+} catch (error) {
+  console.error('Approve affiliation error:', error)
+  approveError.value = error.message || 'An unexpected error occurred'
+}
 }
 
-const handleRevokeAffiliation = async (userId, accessType) => {
+  const handleRevokeAffiliation = async (userId, accessType) => {
   try {
-    revokeError.value = ''
-    const response = await revokeAffiliationMutation({
-      user: userId,
-      team: props.teamInfo.id,
-      access: accessType
-    })
+  revokeError.value = ''
+  const response = await revokeAffiliationMutation({
+  user: userId,
+  team: props.teamInfo.id,
+  access: accessType
+})
 
-    if (response?.data?.revoke_affiliation?.status === 'SUCCESS') {
-      await refetchInherited()
-      emit('affiliation-updated')
-    } else {
-      revokeError.value = response?.data?.revoke_affiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
-    }
-  } catch (error) {
-    console.error('Revoke affiliation error:', error)
-    revokeError.value = error.message || 'An unexpected error occurred'
-  }
+  if (response?.data?.revoke_affiliation?.status === 'SUCCESS') {
+  //await refetchInherited()  TODO reload team affiliation data
+  emit('affiliation-updated')
+} else {
+  revokeError.value = response?.data?.accountsRevokeAffiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
+}
+} catch (error) {
+  console.error('Revoke affiliation error:', error)
+  revokeError.value = error.message || 'An unexpected error occurred'
+}
 }
 
-// Watch for modal open/close to refetch data
-watch(() => props.isOpen, (isOpen) => {
+  // Watch for modal open/close to refetch data
+  watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
-    approveError.value = ''
-    revokeError.value = ''
-    if (props.teamInfo?.id) {
-      refetchInherited()
-    }
-  }
+  approveError.value = ''
+  revokeError.value = ''
+  if (props.teamInfo?.id) {
+  //refetchInherited()  TODO reload team affiliation data?
+}
+}
 })
 </script>
 

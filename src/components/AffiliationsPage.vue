@@ -19,10 +19,10 @@
     </div>
 
     <div v-else>
-      <!-- Add New Organisation Section -->
-      <div class="add-organisation-section">
-        <h3>Add New Organisation</h3>
-        <form @submit.prevent="submitAddOrganisation" class="add-org-form">
+      <!-- Create New Organisation Section -->
+      <div class="create-organisation-section">
+        <h3>Create New Organisation</h3>
+        <form @submit.prevent="submitCreateOrganisation" class="create-org-form">
           <div class="form-row">
             <div class="form-group">
               <label>Organisation Name:</label>
@@ -42,17 +42,17 @@
               />
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="addOrgLoading">
-                {{ addOrgLoading ? 'Adding...' : 'Add Organisation' }}
+              <button type="submit" class="btn btn-primary" :disabled="createOrgLoading">
+                {{ createOrgLoading ? 'Creating...' : 'Create Organisation' }}
               </button>
             </div>
           </div>
         </form>
-        <div v-if="addOrgError" class="error-message">
-          {{ addOrgError }}
+        <div v-if="createOrgError" class="error-message">
+          {{ createOrgError }}
         </div>
-        <div v-if="addOrgSuccess" class="success-message">
-          {{ addOrgSuccess }}
+        <div v-if="createOrgSuccess" class="success-message">
+          {{ createOrgSuccess }}
         </div>
       </div>
 
@@ -68,101 +68,97 @@
             :key="organisation.id"
             :team-data="organisation"
             :depth="0"
-            :current-user-id="props.currentUserId"
-            @add-team="handleAddTeam"
+            :current-user-id="currentUserId"
+            @create-team="handleCreateTeam"
             @request-affiliation="handleRequestAffiliation"
-            @team-removed="handleTeamRemoved"
-            @team-added="handleTeamAdded"
+            @team-deleted="handleTeamDeleted"
+            @team-created="handleTeamCreated"
           />
         </div>
       </div>
     </div>
 
-    <!-- Add Team Modal -->
-    <AddTeamModal
-      :is-open="showAddTeamModal"
+    <!-- Create Team Modal -->
+    <CreateTeamModal
+      :is-open="showCreateTeamModal"
       :parent-team="selectedParentTeam"
-      @close="showAddTeamModal = false"
-      @team-added="handleTeamAdded"
+      @close="showCreateTeamModal = false"
+      @team-created="handleTeamCreated"
     />
 
     <!-- Request Affiliation Modal -->
     <RequestAffiliationModal
       :is-open="showRequestAffiliationModal"
       :selected-team="selectedTeamForAffiliation"
-      :current-user-id="props.currentUserId"
+      :current-user-id="currentUserId"
       @close="showRequestAffiliationModal = false"
       @affiliation-requested="handleAffiliationRequested"
     />
   </div>
 </template>
 
-
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
+import { useAuthStore } from '@/composables/useAuthStore'
 import ORGANISATIONS_QUERY from '../graphql/organisations/organisations.graphql'
-import ADD_ORGANISATION_MUTATION from '../graphql/organisations/addOrganisation.graphql'
+import CREATE_ORGANISATION_MUTATION from '../graphql/organisations/createOrganisation.graphql'
 import TeamNode from './TeamNode.vue'
-import AddTeamModal from './AddTeamModal.vue'
+import CreateTeamModal from './CreateTeamModal.vue'
 import RequestAffiliationModal from './RequestAffiliationModal.vue'
 
-const props = defineProps({
-  currentUserId: {
-    type: [String, Number],
-    required: true
-  }
-})
+// Get authentication data from the store
+const { currentUserId } = useAuthStore()
 
 defineEmits(['back-to-home'])
-
 
 // Reactive data
 const organisations = ref([])
 const loading = ref(true)
 const error = ref(false)
-const showAddTeamModal = ref(false)
+const showCreateTeamModal = ref(false)
 const selectedParentTeam = ref(null)
 
-// Add Organisation form data
+// Create Organisation form data
 const newOrganisation = ref({ name: '', fullname: '' })
-const addOrgError = ref('')
-const addOrgSuccess = ref('')
+const createOrgError = ref('')
+const createOrgSuccess = ref('')
 
 // Request Affiliation modal data
 const showRequestAffiliationModal = ref(false)
 const selectedTeamForAffiliation = ref(null)
 
-// Use Apollo query for organisations
+// Use Apollo query for organisations (only if authenticated)
 const { result, loading: queryLoading, error: queryError, refetch } = useQuery(ORGANISATIONS_QUERY, {}, {
   fetchPolicy: 'network-only',
-  errorPolicy: 'all'
+  errorPolicy: 'all',
+  skip: computed(() => !currentUserId.value) // Skip query if not authenticated
 })
 
-// Use Apollo mutation for adding organisation
-const { mutate: addOrganisationMutation, loading: addOrgLoading, onError: onAddOrgError, onDone: onAddOrgDone } = useMutation(ADD_ORGANISATION_MUTATION)
+// Use Apollo mutation for creating organisation
+const { mutate: createOrganisationMutation, loading: createOrgLoading, onError: onCreateOrgError, onDone: onCreateOrgDone } = useMutation(CREATE_ORGANISATION_MUTATION)
 
-// Handle add organisation errors
-onAddOrgError((error) => {
-  console.error('Add organisation error:', error)
-  addOrgError.value = error.message || 'Failed to add organisation. Please try again.'
-  addOrgSuccess.value = ''
+// Handle create organisation errors
+onCreateOrgError((error) => {
+  console.error('Create organisation error:', error)
+  createOrgError.value = error.message || 'Failed to create organisation. Please try again.'
+  createOrgSuccess.value = ''
 })
 
-// Handle successful add organisation
-onAddOrgDone((result) => {
-  const response = result.data?.add_team
-  console.log('Add organisation response:', result)
+// Handle successful create organisation
+onCreateOrgDone((result) => {
+  const response = result.data?.organisationsCreateTeam
+  console.log('Create organisation response:', result)
   if (response?.status === 'SUCCESS') {
-    addOrgSuccess.value = 'Organisation added successfully!'
-    addOrgError.value = ''
+    createOrgSuccess.value = 'Organisation created successfully!'
+    createOrgError.value = ''
     newOrganisation.value = { name: '', fullname: '' }
 
     // Refetch organisations to show the new one
     refetchOrganisations()
   } else {
-    addOrgError.value = response?.errors?.[0]?.message || 'Failed to add organisation'
-    addOrgSuccess.value = ''
+    createOrgError.value = response?.errors?.[0]?.message || 'Failed to create organisation'
+    createOrgSuccess.value = ''
   }
 })
 
@@ -200,26 +196,26 @@ const refetchOrganisations = async () => {
   }
 }
 
-const submitAddOrganisation = async () => {
+const submitCreateOrganisation = async () => {
   if (!newOrganisation.value.name.trim()) return
 
-  addOrgError.value = ''
-  addOrgSuccess.value = ''
+  createOrgError.value = ''
+  createOrgSuccess.value = ''
 
   try {
-    await addOrganisationMutation({
+    await createOrganisationMutation({
       name: newOrganisation.value.name.trim(),
       fullname: newOrganisation.value.fullname.trim() || null
     })
   } catch (error) {
-    console.error('Add organisation failed:', error)
-    addOrgError.value = error.message || 'An unexpected error occurred.'
+    console.error('Create organisation failed:', error)
+    createOrgError.value = error.message || 'An unexpected error occurred.'
   }
 }
 
-const handleAddTeam = (parentTeam) => {
+const handleCreateTeam = (parentTeam) => {
   selectedParentTeam.value = parentTeam
-  showAddTeamModal.value = true
+  showCreateTeamModal.value = true
 }
 
 const handleRequestAffiliation = (team) => {
@@ -227,21 +223,18 @@ const handleRequestAffiliation = (team) => {
   showRequestAffiliationModal.value = true
 }
 
-const handleTeamAdded = (newTeam) => {
-  console.log('Team added:', newTeam)
-  // Refetch organisations to update the tree
+const handleTeamCreated = (newTeam) => {
+  console.log('Team created:', newTeam)
   refetchOrganisations()
 }
 
-const handleTeamRemoved = (removedTeam) => {
-  console.log('Team removed:', removedTeam)
-  // Refetch organisations to update the tree
+const handleTeamDeleted = (deletedTeam) => {
+  console.log('Team deleted:', deletedTeam)
   refetchOrganisations()
 }
 
 const handleAffiliationRequested = (affiliationData) => {
   console.log('Affiliation requested:', affiliationData)
-  // Refetch organisations to update the affiliation status
   refetchOrganisations()
 }
 </script>
@@ -267,7 +260,7 @@ const handleAffiliationRequested = (affiliationData) => {
   color: #333;
 }
 
-.add-organisation-section {
+.create-organisation-section {
   background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 8px;
@@ -275,12 +268,12 @@ const handleAffiliationRequested = (affiliationData) => {
   border: 1px solid #e9ecef;
 }
 
-.add-organisation-section h3 {
+.create-organisation-section h3 {
   margin: 0 0 1rem 0;
   color: #495057;
 }
 
-.add-org-form .form-row {
+.create-org-form .form-row {
   display: flex;
   gap: 1rem;
   align-items: end;

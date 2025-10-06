@@ -34,13 +34,16 @@ onMounted(async () => {
       token: props.token
     })
     
-    if (response.data.verify_email.status === 'SUCCESS') {
+    if (response.data.accountsVerifyEmail.status === 'SUCCESS') {
       success.value = 'Email verified successfully! Redirecting to home...'
       setTimeout(() => {
         router.push('/')
       }, 2000)
     } else {
-      error.value = response.data.verify_email?.errors?.[0]?.message || 'Verification failed'
+      error.value = response.data.accountsVerifyEmail?.errors?.[0]?.message || 'Verification failed'
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
     }
   } catch (e) {
     error.value = e.message

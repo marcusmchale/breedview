@@ -1,0 +1,8 @@
+mutation programsUpdateProgram($program: UpdateProgramInput!) {
+  programsUpdateProgram(program: $program) {
+    status
+    errors {
+      message
+    }
+  }
+}

@@ -1,0 +1,8 @@
+mutation programsDeleteStudy($studyId: Int!) {
+  programsDeleteStudy(studyId: $studyId) {
+    status
+    errors {
+      message
+    }
+  }
+}

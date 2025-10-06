@@ -144,7 +144,7 @@ onError((error) => {
 
 // Handle successful mutation
 onDone((result) => {
-  const response = result.data?.request_affiliation
+  const response = result.data?.accountsRequestAffiliation
   if (response?.status === 'SUCCESS') {
     successMessage.value = 'Affiliation requested successfully!'
     errorMessage.value = ''

@@ -55,10 +55,10 @@ const submitHandler = async (formData) => {
       }
     const response = await requestReset(variables)
 
-    if (response?.data?.request_password_reset?.status === 'SUCCESS') {
+    if (response?.data?.accountsRequestPasswordReset?.status === 'SUCCESS') {
       success.value = 'Password reset instructions have been sent to your email'
     } else {
-      error.value = response?.data?.request_password_reset?.errors?.[0]?.message || 'Failed to request password reset'
+      error.value = response?.data?.accountsRequestPasswordReset?.errors?.[0]?.message || 'Failed to request password reset'
     }
   } catch (e) {
     error.value = e.message

@@ -1,5 +1,5 @@
-mutation verifyEmail($token: String!) {
-  verify_email(token: $token) {
+mutation accountsVerifyEmail($token: String!) {
+  accountsVerifyEmail(token: $token) {
     status
     errors {
         message

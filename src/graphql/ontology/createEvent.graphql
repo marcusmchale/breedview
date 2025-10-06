@@ -1,0 +1,12 @@
+mutation ontologyCreateEvent(
+    $event: EventInput!
+) {
+    ontologyCreateEvent(
+        event: $event,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

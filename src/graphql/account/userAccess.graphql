@@ -1,0 +1,14 @@
+query accountsUserAccess {
+    accountsUserAccess {
+        status
+        result {
+            read {id name fullname}
+            write {id name fullname}
+            admin {id name fullname}
+            curate {id name fullname}
+        }
+        errors {
+            message
+        }
+    }
+}

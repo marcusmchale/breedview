@@ -1,0 +1,8 @@
+mutation programsDeleteTrial($trialId: Int!) {
+  programsDeleteTrial(trialId: $trialId) {
+    status
+    errors {
+      message
+    }
+  }
+}

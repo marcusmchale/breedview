@@ -20,23 +20,23 @@
     <button
       v-if="userIsAdmin"
       class="btn btn-secondary"
-      @click="$emit('add-team')"
+      @click="$emit('create-team')"
     >
-      Add Team
+      Create Team
     </button>
     
     <button
       v-if="userIsAdmin && !hasChildren"
       class="btn btn-danger"
-      @click="$emit('remove-team')"
-      :disabled="removeTeamLoading"
+      @click="$emit('delete-team')"
+      :disabled="deleteTeamLoading"
     >
-      {{ removeTeamLoading ? 'Removing...' : 'Remove Team' }}
+      {{ deleteTeamLoading ? 'Deleting...' : 'Delete Team' }}
     </button>
   </div>
 
-  <div v-if="removeTeamError" class="error-message">
-    {{ removeTeamError }}
+  <div v-if="deleteTeamError" class="error-message">
+    {{ deleteTeamError }}
   </div>
 </template>
 
@@ -50,17 +50,17 @@ defineProps({
     type: Boolean,
     required: true
   },
-  removeTeamLoading: {
+  deleteTeamLoading: {
     type: Boolean,
     default: false
   },
-  removeTeamError: {
+  deleteTeamError: {
     type: String,
     default: ''
   }
 })
 
-defineEmits(['request-affiliation', 'manage-affiliations', 'add-team', 'remove-team'])
+defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team'])
 </script>
 
 <style scoped>

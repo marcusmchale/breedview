@@ -1,0 +1,41 @@
+query programs($programId: Int, $trialId: Int, $studyId: Int) {
+  programs(programId: $programId, trialId: $trialId, studyId: $studyId) {
+    status
+    result {
+      id
+      name
+      fullname
+      description
+      contacts
+      references
+      trials {
+        id
+        name
+        fullname
+        description
+        start
+        end
+        contacts
+        references
+        studies {
+          id
+          name
+          fullname
+          description
+          externalId
+          practices
+          start
+          end
+          factors
+          observations
+          design
+          licence
+          references
+        }
+      }
+    }
+    errors {
+      message
+    }
+  }
+}

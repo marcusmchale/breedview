@@ -1,0 +1,12 @@
+mutation ontologyCreateLocationType(
+    $locationType: LocationTypeInput!
+) {
+    ontologyCreateLocationType(
+        locationType: $locationType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

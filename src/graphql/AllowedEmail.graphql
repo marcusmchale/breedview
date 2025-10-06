@@ -1,5 +1,0 @@
-query ($email: String) {
-    allowed_email(
-        email: $email
-    )
-}

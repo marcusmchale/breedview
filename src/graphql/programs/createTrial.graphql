@@ -1,0 +1,8 @@
+mutation programsCreateTrial($trial: CreateTrialInput!) {
+  programsCreateTrial(trial: $trial) {
+    status
+    errors {
+      message
+    }
+  }
+}

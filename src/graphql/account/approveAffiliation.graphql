@@ -1,5 +1,5 @@
-mutation approveAffiliation($user: Int!, $team: Int!, $access: Access!, $heritable: Boolean) {
-  approve_affiliation(user: $user, team: $team, access: $access, heritable: $heritable) {
+mutation accountsApproveAffiliation($user: Int!, $team: Int!, $access: Access!, $heritable: Boolean) {
+  accountsApproveAffiliation(userId: $user, teamId: $team, access: $access, heritable: $heritable) {
     status
     errors {
       message

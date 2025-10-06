@@ -1,0 +1,12 @@
+mutation ontologyCreateDesign(
+    $design: DesignInput!
+) {
+    ontologyCreateDesign(
+        design: $design,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

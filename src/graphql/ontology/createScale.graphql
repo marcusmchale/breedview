@@ -1,0 +1,12 @@
+mutation ontologyCreateScale(
+    $scale: ScaleInput!
+) {
+    ontologyCreateScale(
+        scale: $scale,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

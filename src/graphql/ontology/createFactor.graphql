@@ -1,0 +1,12 @@
+mutation ontologyCreateFactor(
+    $factor: FactorInput!
+) {
+    ontologyCreateFactor(
+        factor: $factor,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

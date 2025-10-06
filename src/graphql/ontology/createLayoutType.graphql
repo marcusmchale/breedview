@@ -1,0 +1,12 @@
+mutation ontologyCreateLayoutType(
+    $layoutType: LayoutTypeInput!
+) {
+    ontologyCreateLayoutType(
+        layoutType: $layoutType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

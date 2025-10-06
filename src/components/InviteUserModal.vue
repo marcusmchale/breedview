@@ -138,7 +138,7 @@ onError((error) => {
 
 // Handle successful add email mutation
 onDone((result) => {
-  const response = result.data?.add_email
+  const response = result.data?.accountsAddEmail
   if (response?.status === 'SUCCESS') {
     successMessage.value = 'Invitation sent successfully!'
     errorMessage.value = ''
@@ -169,7 +169,7 @@ onRemoveError((error) => {
 
 // Handle successful remove email mutation
 onRemoveDone((result) => {
-  const response = result.data?.remove_email
+  const response = result.data?.accountsRemoveEmail
   if (response?.status === 'SUCCESS') {
     successMessage.value = `Email removed successfully!`
     errorMessage.value = ''

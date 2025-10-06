@@ -1,0 +1,12 @@
+mutation organisationsDeleteTeam(
+    $teamId: Int!
+) {
+    organisationsDeleteTeam(
+        teamId: $teamId
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

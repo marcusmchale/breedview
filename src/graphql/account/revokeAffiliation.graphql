@@ -1,5 +1,5 @@
-mutation revokeAffiliation($user: Int!, $team: Int!, $access: Access!) {
-  revoke_affiliation(user: $user, team: $team, access: $access) {
+mutation accountsRevokeAffiliation($user: Int!, $team: Int!, $access: Access!) {
+  accountsRevokeAffiliation(userId: $user, teamId: $team, access: $access) {
     status
     errors {
       message

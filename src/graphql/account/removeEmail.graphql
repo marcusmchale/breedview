@@ -1,5 +1,5 @@
-mutation removeEmail($email: String!) {
-  remove_email(email: $email) {
+mutation accountsRemoveEmail($email: String!) {
+  accountsRemoveEmail(email: $email) {
     status
     errors {
       message

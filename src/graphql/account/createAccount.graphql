@@ -1,10 +1,10 @@
-mutation editUser(
-    $name: String,
-    $fullname: String,
-    $email: String,
-    $password: String
+mutation accountsCreateAccount(
+    $name: String!,
+    $fullname: String!,
+    $email: String!,
+    $password: String!
 ) {
-    edit_user(
+    accountsCreateAccount(
         name: $name,
         fullname: $fullname,
         email: $email,

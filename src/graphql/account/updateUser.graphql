@@ -1,10 +1,10 @@
-mutation addAccount(
-    $name: String!,
-    $fullname: String!,
-    $email: String!,
-    $password: String!
+mutation accountsUpdateUser(
+    $name: String,
+    $fullname: String,
+    $email: String,
+    $password: String
 ) {
-    add_account(
+    accountsUpdateUser(
         name: $name,
         fullname: $fullname,
         email: $email,

@@ -1,5 +1,5 @@
-mutation logout {
-    logout {
+mutation accountsLogout {
+    accountsLogout {
         status
         errors {
             message

@@ -1,0 +1,8 @@
+mutation updateStudy($study: UpdateStudyInput!) {
+  programsUpdateStudy(study: $study) {
+    status
+    errors {
+      message
+    }
+  }
+}

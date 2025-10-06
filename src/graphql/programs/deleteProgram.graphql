@@ -1,0 +1,8 @@
+mutation programsDeleteProgram($programId: Int!) {
+  programsDeleteProgram(programId: $programId) {
+    status
+    errors {
+      message
+    }
+  }
+}

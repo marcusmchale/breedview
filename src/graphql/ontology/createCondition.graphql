@@ -1,0 +1,12 @@
+mutation ontologyCreateCondition(
+    $condition: ConditionInput!
+) {
+    ontologyCreateCondition(
+        condition: $condition,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -1,0 +1,12 @@
+mutation ontologyCreateControlMethod(
+    $controlMethod: ControlMethodInput!
+) {
+    ontologyCreateControlMethod(
+        controlMethod: $controlMethod,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

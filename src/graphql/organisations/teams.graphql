@@ -1,5 +1,5 @@
-query teams($team_ids: [Int!]) {
-    teams(team_ids: $team_ids){
+query organisationsTeams($teamIds: [Int!]) {
+    organisationsTeams(teamIds: $teamIds){
         status
         result {
             id

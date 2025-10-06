@@ -1,8 +1,8 @@
 <template>
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal">
-      <h3>Add New Team</h3>
-      <form @submit.prevent="submitAddTeam">
+      <h3>Create New Team</h3>
+      <form @submit.prevent="submitCreateTeam">
         <div class="form-group">
           <label>Team Name:</label>
           <input
@@ -28,7 +28,7 @@
         </div>
         <div class="form-actions right">
           <button type="submit" class="btn btn-primary" :disabled="loading">
-            {{ loading ? 'Adding...' : 'Add Team' }}
+            {{ loading ? 'Creating...' : 'Create Team' }}
           </button>
           <button type="button" @click="handleCancel" class="btn btn-secondary" :disabled="loading">
             Cancel
@@ -46,7 +46,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useMutation, useApolloClient } from '@vue/apollo-composable'
-import ADD_TEAM_MUTATION from '../graphql/organisations/addTeam.graphql'
+import CREATE_TEAM_MUTATION from '../graphql/organisations/createTeam.graphql'
 
 const props = defineProps({
   isOpen: {
@@ -59,24 +59,24 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'team-added'])
+const emit = defineEmits(['close', 'team-created'])
 
 const { client } = useApolloClient()
 const teamData = ref({ name: '', fullname: '' })
 const errorMessage = ref('')
 
-// Use the addTeam mutation
-const { mutate: addTeamMutation, loading, onError, onDone } = useMutation(ADD_TEAM_MUTATION)
+// Use the createTeam mutation
+const { mutate: createTeamMutation, loading, onError, onDone } = useMutation(CREATE_TEAM_MUTATION)
 
 // Handle mutation errors
 onError((error) => {
-  console.error('Add team error:', error)
-  errorMessage.value = error.message || 'Failed to add team. Please try again.'
+  console.error('Create team error:', error)
+  errorMessage.value = error.message || 'Failed to create team. Please try again.'
 })
 
 // Handle successful mutation
 onDone((result) => {
-  const response = result.data?.add_team
+  const response = result.data?.organisationsCreateTeam
   if (response?.status === 'SUCCESS') {
     // Clear cache and emit success
     try {
@@ -86,12 +86,17 @@ onDone((result) => {
     } catch (error) {
       console.warn('Error clearing cache:', error)
     }
-    
-    emit('team-added', response.result)
+
+    const createdTeam = {
+      name: teamData.value.name.trim(),
+      fullname: teamData.value.fullname.trim() || null,
+      parentTeam: props.parentTeam.id
+    }
+    emit('team-created', createdTeam)
     handleCancel() // Close modal and reset form
   } else {
     // Handle GraphQL errors
-    const errorMsg = response?.errors?.[0]?.message || 'Failed to add team'
+    const errorMsg = response?.errors?.[0]?.message || 'Failed to create team'
     errorMessage.value = errorMsg
   }
 })
@@ -105,19 +110,19 @@ watch(() => props.isOpen, (isOpen) => {
   }
 })
 
-const submitAddTeam = async () => {
+const submitCreateTeam = async () => {
   if (!teamData.value.name.trim() || !props.parentTeam) return
   
   errorMessage.value = ''
   
   try {
-    await addTeamMutation({
+    await createTeamMutation({
       name: teamData.value.name.trim(),
       fullname: teamData.value.fullname.trim() || null,
       parent: props.parentTeam.id
     })
   } catch (error) {
-    console.error('Add team failed:', error)
+    console.error('Create team failed:', error)
     errorMessage.value = error.message || 'An unexpected error occurred.'
   }
 }

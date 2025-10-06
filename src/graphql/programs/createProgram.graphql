@@ -1,0 +1,8 @@
+mutation programsCreateProgram($program: CreateProgramInput!) {
+  programsCreateProgram(program: $program) {
+    status
+    errors {
+      message
+    }
+  }
+}

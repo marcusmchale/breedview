@@ -1,12 +1,12 @@
-mutation addTeam(
+mutation organisationsCreateTeam(
     $name: String!,
     $fullname: String,
     $parent: Int
 ) {
-    add_team(
+    organisationsCreateTeam(
         name: $name,
         fullname: $fullname,
-        parent: $parent
+        parentId: $parent
     ) {
         status
         errors {
