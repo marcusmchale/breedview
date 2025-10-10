@@ -1,0 +1,18 @@
+mutation ontologyCommitVersion(
+    $versionChange: VersionChange!,
+    $comment: String,
+    $licenceId: Int,
+    $copyrightId: Int
+) {
+    ontologyCommitVersion(
+        versionChange: $versionChange,
+        comment: $comment
+        licenceId: $licenceId
+        copyrightId: $copyrightId
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

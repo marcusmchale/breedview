@@ -1,0 +1,12 @@
+mutation ontologyUpdateObservationMethod(
+    $observationMethod: ObservationMethodUpdate!
+) {
+    ontologyUpdateObservationMethod(
+        observationMethod: $observationMethod,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

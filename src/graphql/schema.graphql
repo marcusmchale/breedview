@@ -103,6 +103,26 @@ type Mutation {
   ontologyCreateLocationType(locationType: LocationTypeInput!): BooleanPayload!
   ontologyCreateDesign(design: DesignInput!): BooleanPayload!
   ontologyCreateLayoutType(layoutType: LayoutTypeInput!): BooleanPayload!
+  ontologyUpdateTerm(term: TermUpdate!): BooleanPayload!
+  ontologyUpdateSubject(subject: SubjectUpdate!): BooleanPayload!
+  ontologyUpdateTrait(trait: TraitUpdate!): BooleanPayload!
+  ontologyUpdateCondition(condition: ConditionUpdate!): BooleanPayload!
+  ontologyUpdateScale(scale: ScaleUpdate!): BooleanPayload!
+  ontologyUpdateCategory(category: CategoryUpdate!): BooleanPayload!
+  ontologyUpdateObservationMethod(observationMethod: ObservationMethodUpdate!): BooleanPayload!
+  ontologyUpdateVariable(variable: VariableUpdate!): BooleanPayload!
+  ontologyUpdateControlMethod(controlMethod: ControlMethodUpdate!): BooleanPayload!
+  ontologyUpdateFactor(factor: FactorUpdate!): BooleanPayload!
+  ontologyUpdateEvent(event: EventUpdate!): BooleanPayload!
+  ontologyUpdateLocationType(locationType: LocationTypeUpdate!): BooleanPayload!
+  ontologyUpdateDesign(design: DesignUpdate!): BooleanPayload!
+  ontologyUpdateLayoutType(layoutType: LayoutTypeUpdate!): BooleanPayload!
+  ontologyActivateEntries(entryIds: [Int]): BooleanPayload!
+  ontologyDeprecateEntries(entryIds: [Int]): BooleanPayload!
+  ontologyRemoveEntries(entryIds: [Int]): BooleanPayload!
+  ontologyActivateRelationships(relationshipIds: [Int]): BooleanPayload!
+  ontologyDeprecateRelationships(relationshipIds: [Int]): BooleanPayload!
+  ontologyRemoveRelationships(relationshipIds: [Int]): BooleanPayload!
   ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: Int, copyrightId: Int): BooleanPayload!
   organisationsCreateTeam(name: String!, fullname: String, parentId: Int): BooleanPayload!
   organisationsDeleteTeam(teamId: Int!): BooleanPayload!
@@ -172,6 +192,8 @@ input SubjectInput {
   parentIds: [Int]
   childIds: [Int]
   termIds: [Int]
+  traitIds: [Int]
+  conditionIds: [Int]
 }
 
 input TraitInput {
@@ -363,6 +385,218 @@ input LayoutTypeInput {
   When creating a LayoutType, each axis type for position descriptions is required
   """
   axes: [AxisType]!
+}
+
+input TermUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  subjectIds: [Int]
+  scaleIds: [Int]
+  categoryIds: [Int]
+  observationMethodIds: [Int]
+  traitIds: [Int]
+  variableIds: [Int]
+  controlMethodIds: [Int]
+  conditionIds: [Int]
+  factorIds: [Int]
+  eventIds: [Int]
+  locationTypeIds: [Int]
+  layoutTypeIDs: [Int]
+  designIds: [Int]
+  roleIds: [Int]
+  titleIds: [Int]
+}
+
+input SubjectUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input TraitUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  subjectIds: [Int]
+}
+
+input ConditionUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  subjectIds: [Int]
+}
+
+input ScaleUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  scaleType: ScaleType!
+  categoryIds: [Int]
+}
+
+input CategoryUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  rankId: Int
+}
+
+input ObservationMethodUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  observationType: ObservationMethodType!
+}
+
+input VariableUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  traitId: Int
+  observationMethodId: Int
+  scaleId: Int
+}
+
+input ControlMethodUpdate {
+  id: Int
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  controlType: ControlMethodType
+}
+
+input FactorUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  conditionId: Int
+  controlMethodId: Int
+  scaleId: Int
+}
+
+input EventUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  variableIds: [Int]
+  factorIds: [Int]
+  termIds: [Int]
+}
+
+input LocationTypeUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input DesignUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+}
+
+input LayoutTypeUpdate {
+  id: Int!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String]
+  authorIds: [Int]
+  referenceIds: [Int]
+  parentIds: [Int]
+  childIds: [Int]
+  termIds: [Int]
+  axes: [AxisType]
 }
 
 input CreateProgramInput {
@@ -604,6 +838,18 @@ type OntologyCommit {
 }
 
 """
+Ontology entries are created in draft phase.
+When a commit is submitted, drafts become active,
+and deprecated become removed.
+"""
+enum LifecyclePhase {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+  REMOVED
+}
+
+"""
 Ontology entries form a graph
 Each label is represented by directed acyclic graphs with source and sink
 relationships described for each node as parents and children.
@@ -743,6 +989,41 @@ enum OntologyEntryLabel {
   Examples: "Professor", "Doctor"
   """
   TITLE
+}
+
+enum OntologyRelationshipLabel {
+  """Any => SAME_TYPE"""
+  PARENT_OF
+
+  """Any => Term"""
+  HAS_TERM
+
+  """Scale -> Category"""
+  HAS_CATEGORY
+
+  """Trait/Condition -> Subject"""
+  DESCRIBES_SUBJECT
+
+  """Variable -> Trait"""
+  DESCRIBES_TRAIT
+
+  """Factor -> Condition"""
+  DESCRIBES_CONDITION
+
+  """Variable -> ObservationMethod"""
+  USES_OBSERVATION_METHOD
+
+  """Factor -> ControlMethod"""
+  USES_CONTROL_METHOD
+
+  """Variable/Factor -> Scale"""
+  USES_SCALE
+
+  """Event -> Factor"""
+  DESCRIBES_FACTOR
+
+  """EventType -> Variable"""
+  DESCRIBES_VARIABLE
 }
 
 enum AxisType {
@@ -1201,6 +1482,13 @@ type Title implements OntologyEntryInterface & RelatedToTerms {
 
 union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | GermplasmMethod | LocationType | LayoutType | Design | Role | Title
 
+type OntologyRelationship {
+  id: Int!
+  source_id: Int!
+  target_id: Int!
+  label: OntologyRelationshipLabel!
+}
+
 enum Access {
   READ
   WRITE
@@ -1333,6 +1621,12 @@ type OntologyEntriesPayload {
   errors: [Error]
 }
 
+type OntologyRelationshipsPayload {
+  status: QueryStatus!
+  result: [OntologyRelationship]
+  errors: [Error]
+}
+
 type LocationsPayload {
   status: QueryStatus!
   result: [Location]
@@ -1462,7 +1756,10 @@ type Query {
   ontologyCommitHistory(limit: Int): OntologyCommitsPayload!
 
   """Get a list of ontology entries"""
-  ontologyEntries(entryIds: [Int], names: [String], labels: [OntologyEntryLabel], versionId: Int): OntologyEntriesPayload!
+  ontologyEntries(entryIds: [Int], names: [String], labels: [OntologyEntryLabel], phases: [LifecyclePhase], versionId: Int): OntologyEntriesPayload!
+
+  """Get a list of ontology relationships"""
+  ontologyRelationships(entryIds: [Int], labels: [OntologyRelationshipLabel], phases: [LifecyclePhase], versionId: Int): OntologyRelationshipsPayload!
 
   """Get a list of countries for use in top level region creation"""
   regionsCountries: LocationsPayload!

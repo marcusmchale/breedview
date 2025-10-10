@@ -1,0 +1,12 @@
+mutation ontologyUpdateLayoutType(
+    $layoutType: LayoutTypeUpdate!
+) {
+    ontologyUpdateLayoutType(
+        layoutType: $layoutType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

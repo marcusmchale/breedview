@@ -1,0 +1,12 @@
+mutation ontologyUpdateFactor(
+    $factor: FactorUpdate!
+) {
+    ontologyUpdateFactor(
+        factor: $factor,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

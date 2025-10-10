@@ -1,0 +1,12 @@
+mutation ontologyUpdateCategory(
+    $category: CategoryUpdate!
+) {
+    ontologyUpdateCategory(
+        category: $category,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

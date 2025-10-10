@@ -6,18 +6,39 @@
 <script>
 import { ref, onMounted, watch } from 'vue'
 import * as d3 from 'd3'
+import { getNodeColor } from '@/composables/nodeColorMap'
 
 export default {
   props: {
     entries: {
       type: Array,
       required: true
+    },
+    relationships: {
+      type: Array,
+      required: true,
+      default: () => []
+    },
+    relationshipsLoading: {
+      type: Boolean,
+      default: false
+    },
+    relationshipsError: {
+      type: Object,
+      default: null
     }
   },
-  setup(props) {
+  emits: ['node-right-click'],
+  setup(props, { emit }) {
+    console.log('OntologyNetworkGraph props:', props)
     const graphContainer = ref(null)
 
     const renderGraph = () => {
+      // Wait for relationships to load
+      if (props.relationshipsLoading || !props.relationships) {
+        return
+      }
+
       // Clear previous graph
       d3.select(graphContainer.value).selectAll("*").remove()
 
@@ -32,46 +53,33 @@ export default {
           const node = { 
             id: entry.id, 
             name: entry.name, 
-            description: entry.description 
+            description: entry.description,
+            __typename: entry.__typename
           }
           nodes.push(node)
           nodeMap.set(entry.id, node)
         }
+      })
 
-        // Add parent links
-        entry.parents?.forEach(parent => {
-          if (!nodeMap.has(parent.id)) {
-            const parentNode = { 
-              id: parent.id, 
-              name: parent.name 
-            }
-            nodes.push(parentNode)
-            nodeMap.set(parent.id, parentNode)
-          }
-          
-          links.push({
-            source: parent.id,
-            target: entry.id,
-            type: 'parent'
-          })
-        })
+      // Create links from relationships
+      props.relationships.forEach(rel => {
+        // Ensure both source and target nodes exist
+        if (!nodeMap.has(rel.source_id)) {
+          const sourceNode = { id: rel.source_id, name: `Entry ${rel.source_id}` }
+          nodes.push(sourceNode)
+          nodeMap.set(rel.source_id, sourceNode)
+        }
+        if (!nodeMap.has(rel.target_id)) {
+          const targetNode = { id: rel.target_id, name: `Entry ${rel.target_id}` }
+          nodes.push(targetNode)
+          nodeMap.set(rel.target_id, targetNode)
+        }
 
-        // Add child links
-        entry.children?.forEach(child => {
-          if (!nodeMap.has(child.id)) {
-            const childNode = { 
-              id: child.id, 
-              name: child.name 
-            }
-            nodes.push(childNode)
-            nodeMap.set(child.id, childNode)
-          }
-          
-          links.push({
-            source: entry.id,
-            target: child.id,
-            type: 'child'
-          })
+        links.push({
+          source: rel.source_id,
+          target: rel.target_id,
+          label: rel.label,
+          type: rel.label
         })
       })
 
@@ -85,8 +93,18 @@ export default {
         .attr("width", width)
         .attr("height", height)
 
-      // Color scale
-      const color = d3.scaleOrdinal(d3.schemeCategory10)
+      // Define arrowhead marker
+      svg.append("defs").append("marker")
+        .attr("id", "arrowhead")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 20)
+        .attr("refY", 0)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "#999")
 
       // Create force simulation
       const simulation = d3.forceSimulation(nodes)
@@ -102,6 +120,17 @@ export default {
         .attr("stroke", d => d.type === 'parent' ? "#999" : "#ccc")
         .attr("stroke-opacity", 0.6)
         .attr("stroke-width", 2)
+        .attr("marker-end", "url(#arrowhead)")
+
+      // Create link labels
+      const linkLabel = svg.append("g")
+        .selectAll("text")
+        .data(links)
+        .enter().append("text")
+        .attr("font-size", 8)
+        .attr("fill", "#666")
+        .attr("text-anchor", "middle")
+        .text(d => d.label)
 
       // Create nodes
       const node = svg.append("g")
@@ -109,11 +138,15 @@ export default {
         .data(nodes)
         .enter().append("circle")
         .attr("r", 10)
-        .attr("fill", (d, i) => color(i))
+        .attr("fill", (d) => getNodeColor(d.__typename))
         .call(d3.drag()
           .on("start", dragstarted)
           .on("drag", dragged)
           .on("end", dragended))
+        .on("contextmenu", (event, d) => {
+          event.preventDefault()
+          emit('node-right-click', d)
+        })
 
       // Add labels
       const label = svg.append("g")
@@ -132,6 +165,10 @@ export default {
           .attr("y1", d => d.source.y)
           .attr("x2", d => d.target.x)
           .attr("y2", d => d.target.y)
+
+        linkLabel
+          .attr("x", d => (d.source.x + d.target.x) / 2)
+          .attr("y", d => (d.source.y + d.target.y) / 2)
 
         node
           .attr("cx", d => d.x)
@@ -173,6 +210,8 @@ export default {
     // Render on mount and when entries change
     onMounted(renderGraph)
     watch(() => props.entries, renderGraph)
+    watch(() => props.relationships, renderGraph)
+    watch(() => props.relationshipsLoading, renderGraph)
 
     return { graphContainer }
   }

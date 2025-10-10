@@ -1,0 +1,12 @@
+mutation ontologyUpdateScale(
+    $scale: ScaleUpdate!
+) {
+    ontologyUpdateScale(
+        scale: $scale,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

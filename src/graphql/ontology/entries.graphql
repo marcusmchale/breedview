@@ -2,12 +2,14 @@ query ontologyEntries(
     $entryIds: [Int!]
     $names: [String!]
     $labels: [OntologyEntryLabel!]
+    $phases: [LifecyclePhase]
     $versionId: Int
 ) {
     ontologyEntries(
         entryIds: $entryIds
         names: $names
         labels: $labels
+        phases: $phases
         versionId: $versionId
     ){
         status

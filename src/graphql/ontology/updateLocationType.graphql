@@ -1,0 +1,12 @@
+mutation ontologyUpdateLocationType(
+    $locationType: LocationTypeUpdate!
+) {
+    ontologyUpdateLocationType(
+        locationType: $locationType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

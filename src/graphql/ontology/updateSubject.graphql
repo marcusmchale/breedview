@@ -1,0 +1,12 @@
+mutation ontologyUpdateSubject(
+    $subject: SubjectUpdate!
+) {
+    ontologyUpdateSubject(
+        subject: $subject,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

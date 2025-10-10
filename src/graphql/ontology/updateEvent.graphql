@@ -1,0 +1,12 @@
+mutation ontologyUpdateEvent(
+    $event: EventUpdate!
+) {
+    ontologyUpdateEvent(
+        event: $event,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

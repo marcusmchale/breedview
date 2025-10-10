@@ -1,0 +1,12 @@
+mutation ontologyUpdateTerm(
+    $term: TermUpdate!
+) {
+    ontologyUpdateTerm(
+        term: $term,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

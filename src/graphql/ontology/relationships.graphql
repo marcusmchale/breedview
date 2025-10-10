@@ -1,0 +1,24 @@
+query ontologyRelationships(
+    $entryIds: [Int!]
+    $labels: [OntologyRelationshipLabel!]
+    $phases: [LifecyclePhase]
+    $versionId: Int
+) {
+    ontologyRelationships(
+        entryIds: $entryIds
+        labels: $labels
+        phases: $phases
+        versionId: $versionId
+    ){
+        status
+        result {
+            id
+            source_id,
+            target_id,
+            label
+        }
+        errors {
+            message
+        }
+    }
+}

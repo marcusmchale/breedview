@@ -1,0 +1,17 @@
+query ontologyCommitHistory(
+    $limit: Int
+) {
+    ontologyCommitHistory(
+        limit: $limit
+    ){
+        status
+        result {
+            version {major, minor, patch}
+            time
+            comment
+        }
+        errors {
+            message
+        }
+    }
+}

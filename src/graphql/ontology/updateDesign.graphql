@@ -1,0 +1,12 @@
+mutation ontologyUpdateDesign(
+    $design: DesignUpdate!
+) {
+    ontologyUpdateDesign(
+        design: $design,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

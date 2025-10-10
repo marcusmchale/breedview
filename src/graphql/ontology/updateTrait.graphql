@@ -1,0 +1,12 @@
+mutation ontologyUpdateTrait(
+    $trait: TraitUpdate!
+) {
+    ontologyUpdateTrait(
+        trait: $trait,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

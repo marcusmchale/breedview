@@ -1,0 +1,12 @@
+mutation ontologyUpdateVariable(
+    $variable: VariableUpdate!
+) {
+    ontologyUpdateVariable(
+        variable: $variable,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

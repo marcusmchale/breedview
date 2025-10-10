@@ -1,0 +1,12 @@
+mutation ontologyUpdateControlMethod(
+    $controlMethod: ControlMethodUpdate!
+) {
+    ontologyUpdateControlMethod(
+        controlMethod: $controlMethod,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

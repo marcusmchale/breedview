@@ -1,0 +1,12 @@
+mutation ontologyUpdateCondition(
+    $condition: ConditionUpdate!
+) {
+    ontologyUpdateCondition(
+        condition: $condition,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}
