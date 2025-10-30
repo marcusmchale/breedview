@@ -17,11 +17,19 @@ import UPDATE_DESIGN from '../graphql/ontology/updateDesign.graphql'
 import UPDATE_LAYOUT_TYPE from '../graphql/ontology/updateLayoutType.graphql'
 
 // Helper functions
-const processIdArray = (ids) => {
-  if (ids && ids.length > 0) {
-    return ids.map(id => parseInt(id))
+export function processIdArray(ids) {
+  // Explicitly return an empty array if ids is null or undefined
+  if (ids === null || ids === undefined) {
+    return []
   }
-  return undefined
+
+  // If ids is an array, convert to integers
+  if (Array.isArray(ids)) {
+    return ids.length > 0 ? ids.map(id => parseInt(id)) : []
+  }
+
+  // If it's a single id, wrap it in an array
+  return [parseInt(ids)]
 }
 
 const getEntriesByType = (entries, typename) => {
@@ -81,7 +89,11 @@ const getCurrentValues = (entry) => {
     controlMethodId: entry.controlMethod ? entry.controlMethod.id : undefined,
     // scaleId is already defined above for Factor as well
     // For Scale
-    scaleType: entry.scaleType
+    scaleType: entry.scaleType,
+    observationType: entry.observationType,
+    controlType: entry.controlType,
+    axes: entry.axes,
+
   }
 }
 
@@ -739,7 +751,8 @@ export function updateScaleHandler(context) {
           { label: 'Nominal', value: 'NOMINAL' },
           { label: 'Ordinal', value: 'ORDINAL' },
           { label: 'Text', value: 'TEXT' },
-          { label: 'Germplasm', value: 'GERMPLASM' }
+          { label: 'Germplasm', value: 'GERMPLASM' },
+          { label: 'Complex', value: 'COMPLEX' }
         ],
         value: entry.scaleType
       },
@@ -883,10 +896,25 @@ export function updateObservationMethodHandler(context) {
   const currentValues = getCurrentValues(entry, ontologyEntries)
   const observationMethods = getEntriesByType(ontologyEntries, 'ObservationMethod')
   const terms = getEntriesByType(ontologyEntries, 'Term')
-
   openForm('Update Observation Method', [
     { name: 'name', type: 'text', label: 'Name', validation: 'required', value: currentValues.name },
-    { name: 'description', type: 'textarea', label: 'Description', value: currentValues.description }, 
+    { name: 'description', type: 'textarea', label: 'Description', value: currentValues.description },
+    {
+        name: 'observationType',
+        type: 'select',
+        label: 'Observation Type',
+        validation: 'required',
+        options: [
+          { label: 'Measurement', value: 'MEASUREMENT' },
+          { label: 'Counting', value: 'COUNTING' },
+          { label: 'Estimation', value: 'ESTIMATION' },
+          { label: 'Computation', value: 'COMPUTATION' },
+          { label: 'Prediction', value: 'PREDICTION' },
+          { label: 'Description', value: 'DESCRIPTION' },
+          { label: 'Classification', value: 'CLASSIFICATION' }
+        ],
+        value: currentValues.observationType
+      },
     {
       name: 'parentIds',
       type: 'select',

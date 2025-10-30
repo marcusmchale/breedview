@@ -65,6 +65,81 @@ input RecordInput {
   referenceIds: [Int]
 }
 
+enum Reproduction {
+  CLONAL
+  SEXUAL
+  APOMIXIS
+}
+
+enum GermplasmSourceType {
+  UNKNOWN
+  SEED
+  TISSUE
+  MATERNAL
+  PATERNAL
+}
+
+input GermplasmSourceRelationship {
+  sourceId: Int!
+  sourceType: GermplasmSourceType!
+  description: String
+}
+
+input GermplasmSinkRelationship {
+  sinkId: Int!
+  sourceType: GermplasmSourceType!
+  description: String
+}
+
+input GermplasmInput {
+  name: String!
+  description: String
+  synonyms: [String!]
+
+  """Place of origin, a reference to a Location stored in Regions"""
+  originId: Int
+
+  """Time sourced from origin"""
+  time: DateTime
+
+  """
+  Reproduction of germplasm, summarises the genetic impacts/requirements for maintenance
+  """
+  reproduction: Reproduction
+
+  """
+  Control methods (referenced in the ontology) to provide further details about how this germplasm is maintained
+  """
+  controlMethodIds: [Int!]
+
+  """Authors of this germplasm entry (A list of personId)"""
+  authorIds: [Int!] = []
+
+  """References for ths germplasm entry (A list of referenceId)"""
+  referenceIds: [Int!] = []
+
+  """Source relationships"""
+  sources: [GermplasmSourceRelationship!]
+
+  """Sink relationships"""
+  sinks: [GermplasmSinkRelationship!]
+}
+
+input GermplasmUpdate {
+  id: Int!
+  name: String
+  description: String
+  synonyms: [String!]
+  originId: Int
+  time: DateTime
+  reproduction: Reproduction
+  controlMethodIds: [Int!]
+  authorIds: [Int] = []
+  referenceIds: [Int] = []
+  sources: [GermplasmSourceRelationship!]
+  sinks: [GermplasmSinkRelationship!]
+}
+
 type Mutation {
   accountsCreateAccount(name: String!, fullname: String, email: String!, password: String!): BooleanPayload!
   accountsUpdateUser(name: String, fullname: String, email: String, password: String): BooleanPayload!
@@ -82,13 +157,16 @@ type Mutation {
   arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
   blocksCreateUnit(unit: UnitInput!): BooleanPayload!
   blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
-  controlsSetControls(entityLabel: ControlledModelLabel, entityIds: [Int], release: ReadRelease): BooleanPayload!
+  controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
 
   """
   For each dataset the concept is the Variable or Factor from the Ontology to which this data corresponds
   """
   datasetsCreateDataset(conceptId: Int!): BooleanPayload!
   datasetsAddRecord(record: RecordInput): BooleanPayload!
+  germplasmCreateEntry(entry: GermplasmInput!): BooleanPayload
+  germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
+  germplasmDeleteEntry(entryId: Int!): BooleanPayload
   ontologyCreateTerm(term: TermInput!): BooleanPayload!
   ontologyCreateSubject(subject: SubjectInput!): BooleanPayload!
   ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
@@ -731,10 +809,10 @@ type Token {
 
 type Position {
   """ID of Location in a Region"""
-  location: Int!
+  location: Location!
 
   """ID of Layout in and Arrangement"""
-  layout: Int
+  layout: Layout
 
   """
   Coordinates should be a list of values corresponding to the stored layout axes.
@@ -801,7 +879,7 @@ type Record {
   value: String
   start: DateTime
   end: DateTime
-  references: [Int]
+  references: [Reference]
   submitted: DateTime
 }
 
@@ -809,8 +887,30 @@ type DataSet {
   id: Int!
   concept: OntologyEntryInterface
   records: [Record]
-  contributors: [Int]
-  references: [Int]
+  contributors: [Person]
+  references: [Reference]
+}
+
+type GermplasmRelationship {
+  source: GermplasmEntry
+  sink: GermplasmEntry
+  sourceType: GermplasmSourceType!
+  description: String
+}
+
+type GermplasmEntry {
+  id: Int!
+  name: String!
+  description: String
+  synonyms: [String!]
+  originId: Location
+  time: DateTime
+  reproduction: Reproduction
+  controlMethods: [ControlMethod!]
+  authors: [Person!]
+  references: [Reference!]
+  sources: [GermplasmRelationship!]
+  sinks: [GermplasmRelationship!]
 }
 
 """
@@ -1097,6 +1197,7 @@ enum ScaleType {
   ORDINAL
   TEXT
   GERMPLASM
+  COMPLEX
 }
 
 interface OntologyEntryInterface {
@@ -1105,8 +1206,8 @@ interface OntologyEntryInterface {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [OntologyEntryInterface]
   children: [OntologyEntryInterface]
 }
@@ -1125,8 +1226,8 @@ type Term implements OntologyEntryInterface {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Term]
   children: [Term]
   subjects: [Subject]
@@ -1157,8 +1258,8 @@ type Subject implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Subject]
   children: [Subject]
   terms: [Term]
@@ -1178,8 +1279,8 @@ type Trait implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Trait]
   children: [Trait]
   terms: [Term]
@@ -1198,8 +1299,8 @@ type Condition implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Condition]
   children: [Condition]
   terms: [Term]
@@ -1208,14 +1309,17 @@ type Condition implements OntologyEntryInterface & RelatedToTerms {
 }
 
 """
-Scale entries describe units or classes used for values in a Dataset.
-These are linked to Variable or Factor.
+Scale entries describe the units, classes or dimensions for values associated with a Variable or Factor.
 Scale entries require a ScaleType.
 For Nominal and Ordinal types, additional Category references may be provided.
 Ordinal scales represent the rank of categories by their presentation order.
+Germplasm scales reference GermplasmEntries
+Complex scales allow for the description of data that cannot be represented by simple values (integer, float, string), nor by
+internal references like Germplasm or Categorical (nominal or ordinal) scales.
 Examples:
 "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
-"Plant Genetic Material" is ScaleType nominal, and categories should include references to GermplasmEntries.
+"Plant Genetic Material" would be ScaleType Germplasm
+"MAG abundance" would be ScaleType complex, with associated datasets providing references to stored files, e.g. in HDF5 format.
 """
 type Scale implements OntologyEntryInterface & RelatedToTerms {
   id: Int!
@@ -1223,8 +1327,8 @@ type Scale implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Scale]
   children: [Scale]
   terms: [Term]
@@ -1244,8 +1348,8 @@ type Category implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Category]
   children: [Category]
   terms: [Term]
@@ -1264,8 +1368,8 @@ type ObservationMethod implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [ObservationMethod]
   children: [ObservationMethod]
   terms: [Term]
@@ -1292,8 +1396,8 @@ type Variable implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Variable]
   children: [Variable]
   terms: [Term]
@@ -1313,8 +1417,8 @@ type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [ControlMethod]
   children: [ControlMethod]
   terms: [Term]
@@ -1341,8 +1445,8 @@ type Factor implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Factor]
   children: [Factor]
   terms: [Term]
@@ -1362,8 +1466,8 @@ type Event implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Event]
   children: [Event]
   terms: [Term]
@@ -1382,8 +1486,8 @@ type GermplasmMethod implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [GermplasmMethod]
   children: [GermplasmMethod]
   terms: [Term]
@@ -1400,8 +1504,8 @@ type LocationType implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [LocationType]
   children: [LocationType]
   terms: [Term]
@@ -1418,8 +1522,8 @@ type LayoutType implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [LayoutType]
   children: [LayoutType]
   terms: [Term]
@@ -1437,8 +1541,8 @@ type Design implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Design]
   children: [Design]
   terms: [Term]
@@ -1455,8 +1559,8 @@ type Role implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Role]
   children: [Role]
   terms: [Term]
@@ -1473,8 +1577,8 @@ type Title implements OntologyEntryInterface & RelatedToTerms {
   description: String
   abbreviation: String
   synonyms: [String]
-  authors: [Int]
-  references: [Int]
+  authors: [Person]
+  references: [Reference]
   parents: [Title]
   children: [Title]
   terms: [Term]
@@ -1681,13 +1785,25 @@ type ControllersPayload {
   errors: [Error]
 }
 
+type GermplasmEntriesPayload {
+  status: QueryStatus!
+  result: [GermplasmEntry]
+  errors: [Error]
+}
+
+type Person {
+  id: Int!
+  name: String!
+  fullname: String
+}
+
 type Program {
   id: Int!
   name: String!
   fullname: String
   description: String
-  contacts: [Int]
-  references: [Int]
+  contacts: [Person]
+  references: [Reference]
   trials: [Trial]
 }
 
@@ -1698,8 +1814,8 @@ type Trial {
   description: String
   start: DateTime
   end: DateTime
-  contacts: [Int]
-  references: [Int]
+  contacts: [Person]
+  references: [Reference]
   studies: [Study]
 }
 
@@ -1712,11 +1828,11 @@ type Study {
   practices: String
   start: DateTime
   end: DateTime
-  factors: [Int]
-  observations: [Int]
-  design: Int
-  licence: Int
-  references: [Int]
+  factors: [DataSet]
+  observations: [DataSet]
+  design: Design
+  licence: Reference
+  references: [Reference]
 }
 
 type Query {
@@ -1799,6 +1915,19 @@ type Query {
   programs(programId: Int, trialId: Int, studyId: Int): ProgramsPayload
   datasets(datasetId: Int, conceptId: Int): DatasetsPayload
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [Int]!): ControllersPayload!
+
+  """Get a list of Germplasm entries"""
+  germplasmEntries(names: [String!], entryIds: [Int!]): GermplasmEntriesPayload
+
+  """
+  Get a list of Germplasm entries that have no sources defined,
+  these should typically represent the Crop concept
+  """
+  germplasmCrops: GermplasmEntriesPayload
+}
+
+type Reference {
+  id: Int!
 }
 
 type GeoCoordinate {

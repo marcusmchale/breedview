@@ -1,0 +1,14 @@
+query germplasmCrops {
+    germplasmCrops {
+        status
+        result {
+            id
+            name
+            description
+            sinks { sourceType, description, sink { id, name } }
+        }
+        errors {
+            message
+        }
+    }
+}

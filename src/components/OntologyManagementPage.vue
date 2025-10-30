@@ -3,24 +3,6 @@
     <h1>Ontology Management</h1>
     <div class="ontology-actions">
       <section>
-        <h2>Add to ontology</h2>
-        <div class="entry-management">
-          <button
-            v-for="(entry, index) in createEntriesForLabels"
-            :key="index"
-            :title="entry.description"
-            :style="{
-              backgroundColor: getNodeColor(entry.method.replace('create', '')),
-              color: 'white'
-            }"
-            @click="createEntry(entry.method)"
-          >
-            {{ entry.label }}
-          </button>
-        </div>
-      </section>
-
-      <section>
         <h2>Filter by Life Cycle Phases</h2>
         <div class="phase-selection">
           <button
@@ -33,9 +15,56 @@
           </button>
         </div>
       </section>
+    </div>
 
-      <section>
-        <h2>Ontology Versioning</h2>
+    <section>
+      <h2>Filter by Ontology Labels</h2>
+      <div class="label-filter">
+        <button
+          v-for="(entry, index) in createEntriesForLabels"
+          :key="index"
+          :title="`${entry.description} (${entry.code})`"
+          :style="{
+            backgroundColor: entry.color,
+            color: 'white',
+            opacity: selectedLabels.length === 0 || selectedLabels.includes(entry.enumLabel) ? 1 : 0.3
+          }"
+          @click="toggleLabelFilter(entry.enumLabel)"
+          class="ontology-button label-filter-button"
+        >
+          {{ entry.label }}
+        </button>
+      </div>
+    </section>
+
+
+    <div v-if="error">Error: {{ error.message }}</div>
+    <OntologyNetworkGraph
+      v-else-if="ontologyEntries"
+      :entries="ontologyEntries"
+      :relationships="ontologyRelationships"
+      :selected-labels="selectedLabels"
+      @node-right-click="handleNodeRightClick"
+    />
+    <section>
+        <h2>Add to ontology</h2>
+                <div class="entry-management">
+          <button
+            v-for="(entry, index) in createEntriesForLabels"
+            :key="index"
+            :title="`${entry.description} (${entry.code})`"
+            :style="{
+              backgroundColor: entry.color,
+              color: 'white'
+            }"
+            @click="createEntry(entry.method)"
+            class="ontology-button"
+          >
+            {{ entry.label }}
+          </button>
+        </div>
+      </section>
+    <section>
         <h2>Current Version</h2>
         <div v-if="latestCommit" class="latest-commit-info">
           <p><strong>Version:</strong> {{ formatVersion(latestCommit.version) }}</p>
@@ -53,9 +82,16 @@
           >
             Commit Changes
           </button>
+          <button
+            title="View commit history"
+            class="btn-version btn-history"
+            @click="goToCommitHistory"
+          >
+            View History
+          </button>
         </div>
       </section>
-    </div>
+
 
     <!-- Form Modal -->
     <div v-if="showForm" class="form-modal">
@@ -81,21 +117,20 @@
           <div class="form-actions">
             <button type="submit" class="btn-primary">Submit</button>
             <button type="button" @click="closeForm" class="btn-secondary">Cancel</button>
+            <button
+              v-if="currentEntryId"
+              type="button"
+              @click="deprecateEntry(currentEntryId)"
+              class="btn-danger"
+              title="Deprecate this entry"
+            >
+              Deprecate
+            </button>
           </div>
         </FormKit>
       </div>
     </div>
 
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error">Error: {{ error.message }}</div>
-    <OntologyNetworkGraph
-      v-else-if="ontologyEntries"
-      :entries="ontologyEntries"
-      :relationships="ontologyRelationships"
-      :relationships-loading="relationshipsLoading"
-      :relationships-error="relationshipsError"
-      @node-right-click="handleNodeRightClick"
-    />
 
   </div>
 </template>
@@ -104,6 +139,7 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useOntologySchema } from '@/composables/useOntologySchema'
+import { useRouter } from 'vue-router'
 import { useOntologyCreateMutations, useOntologyCreatorHandlers } from '@/composables/createOntologyEntries'
 import { useOntologyUpdateMutations, useOntologyUpdateHandlers } from '@/composables/updateOntologyEntries'
 import { getNodeColor } from '@/composables/nodeColorMap'
@@ -112,7 +148,8 @@ import OntologyNetworkGraph from './OntologyNetworkGraph.vue'
 import ONTOLOGY_ENTRIES from '../graphql/ontology/entries.graphql'
 import ONTOLOGY_RELATIONSHIPS from '../graphql/ontology/relationships.graphql'
 import COMMIT_VERSION from '../graphql/ontology/commitVersion.graphql'
-import LATEST_COMMIT from '../graphql/ontology/latestCommit.graphql'
+import COMMIT_HISTORY from '../graphql/ontology/commitHistory.graphql'
+import DEPRECATE_ENTRIES from '../graphql/ontology/deprecateEntries.graphql'
 
 export default {
   name: 'OntologyManagementPage',
@@ -120,8 +157,14 @@ export default {
     OntologyNetworkGraph
   },
   setup() {
+    const router = useRouter()
+    const goToCommitHistory = () => {
+      router.push({ name: 'commit-history' })
+    }
+
     const availableLifeCyclePhases = ['DRAFT', 'ACTIVE', 'DEPRECATED', 'REMOVED']
     const selectedPhases = ref(['DRAFT', 'ACTIVE'])
+    const selectedLabels = ref([])
 
     const { getCreateEntriesForLabels } = useOntologySchema()
     const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
@@ -129,6 +172,14 @@ export default {
     const queryVariables = computed(() => ({
       phases: selectedPhases.value.length > 0 ? selectedPhases.value : undefined
     }))
+
+    const toggleLabelFilter = (label) => {
+      if (selectedLabels.value.includes(label)) {
+        selectedLabels.value = selectedLabels.value.filter(l => l !== label)
+      } else {
+        selectedLabels.value.push(label)
+      }
+    }
 
     const ontologyEntriesQuery = useQuery(
       ONTOLOGY_ENTRIES,
@@ -169,6 +220,7 @@ export default {
     const formTitle = ref('')
     const formFields = ref([])
     const currentMutation = ref(null)
+    const currentEntryId = ref(null)
 
     // Setup mutations
     const createMutations = useOntologyCreateMutations()
@@ -177,6 +229,9 @@ export default {
     // Get creator and update handlers
     const creatorHandlers = useOntologyCreatorHandlers()
     const updateHandlers = useOntologyUpdateHandlers()
+
+    // Setup deprecate mutation
+    const deprecateEntriesMutation = useMutation(DEPRECATE_ENTRIES)
 
     // Helper function to open form
     const openForm = (title, fields, mutation) => {
@@ -244,7 +299,7 @@ export default {
     }
 
     const latestCommitHistoryQuery = useQuery(
-      LATEST_COMMIT,
+      COMMIT_HISTORY,
       { limit: 1 },
       { fetchPolicy: 'network-only' }
     )
@@ -292,7 +347,11 @@ export default {
       togglePhaseSelection,
       openCommitVersionForm,
       latestCommit,
-      formatVersion
+      formatVersion,
+      deprecateEntriesMutation: deprecateEntriesMutation,
+      currentEntryId,
+      selectedLabels, toggleLabelFilter,
+      goToCommitHistory
     }
   },
   methods: {
@@ -362,6 +421,9 @@ export default {
       const handlerMethodName = handlerMap[typename]
       if (handlerMethodName && handlers[handlerMethodName]) {
         const handler = handlers[handlerMethodName]
+        // Store the current entry ID for the deprecate button
+        this.currentEntryId = entry.id
+
         const context = {
           entry,
           relationships: this.ontologyRelationships,
@@ -375,16 +437,54 @@ export default {
       }
     },
 
+    async deprecateEntry(entryId) {
+      if (!confirm('Are you sure you want to deprecate this entry? This will change its lifecycle phase.')) {
+        return
+      }
+
+      try {
+        const result = await this.deprecateEntriesMutation.mutate({
+          entry_ids: [entryId]
+        })
+
+        if (result?.data?.ontologyDeprecateEntries) {
+          const response = result.data.ontologyDeprecateEntries
+          if (response.errors && response.errors.length > 0) {
+            alert('Error: ' + response.errors.map(e => e.message).join(', '))
+          } else if (response.status === 'SUCCESS') {
+            alert('Entry deprecated successfully!')
+            this.closeForm()
+            this.refetch()
+          }
+        }
+      } catch (error) {
+        console.error('Error removing entry:', error)
+        alert('An error occurred: ' + error.message)
+      }
+    },
+
     closeForm() {
       this.showForm = false
       this.formTitle = ''
       this.formFields = []
       this.currentMutation = null
+      this.currentEntryId = null
     },
 
     async handleSubmit(formData) {
       try {
-        const result = await this.currentMutation(formData)
+        // handle empty list as distinct from null
+        const processedFormData = Object.fromEntries(
+          Object.entries(formData).map(([key, value]) => [
+            key,
+            Array.isArray(value) ?
+              (value.length === 0 ? [] : value) :
+              value
+          ])
+        )
+
+
+        const result = await this.currentMutation(processedFormData)
 
         // Check for errors in the response
         if (result?.data) {
@@ -494,6 +594,34 @@ export default {
   background-color: #45a049;
 }
 
+.version-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn-version {
+  background-color: #4CAF50;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-version:hover {
+  background-color: #45a049;
+}
+
+.btn-history {
+  background-color: #2196F3;
+}
+
+.btn-history:hover {
+  background-color: #0b7dda;
+}
+
 .latest-commit-info {
   background-color: #f4f4f4;
   border-radius: 4px;
@@ -504,6 +632,70 @@ export default {
 .latest-commit-info p {
   margin: 0.25rem 0;
   font-size: 0.9em;
+}
+
+.btn-secondary:hover {
+  background-color: #da190b;
+}
+
+.btn-danger {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: #ee5252;
+}
+
+.entry-management, .label-filter {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.label-filter button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s, opacity 0.3s;
+}
+
+.label-filter button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+
+.ontology-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s, opacity 0.3s;
+  color: white;
+}
+
+.ontology-button:hover {
+  opacity: 0.85;
+}
+
+.ontology-button:active {
+  opacity: 0.7;
+}
+
+/* Remove the previous inline styling for entry management buttons */
+.entry-management button {
+  background-color: transparent; /* Will be overridden by inline style */
+  color: white;
 }
 
 </style>

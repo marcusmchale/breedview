@@ -382,16 +382,16 @@ const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = u
   )
 })
 
-  // Helper functions
-  const getStatusClass = (status) => {
+// Helper functions
+const getStatusClass = (status) => {
   switch (status) {
-  case 'AUTHORISED': return 'status-authorised'
-  case 'REQUESTED': return 'status-pending'
-  default: return 'status-unknown'
-}
+    case 'AUTHORISED': return 'status-authorised'
+    case 'REQUESTED': return 'status-pending'
+    default: return 'status-unknown'
+  }
 }
 
-  const getStatusText = (status) => {
+const getStatusText = (status) => {
   switch (status) {
   case 'AUTHORISED': return 'Authorised'
   case 'REQUESTED': return 'Requested'
@@ -400,22 +400,21 @@ const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = u
 }
 }
 
-  // Event handlers
-  const handleApproveAffiliation = async (userId, accessType, heritable) => {
+// Event handlers
+const handleApproveAffiliation = async (userId, accessType, heritable) => {
   try {
-  approveError.value = ''
-  const response = await approveAffiliationMutation({
-  user: userId,
-  team: props.teamInfo.id,
-  access: accessType,
-  heritable: heritable
-})
-
-  if (response?.data?.approve_affiliation?.status === 'SUCCESS') {
+    approveError.value = ''
+    const response = await approveAffiliationMutation({
+    user: userId,
+    team: props.teamInfo.id,
+    access: accessType,
+    heritable: heritable
+  })
+  if (response?.data?.accountsApproveAffiliation?.status === 'SUCCESS') {
   //await refetchInherited()  TODO reload team affiliation data
   emit('affiliation-updated')
 } else {
-  approveError.value = response?.data?.approve_affiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
+  approveError.value = response?.data?.accountsApproveAffiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
 }
 } catch (error) {
   console.error('Approve affiliation error:', error)
@@ -432,7 +431,7 @@ const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = u
   access: accessType
 })
 
-  if (response?.data?.revoke_affiliation?.status === 'SUCCESS') {
+  if (response?.data?.accountsRevokeAffiliation?.status === 'SUCCESS') {
   //await refetchInherited()  TODO reload team affiliation data
   emit('affiliation-updated')
 } else {

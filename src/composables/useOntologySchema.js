@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import gql from 'graphql-tag'
+import { ontologyLabelsMap } from './nodeColorMap'
 
 export function useOntologySchema() {
   // Introspection query for OntologyEntryLabel enum
@@ -15,31 +16,26 @@ export function useOntologySchema() {
       }
     }
   `
-  function screamingSnakeToPascal(str) {
-      return str
-        .toLowerCase()
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join('');
-    }
 
-  function screamingSnakeToTitle(str) {
-      return str
-        .toLowerCase()
-        .split('_')
-        .filter(word => word.length > 0) // skip empty parts if there are extra underscores
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
+    const generateLabelEntries = (enumValues) => {
+        return enumValues.map(enumValue => {
+          const labelConfig = ontologyLabelsMap[enumValue.name]
 
-  // Function to generate label entries dynamically
-  const generateLabelEntries = (enumValues) => {
-    return enumValues.map(enumValue => ({
-      label: screamingSnakeToTitle(enumValue.name),
-      method: `create${screamingSnakeToPascal(enumValue.name)}`,
-      description: enumValue.description || ''
-    }))
-  }
+          if (!labelConfig) {
+            console.warn(`No label config found for ${enumValue.name}`)
+            return null
+          }
+
+          return {
+            label: labelConfig.text,
+            method: `create${labelConfig.PascalCase}`,
+            description: enumValue.description || '',
+            enumLabel: enumValue.name,
+            color: labelConfig.color,
+            code: labelConfig.code
+          }
+        }).filter(entry => entry !== null)
+      }
 
   const labelEntries = ref([])
 

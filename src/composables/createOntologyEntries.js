@@ -483,7 +483,8 @@ export function createScaleHandler(context) {
           { label: 'Nominal', value: 'NOMINAL' },
           { label: 'Ordinal', value: 'ORDINAL' },
           { label: 'Text', value: 'TEXT' },
-          { label: 'Germplasm', value: 'GERMPLASM' }
+          { label: 'Germplasm', value: 'GERMPLASM' },
+          { label: 'Complex', value: 'COMPLEX' }
         ]
       },
       {

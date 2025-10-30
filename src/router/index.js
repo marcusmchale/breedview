@@ -9,6 +9,9 @@ import AffiliationsPage from '../components/AffiliationsPage.vue'
 import ResetPassword from '../components/ResetPassword.vue'
 import VerifyEmail from '../components/VerifyEmail.vue'
 import OntologyManagementPage from '../components/OntologyManagementPage.vue'
+import CommitHistoryPage from '@/components/CommitHistoryPage.vue'
+import GermplasmManagement from '@/components/GermplasmManagement.vue'
+
 
 const routes = [
   {
@@ -75,6 +78,21 @@ const routes = [
     name: 'OntologyManagement',
     component: OntologyManagementPage,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/ontology/commits',
+    name: 'commit-history',
+    component: CommitHistoryPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/germplasm-management',
+    name: 'GermplasmManagement',
+    component: GermplasmManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Germplasm Graph'
+    }
   },
   {
     path: '/reset-password',

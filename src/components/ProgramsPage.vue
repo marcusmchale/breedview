@@ -102,7 +102,6 @@
           <div class="program-card-header">
             <div class="program-title-section">
               <h3>{{ program.name }}</h3>
-              <ControllerBadge/>
             </div>
             <div class="program-actions">
               <button @click="editProgram(program)" class="btn btn-sm btn-outline">
@@ -112,6 +111,10 @@
                 {{ deleting ? 'Deleting...' : 'Delete' }}
               </button>
             </div>
+            <ControllerBadge
+              entity-label="PROGRAM"
+              :entity-id="program.id"
+            />
           </div>
 
           <div class="program-card-content">
@@ -132,7 +135,9 @@
                 class="trial-card"
               >
                 <div class="trial-header">
-                  <strong>{{ trial.name }}</strong>
+                  <div class="trial-title-section">
+                    <strong>{{ trial.name }}</strong>
+                  </div>
                   <div class="trial-actions">
                     <button
                       @click="editTrial(trial)"
@@ -147,6 +152,10 @@
                       Delete
                     </button>
                   </div>
+                    <ControllerBadge
+                      entity-label="TRIAL"
+                      :entity-id="trial.id"
+                    />
                 </div>
                 
                 <div class="trial-content">
@@ -166,11 +175,17 @@
                         class="study-card"
                       >
                         <div class="study-header">
-                          <strong>{{ study.name }}</strong>
+                          <div class="study-title-section">
+                            <strong>{{ study.name }}</strong>
+                          </div>
                           <div class="study-actions">
                             <button class="btn btn-sm btn-outline">Edit</button>
                             <button class="btn btn-sm btn-danger">Delete</button>
                           </div>
+                          <ControllerBadge
+                            entity-label="STUDY"
+                            :entity-id="study.id"
+                          />
                         </div>
                         
                         <div class="study-content">
@@ -884,7 +899,7 @@ onCreateStudyError((err) => {
 
 .programs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 20px;
 }
 
@@ -1140,6 +1155,14 @@ onCreateStudyError((err) => {
   align-items: center;
   margin-bottom: 10px;
 }
+
+.trial-title-section,
+.study-title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 
 .trial-actions, .study-actions {
   display: flex;

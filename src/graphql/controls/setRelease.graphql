@@ -1,0 +1,12 @@
+mutation controlsSetRelease(
+    $entityLabel: ControlledModelLabel!
+    $entityIds: [Int!]!
+    $release: ReadRelease!
+) {
+  controlsSetRelease(entityLabel: $entityLabel, entityIds: $entityIds, release: $release) {
+    status
+    errors {
+      message
+    }
+  }
+}

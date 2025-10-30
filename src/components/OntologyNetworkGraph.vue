@@ -4,9 +4,9 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
-import { getNodeColor } from '@/composables/nodeColorMap'
+import { getNodeColor, getNodeCode, getEnumLabel } from '@/composables/nodeColorMap'
 
 export default {
   props: {
@@ -26,21 +26,28 @@ export default {
     relationshipsError: {
       type: Object,
       default: null
+    },
+    selectedLabels: {
+      type: Array,
+      default: () => []
     }
   },
   emits: ['node-right-click'],
   setup(props, { emit }) {
-    console.log('OntologyNetworkGraph props:', props)
+
     const graphContainer = ref(null)
 
-    const renderGraph = () => {
-      // Wait for relationships to load
-      if (props.relationshipsLoading || !props.relationships) {
-        return
-      }
+    const renderGraph = async () => {
+
+      // Wait for relationships to load and DOM to update
+      await nextTick()
 
       // Clear previous graph
       d3.select(graphContainer.value).selectAll("*").remove()
+
+      // Get container dimensions
+      const containerWidth = graphContainer.value.clientWidth
+      const containerHeight = graphContainer.value.clientHeight
 
       // Prepare data
       const nodes = []
@@ -54,44 +61,40 @@ export default {
             id: entry.id, 
             name: entry.name, 
             description: entry.description,
-            __typename: entry.__typename
+            label: getEnumLabel(entry.__typename)
           }
           nodes.push(node)
           nodeMap.set(entry.id, node)
         }
       })
 
+            // Filter nodes based on selected labels
+      const filteredNodes = props.selectedLabels.length === 0
+        ? nodes
+        : nodes.filter(node => props.selectedLabels.includes(node.label))
+
+
       // Create links from relationships
+      const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
       props.relationships.forEach(rel => {
-        // Ensure both source and target nodes exist
-        if (!nodeMap.has(rel.source_id)) {
-          const sourceNode = { id: rel.source_id, name: `Entry ${rel.source_id}` }
-          nodes.push(sourceNode)
-          nodeMap.set(rel.source_id, sourceNode)
+        if (filteredNodeIds.has(rel.source_id) && filteredNodeIds.has(rel.target_id)) {
+          links.push({
+            source: rel.source_id,
+            target: rel.target_id,
+            label: rel.label,
+            type: rel.label
+          })
         }
-        if (!nodeMap.has(rel.target_id)) {
-          const targetNode = { id: rel.target_id, name: `Entry ${rel.target_id}` }
-          nodes.push(targetNode)
-          nodeMap.set(rel.target_id, targetNode)
-        }
-
-        links.push({
-          source: rel.source_id,
-          target: rel.target_id,
-          label: rel.label,
-          type: rel.label
-        })
       })
-
-      // Visualization dimensions
-      const width = 800
-      const height = 600
 
       // Create SVG
       const svg = d3.select(graphContainer.value)
         .append("svg")
-        .attr("width", width)
-        .attr("height", height)
+        .attr("width", containerWidth)
+        .attr("height", containerHeight)
+
+      // Add a group to apply zoom transformation
+      const g = svg.append("g")
 
       // Define arrowhead marker
       svg.append("defs").append("marker")
@@ -107,13 +110,15 @@ export default {
         .attr("fill", "#999")
 
       // Create force simulation
-      const simulation = d3.forceSimulation(nodes)
+      const simulation = d3.forceSimulation(filteredNodes)
         .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-        .force("charge", d3.forceManyBody().strength(-200))
-        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("charge", d3.forceManyBody().strength(-50))
+        .force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2))
+        .force("collision", d3.forceCollide(20))  // Prevent node overlap
+
 
       // Create links
-      const link = svg.append("g")
+      const link = g.append("g")
         .selectAll("line")
         .data(links)
         .enter().append("line")
@@ -123,7 +128,7 @@ export default {
         .attr("marker-end", "url(#arrowhead)")
 
       // Create link labels
-      const linkLabel = svg.append("g")
+      const linkLabel = g.append("g")
         .selectAll("text")
         .data(links)
         .enter().append("text")
@@ -133,32 +138,61 @@ export default {
         .text(d => d.label)
 
       // Create nodes
-      const node = svg.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .enter().append("circle")
-        .attr("r", 10)
-        .attr("fill", (d) => getNodeColor(d.__typename))
+      const node = g.append("g")
+        .selectAll("g")  // Change to group to contain both circle and text
+        .data(filteredNodes)
+        .enter().append("g")
         .call(d3.drag()
           .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended))
+          .on("drag", dragged))
+
+      // Add circle to each node group
+      node.append("circle")
+        .attr("r", 10)
+        .attr("fill", (d) => getNodeColor(d.label))
+        .attr("stroke", d => (d.fx !== undefined && d.fx !== null) ? "#333" : "none")
+        .attr("stroke-width", d => (d.fx !== undefined && d.fx !== null) ? 2 : 0)
         .on("contextmenu", (event, d) => {
           event.preventDefault()
           emit('node-right-click', d)
         })
+        .on("dblclick", (event, d) => {
+          // Double-click to release/lock the node
+          if (d.fx !== null) {
+            d.fx = null
+            d.fy = null
+          } else {
+            d.fx = d.x
+            d.fy = d.y
+          }
+          // Update visual indicator
+          d3.select(event.currentTarget.parentNode).select("circle")
+            .attr("stroke", d.fx !== null ? "#333" : "none")
+            .attr("stroke-width", d.fx !== null ? 2 : 0)
 
-      // Add labels
-      const label = svg.append("g")
+          simulation.alpha(0.3).restart()
+        })
+
+      // Add text inside the circle
+      node.append("text")
+        .text(d => getNodeCode(d.label))
+        .attr("text-anchor", "middle")
+        .attr("dy", ".3em")  // Vertically center text
+        .attr("font-size", 8)
+        .attr("fill", "#ffffff")  // White text for contrast
+        .attr("pointer-events", "none")  // Allow interaction with underlying circle
+
+      // Separate label for node name outside the circle
+      const label = g.append("g")
         .selectAll("text")
-        .data(nodes)
+        .data(filteredNodes)
         .enter().append("text")
         .text(d => d.name)
         .attr("font-size", 10)
         .attr("dx", 12)
         .attr("dy", 4)
 
-      // Simulation tick event
+      // Simulation tick event (update both node groups and labels)
       simulation.on("tick", () => {
         link
           .attr("x1", d => d.source.x)
@@ -171,8 +205,7 @@ export default {
           .attr("y", d => (d.source.y + d.target.y) / 2)
 
         node
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y)
+          .attr("transform", d => `translate(${d.x},${d.y})`)
 
         label
           .attr("x", d => d.x)
@@ -191,27 +224,33 @@ export default {
         d.fy = event.y
       }
 
-      function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0)
-        d.fx = null
-        d.fy = null
-      }
+      //function dragended(event, d) {
+      //  if (!event.active) simulation.alphaTarget(0)
+      //    d.fx = null
+      //    d.fy = null
+      //}
 
       // Add zoom functionality
       const zoom = d3.zoom()
         .scaleExtent([0.1, 10])
         .on('zoom', (event) => {
-          svg.attr('transform', event.transform)
+          g.attr('transform', event.transform)
         })
 
       svg.call(zoom)
+        .call(zoom.translateTo, containerWidth / 2, containerHeight / 2)  // Center the graph initially
     }
 
     // Render on mount and when entries change
-    onMounted(renderGraph)
+        // Render on mount and when entries change
+    onMounted(() => {
+      window.addEventListener('resize', renderGraph)
+      renderGraph()
+    })
     watch(() => props.entries, renderGraph)
     watch(() => props.relationships, renderGraph)
     watch(() => props.relationshipsLoading, renderGraph)
+    watch(() => props.selectedLabels, renderGraph, { deep: true })
 
     return { graphContainer }
   }

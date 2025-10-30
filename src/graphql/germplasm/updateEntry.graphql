@@ -1,0 +1,12 @@
+mutation germplasmUpdateEntry(
+    $entry: GermplasmUpdate!
+) {
+    germplasmUpdateEntry(
+        entry: $entry,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

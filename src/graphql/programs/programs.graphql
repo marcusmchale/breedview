@@ -6,8 +6,8 @@ query programs($programId: Int, $trialId: Int, $studyId: Int) {
       name
       fullname
       description
-      contacts
-      references
+      contacts {id}
+      references {id}
       trials {
         id
         name
@@ -15,8 +15,8 @@ query programs($programId: Int, $trialId: Int, $studyId: Int) {
         description
         start
         end
-        contacts
-        references
+        contacts {id}
+        references {id}
         studies {
           id
           name
@@ -26,11 +26,11 @@ query programs($programId: Int, $trialId: Int, $studyId: Int) {
           practices
           start
           end
-          factors
-          observations
-          design
-          licence
-          references
+          factors {id}
+          observations {id}
+          design {id}
+          licence {id}
+          references {id}
         }
       }
     }

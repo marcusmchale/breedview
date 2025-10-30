@@ -100,7 +100,7 @@ export function useTeamData(initialTeamData, currentUserId) {
       })
 
       if (result?.data?.organisationsTeams?.status === 'SUCCESS' && result.data.organisationsTeams.result?.length > 0) {
-        const freshData = result.data.organisisationsTeams.result[0]
+        const freshData = result.data.organisationsTeams.result[0]
         teamInfo.value = { ...freshData }
         return freshData
       }

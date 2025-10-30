@@ -1,0 +1,12 @@
+mutation germplasmDeleteEntry(
+    $entryId: Int!
+) {
+    germplasmDeleteEntry(
+        entryId: $entryId,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

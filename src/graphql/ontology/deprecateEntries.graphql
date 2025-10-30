@@ -1,0 +1,12 @@
+mutation ontologyDeprecateEntries(
+    $entry_ids: [Int!]
+) {
+    ontologyDeprecateEntries(
+        entryIds: $entry_ids,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -1,0 +1,21 @@
+query germplasmEntries(
+    $entryIds: [Int!]
+    $names: [String!]
+) {
+    germplasmEntries(
+        entryIds: $entryIds
+        names: $names
+    ){
+        status
+        result {
+            id
+            name
+            description
+            sources { sourceType, description, source { id, name } }
+            sinks { sourceType, description, sink { id, name } }
+        }
+        errors {
+            message
+        }
+    }
+}

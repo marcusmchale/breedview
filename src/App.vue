@@ -17,6 +17,9 @@
           <router-link to="/ontology-management" class="nav-link" active-class="active">
             Ontology
           </router-link>
+          <router-link to="/germplasm-management" class="nav-link" active-class="active">
+            Germplasm
+          </router-link>
           <router-link to="/programs" class="nav-link" active-class="active">
             Programs
           </router-link>
