@@ -1,0 +1,14 @@
+query regionsCountries {
+    regionsCountries {
+        status
+        result {
+            id
+            name
+            code
+            type {id}
+        }
+        errors {
+            message
+        }
+    }
+}

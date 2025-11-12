@@ -1,0 +1,18 @@
+query regions {
+    regions {
+        status
+        result {
+            id
+            name
+            code
+            type {id, name}
+            description
+            address
+            coordinates {latitude, longitude}
+            children {id}
+        }
+        errors {
+            message
+        }
+    }
+}

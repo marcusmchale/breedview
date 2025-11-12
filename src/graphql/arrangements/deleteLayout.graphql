@@ -1,0 +1,12 @@
+mutation arrangementsDeleteLayout(
+    $layoutId: Int!
+) {
+    arrangementsDeleteLayout(
+        layoutId: $layoutId,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

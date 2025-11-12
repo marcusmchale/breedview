@@ -1,0 +1,8 @@
+mutation arrangementsUpdateLayout($layout: LayoutInput!) {
+  arrangementsUpdateLayout(layout: $layout) {
+    status
+    errors {
+      message
+    }
+  }
+}

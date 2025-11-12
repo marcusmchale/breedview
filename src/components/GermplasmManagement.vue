@@ -1,10 +1,7 @@
 <template>
   <div class="page-container">
     <div class="germplasm-header">
-      <button @click="$router.push('/')" class="btn btn-secondary">
-        ← Back to Home
-      </button>
-      <h1>Germplasm Graph Management</h1>
+      <h1>Germplasm</h1>
       <button @click="showCreateModal = true" class="btn btn-primary">
         Create New Entry
       </button>
@@ -1185,8 +1182,9 @@ const handleControllerReleaseUpdated = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  gap: 1rem;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .germplasm-header h1 {

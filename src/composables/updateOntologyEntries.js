@@ -1411,6 +1411,19 @@ export function updateLayoutTypeHandler(context) {
     { name: 'name', type: 'text', label: 'Name', validation: 'required', value: currentValues.name },
     { name: 'description', type: 'textarea', label: 'Description', value: currentValues.description },
     {
+      name: 'axes',
+      type: 'hidden',
+      value: currentValues.axes || [],
+      _axesBuilder: {
+        options: [
+          { label: 'Nominal', value: 'NOMINAL' },
+          { label: 'Ordinal', value: 'ORDINAL' },
+          { label: 'Coordinate', value: 'COORDINATE' },
+          { label: 'Cartesian', value: 'CARTESIAN' }
+        ]
+      }
+    },
+    {
       name: 'parentIds',
       type: 'select',
       label: 'Parent Layout Types',
@@ -1455,7 +1468,17 @@ export function updateLayoutTypeHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateLayoutTypeMutation({ layoutType: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateLayoutTypeMutation({
+    layoutType: {
+      id: entry.id,
+      name: formData.name,
+      description: formData.description || undefined,
+      axes: formData.axes && formData.axes.length > 0 ? formData.axes : undefined,
+      parentIds: processIdArray(formData.parentIds),
+      childIds: processIdArray(formData.childIds),
+      termIds: processIdArray(formData.termIds)
+    }
+  }))
 }
 
 // Export all handlers

@@ -1,6 +1,6 @@
 <template>
   <div class="ontology-management-page">
-    <h1>Ontology Management</h1>
+    <h1>Ontology</h1>
     <div class="ontology-actions">
       <section>
         <h2>Filter by Life Cycle Phases</h2>
@@ -92,8 +92,7 @@
         </div>
       </section>
 
-
-    <!-- Form Modal -->
+<!-- Form Modal -->
     <div v-if="showForm" class="form-modal">
       <div class="form-container">
         <h2>{{ formTitle }}</h2>
@@ -101,19 +100,59 @@
           type="form"
           @submit="handleSubmit"
           :actions="false"
+          v-model="formData"
         >
-          <FormKit
-            v-for="field in formFields"
-            :key="field.name"
-            :type="field.type"
-            :name="field.name"
-            :label="field.label"
-            :validation="field.validation"
-            :placeholder="field.placeholder"
-            :options="field.options"
-            :multiple="field.multiple"
-            :value="field.value"
-          />
+          <template v-for="field in formFields" :key="field.name">
+            <!-- Custom Axes Builder -->
+            <div v-if="field._axesBuilder" class="axes-builder-field">
+              <label class="axes-label">Axes (order matters)</label>
+              <div class="add-buttons">
+                <button
+                  v-for="option in field._axesBuilder.options"
+                  :key="option.value"
+                  type="button"
+                  class="add-axis-btn"
+                  @click="addAxis(field.name, option.value)"
+                >
+                  + {{ option.label }}
+                </button>
+              </div>
+
+              <div v-if="formData[field.name] && formData[field.name].length > 0" class="axes-list">
+                <div
+                  v-for="(axis, index) in formData[field.name]"
+                  :key="`${axis}-${index}`"
+                  class="axis-item"
+                  @click="removeAxis(field.name, index)"
+                  :title="`Click to remove`"
+                >
+                  <span class="axis-index">{{ index + 1 }}.</span>
+                  <span class="axis-label">{{ getAxisLabel(field._axesBuilder.options, axis) }}</span>
+                  <span class="axis-remove">×</span>
+                </div>
+              </div>
+
+              <div v-else class="empty-axes">
+                Click buttons above to add axes in order
+              </div>
+
+              <FormKit :type="field.type" :name="field.name" :value="field.value" />
+            </div>
+
+            <!-- Regular FormKit fields -->
+            <FormKit
+              v-else
+              :type="field.type"
+              :name="field.name"
+              :label="field.label"
+              :validation="field.validation"
+              :placeholder="field.placeholder"
+              :options="field.options"
+              :multiple="field.multiple"
+              :value="field.value"
+            />
+          </template>
+
           <div class="form-actions">
             <button type="submit" class="btn-primary">Submit</button>
             <button type="button" @click="closeForm" class="btn-secondary">Cancel</button>
@@ -130,6 +169,7 @@
         </FormKit>
       </div>
     </div>
+
 
 
   </div>
@@ -325,6 +365,28 @@ export default {
       return `${version.major}.${version.minor}.${version.patch}`
     }
 
+
+    const formData = ref({})
+
+    const addAxis = (fieldName, value) => {
+      if (!formData.value[fieldName]) {
+        formData.value[fieldName] = []
+      }
+      formData.value[fieldName].push(value)
+    }
+
+    const removeAxis = (fieldName, index) => {
+      if (formData.value[fieldName]) {
+        formData.value[fieldName].splice(index, 1)
+      }
+    }
+
+    const getAxisLabel = (options, value) => {
+      const option = options.find(opt => opt.value === value)
+      return option ? option.label : value
+    }
+
+
     return {
       createEntriesForLabels,
       ontologyEntries,
@@ -351,7 +413,11 @@ export default {
       deprecateEntriesMutation: deprecateEntriesMutation,
       currentEntryId,
       selectedLabels, toggleLabelFilter,
-      goToCommitHistory
+      goToCommitHistory,
+      formData,
+      addAxis,
+      removeAxis,
+      getAxisLabel
     }
   },
   methods: {
@@ -469,6 +535,7 @@ export default {
       this.formFields = []
       this.currentMutation = null
       this.currentEntryId = null
+      this.formData = {}
     },
 
     async handleSubmit(formData) {
@@ -692,10 +759,105 @@ export default {
   opacity: 0.7;
 }
 
-/* Remove the previous inline styling for entry management buttons */
 .entry-management button {
   background-color: transparent; /* Will be overridden by inline style */
   color: white;
+}
+
+
+.axes-builder-field {
+  margin-bottom: 1.5rem;
+}
+
+.axes-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.add-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.add-axis-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid #4CAF50;
+  background: white;
+  color: #4CAF50;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.add-axis-btn:hover {
+  background: #4CAF50;
+  color: white;
+}
+
+.axes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.axis-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.axis-item:hover {
+  background: #fee;
+  border-color: #f44336;
+}
+
+.axis-index {
+  font-weight: bold;
+  color: #666;
+  min-width: 2rem;
+}
+
+.axis-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.axis-remove {
+  font-size: 1.5rem;
+  color: #f44336;
+  font-weight: bold;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.axis-item:hover .axis-remove {
+  opacity: 1;
+}
+
+.empty-axes {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  background: #f9f9f9;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
 }
 
 </style>

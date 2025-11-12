@@ -27,6 +27,16 @@ input LayoutInput {
   position: [String]
 }
 
+input LayoutUpdate {
+  layoutId: Int!
+  locationId: Int
+  typeId: Int
+  axes: [String!]
+  name: String
+  parentId: Int
+  position: [String]
+}
+
 input PositionInput {
   """ID of Location in a Region"""
   locationId: Int!
@@ -155,6 +165,8 @@ type Mutation {
   accountsRemoveAffiliation(teamId: Int!, access: Access!): BooleanPayload!
   accountsRevokeAffiliation(userId: Int!, teamId: Int!, access: Access!): BooleanPayload!
   arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
+  arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
+  arrangementsDeleteLayout(layoutId: Int!): BooleanPayload!
   blocksCreateUnit(unit: UnitInput!): BooleanPayload!
   blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
@@ -215,6 +227,8 @@ type Mutation {
   programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
   programsDeleteStudy(studyId: Int!): BooleanPayload
   regionsCreateLocation(location: LocationInput!): BooleanPayload!
+  regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
+  regionsDeleteLocation(locationId: Int!): BooleanPayload!
 }
 
 enum VersionChange {
@@ -772,6 +786,23 @@ input LocationInput {
 
   """ Ontology LocationType identifier """
   typeId: Int!
+
+  """ A parent location, required unless a country (see countries) """
+  parentId: Int
+}
+
+input LocationUpdate {
+  locationId: Int!
+  name: String
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinateInput]
+
+  """ Ontology LocationType identifier """
+  typeId: Int
 
   """ A parent location, required unless a country (see countries) """
   parentId: Int
@@ -1886,11 +1917,8 @@ type Query {
   """
   regions: LocationsPayload!
 
-  """Get a single location details"""
-  regionsLocation(locationId: Int!): LocationPayload!
-
-  """Search for locations by ontology Location type"""
-  regionsLocations(locationTypeId: Int!): LocationsPayload!
+  """Search for locations by or locationId or ontology Location type"""
+  regionsLocations(locationIds: [Int!], locationTypeId: Int): LocationsPayload!
 
   """
   Get a list of arrangement roots.
@@ -1899,8 +1927,8 @@ type Query {
   """
   arrangements(locationId: Int): LayoutsPayload!
 
-  """Get a single layout details"""
-  arrangementsLayout(layoutId: Int!): LayoutPayload!
+  """Get a layout details by ID"""
+  arrangementsLayouts(layoutIds: [Int!]): LayoutPayload!
 
   """
   Get a list of block "root" units.
@@ -1954,7 +1982,7 @@ type Location {
   """
   id: Int
   name: String!
-  type: OntologyEntryInterface!
+  type: OntologyEntryInterface
   code: String
   synonyms: [String]
   description: String

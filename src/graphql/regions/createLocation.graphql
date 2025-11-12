@@ -1,0 +1,8 @@
+mutation regionsCreateLocation($location: LocationInput!) {
+  regionsCreateLocation(location: $location) {
+    status
+    errors {
+      message
+    }
+  }
+}

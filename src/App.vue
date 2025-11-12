@@ -14,14 +14,17 @@
           <router-link to="/home" class="nav-link" active-class="active">
             Home
           </router-link>
-          <router-link to="/ontology-management" class="nav-link" active-class="active">
+          <router-link to="/ontology" class="nav-link" active-class="active">
             Ontology
           </router-link>
-          <router-link to="/germplasm-management" class="nav-link" active-class="active">
+          <router-link to="/germplasm" class="nav-link" active-class="active">
             Germplasm
           </router-link>
           <router-link to="/programs" class="nav-link" active-class="active">
             Programs
+          </router-link>
+          <router-link to="/regions" class="nav-link" active-class="active">
+            Regions
           </router-link>
           <router-link to="/edit-affiliations" class="nav-link" active-class="active">
             Affiliations

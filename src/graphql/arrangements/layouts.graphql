@@ -1,0 +1,21 @@
+query layouts (
+    $layoutIds: [Int!]
+){
+    arrangementsLayouts(
+        layoutIds: $layoutIds
+    ){
+        status
+        result {
+            id
+            name
+            axes
+            type {id, name}
+            parent {id}
+            position
+            children {id}
+        }
+        errors {
+            message
+        }
+    }
+}

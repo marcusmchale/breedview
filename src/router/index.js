@@ -11,6 +11,7 @@ import VerifyEmail from '../components/VerifyEmail.vue'
 import OntologyManagementPage from '../components/OntologyManagementPage.vue'
 import CommitHistoryPage from '@/components/CommitHistoryPage.vue'
 import GermplasmManagement from '@/components/GermplasmManagement.vue'
+import RegionManagement from '@/components/RegionsManagement.vue'
 
 
 const routes = [
@@ -70,12 +71,12 @@ const routes = [
     component: ProgramsPage,
     meta: {
       requiresAuth: true,
-      title: 'Programs Management'
+      title: 'Programs'
     }
   },
   {
-    path: '/ontology-management',
-    name: 'OntologyManagement',
+    path: '/ontology',
+    name: 'Ontology',
     component: OntologyManagementPage,
     meta: { requiresAuth: true }
   },
@@ -86,12 +87,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/germplasm-management',
-    name: 'GermplasmManagement',
+    path: '/germplasm',
+    name: 'Germplasm',
     component: GermplasmManagement,
     meta: {
       requiresAuth: true,
-      title: 'Germplasm Graph'
+      title: 'Germplasm'
+    }
+  },
+  {
+    path: '/regions',
+    name: 'Regions',
+    component: RegionManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Regions'
     }
   },
   {

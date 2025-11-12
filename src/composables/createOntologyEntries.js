@@ -1083,6 +1083,19 @@ export function createLayoutTypeHandler(context) {
       { name: 'name', type: 'text', label: 'Name', validation: 'required', placeholder: 'Enter layout type name' },
       { name: 'description', type: 'textarea', label: 'Description', validation: '', placeholder: 'Enter description (optional)' },
       {
+        name: 'axes',
+        type: 'hidden',
+        value: [],
+        _axesBuilder: {
+          options: [
+            { label: 'Nominal', value: 'NOMINAL' },
+            { label: 'Ordinal', value: 'ORDINAL' },
+            { label: 'Coordinate', value: 'COORDINATE' },
+            { label: 'Cartesian', value: 'CARTESIAN' }
+          ]
+        }
+      },
+      {
         name: 'parentIds',
         type: 'select',
         label: 'Parent Layout Types',
@@ -1114,6 +1127,7 @@ export function createLayoutTypeHandler(context) {
       const processedData = {
         name: formData.name,
         description: formData.description || undefined,
+        axes: formData.axes && formData.axes.length > 0 ? formData.axes : undefined,
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
         termIds: processIdArray(formData.termIds)

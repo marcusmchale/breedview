@@ -1,10 +1,7 @@
 <template>
   <div class="page-container">
     <div class="programs-header">
-      <button @click="$router.push('/')" class="btn btn-secondary">
-        ← Back to Home
-      </button>
-      <h1>Programs Management</h1>
+      <h1>Programs</h1>
       <button @click="showCreateForm = true" class="btn btn-primary">
         Create New Program
       </button>

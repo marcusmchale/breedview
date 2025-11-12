@@ -1,0 +1,12 @@
+mutation regionsDeleteLocation(
+    $locationId: Int!
+) {
+    regionsDeleteLocation(
+        locationId: $locationId,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

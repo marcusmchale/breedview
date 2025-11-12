@@ -89,7 +89,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'affiliation-requested'])
 
 const { client } = useApolloClient()
-const affiliationRequest = ref({ access: '', heritable: true })
+const affiliationRequest = ref({ access: '', heritable: false })
 const errorMessage = ref('')
 const successMessage = ref('')
 
@@ -180,7 +180,7 @@ onDone((result) => {
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     // Reset form when modal opens
-    affiliationRequest.value = { access: '', heritable: true }
+    affiliationRequest.value = { access: '', heritable: false }
     errorMessage.value = ''
     successMessage.value = ''
   }
@@ -206,7 +206,7 @@ const submitRequestAffiliation = async () => {
 
 const handleCancel = () => {
   if (!loading.value) {
-    affiliationRequest.value = { access: '', heritable: true }
+    affiliationRequest.value = { access: '', heritable: false }
     errorMessage.value = ''
     successMessage.value = ''
     emit('close')

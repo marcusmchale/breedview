@@ -1,0 +1,8 @@
+mutation arrangementsCreateLayout($layout: LayoutInput!) {
+  arrangementsCreateLayout(layout: $layout) {
+    status
+    errors {
+      message
+    }
+  }
+}
