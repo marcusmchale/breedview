@@ -343,7 +343,6 @@ const isSelected = computed(() => {
   return selectedLocationId === locationId
 })
 
-
 // Fetch root layouts for this location
 const { result: arrangementsResult, loading: arrangementsLoading, refetch: refetchArrangements } = useQuery(
   ARRANGEMENTS_QUERY,

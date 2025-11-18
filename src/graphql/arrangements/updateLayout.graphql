@@ -1,4 +1,4 @@
-mutation arrangementsUpdateLayout($layout: LayoutInput!) {
+mutation arrangementsUpdateLayout($layout: LayoutUpdate!) {
   arrangementsUpdateLayout(layout: $layout) {
     status
     errors {

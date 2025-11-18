@@ -139,6 +139,7 @@ const countries = computed(() => {
 
 // Fetch regions
 const { result: regionsResult, loading: regionsLoading, refetch: refetchRegions } = useQuery(REGIONS_QUERY)
+
 // Initialize regions in cache on page load
 watch(() => regionsResult.value?.regions?.result, (regionsList) => {
   if (regionsList) {

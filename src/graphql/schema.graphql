@@ -823,14 +823,14 @@ type Account {
 
 type Layout {
   id: Int!
-  name: String!
   type: OntologyEntryInterface!
-  axes: [String]
+  name: String
+  axes: [String!]
   parent: Layout
 
   """Position within parent layout"""
-  position: [String]
-  children: [Layout]
+  position: [String!]
+  children: [Layout!]
 }
 
 type Token {
@@ -1768,21 +1768,9 @@ type LocationsPayload {
   errors: [Error]
 }
 
-type LocationPayload {
-  status: QueryStatus!
-  result: Location
-  errors: [Error]
-}
-
 type LayoutsPayload {
   status: QueryStatus!
   result: [Layout]
-  errors: [Error]
-}
-
-type LayoutPayload {
-  status: QueryStatus!
-  result: Layout
   errors: [Error]
 }
 
@@ -1928,7 +1916,7 @@ type Query {
   arrangements(locationId: Int): LayoutsPayload!
 
   """Get a layout details by ID"""
-  arrangementsLayouts(layoutIds: [Int!]): LayoutPayload!
+  arrangementsLayouts(layoutIds: [Int!]): LayoutsPayload!
 
   """
   Get a list of block "root" units.

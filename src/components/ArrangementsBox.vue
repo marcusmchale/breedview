@@ -35,11 +35,13 @@
             <LayoutNode
               v-for="layout in arrangements"
               :key="layout.id"
-              :layout="layout"
+              :layoutId="layout.id"
               :allLayouts="allLayouts"
               :location-id="locationId"
               :layout-types="layoutTypes"
-              @reload-layouts="$emit('reload-layouts')"
+              @load-layouts="handleLoadLayouts"
+              @reload-layouts="handleReloadLayouts"
+              @delete-layouts="handleDeleteLayouts"
             />
           </div>
 
@@ -116,13 +118,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import {ref, computed, watch, reactive} from 'vue'
 import { FormKit } from '@formkit/vue'
-import { useMutation, useQuery } from '@vue/apollo-composable'
+import { useMutation, useQuery, useLazyQuery } from '@vue/apollo-composable'
 
 import LayoutNode from './LayoutNode.vue'
+import LAYOUTS_QUERY from '@/graphql/arrangements/layouts.graphql'
 import CREATE_LAYOUT_MUTATION from '@/graphql/arrangements/createLayout.graphql'
 import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
+
 
 const {locationId, arrangements, loading} = defineProps({
   locationId: {
@@ -144,16 +148,53 @@ const $emit = defineEmits(['reload-layouts'])
 const selectedLayout = ref(null)
 const isViewLayoutModalOpen = ref(false)
 
+// create a reactive allLayouts map
+// then we can load arrangements and children ad hoc and share this reference like a simple cache
+const allLayouts = reactive({})
 
-// populate an allLayouts map with arrangements,
-// then we can load children ad hoc and share this reference like a simple cache
-const allLayouts = ref(
-  Object.fromEntries(arrangements.map(item => [item.id, item]))
+// we simplify the children to an array of IDs
+const addLayout = (layout) => {
+  const existingLayout = allLayouts[layout.id]
+  const newChildren = layout.children
+  ? layout.children.map(c => typeof c === 'object' ? c.id : c)
+  : []
+
+  if (existingLayout) {
+    existingLayout.name = layout.name
+    existingLayout.type = layout.type
+    existingLayout.parent = layout.parent
+    existingLayout.axes.splice(0, existingLayout.axes.length, ...layout.axes)
+    existingLayout.children.splice(0, existingLayout.children.length, ...newChildren)
+    console.log('updated layout: ',existingLayout)
+  } else {
+    allLayouts[layout.id] = {
+      ...layout,
+      children: newChildren
+    }
+  }
+}
+
+
+watch(
+  () => arrangements,
+  (arr) => {
+    // clear map
+    for (const key in allLayouts) {
+      console.log('deleting key from allLayouts', key)
+      delete allLayouts[key]
+    }
+
+    // repopulate
+    for (const item of arr) {
+      addLayout(item)
+    }
+  },
+  { immediate: true, deep: true }
 )
 
 const openViewLayoutModal = (layout) => {
   console.log('view layout:', layout)
-  selectedLayout.value = layout
+  selectedLayout.value = allLayouts[layout.id]
   isViewLayoutModalOpen.value = true
 }
 
@@ -273,6 +314,51 @@ const submitAddLayout = async () => {
     addLayoutError.value = error.message || 'An unexpected error occurred while adding the layout.'
   }
 }
+
+// Store variables for lazy query
+const layoutQueryVariables = ref({
+  layoutIds: []
+})
+
+
+// Fetch layouts
+const { load: loadLayoutsByIds, onResult: onLayoutsResult, refetch: refetchLayoutsByIds } = useLazyQuery(
+  LAYOUTS_QUERY,
+  () => layoutQueryVariables.value
+)
+
+
+onLayoutsResult((result) => {
+  if (result?.data?.arrangementsLayouts?.result) {
+    const newLayouts = result.data.arrangementsLayouts.result
+    console.log('newLayouts result recieved')
+    newLayouts.forEach((item) => {
+      console.log('newitem', item)
+      addLayout(item)
+    })
+  }
+})
+
+// Handle the load-layouts events triggerred by child components
+const handleLoadLayouts = (layoutIds) => {
+  layoutQueryVariables.value = {layoutIds: layoutIds.filter(Boolean)}
+  loadLayoutsByIds()
+}
+
+// Handle the load-layouts events triggerred by child components
+const handleReloadLayouts = (layoutIds) => {
+  console.log('reload layouts:', layoutIds)
+  layoutQueryVariables.value = {layoutIds: layoutIds.filter(Boolean)}
+  refetchLayoutsByIds()
+}
+
+const handleDeleteLayouts = (layoutIds) => {
+  console.log('Remove layouts from cache')
+  layoutIds.forEach(layoutId => {
+    delete allLayouts[layoutId]
+  })
+}
+
 </script>
 
 <style scoped>
