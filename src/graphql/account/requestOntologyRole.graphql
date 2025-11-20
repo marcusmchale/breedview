@@ -1,0 +1,8 @@
+mutation accountsRequestOntologyRole($ontologyRole: OntologyRole!) {
+  accountsRequestOntologyRole(ontologyRole: $ontologyRole) {
+    status
+    errors {
+      message
+    }
+  }
+}

@@ -10,6 +10,7 @@ import ResetPassword from '../components/ResetPassword.vue'
 import VerifyEmail from '../components/VerifyEmail.vue'
 import OntologyManagementPage from '../components/OntologyManagementPage.vue'
 import CommitHistoryPage from '@/components/CommitHistoryPage.vue'
+import OntologyRolePage from '@/components/OntologyRolePage.vue'
 import GermplasmManagement from '@/components/GermplasmManagement.vue'
 import RegionManagement from '@/components/RegionsManagement.vue'
 
@@ -84,6 +85,12 @@ const routes = [
     path: '/ontology/commits',
     name: 'commit-history',
     component: CommitHistoryPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ontology/roles',
+    name: 'ontology-roles',
+    component: OntologyRolePage,
     meta: { requiresAuth: true }
   },
   {

@@ -112,7 +112,7 @@ export default {
     }
 
     const goBack = () => {
-      router.push({ name: 'OntologyManagement' })
+      router.push({ name: 'Ontology' })
     }
 
     return {

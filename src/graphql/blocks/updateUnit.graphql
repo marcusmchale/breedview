@@ -1,0 +1,8 @@
+mutation blocksUpdateUnit($unit: UnitUpdate!) {
+  blocksUpdateUnit(unit: $unit) {
+    status
+    errors {
+      message
+    }
+  }
+}

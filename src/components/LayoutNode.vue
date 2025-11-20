@@ -20,6 +20,10 @@
           <span v-if="layout.position !== null && layout.position !== undefined" class="position">
             Pos: {{ layout.position }}
           </span>
+          <span v-if="layout.location !== null && layout.location !== undefined" class="position">
+            Loc: {{ layout.location.name }}
+          </span>
+
         </div>
       </div>
 
@@ -70,6 +74,15 @@
           :actions="false"
           class="modal-content"
         >
+
+          <FormKit
+            type="select"
+            name="locationId"
+            label="Location:"
+            placeholder="Select a location"
+            :options="regionLocations.map(loc => ({ value: loc.id, label: loc.name }))"
+          />
+
           <FormKit
             type="text"
             name="name"
@@ -273,9 +286,9 @@
       <div v-for="childId in layout.children" :key="childId" class="child-item">
         <LayoutNode
           :layoutId="childId"
-          :all-layouts="allLayouts"
           :location-id="locationId"
           :layout-types="layoutTypes"
+          :locationCache="locationCache"
           @load-layouts="handleLoadLayouts"
           @reload-layouts="handleReloadLayouts"
         />
@@ -295,13 +308,9 @@ import UPDATE_LAYOUT_MUTATION from '@/graphql/arrangements/updateLayout.graphql'
 import CREATE_LAYOUT_MUTATION from '@/graphql/arrangements/createLayout.graphql'
 
 
-const {layoutId, allLayouts, locationId, layoutTypes } = defineProps({
+const {layoutId, locationId, layoutTypes, locationCache } = defineProps({
   layoutId: {
     type: Number,
-    required: true
-  },
-  allLayouts: {
-    type: Object,
     required: true
   },
   locationId: {
@@ -311,12 +320,20 @@ const {layoutId, allLayouts, locationId, layoutTypes } = defineProps({
   layoutTypes: {
     type: Array,
     required: true
-  }
+  },
+  locationCache: {
+    type: Object,
+    required: true
+  },
 })
 
-const $emit = defineEmits(['load-layouts', 'reload-layouts', 'delete-layouts'])
+const $emit = defineEmits(['load-layouts', 'reload-layouts', 'delete-layouts', 'reload-locations'])
 
 const expanded = ref(false)
+
+// Use the passed cache instance
+const { getLayoutIds, getLayouts, getLayout } = locationCache
+
 
 const handleLoadLayouts = (layoutIds) => {
   // Emit the new layouts to the parent component
@@ -336,12 +353,21 @@ const handleDeleteLayouts = (layoutIds) => {
   $emit('delete-layouts', layoutIds)
 }
 
+const allLayouts = computed(() => {
+  const layoutIds = getLayoutIds(locationId)
+  if (layoutIds.size === 0) {
+    return []
+  }
+  return getLayouts(layoutIds)
+})
+
+
 const layout = computed( () => {
   if (!layoutId) {
     console.log('no layout ID provided')
     return null;
   }
-  const layoutData = allLayouts[layoutId]
+  const layoutData = getLayout(layoutId)
   console.log('layoutData', layoutId, layoutData)
   return layoutData || null
 })
@@ -352,37 +378,17 @@ if (layout.value) {
 
 // Get other layouts for parent dropdown (exclude self and descendants)
 const otherLayouts = computed(() => {
-  const layoutsArray = Object.values(allLayouts)
   const excludeIds = new Set([layout.value.id])
   const addDescendants = (layoutId) => {
-    const children = layoutsArray.filter(l => l.parent?.id === layoutId)
+    const children = allLayouts.value.filter(l => l.parent?.id === layoutId)
     children.forEach(child => {
       excludeIds.add(child.id)
       addDescendants(child.id)
     })
   }
   addDescendants(layout.value.id)
-  console.log('calculate other layouts for layout:', layout.value.name || layout.value.id)
-  console.log('allLayouts to calculate other:', layoutsArray.map(layout_ => layout_.name || layout_.id))
-  return layoutsArray.filter(l => !excludeIds.has(l.id))
+  return allLayouts.value.filter(l => !excludeIds.has(l.id))
 })
-
-// Get other layouts for parent dropdown (exclude self and descendants)
-//const otherLayouts = computed(() => {
-//  const layoutsArray = Object.values(allLayouts)
-//  const excludeIds = new Set([layout.value.id])
-//  const addDescendants = (layoutId) => {
-//    const children = layoutsArray.filter(l => l.parent?.id === layoutId)
-//    children.forEach(child => {
-//      excludeIds.add(child.id)
-//      addDescendants(child.id)
-//    })
-//  }
-//  addDescendants(layout.value.id)
-//  console.log('calculate other layouts for layout:', layout.value.name || layout.value.id)
-//  console.log('allLayouts to calculate other:', layoutsArray.map(layout_ => layout_.name || layout_.id))
-//  return layoutsArray.filter(l => !excludeIds.has(l.id))
-//})
 
 const toggleExpand = () => {
   expanded.value = !expanded.value
@@ -394,7 +400,8 @@ const updateFormData = ref({
   name: '',
   typeId: null,
   parentId: null,
-  position: null
+  position: null,
+  locationId: locationId
 })
 const editError = ref('')
 
@@ -402,7 +409,7 @@ const parentLayout = computed(() => {
   if (!updateFormData.value.parentId) {
     return
   }
-  return allLayouts[updateFormData.value.parentId]
+  return getLayout(updateFormData.value.parentId)
 })
 
 
@@ -420,7 +427,9 @@ watch(parentLayout, (newParentLayout) => {
     console.log('layout:', layout)
     // If the position field doesn't exist, add it with an empty string
     if (!Object.prototype.hasOwnProperty.call(updateFormData.value, positionField)) {
-      updateFormData.value[positionField] = layout.value.position[index];  // Initialize axis with value
+      if (layout.value.position) {
+        updateFormData.value[positionField] = layout.value.position[index];  // Initialize axis with value
+      }
     }
   });
 
@@ -525,7 +534,8 @@ const openEditModal = () => {
   updateFormData.value = {
     name: layout.value.name || '',
     typeId: layout.value.type?.id || null,
-    parentId: layout.value.parent?.id || null
+    parentId: layout.value.parent?.id || null,
+    locationId: locationId,
   }
   // Pre-populate axis names if they exist
   if (layout.value.axes && layout.value.axes.length > 0) {
@@ -533,6 +543,7 @@ const openEditModal = () => {
       updateFormData.value[`axis_${index}`] = axisName
     })
   }
+  console.log('layout has positions:', layout.value.position)
   // Pre-populate positions if they exist
   if (layout.value.position && layout.value.position.length > 0) {
     layout.value.position.forEach((axisPosition, index) => {
@@ -549,6 +560,7 @@ const closeEditModal = () => {
     name: '',
     typeId: null,
     parentId: null,
+    locationId: null
   }
   editError.value = ''
 }
@@ -578,12 +590,12 @@ const submitUpdate = async () => {
         }
       }
     }
-    const oldParentId = layout.value?.parent.id
+    const oldParentId = layout.value?.parent?.id || null
     console.log('old parent ID', oldParentId)
     const response = await updateLayoutMutation({
       layout: {
         layoutId: layout.value.id,
-        locationId: locationId,
+        locationId: updateFormData.value.locationId || locationId,
         name: updateFormData.value.name || undefined,
         typeId: updateFormData.value.typeId || undefined,
         parentId: updateFormData.value.parentId || undefined,
@@ -598,6 +610,9 @@ const submitUpdate = async () => {
         const toReload = [layout.value.id, oldParentId, updateFormData.value.parentId]
         console.log('reloading:', toReload)
         handleReloadLayouts(toReload)
+        if (updateFormData.value.locationId !== locationId) {
+                $emit("reload-locations", [locationId, updateFormData.value.locationId])
+        }
         closeEditModal()
       } else {
         const errors = result.errors
@@ -707,20 +722,19 @@ const closeDeleteModal = () => {
 
 const submitDelete = async () => {
   try {
-    console.log('current layout to delete', layout.value)
-    const parentId = layout.value.parent['id']
-    console.log('parent', parentId)
+    const parentId = layout.value.parent?.id || null
     deleteError.value = ''
     const response = await deleteLayoutMutation({
       layoutId: layoutId
     })
-
     if (response?.data?.arrangementsDeleteLayout) {
       const result = response.data.arrangementsDeleteLayout
 
       if (result.status === 'SUCCESS') {
-        handleReloadLayouts([parentId])
         handleDeleteLayouts([layoutId])
+        if (parentId) {
+          handleReloadLayouts([parentId])
+        }
         closeDeleteModal()
       } else {
         const errors = result.errors
@@ -736,6 +750,18 @@ const submitDelete = async () => {
     deleteError.value = error.message || 'An unexpected error occurred while deleting the layout.'
   }
 }
+
+// Use the passed cache instance
+const { getRegionLocations, getLocationRegionId } = locationCache
+
+
+// Get all locations in this region for dropdowns
+const regionLocations = computed(() => {
+  const regionId = getLocationRegionId(locationId)
+  return getRegionLocations(regionId)
+})
+
+
 </script>
 
 <style scoped>

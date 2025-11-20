@@ -1,0 +1,28 @@
+query units (
+    $unitIds: [Int!]
+){
+    blocksUnits(
+        unitIds: $unitIds
+    ){
+        status
+        result {
+            id
+            subject {name, id}
+            name
+            synonyms
+            description
+            positions {
+                location {name, id}
+                layout {id, name}
+                coordinates
+                start
+                end
+            }
+            parents {id}
+            children {id}
+        }
+        errors {
+            message
+        }
+    }
+}

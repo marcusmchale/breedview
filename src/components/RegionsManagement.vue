@@ -20,7 +20,7 @@
           No regions found. Create a new one to get started.
         </div>
         <div v-else class="regions-tree">
-          <div v-for="region in regions" :key="region.id" class="location-item">
+          <div v-for="region in regions" :key="`locationNode_${region.id}`" class="location-item">
             <LocationNode
               :locationId="region.id"
               :expanded="isExpanded(region)"
@@ -33,6 +33,7 @@
               @delete-location="handleDeleteLocation"
               @reload-location="handleReloadLocation"
               @select-location="handleSelectLocation"
+              @reload-arrangements="handleReloadArrangements"
             />
           </div>
         </div>
@@ -103,12 +104,22 @@ import CREATE_LOCATION_MUTATION from '../graphql/regions/createLocation.graphql'
 import UPDATE_LOCATION_MUTATION from '../graphql/regions/updateLocation.graphql'
 import COUNTRIES_QUERY from '../graphql/regions/countries.graphql'
 import ONTOLOGY_ENTRIES_QUERY from '../graphql/ontology/entries.graphql'
+import ARRANGEMENTS_QUERY from "@/graphql/arrangements/arrangements.graphql";
 import LocationNode from './LocationNode.vue'
 import LocationMap from './LocationMap.vue'
 
+
 // Initialize the cache
 const locationCache = useLocationCache()
-const { addLocation, addLocations, getRegions, getLocation, getLocationRegionId, removeLocation } = locationCache
+const {
+  addLocation,
+  addLocations,
+  getRegions,
+  getLocation,
+  getLocationRegionId,
+  removeLocation,
+  setArrangements
+} = locationCache
 
 const selectedCountry = ref(null)
 const isModalOpen = ref(false)
@@ -143,13 +154,20 @@ const { result: regionsResult, loading: regionsLoading, refetch: refetchRegions 
 // Initialize regions in cache on page load
 watch(() => regionsResult.value?.regions?.result, (regionsList) => {
   if (regionsList) {
-    regionsList.forEach(region => addLocation(region, region.id))
+    regionsList.forEach(region => {
+      addLocation(region, region.id)
+      loadLocationArrangements(region.id)
+    })
   }
 }, { immediate: true })
 
 // Use cache as source of truth for regions
 const regions = computed(() => {
-  return getRegions()
+  const regions_ = getRegions()
+  regions_.sort(function(a,b) {
+    return a.name.localeCompare(b.name)
+  })
+  return regions_
 })
 
 // Fetch locations by IDs
@@ -164,11 +182,11 @@ onLocationsResult((result) => {
     const locations = result.data.regionsLocations.result
     const regionId = currentQueryRegionId.value
     if (regionId) {
-      console.log('loading locations for region:', regionId)
-      console.log('locating locations: ', locations)
       addLocations(locations, regionId)
-      // Reload children for any expanded locations
+      // load layouts
       locations.forEach(location => {
+        loadLocationArrangements(location.id)
+        //load children for any expanded locations
         if (expandedLocations.value.has(location.id) && location.children?.length > 0) {
           const cachedLocation = locationCache.getLocation(location.id)
           loadLocationChildren(cachedLocation, regionId)
@@ -309,6 +327,11 @@ const loadLocationChildren = async (location, regionId) => {
   await loadLocationsByIds()
 }
 
+const loadLocationArrangements =  async(locationId) => {
+  arrangementsQueryVariables.value = {locationId: locationId}
+  await loadArrangements()
+}
+
 // Toggle expansion
 const toggleExpanded = async (location, regionId) => {
   if (expandedLocations.value.has(location.id)) {
@@ -344,22 +367,33 @@ const resetForm = () => {
   errorMessage.value = ''
 }
 
-
 // Handle refetch after location changes
 const handleReloadLocation = async (reloadData) => {
   const { ids, regionId } = reloadData
   locationQueryVariables.value = {
     locationIds: ids
   }
-  console.log('run query to reload location', locationQueryVariables)
-  console.log('query for region', regionId)
-
   currentQueryRegionId.value = regionId
   await refetchLocationsByIds()
+  ids.forEach(locationId => {
+    arrangementsQueryVariables.value = {locationId: locationId}
+    refetchArrangements()
+  })
 }
 
 const handleDeleteLocation = async (deletedLocation) => {
   await removeLocation(deletedLocation.id)
+}
+
+const handleReloadArrangements = async (locationIds) => {
+  console.log('handling reload arrangements in regions management', locationIds)
+  for (const locationId of locationIds) {
+    arrangementsQueryVariables.value = {
+      locationId: locationId
+    }
+    console.log('refetch arrangements for locationId:', locationId)
+    await refetchArrangements()
+  }
 }
 
 // Add state for Map, selected location
@@ -376,7 +410,6 @@ const childLocations = computed(() => {
 // Handle location selection from tree
 const handleSelectLocation = (location) => {
   selectedLocation.value = getLocation(location.id)
-  console.log('selected location:', selectedLocation)
 }
 
 
@@ -392,11 +425,9 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
     })
 
     if (result?.data?.regionsUpdateLocation?.status === 'SUCCESS') {
-      console.log('updated coordinates for:', locationId)
       // Optionally reload the location to reflect changes
       const location = getLocation(locationId)
       if (location) {
-        console.log('reloading Location:', locationId)
         await handleReloadLocation({ ids: [locationId], regionId: getLocationRegionId(locationId)})
       }
     } else {
@@ -407,6 +438,28 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
     console.error('Error updating coordinates:', error)
   }
 }
+
+
+// Store variables for lazy query
+const arrangementsQueryVariables = ref({
+  locationId: null
+})
+
+
+// Fetch layouts for a location
+const { load: loadArrangements, refetch: refetchArrangements, onResult: onArrangementsResult } = useLazyQuery(
+  ARRANGEMENTS_QUERY,
+  () => arrangementsQueryVariables.value
+)
+
+onArrangementsResult((result) => {
+  if (result?.data?.arrangements?.result) {
+    if (result.data.arrangements.result.length > 0) {console.log('fetched arrangements:', result)}
+    setArrangements(result.data.arrangements.result, arrangementsQueryVariables.value.locationId)
+  }
+})
+
+
 </script>
 
 <style scoped>

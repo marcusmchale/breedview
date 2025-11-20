@@ -1,0 +1,12 @@
+mutation blocksDeleteUnit(
+    $unitId: Int!
+) {
+    blocksDeleteUnit(
+        unitId: $unitId,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

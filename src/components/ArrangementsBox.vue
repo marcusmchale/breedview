@@ -8,7 +8,7 @@
         class="btn btn-sm btn-add-layout"
         title="Add root layout"
       >
-        + Add Layout
+        + Layout
       </button>
     </div>
 
@@ -33,15 +33,15 @@
          <h4>{{ selectedLayout.name || 'Layout' }}</h4>
           <div class="layouts-tree">
             <LayoutNode
-              v-for="layout in arrangements"
-              :key="layout.id"
-              :layoutId="layout.id"
-              :allLayouts="allLayouts"
+              :key="selectedLayout.id"
+              :layoutId="selectedLayout.id"
               :location-id="locationId"
               :layout-types="layoutTypes"
+              :locationCache="locationCache"
               @load-layouts="handleLoadLayouts"
               @reload-layouts="handleReloadLayouts"
               @delete-layouts="handleDeleteLayouts"
+              @reload-locations="handleReloadLocations"
             />
           </div>
 
@@ -54,7 +54,7 @@
     <div v-if="isAddLayoutModalOpen" class="modal-overlay" @click="closeAddLayoutModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
-          <h4>Add Layout</h4>
+          <h4>Add layout</h4>
           <button @click="closeAddLayoutModal" class="modal-close" :disabled="createLoading">&times;</button>
         </div>
 
@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import {ref, computed, watch, reactive} from 'vue'
+import {ref, computed, watch, toRefs} from 'vue'
 import { FormKit } from '@formkit/vue'
 import { useMutation, useQuery, useLazyQuery } from '@vue/apollo-composable'
 
@@ -128,79 +128,59 @@ import CREATE_LAYOUT_MUTATION from '@/graphql/arrangements/createLayout.graphql'
 import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
 
 
-const {locationId, arrangements, loading} = defineProps({
+const props = defineProps({
   locationId: {
     type: Number,
-    required: true
-  },
-  arrangements: {
-    type: Array,
     required: true
   },
   loading: {
     type: Boolean,
     default: false
-  }
+  },
+  locationCache: {
+    type: Object,
+    required: true
+  },
 })
 
-const $emit = defineEmits(['reload-layouts'])
+const {locationId, loading, locationCache} = toRefs(props)
 
-const selectedLayout = ref(null)
+const $emit = defineEmits(['reload-arrangements', 'reload-locations'])
+
+const selectedLayoutId = ref(null)
+
+const selectedLayout = computed( () => {
+  if (!selectedLayoutId.value) {
+    return null
+  }
+  return getLayout(selectedLayoutId.value)
+})
+
 const isViewLayoutModalOpen = ref(false)
 
-// create a reactive allLayouts map
-// then we can load arrangements and children ad hoc and share this reference like a simple cache
-const allLayouts = reactive({})
+// Use the passed cache instance
+const {
+  getArrangementIds,
+  addLayout,
+  getLayout,
+  getLayouts,
+  removeLayout
+} = locationCache.value
 
-// we simplify the children to an array of IDs
-const addLayout = (layout) => {
-  const existingLayout = allLayouts[layout.id]
-  const newChildren = layout.children
-  ? layout.children.map(c => typeof c === 'object' ? c.id : c)
-  : []
-
-  if (existingLayout) {
-    existingLayout.name = layout.name
-    existingLayout.type = layout.type
-    existingLayout.parent = layout.parent
-    existingLayout.axes.splice(0, existingLayout.axes.length, ...layout.axes)
-    existingLayout.children.splice(0, existingLayout.children.length, ...newChildren)
-    console.log('updated layout: ',existingLayout)
-  } else {
-    allLayouts[layout.id] = {
-      ...layout,
-      children: newChildren
-    }
-  }
-}
-
-
-watch(
-  () => arrangements,
-  (arr) => {
-    // clear map
-    for (const key in allLayouts) {
-      console.log('deleting key from allLayouts', key)
-      delete allLayouts[key]
-    }
-
-    // repopulate
-    for (const item of arr) {
-      addLayout(item)
-    }
-  },
-  { immediate: true, deep: true }
-)
+const arrangements = computed( () => {
+  const arrangementIds = getArrangementIds(locationId.value)
+  return getLayouts(arrangementIds)
+})
 
 const openViewLayoutModal = (layout) => {
   console.log('view layout:', layout)
-  selectedLayout.value = allLayouts[layout.id]
+  selectedLayoutId.value = layout.id
   isViewLayoutModalOpen.value = true
 }
 
 const closeViewLayoutModal = (layout) => {
   console.log('close layout:', layout)
-  selectedLayout.value = null
+  selectedLayoutId.value = null
   isViewLayoutModalOpen.value = false
 }
 
@@ -288,7 +268,7 @@ const submitAddLayout = async () => {
 
     const response = await createLayoutMutation({
       layout: {
-        locationId: locationId,
+        locationId: locationId.value,
         name: addLayoutFormData.value.name,
         typeId: addLayoutFormData.value.typeId,
         axes: axes.length > 0 ? axes : undefined,
@@ -298,8 +278,9 @@ const submitAddLayout = async () => {
     if (response?.data?.arrangementsCreateLayout) {
       const result = response.data.arrangementsCreateLayout
       if (result.status === 'SUCCESS') {
-        $emit('reload-layouts')
+        $emit('reload-arrangements', [locationId.value])
         closeAddLayoutModal()
+
       } else {
         const errors = result.errors
         if (errors && errors.length > 0) {
@@ -327,14 +308,12 @@ const { load: loadLayoutsByIds, onResult: onLayoutsResult, refetch: refetchLayou
   () => layoutQueryVariables.value
 )
 
-
 onLayoutsResult((result) => {
   if (result?.data?.arrangementsLayouts?.result) {
+    console.log('new layout data fetched:', result.data.arrangementsLayouts.result)
     const newLayouts = result.data.arrangementsLayouts.result
-    console.log('newLayouts result recieved')
     newLayouts.forEach((item) => {
-      console.log('newitem', item)
-      addLayout(item)
+      addLayout(item, locationId.value)
     })
   }
 })
@@ -355,8 +334,17 @@ const handleReloadLayouts = (layoutIds) => {
 const handleDeleteLayouts = (layoutIds) => {
   console.log('Remove layouts from cache')
   layoutIds.forEach(layoutId => {
-    delete allLayouts[layoutId]
+    removeLayout(layoutId, locationId.value)
+    if (selectedLayoutId.value === layoutId) {
+      closeViewLayoutModal()
+    }
   })
+
+  $emit('reload-arrangements', [locationId.value])
+}
+
+const handleReloadLocations = (locationIds) => {
+  $emit('reload-locations', locationIds)
 }
 
 </script>

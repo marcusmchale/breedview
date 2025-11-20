@@ -1,0 +1,17 @@
+query ontologyEditors {
+    ontologyEditors
+    {
+        status
+        result {
+            id
+            name
+            email
+            fullname
+            ontologyRole
+            ontologyRoleRequested
+        }
+        errors {
+            message
+        }
+    }
+}

@@ -1,0 +1,14 @@
+mutation accountsSetOntologyRole(
+    $userId: Int!,
+    $ontologyRole: OntologyRole!
+) {
+    accountsSetOntologyRole(
+        userId: $userId,
+        ontologyRole: $ontologyRole
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

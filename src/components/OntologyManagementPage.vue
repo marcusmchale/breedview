@@ -76,6 +76,14 @@
         </div>
         <div class="version-actions">
           <button
+            title="View commit history"
+            class="btn-version btn-history"
+            @click="goToCommitHistory"
+          >
+            View History
+          </button>
+          <button
+            v-if='user && (user.ontologyRole === "ADMIN" || user.ontologyRole === "EDITOR")'
             title="Commit drafted entries to active and deprecated entries to removed in a new version"
             class="btn-version"
             @click="openCommitVersionForm"
@@ -83,11 +91,12 @@
             Commit Changes
           </button>
           <button
-            title="View commit history"
+            v-if='user && user.ontologyRole === "ADMIN"'
+            title="Manage Roles"
             class="btn-version btn-history"
-            @click="goToCommitHistory"
+            @click="goToOntologyRoles"
           >
-            View History
+            Manage Roles
           </button>
         </div>
       </section>
@@ -175,14 +184,15 @@
   </div>
 </template>
 
-<script>
+
+<script setup>
 import { computed, ref } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useOntologySchema } from '@/composables/useOntologySchema'
 import { useRouter } from 'vue-router'
 import { useOntologyCreateMutations, useOntologyCreatorHandlers } from '@/composables/createOntologyEntries'
 import { useOntologyUpdateMutations, useOntologyUpdateHandlers } from '@/composables/updateOntologyEntries'
-import { getNodeColor } from '@/composables/nodeColorMap'
+import { useAuthStore } from '@/composables/useAuthStore'
 
 import OntologyNetworkGraph from './OntologyNetworkGraph.vue'
 import ONTOLOGY_ENTRIES from '../graphql/ontology/entries.graphql'
@@ -191,387 +201,341 @@ import COMMIT_VERSION from '../graphql/ontology/commitVersion.graphql'
 import COMMIT_HISTORY from '../graphql/ontology/commitHistory.graphql'
 import DEPRECATE_ENTRIES from '../graphql/ontology/deprecateEntries.graphql'
 
-export default {
-  name: 'OntologyManagementPage',
-  components: {
-    OntologyNetworkGraph
-  },
-  setup() {
-    const router = useRouter()
-    const goToCommitHistory = () => {
-      router.push({ name: 'commit-history' })
-    }
+const router = useRouter()
+const { user } = useAuthStore()
 
-    const availableLifeCyclePhases = ['DRAFT', 'ACTIVE', 'DEPRECATED', 'REMOVED']
-    const selectedPhases = ref(['DRAFT', 'ACTIVE'])
-    const selectedLabels = ref([])
+// Navigation functions
+const goToCommitHistory = () => {
+  router.push({ name: 'commit-history' })
+}
 
-    const { getCreateEntriesForLabels } = useOntologySchema()
-    const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
+const goToOntologyRoles = () => {
+  router.push({ name: 'ontology-roles' })
+}
 
-    const queryVariables = computed(() => ({
-      phases: selectedPhases.value.length > 0 ? selectedPhases.value : undefined
-    }))
+// Reactive data
+const availableLifeCyclePhases = ['DRAFT', 'ACTIVE', 'DEPRECATED', 'REMOVED']
+const selectedPhases = ref(['DRAFT', 'ACTIVE'])
+const selectedLabels = ref([])
+const showForm = ref(false)
+const formTitle = ref('')
+const formFields = ref([])
+const currentMutation = ref(null)
+const currentEntryId = ref(null)
+const formData = ref({})
 
-    const toggleLabelFilter = (label) => {
-      if (selectedLabels.value.includes(label)) {
-        selectedLabels.value = selectedLabels.value.filter(l => l !== label)
-      } else {
-        selectedLabels.value.push(label)
-      }
-    }
+// Get composable data
+const { getCreateEntriesForLabels } = useOntologySchema()
+const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
 
-    const ontologyEntriesQuery = useQuery(
-      ONTOLOGY_ENTRIES,
-      queryVariables,
-      { fetchPolicy: 'network-only' }
-    )
+// Query variables
+const queryVariables = computed(() => ({
+  phases: selectedPhases.value.length > 0 ? selectedPhases.value : undefined
+}))
 
-    const ontologyEntries = computed(() =>
-      ontologyEntriesQuery.result.value?.ontologyEntries?.result || []
-    )
+// GraphQL setup
+const ontologyEntriesQuery = useQuery(
+  ONTOLOGY_ENTRIES,
+  queryVariables,
+  { fetchPolicy: 'network-only' }
+)
 
-    const togglePhaseSelection = (phase) => {
-      if (selectedPhases.value.includes(phase)) {
-        selectedPhases.value = selectedPhases.value.filter(p => p !== phase)
-      } else {
-        selectedPhases.value.push(phase)
-      }
-      refetchAll()
-    }
+const ontologyEntries = computed(() =>
+  ontologyEntriesQuery.result.value?.ontologyEntries?.result || []
+)
 
-    // Query ontology relationships
-    const entryIds = computed(() => ontologyEntries.value.map(entry => entry.id))
+const entryIds = computed(() => ontologyEntries.value.map(entry => entry.id))
 
-    const relationshipsQuery = useQuery(
-      ONTOLOGY_RELATIONSHIPS,
-      () => ({
-        entryIds: entryIds.value,
-        phases: selectedPhases.value.length > 0 ? selectedPhases.value : undefined
-      }),
-      () => ({ enabled: entryIds.value.length > 0 }),
-    )
+const relationshipsQuery = useQuery(
+  ONTOLOGY_RELATIONSHIPS,
+  () => ({
+    entryIds: entryIds.value,
+    phases: selectedPhases.value.length > 0 ? selectedPhases.value : undefined
+  }),
+  () => ({ enabled: entryIds.value.length > 0 })
+)
 
-    const ontologyRelationships = computed(() =>
-      relationshipsQuery.result.value?.ontologyRelationships?.result || []
-    )
+const ontologyRelationships = computed(() =>
+  relationshipsQuery.result.value?.ontologyRelationships?.result || []
+)
 
-    const showForm = ref(false)
-    const formTitle = ref('')
-    const formFields = ref([])
-    const currentMutation = ref(null)
-    const currentEntryId = ref(null)
+const latestCommitHistoryQuery = useQuery(
+  COMMIT_HISTORY,
+  { limit: 1 },
+  { fetchPolicy: 'network-only' }
+)
 
-    // Setup mutations
-    const createMutations = useOntologyCreateMutations()
-    const updateMutations = useOntologyUpdateMutations()
+const latestCommit = computed(() =>
+  latestCommitHistoryQuery.result.value?.ontologyCommitHistory?.result?.[0] || null
+)
 
-    // Get creator and update handlers
-    const creatorHandlers = useOntologyCreatorHandlers()
-    const updateHandlers = useOntologyUpdateHandlers()
+// Mutations
+const createMutations = useOntologyCreateMutations()
+const updateMutations = useOntologyUpdateMutations()
+const creatorHandlers = useOntologyCreatorHandlers()
+const updateHandlers = useOntologyUpdateHandlers()
+const deprecateEntriesMutation = useMutation(DEPRECATE_ENTRIES)
+const commitVersionMutation = useMutation(COMMIT_VERSION)
 
-    // Setup deprecate mutation
-    const deprecateEntriesMutation = useMutation(DEPRECATE_ENTRIES)
-
-    // Helper function to open form
-    const openForm = (title, fields, mutation) => {
-      formTitle.value = title
-      formFields.value = fields
-      currentMutation.value = mutation
-      showForm.value = true
-    }
-
-    const commitVersionMutation = useMutation(COMMIT_VERSION)
-
-    const openCommitVersionForm = () => {
-      const fields = [
-        {
-          name: 'versionChange',
-          type: 'select',
-          label: 'Version Change Type',
-          options: ['MAJOR', 'MINOR', 'PATCH'],
-          validation: 'required',
-          placeholder: 'Select version change type'
-        },
-        {
-          name: 'comment',
-          type: 'textarea',
-          label: 'Version Comment',
-          validation: 'required',
-          placeholder: 'Enter version comment'
-        },
-        {
-          name: 'licenceId',
-          type: 'number',
-          label: 'Licence ID (Optional)',
-          validation: '',
-          placeholder: 'Enter licence ID'
-        },
-        {
-          name: 'copyrightId',
-          type: 'number',
-          label: 'Copyright ID (Optional)',
-          validation: '',
-          placeholder: 'Enter copyright ID'
-        }
-      ]
-
-      // Directly pass the mutation function
-      openForm('Commit Ontology Version', fields, async (formData) => {
-        try {
-          const result = await commitVersionMutation.mutate({
-            versionChange: formData.versionChange,
-            comment: formData.comment,
-            licenceId: formData.licenceId ? parseInt(formData.licenceId) : null,
-            copyrightId: formData.copyrightId ? parseInt(formData.copyrightId) : null
-          })
-
-          return {
-            data: {
-              ontologyCommitVersion: result.data?.ontologyCommitVersion || {}
-            }
-          }
-        } catch (error) {
-          console.error('Commit version mutation error:', error)
-          throw error
-        }
-      })
-    }
-
-    const latestCommitHistoryQuery = useQuery(
-      COMMIT_HISTORY,
-      { limit: 1 },
-      { fetchPolicy: 'network-only' }
-    )
-
-    const latestCommit = computed(() =>
-      latestCommitHistoryQuery.result.value?.ontologyCommitHistory?.result?.[0] || null
-    )
-            // Combined refetch method
-    const refetchAll = async () => {
-      try {
-        await Promise.all([
-          ontologyEntriesQuery.refetch(),
-          relationshipsQuery.refetch(),
-          latestCommitHistoryQuery.refetch()
-        ])
-      } catch (error) {
-        console.error('Error refetching data:', error)
-      }
-    }
-
-    const formatVersion = (version) => {
-      if (!version) return 'N/A'
-      return `${version.major}.${version.minor}.${version.patch}`
-    }
-
-
-    const formData = ref({})
-
-    const addAxis = (fieldName, value) => {
-      if (!formData.value[fieldName]) {
-        formData.value[fieldName] = []
-      }
-      formData.value[fieldName].push(value)
-    }
-
-    const removeAxis = (fieldName, index) => {
-      if (formData.value[fieldName]) {
-        formData.value[fieldName].splice(index, 1)
-      }
-    }
-
-    const getAxisLabel = (options, value) => {
-      const option = options.find(opt => opt.value === value)
-      return option ? option.label : value
-    }
-
-
-    return {
-      createEntriesForLabels,
-      ontologyEntries,
-      ontologyRelationships,
-      loading: ontologyEntriesQuery.loading || relationshipsQuery.loading,
-      error: ontologyEntriesQuery.error || relationshipsQuery.error || null,
-      refetch: refetchAll,
-      showForm,
-      formTitle,
-      formFields,
-      currentMutation,
-      openForm,
-      ...createMutations,
-      ...updateMutations,
-      creatorHandlers,
-      updateHandlers,
-      getNodeColor,
-      availableLifeCyclePhases,
-      selectedPhases,
-      togglePhaseSelection,
-      openCommitVersionForm,
-      latestCommit,
-      formatVersion,
-      deprecateEntriesMutation: deprecateEntriesMutation,
-      currentEntryId,
-      selectedLabels, toggleLabelFilter,
-      goToCommitHistory,
-      formData,
-      addAxis,
-      removeAxis,
-      getAxisLabel
-    }
-  },
-  methods: {
-    createEntry(methodName) {
-      // methodName comes as 'createTerm', 'createSubject', etc.
-      const handler = this.creatorHandlers[methodName]
-
-      if (handler) {
-        const context = {
-          ontologyEntries: this.ontologyEntries,
-          openForm: this.openForm,
-          createTermMutation: this.createTermMutation,
-          createSubjectMutation: this.createSubjectMutation,
-          createTraitMutation: this.createTraitMutation,
-          createConditionMutation: this.createConditionMutation,
-          createScaleMutation: this.createScaleMutation,
-          createCategoryMutation: this.createCategoryMutation,
-          createObservationMethodMutation: this.createObservationMethodMutation,
-          createVariableMutation: this.createVariableMutation,
-          createControlMethodMutation: this.createControlMethodMutation,
-          createFactorMutation: this.createFactorMutation,
-          createEventMutation: this.createEventMutation,
-          createLocationTypeMutation: this.createLocationTypeMutation,
-          createDesignMutation: this.createDesignMutation,
-          createLayoutTypeMutation: this.createLayoutTypeMutation
-        }
-        handler(context)
-      } else {
-        console.warn(`Handler ${methodName} not implemented yet`)
-      }
-    },
-
-    handleNodeRightClick(node) {
-      // Find the full entry from ontologyEntries
-      const entry = this.ontologyEntries.find(e => e.id === node.id)
-      if (!entry) {
-        console.warn('Entry not found for node:', node)
-        return
-      }
-
-      // Determine which update handler to use based on __typename
-      const typename = entry.__typename
-      //const handlerName = `update${typename}`
-
-      // Get the update handlers
-      const { useOntologyUpdateHandlers } = require('@/composables/updateOntologyEntries')
-      const handlers = useOntologyUpdateHandlers()
-
-      // Map typename to handler method name
-      const handlerMap = {
-        'Term': 'updateTerm',
-        'Subject': 'updateSubject',
-        'Trait': 'updateTrait',
-        'Condition': 'updateCondition',
-        'Scale': 'updateScale',
-        'Category': 'updateCategory',
-        'ObservationMethod': 'updateObservationMethod',
-        'Variable': 'updateVariable',
-        'ControlMethod': 'updateControlMethod',
-        'Factor': 'updateFactor',
-        'Event': 'updateEvent',
-        'LocationType': 'updateLocationType',
-        'Design': 'updateDesign',
-        'LayoutType': 'updateLayoutType'
-      }
-
-      const handlerMethodName = handlerMap[typename]
-      if (handlerMethodName && handlers[handlerMethodName]) {
-        const handler = handlers[handlerMethodName]
-        // Store the current entry ID for the deprecate button
-        this.currentEntryId = entry.id
-
-        const context = {
-          entry,
-          relationships: this.ontologyRelationships,
-          ontologyEntries: this.ontologyEntries,
-          openForm: this.openForm.bind(this),
-          [`update${typename}Mutation`]: this[`update${typename}Mutation`]
-        }
-        handler(context)
-      } else {
-        console.warn(`No update handler found for type: ${typename}`)
-      }
-    },
-
-    async deprecateEntry(entryId) {
-      if (!confirm('Are you sure you want to deprecate this entry? This will change its lifecycle phase.')) {
-        return
-      }
-
-      try {
-        const result = await this.deprecateEntriesMutation.mutate({
-          entry_ids: [entryId]
-        })
-
-        if (result?.data?.ontologyDeprecateEntries) {
-          const response = result.data.ontologyDeprecateEntries
-          if (response.errors && response.errors.length > 0) {
-            alert('Error: ' + response.errors.map(e => e.message).join(', '))
-          } else if (response.status === 'SUCCESS') {
-            alert('Entry deprecated successfully!')
-            this.closeForm()
-            this.refetch()
-          }
-        }
-      } catch (error) {
-        console.error('Error removing entry:', error)
-        alert('An error occurred: ' + error.message)
-      }
-    },
-
-    closeForm() {
-      this.showForm = false
-      this.formTitle = ''
-      this.formFields = []
-      this.currentMutation = null
-      this.currentEntryId = null
-      this.formData = {}
-    },
-
-    async handleSubmit(formData) {
-      try {
-        // handle empty list as distinct from null
-        const processedFormData = Object.fromEntries(
-          Object.entries(formData).map(([key, value]) => [
-            key,
-            Array.isArray(value) ?
-              (value.length === 0 ? [] : value) :
-              value
-          ])
-        )
-
-
-        const result = await this.currentMutation(processedFormData)
-
-        // Check for errors in the response
-        if (result?.data) {
-          const mutationKey = Object.keys(result.data)[0]
-          const response = result.data[mutationKey]
-
-          if (response.errors && response.errors.length > 0) {
-            alert('Error: ' + response.errors.map(e => e.message).join(', '))
-          } else if (response.status === 'success' || response.status === 'SUCCESS') {
-            alert('Successfully created!')
-            this.closeForm()
-            this.refetch()
-          }
-        }
-      } catch (error) {
-        console.error('Error submitting form:', error)
-        alert('An error occurred: ' + error.message)
-      }
-    }
+// Toggle functions
+const togglePhaseSelection = (phase) => {
+  if (selectedPhases.value.includes(phase)) {
+    selectedPhases.value = selectedPhases.value.filter(p => p !== phase)
+  } else {
+    selectedPhases.value.push(phase)
   }
+  refetchAll()
+}
+
+const toggleLabelFilter = (label) => {
+  if (selectedLabels.value.includes(label)) {
+    selectedLabels.value = selectedLabels.value.filter(l => l !== label)
+  } else {
+    selectedLabels.value.push(label)
+  }
+}
+
+// Refetch all data
+const refetchAll = async () => {
+  try {
+    await Promise.all([
+      ontologyEntriesQuery.refetch(),
+      relationshipsQuery.refetch(),
+      latestCommitHistoryQuery.refetch()
+    ])
+  } catch (error) {
+    console.error('Error refetching data:', error)
+  }
+}
+
+// Form management
+const openForm = (title, fields, mutation) => {
+  formTitle.value = title
+  formFields.value = fields
+  currentMutation.value = mutation
+  showForm.value = true
+}
+
+const closeForm = () => {
+  showForm.value = false
+  formTitle.value = ''
+  formFields.value = []
+  currentMutation.value = null
+  currentEntryId.value = null
+  formData.value = {}
+}
+
+// Axes management
+const addAxis = (fieldName, value) => {
+  if (!formData.value[fieldName]) {
+    formData.value[fieldName] = []
+  }
+  formData.value[fieldName].push(value)
+}
+
+const removeAxis = (fieldName, index) => {
+  if (formData.value[fieldName]) {
+    formData.value[fieldName].splice(index, 1)
+  }
+}
+
+const getAxisLabel = (options, value) => {
+  const option = options.find(opt => opt.value === value)
+  return option ? option.label : value
+}
+
+// Format helpers
+const formatVersion = (version) => {
+  if (!version) return 'N/A'
+  return `${version.major}.${version.minor}.${version.patch}`
+}
+
+// Main entry creation
+const createEntry = (methodName) => {
+  const handler = creatorHandlers[methodName]
+
+  if (handler) {
+    const context = {
+      ontologyEntries: ontologyEntries.value,
+      openForm,
+      createTermMutation: createMutations.createTermMutation,
+      createSubjectMutation: createMutations.createSubjectMutation,
+      createTraitMutation: createMutations.createTraitMutation,
+      createConditionMutation: createMutations.createConditionMutation,
+      createScaleMutation: createMutations.createScaleMutation,
+      createCategoryMutation: createMutations.createCategoryMutation,
+      createObservationMethodMutation: createMutations.createObservationMethodMutation,
+      createVariableMutation: createMutations.createVariableMutation,
+      createControlMethodMutation: createMutations.createControlMethodMutation,
+      createFactorMutation: createMutations.createFactorMutation,
+      createEventMutation: createMutations.createEventMutation,
+      createLocationTypeMutation: createMutations.createLocationTypeMutation,
+      createDesignMutation: createMutations.createDesignMutation,
+      createLayoutTypeMutation: createMutations.createLayoutTypeMutation
+    }
+    handler(context)
+  } else {
+    console.warn(`Handler ${methodName} not implemented yet`)
+  }
+}
+
+// Handle node right-click for editing
+const handleNodeRightClick = (node) => {
+  const entry = ontologyEntries.value.find(e => e.id === node.id)
+  if (!entry) {
+    console.warn('Entry not found for node:', node)
+    return
+  }
+
+  const typename = entry.__typename
+
+  const handlerMap = {
+    'Term': 'updateTerm',
+    'Subject': 'updateSubject',
+    'Trait': 'updateTrait',
+    'Condition': 'updateCondition',
+    'Scale': 'updateScale',
+    'Category': 'updateCategory',
+    'ObservationMethod': 'updateObservationMethod',
+    'Variable': 'updateVariable',
+    'ControlMethod': 'updateControlMethod',
+    'Factor': 'updateFactor',
+    'Event': 'updateEvent',
+    'LocationType': 'updateLocationType',
+    'Design': 'updateDesign',
+    'LayoutType': 'updateLayoutType'
+  }
+
+  const handlerMethodName = handlerMap[typename]
+  if (handlerMethodName && updateHandlers[handlerMethodName]) {
+    const handler = updateHandlers[handlerMethodName]
+    currentEntryId.value = entry.id
+
+    const context = {
+      entry,
+      relationships: ontologyRelationships.value,
+      ontologyEntries: ontologyEntries.value,
+      openForm,
+      [`update${typename}Mutation`]: updateMutations[`update${typename}Mutation`]
+    }
+    handler(context)
+  } else {
+    console.warn(`No update handler found for type: ${typename}`)
+  }
+}
+
+// Deprecate entry
+const deprecateEntry = async (entryId) => {
+  if (!confirm('Are you sure you want to deprecate this entry? This will change its lifecycle phase.')) {
+    return
+  }
+
+  try {
+    const result = await deprecateEntriesMutation.mutate({
+      entry_ids: [entryId]
+    })
+
+    if (result?.data?.ontologyDeprecateEntries) {
+      const response = result.data.ontologyDeprecateEntries
+      if (response.errors && response.errors.length > 0) {
+        alert('Error: ' + response.errors.map(e => e.message).join(', '))
+      } else if (response.status === 'SUCCESS') {
+        alert('Entry deprecated successfully!')
+        closeForm()
+        refetchAll()
+      }
+    }
+  } catch (error) {
+    console.error('Error removing entry:', error)
+    alert('An error occurred: ' + error.message)
+  }
+}
+
+// Handle form submission
+const handleSubmit = async (formDataValues) => {
+  try {
+    const processedFormData = Object.fromEntries(
+      Object.entries(formDataValues).map(([key, value]) => [
+        key,
+        Array.isArray(value) ?
+          (value.length === 0 ? [] : value) :
+          value
+      ])
+    )
+
+    const result = await currentMutation.value(processedFormData)
+
+    if (result?.data) {
+      const mutationKey = Object.keys(result.data)[0]
+      const response = result.data[mutationKey]
+
+      if (response.errors && response.errors.length > 0) {
+        alert('Error: ' + response.errors.map(e => e.message).join(', '))
+      } else if (response.status === 'success' || response.status === 'SUCCESS') {
+        alert('Successfully created!')
+        closeForm()
+        refetchAll()
+      }
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error)
+    alert('An error occurred: ' + error.message)
+  }
+}
+
+// Commit version form
+const openCommitVersionForm = () => {
+  const fields = [
+    {
+      name: 'versionChange',
+      type: 'select',
+      label: 'Version Change Type',
+      options: ['MAJOR', 'MINOR', 'PATCH'],
+      validation: 'required',
+      placeholder: 'Select version change type'
+    },
+    {
+      name: 'comment',
+      type: 'textarea',
+      label: 'Version Comment',
+      validation: 'required',
+      placeholder: 'Enter version comment'
+    },
+    {
+      name: 'licenceId',
+      type: 'number',
+      label: 'Licence ID (Optional)',
+      validation: '',
+      placeholder: 'Enter licence ID'
+    },
+    {
+      name: 'copyrightId',
+      type: 'number',
+      label: 'Copyright ID (Optional)',
+      validation: '',
+      placeholder: 'Enter copyright ID'
+    }
+  ]
+
+  openForm('Commit Ontology Version', fields, async (formDataValues) => {
+    try {
+      const result = await commitVersionMutation.mutate({
+        versionChange: formDataValues.versionChange,
+        comment: formDataValues.comment,
+        licenceId: formDataValues.licenceId ? parseInt(formDataValues.licenceId) : null,
+        copyrightId: formDataValues.copyrightId ? parseInt(formDataValues.copyrightId) : null
+      })
+
+      return {
+        data: {
+          ontologyCommitVersion: result.data?.ontologyCommitVersion || {}
+        }
+      }
+    } catch (error) {
+      console.error('Commit version mutation error:', error)
+      throw error
+    }
+  })
 }
 </script>
 

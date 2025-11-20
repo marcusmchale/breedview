@@ -9,6 +9,7 @@ query arrangements ($locationId: Int) {
             parent {id}
             position
             children {id}
+            location {name, id}
         }
         errors {
             message

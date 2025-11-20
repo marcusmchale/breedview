@@ -66,6 +66,16 @@ input UnitInput {
   childrenIds: [Int]
 }
 
+input UnitUpdate {
+  unitId: Int!
+  subjectId: Int!
+  name: String
+  synonyms: [String]
+  description: String
+  parentIds: [Int]
+  childrenIds: [Int]
+}
+
 input RecordInput {
   datasetId: Int!
   unitId: Int!
@@ -164,10 +174,14 @@ type Mutation {
   accountsApproveAffiliation(userId: Int!, teamId: Int!, access: Access!, heritable: Boolean): BooleanPayload!
   accountsRemoveAffiliation(teamId: Int!, access: Access!): BooleanPayload!
   accountsRevokeAffiliation(userId: Int!, teamId: Int!, access: Access!): BooleanPayload!
+  accountsRequestOntologyRole(ontologyRole: OntologyRole!): BooleanPayload!
+  accountsSetOntologyRole(userId: Int!, ontologyRole: OntologyRole!): BooleanPayload!
   arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
   arrangementsDeleteLayout(layoutId: Int!): BooleanPayload!
   blocksCreateUnit(unit: UnitInput!): BooleanPayload!
+  blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
+  blocksDeleteUnit(unitId: Int!): BooleanPayload!
   blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
 
@@ -808,11 +822,20 @@ input LocationUpdate {
   parentId: Int
 }
 
+enum OntologyRole {
+  VIEWER
+  CONTRIBUTOR
+  EDITOR
+  ADMIN
+}
+
 type User {
   id: Int!
   name: String!
   fullname: String!
   email: String!
+  ontologyRole: OntologyRole!
+  ontologyRoleRequested: OntologyRole
 }
 
 type Account {
@@ -831,6 +854,7 @@ type Layout {
   """Position within parent layout"""
   position: [String!]
   children: [Layout!]
+  location: Location
 }
 
 type Token {
@@ -1896,6 +1920,12 @@ type Query {
   """Get a list of ontology relationships"""
   ontologyRelationships(entryIds: [Int], labels: [OntologyRelationshipLabel], phases: [LifecyclePhase], versionId: Int): OntologyRelationshipsPayload!
 
+  """
+  Get a list of users requesting new ontology roles.
+  Only available to Users with the admin ontology role.
+  """
+  ontologyRoleRequests: UsersPayload!
+
   """Get a list of countries for use in top level region creation"""
   regionsCountries: LocationsPayload!
 
@@ -1924,8 +1954,8 @@ type Query {
   """
   blocks(locationId: Int): UnitsPayload!
 
-  """Get a single unit."""
-  blocksUnit(unitId: Int!): UnitPayload!
+  """Get units by ID."""
+  blocksUnits(unitIds: [Int!]): UnitsPayload!
 
   """Get a list of programs"""
   programs(programId: Int, trialId: Int, studyId: Int): ProgramsPayload

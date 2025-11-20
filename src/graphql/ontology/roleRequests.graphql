@@ -1,0 +1,17 @@
+query ontologyRoleRequests {
+    ontologyRoleRequests
+    {
+        status
+        result {
+            id
+            name
+            email
+            fullname
+            ontologyRole
+            ontologyRoleRequested
+        }
+        errors {
+            message
+        }
+    }
+}

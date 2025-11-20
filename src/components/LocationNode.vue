@@ -26,9 +26,9 @@
         <!-- Arrangements Box -->
         <ArrangementsBox
           :location-id="locationId"
-          :arrangements="arrangements"
-          :loading="arrangementsLoading"
-          @reload-layouts="handleReloadArrangements"
+          :locationCache="locationCache"
+          @reload-arrangements="handleReloadArrangements"
+          @reload-locations="handleReloadLocations"
         />
       </div>
 
@@ -273,7 +273,7 @@
     </div>
 
     <div v-if="expanded && currentChildren.length > 0" class="children">
-      <div v-for="child in currentChildren" :key="child.id" class="child-item">
+      <div v-for="child in currentChildren" :key="`locationNode_${child.id}`" class="child-item">
         <LocationNode
           :locationId="child.id"
           :expanded="isExpandedFn(child)"
@@ -286,6 +286,7 @@
           @delete-location="$emit('delete-location', $event)"
           @reload-location="$emit('reload-location', $event)"
           @select-location="$emit('select-location', $event)"
+          @reload-arrangements="handleReloadArrangements"
         />
       </div>
     </div>
@@ -296,7 +297,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { FormKit } from '@formkit/vue'
-import { useMutation, useQuery } from '@vue/apollo-composable'
+import { useMutation } from '@vue/apollo-composable'
 
 import ControllerBadge from './ControllerBadge.vue'
 import ArrangementsBox from "@/components/ArrangementsBox.vue"
@@ -304,7 +305,6 @@ import ArrangementsBox from "@/components/ArrangementsBox.vue"
 import DELETE_LOCATION_MUTATION from '@/graphql/regions/deleteLocation.graphql'
 import UPDATE_LOCATION_MUTATION from '@/graphql/regions/updateLocation.graphql'
 import CREATE_LOCATION_MUTATION from '@/graphql/regions/createLocation.graphql'
-import ARRANGEMENTS_QUERY from '@/graphql/arrangements/arrangements.graphql'
 
 const { locationId, expanded, locationCache, isExpandedFn, regionId, locationTypes, selectedLocationId } = defineProps({
   locationId: {
@@ -337,30 +337,32 @@ const { locationId, expanded, locationCache, isExpandedFn, regionId, locationTyp
   }
 })
 
-const $emit = defineEmits(['toggle-expand', 'delete-location', 'reload-location', 'select-location'])
+const $emit = defineEmits([
+  'toggle-expand',
+  'delete-location',
+  'reload-location',
+  'select-location',
+  'reload-arrangements'
+])
 
 const isSelected = computed(() => {
   return selectedLocationId === locationId
 })
 
-// Fetch root layouts for this location
-const { result: arrangementsResult, loading: arrangementsLoading, refetch: refetchArrangements } = useQuery(
-  ARRANGEMENTS_QUERY,
-  () => ({
-    locationId: locationId
+
+const handleReloadLocations = (locationIds) => {
+  $emit('reload-location', {
+    ids: locationIds,
+    regionId: regionId
   })
-)
-
-const arrangements = computed(() => {
-  if (!arrangementsResult.value?.arrangements?.result) {
-    return []
-  }
-  return arrangementsResult.value.arrangements.result
-})
-
-const handleReloadArrangements = () => {
-  refetchArrangements()
 }
+
+const handleReloadArrangements = (locationIds) => {
+  console.log('reemit reload-arrangements in location node', locationIds)
+  $emit('reload-arrangements', locationIds)
+}
+
+
 // Use the passed cache instance
 const { getRegionLocations, getChildren, getLocation } = locationCache
 

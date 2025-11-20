@@ -17,12 +17,18 @@
         <p><strong>Username:</strong> {{ user.name }}</p>
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>User ID:</strong> {{ user.id }}</p>
+        <p><strong>Fullname:</strong> {{ user.fullname }}</p>
+        <p><strong>Ontology Role:</strong> {{ user.ontologyRole }}</p>
       </div>
 
       <div class="user-actions">
         <button @click="showInviteModal = true" class="btn btn-primary">
           Invite User
         </button>
+        <button @click="showRequestOntologyRoleModal = true" class="btn btn-primary">
+          Request Ontology Role
+        </button>
+
       </div>
     </div>
 
@@ -32,6 +38,14 @@
       @close="showInviteModal = false"
       @invited="handleUserInvited"
     />
+
+    <!-- Request Ontology Role Modal -->
+    <RequestOntologyRoleModal
+      :is-open="showRequestOntologyRoleModal"
+      @close="showRequestOntologyRoleModal = false"
+      @requested="handleRequestOntologyRoleRequest"
+    />
+
   </div>
 </template>
 
@@ -40,6 +54,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../composables/useAuthStore'
 import InviteUserModal from './InviteUserModal.vue'
+import RequestOntologyRoleModal from "@/components/RequestOntologyRoleModal.vue";
 
 const router = useRouter()
 
@@ -51,6 +66,7 @@ const loading = computed(() => isLoading.value)
 const error = computed(() => storeError.value)
 
 const showInviteModal = ref(false)
+const showRequestOntologyRoleModal = ref(false)
 
 const redirectToLogin = () => {
   router.push('/login')
@@ -59,6 +75,10 @@ const redirectToLogin = () => {
 const handleUserInvited = (email) => {
   console.log('User invited:', email)
 }
+const handleRequestOntologyRoleRequest = (ontologyRole) => {
+  console.log('User requested ontology role:', ontologyRole)
+}
+
 </script>
 
 <style scoped>

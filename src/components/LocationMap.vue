@@ -68,8 +68,6 @@ import UPDATE_LOCATION_MUTATION from '../graphql/regions/updateLocation.graphql'
 
 // Add Mapbox token (get from environment variable)
 const mapboxToken = `${process.env.VUE_APP_MAPBOX_TOKEN}`
-console.log('Mapbox token:', mapboxToken)
-
 
 // Create a custom emoji icon for markers
 const createEmojiIcon = (emoji, size = 40, color = null) => {
@@ -228,7 +226,6 @@ const hasValidCoordinates = (coords) => {
 
     // Check if it's an array of coordinate objects or an array of [lat, lng]
     if (typeof coords[0] === 'object' && coords[0] !== null) {
-      console.log('Array of GeoCoordinate objects:', coords)
       // Array of GeoCoordinate objects: [{ latitude, longitude }, ...]
       // Check if at least one coordinate in the array is valid
       return coords.some(coord => {
@@ -291,8 +288,6 @@ const submitCoordinates = () => {
     }
   })
 
-  console.log('Submitting coordinates:', coordinates)
-
   // Emit the update-coordinates event with the collected data
   emit('update-coordinates', {
     locationId: props.selectedLocation?.id,
@@ -306,44 +301,33 @@ const submitCoordinates = () => {
 
 // Helper function to display location coordinates on map
 const displayLocationCoordinates = (location) => {
-  console.log('displayLocationCoordinates called for:', location?.name, location?.coordinates)
 
   if (!location?.coordinates || !mapRef.value?.leafletObject) {
-    console.log('Cannot display - missing coordinates or map not ready')
     return
   }
 
   const map = toRaw(mapRef.value.leafletObject)
 
   // Check if displayedItems is on the map
-  console.log('Is displayedItems on map?', map.hasLayer(displayedItems))
   if (!map.hasLayer(displayedItems)) {
-    console.log('Adding displayedItems to map')
     map.addLayer(displayedItems)
   }
 
   const coords = location.coordinates
-  console.log('Processing coordinates:', coords)
 
   // Check if it's a single point or polygon
   if (Array.isArray(coords) && coords.length > 0) {
     if (coords.length === 1) {
       // Single point - draw a marker with green icon
       const coord = coords[0]
-      console.log('Creating marker at:', coord.latitude, coord.longitude)
       const marker = L.marker([coord.latitude, coord.longitude], {
         icon: selectedLocationIcon // Use green icon for selected location
       })
       displayedItems.addLayer(marker)
       marker.bindPopup(`<strong>${location.name}</strong><br/>Coordinates: ${coord.latitude.toFixed(6)}, ${coord.longitude.toFixed(6)}`)
-      console.log('Marker added to displayedItems')
-      console.log('Marker leaflet object:', marker)
-      console.log('Marker position:', marker.getLatLng())
     } else {
       // Multiple points - draw a polygon
-      console.log('Creating polygon with', coords.length, 'points')
       const latlngs = coords.map(coord => [coord.latitude, coord.longitude])
-      console.log('Polygon latlngs:', latlngs)
       const polygon = L.polygon(latlngs, {
         color: '#28a745',
         weight: 2,
@@ -353,17 +337,12 @@ const displayLocationCoordinates = (location) => {
       })
       displayedItems.addLayer(polygon)
       polygon.bindPopup(`<strong>${location.name}</strong><br/>Polygon with ${coords.length} points`)
-      console.log('Polygon added to displayedItems')
     }
   }
-
-  console.log('Total layers in displayedItems:', displayedItems.getLayers().length)
-  console.log('DisplayedItems bounds:', displayedItems.getBounds())
 
   // Force map to show the displayed items
   const bounds = displayedItems.getBounds()
   if (bounds.isValid()) {
-    console.log('Fitting map to displayedItems bounds')
     map.fitBounds(bounds, { padding: [50, 50] })
   } else {
     console.log('DisplayedItems bounds are not valid')
@@ -372,7 +351,6 @@ const displayLocationCoordinates = (location) => {
 
 // Helper function to display child locations on map
 const displayChildLocations = () => {
-  console.log('displayChildLocations called, valid children:', validChildLocations.value.length)
 
   if (!mapRef.value?.leafletObject) {
     console.log('Map not ready')
@@ -383,19 +361,16 @@ const displayChildLocations = () => {
 
   // Check if displayedItems is on the map
   if (!map.hasLayer(displayedItems)) {
-    console.log('Adding displayedItems to map (from displayChildLocations)')
     map.addLayer(displayedItems)
   }
 
   validChildLocations.value.forEach(child => {
-    console.log('Processing child:', child.name, child.coordinates)
     const coords = child.coordinates
 
     if (Array.isArray(coords) && coords.length > 0) {
       if (coords.length === 1) {
         // Single point - draw a marker with blue icon
         const coord = coords[0]
-        console.log('Creating child marker at:', coord.latitude, coord.longitude)
         const marker = L.marker([coord.latitude, coord.longitude], {
           icon: childLocationIcon // Use blue icon for child locations
         })
@@ -410,10 +385,8 @@ const displayChildLocations = () => {
         marker.bindPopup(popupContent)
         marker.bindTooltip(child.name)
         marker.on('click', () => handleMarkerClick(child))
-        console.log('Child marker added')
       } else {
         // Multiple points - draw a polygon with blue color
-        console.log('Creating child polygon with', coords.length, 'points')
         const latlngs = coords.map(coord => [coord.latitude, coord.longitude])
         const polygon = L.polygon(latlngs, {
           color: '#17a2b8', // Teal/blue for child polygons
@@ -431,12 +404,9 @@ const displayChildLocations = () => {
 
         polygon.bindPopup(popupContent)
         polygon.on('click', () => handleMarkerClick(child))
-        console.log('Child polygon added')
       }
     }
   })
-
-  console.log('Total layers in displayedItems after children:', displayedItems.getLayers().length)
 }
 
 
@@ -504,7 +474,6 @@ watch(() => props.selectedLocation, async (newLocation) => {
   const hasValidChildren = validChildLocations.value.length > 0
     // If location has children with coordinates, fit bounds to show all
   if (hasValidChildren) {
-    console.log('Zoom to children:', newLocation.name)
     await nextTick()
     fitBoundsToChildren()
     return
@@ -512,7 +481,6 @@ watch(() => props.selectedLocation, async (newLocation) => {
 
   // Otherwise if the location has coordinates, zoom to them
   if (newLocation.coordinates && hasValidCoordinates(newLocation.coordinates)) {
-    console.log('Zoom to coordinates:', newLocation.name)
     await nextTick()
 
     if (!mapRef.value?.leafletObject) {

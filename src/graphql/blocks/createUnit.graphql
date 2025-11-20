@@ -1,0 +1,8 @@
+mutation blocksCreateUnit($unit: UnitInput!) {
+  blocksCreateUnit(unit: $unit) {
+    status
+    errors {
+      message
+    }
+  }
+}
