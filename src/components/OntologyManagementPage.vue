@@ -37,8 +37,8 @@
       </div>
     </section>
 
-
     <div v-if="error">Error: {{ error.message }}</div>
+    <div v-if="loading">Loading ontology entries...</div>
     <OntologyNetworkGraph
       v-else-if="ontologyEntries"
       :entries="ontologyEntries"
@@ -243,6 +243,17 @@ const ontologyEntriesQuery = useQuery(
 const ontologyEntries = computed(() =>
   ontologyEntriesQuery.result.value?.ontologyEntries?.result || []
 )
+
+// Expose error from ontologyEntriesQuery
+const error = computed(() =>
+  ontologyEntriesQuery.error.value || relationshipsQuery.error.value
+)
+
+// Loading state (optional, but good to have)
+const loading = computed(() =>
+  ontologyEntriesQuery.loading.value || relationshipsQuery.loading.value
+)
+
 
 const entryIds = computed(() => ontologyEntries.value.map(entry => entry.id))
 
