@@ -10,6 +10,7 @@ query regions {
             address
             coordinates {latitude, longitude}
             children {id}
+            parent {id}
         }
         errors {
             message

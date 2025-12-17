@@ -98,13 +98,10 @@ const submitHandler = async (formData) => {
     const response = await mutate(variables)
 
     // Add debugging logs
-    console.log('Login response:', response?.data?.accountsLogin)
     console.log('Login status:', response?.data?.accountsLogin?.status)
 
     if (response?.data?.accountsLogin?.status === 'SUCCESS') {
-      console.log('Attempting navigation to /')
       await router.push('/')
-      console.log('Navigation completed')
     } else {
       error.value = response?.data?.accountsLogin?.errors?.[0]?.message || 'Login failed. Please check your credentials.'
     }

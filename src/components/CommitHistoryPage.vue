@@ -57,79 +57,59 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 import COMMIT_HISTORY from '../graphql/ontology/commitHistory.graphql'
 
-export default {
-  name: 'CommitHistoryPage',
-  setup() {
-    const router = useRouter()
-    const offset = ref(0)
-    const limit = ref(5)
+const router = useRouter()
+const offset = ref(0)
+const limit = ref(5)
 
-    const { result, loading, error, refetch } = useQuery(
-      COMMIT_HISTORY,
-      () => ({
-        limit: limit.value,
-        offset: offset.value
-      }),
-      { fetchPolicy: 'network-only' }
-    )
+const { result, loading, error, refetch } = useQuery(
+  COMMIT_HISTORY,
+  () => ({
+    limit: limit.value,
+    offset: offset.value
+  }),
+  { fetchPolicy: 'network-only' }
+)
 
-    const commits = computed(() => 
-      result.value?.ontologyCommitHistory?.result || []
-    )
+const commits = computed(() =>
+  result.value?.ontologyCommitHistory?.result || []
+)
 
-    const totalCommits = computed(() => 
-      result.value?.ontologyCommitHistory?.total || null
-    )
+const totalCommits = computed(() =>
+  result.value?.ontologyCommitHistory?.total || null
+)
 
-    const hasMore = computed(() => {
-      if (!totalCommits.value) return commits.value.length === limit.value
-      return offset.value + commits.value.length < totalCommits.value
-    })
+const hasMore = computed(() => {
+  if (!totalCommits.value) return commits.value.length === limit.value
+  return offset.value + commits.value.length < totalCommits.value
+})
 
-    const formatVersion = (version) => {
-      if (!version) return 'N/A'
-      return `${version.major}.${version.minor}.${version.patch}`
-    }
+const formatVersion = (version) => {
+  if (!version) return 'N/A'
+  return `${version.major}.${version.minor}.${version.patch}`
+}
 
-    const formatDate = (timestamp) => {
-      return new Date(timestamp).toLocaleString()
-    }
+const formatDate = (timestamp) => {
+  return new Date(timestamp).toLocaleString()
+}
 
-    const loadNext = () => {
-      offset.value += limit.value
-      refetch()
-    }
+const loadNext = () => {
+  offset.value += limit.value
+  refetch()
+}
 
-    const loadPrevious = () => {
-      offset.value = Math.max(0, offset.value - limit.value)
-      refetch()
-    }
+const loadPrevious = () => {
+  offset.value = Math.max(0, offset.value - limit.value)
+  refetch()
+}
 
-    const goBack = () => {
-      router.push({ name: 'Ontology' })
-    }
-
-    return {
-      commits,
-      loading,
-      error,
-      offset,
-      limit,
-      totalCommits,
-      hasMore,
-      formatVersion,
-      formatDate,
-      loadNext,
-      loadPrevious,
-      goBack
-    }
-  }
+const goBack = () => {
+  router.push({ name: 'Ontology' })
 }
 </script>
 

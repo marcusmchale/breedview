@@ -236,24 +236,18 @@ const queryVariables = computed(() => ({
 // GraphQL setup
 const ontologyEntriesQuery = useQuery(
   ONTOLOGY_ENTRIES,
-  queryVariables,
-  { fetchPolicy: 'network-only' }
+  queryVariables
 )
 
 const ontologyEntries = computed(() =>
   ontologyEntriesQuery.result.value?.ontologyEntries?.result || []
 )
-
-// Expose error from ontologyEntriesQuery
 const error = computed(() =>
   ontologyEntriesQuery.error.value || relationshipsQuery.error.value
 )
-
-// Loading state (optional, but good to have)
 const loading = computed(() =>
   ontologyEntriesQuery.loading.value || relationshipsQuery.loading.value
 )
-
 
 const entryIds = computed(() => ontologyEntries.value.map(entry => entry.id))
 
@@ -272,8 +266,7 @@ const ontologyRelationships = computed(() =>
 
 const latestCommitHistoryQuery = useQuery(
   COMMIT_HISTORY,
-  { limit: 1 },
-  { fetchPolicy: 'network-only' }
+  { limit: 1 }
 )
 
 const latestCommit = computed(() =>

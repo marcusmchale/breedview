@@ -2,10 +2,9 @@ query regionsCountries {
     regionsCountries {
         status
         result {
-            id
             name
             code
-            type {id}
+            typeId
         }
         errors {
             message

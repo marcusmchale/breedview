@@ -1,12 +1,11 @@
-
 <template>
-  <div class="location-node">
+  <div v-if="displayedLocation" class="location-node">
     <div class="location-header" :class="{ selected: isSelected }">
       <button
-        v-if="cachedLocation.children && cachedLocation.children.length > 0"
-        @click="$emit('toggle-expand', cachedLocation)"
+        v-if="children && children.length > 0"
+        @click="$emit('toggle-expand', props.locationId)"
         class="expand-btn"
-        :class="{ expanded }"
+        :class="{ expanded: isExpandedFn(props.locationId) }"
       >
         ▶
       </button>
@@ -15,58 +14,47 @@
       <div class="location-info">
         <h4
             class="location-name"
-            @click="$emit('select-location', cachedLocation)"
-        >{{ cachedLocation.name }}</h4>
-        <p v-if="cachedLocation.description" class="location-description">{{ cachedLocation.description }}</p>
+            @click="$emit('select-location', props.locationId)"
+        >{{ displayedLocation.name }}</h4>
+        <p v-if="displayedLocation.description" class="location-description">{{ displayedLocation.description }}</p>
         <div class="location-meta">
-          <span v-if="cachedLocation.type" class="type-badge">{{ cachedLocation.type.name }}</span>
-          <span v-if="cachedLocation.address" class="address">{{ cachedLocation.address }}</span>
+          <span v-if="displayedLocation.id" class="address">{{ displayedLocation.id }}</span>
+          <span v-if="displayedLocation.type" class="type-badge">{{ displayedLocation.type.name }}</span>
+          <span v-if="displayedLocation.address" class="address">{{ displayedLocation.address }}</span>
         </div>
-
-        <!-- Arrangements Box -->
-        <ArrangementsBox
-          :location-id="locationId"
-          :locationCache="locationCache"
-          @reload-arrangements="handleReloadArrangements"
-          @reload-locations="handleReloadLocations"
-        />
       </div>
+        <!-- Actions column placed to the right of the node -->
+        <div v-if="showEdit" class="actions" role="toolbar" aria-label="location actions">
+          <button
+            @click="openEditModal"
+            class="btn btn-sm btn-edit"
+            title="Update location details"
+          >
+            ✎ Edit
+          </button>
 
-      <!-- Actions column placed to the right of the node -->
-      <div class="actions" role="toolbar" aria-label="location actions">
-        <button
-          @click="openEditModal"
-          class="btn btn-sm btn-edit"
-          title="Update location details"
-        >
-          ✎ Edit
-        </button>
+          <button
+            @click="openDeleteModal"
+            class="btn btn-sm btn-danger"
+            title="Delete location"
+          >
+            Delete
+          </button>
 
-        <button
-          @click="openDeleteModal"
-          class="btn btn-sm btn-danger"
-          title="Delete location"
-        >
-          Delete
-        </button>
+          <button
+            @click="openAddChildModal"
+            class="btn btn-sm btn-add-child"
+            title="Add child location"
+          >
+            + Add Child
+          </button>
 
-        <button
-          @click="openAddChildModal"
-          class="btn btn-sm btn-add-child"
-          title="Add child location"
-        >
-          + Add Child
-        </button>
-
-        <ControllerBadge
-          entity-label="LOCATION"
-          :entity-id="cachedLocation.id"
-        />
+          <ControllerBadge
+            entity-label="LOCATION"
+            :entity-id="displayedLocation.id"
+          />
+      </div>
     </div>
-
-    </div>
-
-
 
     <!-- Edit Modal -->
     <div v-if="isEditModalOpen" class="modal-overlay" @click="closeEditModal">
@@ -87,44 +75,51 @@
             type="text"
             name="name"
             label="Location Name:"
-            validation="required"
+            :placeholder="displayedLocation?.name ?? 'Enter location name'"
           />
 
           <FormKit
             type="text"
             name="code"
             label="Code (optional):"
-            placeholder="e.g., zip code"
+            :placeholder="displayedLocation.code ?? 'Enter location code'"
           />
 
           <FormKit
             type="text"
             name="address"
-            label="Address (optional):"
-            placeholder="Enter address"
+            label="Address:"
+            :placeholder="displayedLocation.address ?? 'Enter address'"
           />
 
           <FormKit
             type="textarea"
             name="description"
             label="Description (optional):"
-            placeholder="Enter description"
+            :placeholder="displayedLocation.description ?? 'Enter a description'"
           />
 
-          <FormKit
+          <FormKit v-if="displayedLocation.parent"
             type="select"
             name="typeId"
             label="Location Type:"
+            :placeholder="displayedLocation.type.name ?? 'Select a location type'"
             :options="locationTypes.map(type => ({ value: type.id, label: type.name }))"
             validation="required"
           />
 
           <FormKit
-            type="select"
-            name="parentId"
-            label="Parent Location:"
-            placeholder="Select a parent location"
-            :options="otherLocations.map(loc => ({ value: loc.id, label: loc.name }))"
+              type="hierarchical-select"
+              name="parentId"
+              label="Parent Unit:"
+              placeholder="Select a parent unit"
+              :root-nodes="regionLocations"
+              :get-children-fn="getCachedChildren"
+              :exclude-node-id="props.locationId"
+              :get-node-id-fn="(unit) => unit.id"
+              :get-node-label-fn="(unit) => unit.name || `${unit.subject?.name} ${unit.id}`"
+              :has-children-fn="(unit) => unit.children && unit.children.length > 0"
+              validation="required"
           />
 
           <div v-if="editError" class="error-message">
@@ -133,6 +128,7 @@
 
           <div class="form-actions">
             <button
+              :disabled="updateLocationLoading"
               type="submit"
               class="btn btn-primary"
             >
@@ -164,10 +160,10 @@
           </div>
 
           <p class="delete-warning">
-            Are you sure you want to delete <strong>{{ cachedLocation.name }}</strong>?
+            Are you sure you want to delete <strong>{{ displayedLocation.name }}</strong>?
           </p>
-          <p v-if="currentChildren.length > 0" class="delete-warning-children">
-            ⚠️ This location has {{ currentChildren.length }} child location(s).
+          <p v-if="children.length > 0" class="delete-warning-children">
+            ⚠️ This location has {{ children.length }} child location(s).
           </p>
 
           <div class="form-actions">
@@ -196,7 +192,7 @@
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h4>Add Child Location</h4>
-          <button @click="closeAddChildModal" class="modal-close" :disabled="createChildLoading">&times;</button>
+          <button @click="closeAddChildModal" class="modal-close" :disabled="addChildLoading">&times;</button>
         </div>
 
         <FormKit
@@ -209,7 +205,6 @@
           <FormKit
             type="text"
             name="parentName"
-            :model-value="cachedLocation.name"
             label="Parent Location:"
             disabled
           />
@@ -218,6 +213,7 @@
             type="select"
             name="typeId"
             label="Location Type:"
+            placeholder="Select a location type"
             :options="locationTypes.map(type => ({ value: type.id, label: type.name }))"
             validation="required"
           />
@@ -256,14 +252,14 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="createChildLoading">
-              {{ createChildLoading ? 'Adding...' : 'Add Child' }}
+            <button type="submit" class="btn btn-primary" :disabled="addChildLoading">
+              {{ addChildLoading ? 'Adding...' : 'Add Child' }}
             </button>
             <button
               type="button"
               @click="closeAddChildModal"
               class="btn btn-secondary"
-              :disabled="createChildLoading"
+              :disabled="addChildLoading"
             >
               Cancel
             </button>
@@ -272,116 +268,103 @@
       </div>
     </div>
 
-    <div v-if="expanded && currentChildren.length > 0" class="children">
-      <div v-for="child in currentChildren" :key="`locationNode_${child.id}`" class="child-item">
+    <div v-if="isExpandedFn(props.locationId) && children.length > 0" class="children">
+      <div v-for="child in children" :key="`locationNode_${child.id}`" class="child-item">
         <LocationNode
+          :regionId="props.regionId"
           :locationId="child.id"
-          :expanded="isExpandedFn(child)"
-          :location-cache="locationCache"
-          :is-expanded-fn="isExpandedFn"
-          :region-id="regionId"
-          :location-types="locationTypes"
-          :selected-location-id="selectedLocationId"
+          :isExpandedFn="isExpandedFn"
+          :locationTypes="locationTypes"
+          :selectedLocationId="selectedLocationId"
+          :showEdit="showEdit"
           @toggle-expand="$emit('toggle-expand', $event)"
-          @delete-location="$emit('delete-location', $event)"
-          @reload-location="$emit('reload-location', $event)"
           @select-location="$emit('select-location', $event)"
-          @reload-arrangements="handleReloadArrangements"
         />
+
       </div>
     </div>
   </div>
 </template>
 
-
 <script setup>
+
 import { ref, computed } from 'vue'
 import { FormKit } from '@formkit/vue'
-import { useMutation } from '@vue/apollo-composable'
 
-import ControllerBadge from './ControllerBadge.vue'
-import ArrangementsBox from "@/components/ArrangementsBox.vue"
+import ControllerBadge from '../ControllerBadge.vue'
 
-import DELETE_LOCATION_MUTATION from '@/graphql/regions/deleteLocation.graphql'
-import UPDATE_LOCATION_MUTATION from '@/graphql/regions/updateLocation.graphql'
-import CREATE_LOCATION_MUTATION from '@/graphql/regions/createLocation.graphql'
+import { useLocationNodeQueries } from "@/composables/regionManagement/locationNodeQueries";
+import { useMutateLocations } from "@/composables/regionManagement/mutateLocations";
 
-const { locationId, expanded, locationCache, isExpandedFn, regionId, locationTypes, selectedLocationId } = defineProps({
-  locationId: {
+const props = defineProps({
+  regionId: {
     type: Number,
     required: true
   },
-  expanded: {
-    type: Boolean,
-    default: false
-  },
-  locationCache: {
-    type: Object,
+  locationId: {
+    type: Number,
     required: true
   },
   isExpandedFn: {
     type: Function,
     required: true
   },
-  regionId: {
-    type: Number,
-    required: true
-  },
   locationTypes: {
     type: Array,
-    required: true
+    required: false,
+    default: () => []
   },
   selectedLocationId: {
     type: Number,
     default: null
+  },
+  showEdit: {
+    type: Boolean,
+    default: false
   }
 })
 
 const $emit = defineEmits([
   'toggle-expand',
-  'delete-location',
-  'reload-location',
   'select-location',
-  'reload-arrangements'
 ])
 
 const isSelected = computed(() => {
-  return selectedLocationId === locationId
+  return props.selectedLocationId === props.locationId
 })
 
-
-const handleReloadLocations = (locationIds) => {
-  $emit('reload-location', {
-    ids: locationIds,
-    regionId: regionId
-  })
-}
-
-const handleReloadArrangements = (locationIds) => {
-  console.log('reemit reload-arrangements in location node', locationIds)
-  $emit('reload-arrangements', locationIds)
-}
-
-
-// Use the passed cache instance
-const { getRegionLocations, getChildren, getLocation } = locationCache
-
-// Get location from cache - always current
-const cachedLocation = computed(() => {
-  return getLocation(locationId)
+const {
+  displayedLocation,
+  regionRootLocation,
+  getCachedChildren
+}  = useLocationNodeQueries({
+  locationId: props.locationId,
+  regionId: props.regionId
 })
 
-// Get all locations in this region for dropdowns
-const otherLocations = computed(() => {
-  return getRegionLocations(regionId).filter(loc => loc.id !== locationId)
+// Prepare mutation handlers
+const {
+  createLocation, createLocationLoading,
+  updateLocation, updateLocationLoading,
+  deleteLocation, deleteLocationLoading
+} = useMutateLocations()
+
+const regionLocations = computed( () => {
+  const regionLocation = regionRootLocation.value
+  console.log('region location:', regionLocation)
+  return regionLocation ? [regionLocation] : []
 })
 
-const currentChildren = computed(() => {
-  const location = cachedLocation.value
-  if (!location) return []
-  return getChildren(location)
+const children = computed( () => {
+  if (!displayedLocation.value?.children) return []
+  return displayedLocation.value.children
 })
 
+//const otherLocations = computed(() => {
+//  if (!parent.value) return []
+//  const locations = getChildLocations(props.regionId, props.locationId).value
+//  return locations.filter(loc => loc.id !== props.locationId)
+//})
 
 // Edit Modal state
 const isEditModalOpen = ref(false)
@@ -406,22 +389,16 @@ const addChildFormData = ref({
   description: ''
 })
 const addChildError = ref('')
+const addChildLoading = createLocationLoading
 
 // Delete Modal state
 const isDeleteModalOpen = ref(false)
 const deleteError = ref('')
-
-// Mutations
-const { mutate: deleteLocationMutation, loading: deleteLoading } = useMutation(DELETE_LOCATION_MUTATION)
-const {
-  mutate: updateLocationMutation,
-  //loading: updateLoading
-} = useMutation(UPDATE_LOCATION_MUTATION)
-const { mutate: createLocationMutation, loading: createChildLoading } = useMutation(CREATE_LOCATION_MUTATION)
+const deleteLoading = deleteLocationLoading
 
 // Edit Modal functions
 const openEditModal = () => {
-  const location = cachedLocation.value
+  const location = displayedLocation.value
   updateFormData.value = {
     name: location.name || '',
     code: location.code || '',
@@ -436,24 +413,14 @@ const openEditModal = () => {
 
 const closeEditModal = () => {
   isEditModalOpen.value = false
-  updateFormData.value = {
-    name: '',
-    code: '',
-    address: '',
-    description: '',
-    typeId: null,
-    parentId: null
-  }
-  editError.value = ''
 }
 
 const submitUpdate = async () => {
   try {
     editError.value = ''
 
-    const response = await updateLocationMutation({
-      location: {
-        locationId: locationId,
+    const updateData = {
+        locationId: props.locationId,
         name: updateFormData.value.name || undefined,
         code: updateFormData.value.code || undefined,
         address: updateFormData.value.address || undefined,
@@ -461,25 +428,16 @@ const submitUpdate = async () => {
         typeId: updateFormData.value.typeId || undefined,
         parentId: updateFormData.value.parentId || undefined
       }
-    })
 
-    if (response?.data?.regionsUpdateLocation) {
-      const result = response.data.regionsUpdateLocation
-      if (result.status === 'SUCCESS') {
-        // Refetch this location and affected parent
-        $emit('reload-location', {
-          ids: [locationId, updateFormData.value.parentId].filter(Boolean),
-          regionId: regionId
-        })
-        closeEditModal()
+    const { status, errors } = await updateLocation(updateData)
+    if (status === 'SUCCESS') {
+      closeEditModal()
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        editError.value = errors.map(err => err.message).join(', ')
       } else {
-        // Handle server errors
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          editError.value = errors.map(err => err.message).join(', ')
-        } else {
-          editError.value = 'Failed to update location. Please try again.'
-        }
+        editError.value = 'Failed to update location. Please try again.'
       }
     }
   } catch (error) {
@@ -491,7 +449,7 @@ const submitUpdate = async () => {
 // Add Child Modal functions
 const openAddChildModal = () => {
   addChildFormData.value = {
-    parentName: cachedLocation.value.name,
+    parentName: displayedLocation.value.name,
     typeId: null,
     name: '',
     code: '',
@@ -504,49 +462,31 @@ const openAddChildModal = () => {
 
 const closeAddChildModal = () => {
   isAddChildModalOpen.value = false
-  addChildFormData.value = {
-    parentName: '',
-    typeId: null,
-    name: '',
-    code: '',
-    address: '',
-    description: ''
-  }
-  addChildError.value = ''
 }
 
 const submitAddChild = async () => {
   try {
     addChildError.value = ''
+    addChildLoading.value = true
 
-    const response = await createLocationMutation({
-      location: {
+    const locationData = {
         name: addChildFormData.value.name,
         code: addChildFormData.value.code || undefined,
         address: addChildFormData.value.address || undefined,
         description: addChildFormData.value.description || undefined,
         typeId: addChildFormData.value.typeId,
-        parentId: locationId
-      }
-    })
+        parentId: props.locationId
+    }
 
-    if (response?.data?.regionsCreateLocation) {
-      const result = response.data.regionsCreateLocation
-      if (result.status === 'SUCCESS') {
-        // Refetch parent to get updated children
-        $emit('reload-location', {
-          ids: [locationId],
-          regionId: regionId
-        })
-        closeAddChildModal()
+    const { status, errors } = await createLocation(locationData)
+    if (status === 'SUCCESS') {
+      closeAddChildModal()
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        addChildError.value = errors.map(err => err.message).join(', ')
       } else {
-        // Handle server errors
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          addChildError.value = errors.map(err => err.message).join(', ')
-        } else {
-          addChildError.value = 'Failed to add child location. Please try again.'
-        }
+        addChildError.value = 'Failed to add child location. Please try again.'
       }
     }
   } catch (error) {
@@ -569,27 +509,16 @@ const closeDeleteModal = () => {
 const submitDelete = async () => {
   try {
     deleteError.value = ''
-    const response = await deleteLocationMutation({
-      locationId: locationId
-    })
 
-    if (response?.data?.regionsDeleteLocation) {
-      const result = response.data.regionsDeleteLocation
-
-      if (result.status === 'SUCCESS') {
-        $emit('delete-location', {
-          id: locationId,
-          parentId: cachedLocation.value.parent?.id
-        })
+    const { status, errors } = await deleteLocation(props.locationId)
+    if (status === 'SUCCESS') {
         closeDeleteModal()
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        deleteError.value = errors.map(err => err.message).join(', ')
       } else {
-        // Handle server errors
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          deleteError.value = errors.map(err => err.message).join(', ')
-        } else {
-          deleteError.value = 'Failed to delete location. Please try again.'
-        }
+        deleteError.value = 'Failed to delete location. Please try again.'
       }
     }
   } catch (error) {
@@ -597,6 +526,8 @@ const submitDelete = async () => {
     deleteError.value = error.message || 'An unexpected error occurred while deleting the location.'
   }
 }
+
+
 </script>
 
 <style scoped>

@@ -56,7 +56,6 @@ input UnitInput {
   """ID of Subject in the ontology"""
   subjectId: Int!
   name: String
-  synonyms: [String]
   description: String
 
   """IDs of parent Units, of which this unit forms a component"""
@@ -70,10 +69,10 @@ input UnitUpdate {
   unitId: Int!
   subjectId: Int!
   name: String
-  synonyms: [String]
   description: String
   parentIds: [Int]
   childrenIds: [Int]
+  positions: [PositionInput]
 }
 
 input RecordInput {
@@ -179,10 +178,11 @@ type Mutation {
   arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
   arrangementsDeleteLayout(layoutId: Int!): BooleanPayload!
-  blocksCreateUnit(unit: UnitInput!): BooleanPayload!
+  blocksCreateUnit(unit: UnitInput!, position: PositionInput): BooleanPayload!
   blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
   blocksDeleteUnit(unitId: Int!): BooleanPayload!
   blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
+  blocksRemovePosition(unitId: Int!, position: PositionInput): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
 
   """
@@ -846,7 +846,7 @@ type Account {
 
 type Layout {
   id: Int!
-  type: OntologyEntryInterface!
+  type: OntologyEntryInterface
   name: String
   axes: [String!]
   parent: Layout
@@ -881,7 +881,6 @@ type Unit {
   id: Int!
   subject: OntologyEntryInterface
   name: String
-  synonyms: [String]
   description: String
   positions: [Position]
   parents: [Unit]
@@ -1752,7 +1751,7 @@ type AccountPayload {
 
 type UsersPayload {
   status: QueryStatus!
-  result: [User]
+  result: [User!]
   errors: [Error]
 }
 
@@ -1764,7 +1763,7 @@ type VersionPayload {
 
 type OntologyCommitsPayload {
   status: QueryStatus!
-  result: [OntologyCommit]
+  result: [OntologyCommit!]
   errors: [Error]
 }
 
@@ -1776,7 +1775,7 @@ type OntologyEntryPayload {
 
 type OntologyEntriesPayload {
   status: QueryStatus!
-  result: [OntologyEntryInterface]
+  result: [OntologyEntryInterface!]
   errors: [Error]
 }
 
@@ -1788,19 +1787,25 @@ type OntologyRelationshipsPayload {
 
 type LocationsPayload {
   status: QueryStatus!
-  result: [Location]
+  result: [Location!]
+  errors: [Error]
+}
+
+type LocationTemplatesPayload {
+  status: QueryStatus!
+  result: [LocationTemplate!]
   errors: [Error]
 }
 
 type LayoutsPayload {
   status: QueryStatus!
-  result: [Layout]
+  result: [Layout!]
   errors: [Error]
 }
 
 type UnitsPayload {
   status: QueryStatus!
-  result: [Unit]
+  result: [Unit!]
   errors: [Error]
 }
 
@@ -1926,8 +1931,20 @@ type Query {
   """
   ontologyRoleRequests: UsersPayload!
 
-  """Get a list of countries for use in top level region creation"""
-  regionsCountries: LocationsPayload!
+  """
+  Get a list of Ontology Editors
+  Only available to Users with the admin ontology role.
+  """
+  ontologyEditors: UsersPayload!
+
+  """
+  Get a list of Ontology Admins
+  Only available to Users with the admin ontology role.
+  """
+  ontologyAdmins: UsersPayload!
+
+  """Get a list of country templates for use in top level region creation"""
+  regionsCountries: LocationTemplatesPayload!
 
   """
   Get a list of region "root" locations.
@@ -1994,11 +2011,8 @@ type GeoCoordinate {
 }
 
 type Location {
-  """
-  ID is not always required for location
-  We return Country LocationInputs that are not yet stored using this type
-  """
-  id: Int
+  """Stored Locations"""
+  id: Int!
   name: String!
   type: OntologyEntryInterface
   code: String
@@ -2008,6 +2022,19 @@ type Location {
   coordinates: [GeoCoordinate]
   parent: Location
   children: [Location]
+}
+
+type LocationTemplate {
+  name: String!
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinate]
+
+  """ Ontology LocationType identifier """
+  typeId: Int!
 }
 
 scalar DateTime

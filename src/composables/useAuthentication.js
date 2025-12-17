@@ -5,8 +5,7 @@ export async function checkAuthentication() {
   try {
     const { data } = await apolloClient.query({
       query: ACCOUNT_QUERY,
-      fetchPolicy: 'network-only',
-      errorPolicy: 'all'
+      fetchPolicy: 'no-cache'
     })
 
     const accountData = data?.accountsAccount

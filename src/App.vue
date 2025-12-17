@@ -26,10 +26,19 @@
           <router-link to="/regions" class="nav-link" active-class="active">
             Regions
           </router-link>
-          <router-link to="/edit-affiliations" class="nav-link" active-class="active">
+          <router-link to="/arrangements" class="nav-link" active-class="active">
+            Arrangements
+          </router-link>
+          <router-link to="/blocks" class="nav-link" active-class="active">
+            Blocks
+          </router-link>
+          <router-link to="/datasets" class="nav-link" active-class="active">
+            Datasets
+          </router-link>
+          <router-link to="/affiliations" class="nav-link" active-class="active">
             Affiliations
           </router-link>
-          <router-link to="/edit-profile" class="nav-link" active-class="active">
+          <router-link to="/profile" class="nav-link" active-class="active">
             Profile
           </router-link>
 
@@ -50,7 +59,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMutation } from '@vue/apollo-composable'
+import { useMutation, useApolloClient } from '@vue/apollo-composable'
 import { useCsrf } from './composables/useCsrf'
 import { useAuthStore } from './composables/useAuthStore'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
@@ -60,6 +69,10 @@ const route = useRoute()
 
 const { fetchCsrfToken, refreshCsrfToken } = useCsrf()
 const { clearAuthState, startPeriodicAuthCheck } = useAuthStore()
+
+// Get Apollo client once at setup
+const { client } = useApolloClient()
+
 
 // Logout functionality
 const { mutate: logoutMutation, loading: logoutLoading, onError: onLogoutError } = useMutation(LOGOUT_MUTATION)
@@ -73,6 +86,16 @@ onLogoutError((err) => {
 const hideNavigation = computed(() => {
   return route.meta?.hideNavigation || false
 })
+
+const clearApolloCache = async () => {
+  try {
+    // Use clearStore instead of resetStore - doesn't refetch queries
+    await client.clearStore()
+    console.log('Apollo cache cleared')
+  } catch (error) {
+    console.error('Failed to clear Apollo cache:', error)
+  }
+}
 
 const logout = async () => {
   try {
@@ -88,6 +111,7 @@ const logout = async () => {
       // Logout failed, but clear auth state and redirect anyway for security
       console.error('Logout failed:', response?.data?.accountsLogout?.errors)
       clearAuthState()
+      clearApolloCache()
       router.push('/login')
     }
   } catch (error) {

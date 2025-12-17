@@ -1,9 +1,24 @@
 <template>
   <div class="layout-node">
-    <div v-if="!layout">Loading...</div>
+    <div v-if="!cachedLayout">Loading...</div>
+    <!--
+      Redacted layouts won't have type, don't present all the other options for these as they won't work
+      But we do want to see the security details so we know who to contact to gain access
+      And we need to see that one exists to prevent duplication
+    -->
+    <div v-else-if="!cachedLayout.type">
+      <div class="layout-info">
+        <h6 class="layout-name">{{ cachedLayout.name || cachedLayout.id }}</h6>
+        <ControllerBadge
+          entity-label="LAYOUT"
+          :entity-id="layoutId"
+        />
+      </div>
+    </div>
+
     <div v-else class="layout-header">
       <button
-        v-if="layout.children && layout.children.length > 0"
+        v-if="cachedLayout.children && cachedLayout.children.length > 0"
         @click="toggleExpand"
         class="expand-btn"
         :class="{ expanded }"
@@ -13,15 +28,18 @@
       <div v-else class="expand-placeholder"></div>
 
       <div class="layout-info">
-        <h6 class="layout-name">{{ layout.name || layout.id }}</h6>
+        <h6 class="layout-name">{{ cachedLayout.name || `${cachedLayout.type.name} ${cachedLayout.id}` }}</h6>
         <div class="layout-meta">
-          <span v-if="layout.type" class="type-badge">{{ layout.type.name }}</span>
-          <span v-if="layout.children && layout.children.length >0 " class="position">x{{ layout.children.length }}</span>
-          <span v-if="layout.position !== null && layout.position !== undefined" class="position">
-            Pos: {{ layout.position }}
+          <span class="type-badge">{{ cachedLayout.type.name }}</span>
+          <span class="position"> ID: {{ cachedLayout.id }} </span>
+          <span v-if="cachedLayout.children && cachedLayout.children.length >0 " class="position">x{{
+              cachedLayout.children.length
+            }}</span>
+          <span v-if="cachedLayout.position !== null && cachedLayout.position !== undefined" class="position">
+            Pos: {{ cachedLayout.position }}
           </span>
-          <span v-if="layout.location !== null && layout.location !== undefined" class="position">
-            Loc: {{ layout.location.name }}
+          <span v-if="cachedLayout.location !== null && cachedLayout.location !== undefined" class="position">
+            Loc: {{ cachedLayout.location.name }}
           </span>
 
         </div>
@@ -80,7 +98,7 @@
             name="locationId"
             label="Location:"
             placeholder="Select a location"
-            :options="regionLocations.map(loc => ({ value: loc.id, label: loc.name }))"
+            :options="locationOptions"
           />
 
           <FormKit
@@ -117,7 +135,7 @@
             name="parentId"
             label="Parent Layout:"
             placeholder="Select a parent layout"
-            :options="otherLayouts.map(l => ({ value: l.id, label: l.name || l.id }))"
+            :options="parentOptions"
           />
 
 
@@ -141,7 +159,10 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
+            <button
+                :disabled="updateLayoutLoading"
+                type="submit"
+                class="btn btn-primary">
               Update
             </button>
             <button type="button" @click="closeEditModal" class="btn btn-secondary">
@@ -166,25 +187,25 @@
           </div>
 
           <p class="delete-warning">
-            Are you sure you want to delete <strong>{{ layout.name }}</strong>?
+            Are you sure you want to delete <strong>{{ cachedLayout.name }}</strong>?
           </p>
-          <p v-if="layout.children.length > 0" class="delete-warning-children">
-            ⚠️ This layout has {{ layout.children.length }} child layout(s).
+          <p v-if="cachedLayout.children.length > 0" class="delete-warning-children">
+            ⚠️ This layout has {{ cachedLayout.children.length }} child layout(s).
           </p>
 
           <div class="form-actions">
             <button
               @click="submitDelete"
               class="btn btn-danger"
-              :disabled="deleteLoading"
+              :disabled="deleteLayoutLoading"
             >
-              {{ deleteLoading ? 'Deleting...' : 'Delete' }}
+              {{ deleteLayoutLoading ? 'Deleting...' : 'Delete' }}
             </button>
             <button
               type="button"
               @click="closeDeleteModal"
               class="btn btn-secondary"
-              :disabled="deleteLoading"
+              :disabled="deleteLayoutLoading"
             >
               Cancel
             </button>
@@ -198,7 +219,7 @@
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h4>Add Child Layout</h4>
-          <button @click="closeAddChildModal" class="modal-close" :disabled="createChildLoading">&times;</button>
+          <button @click="closeAddChildModal" class="modal-close" :disabled="createLayoutLoading">&times;</button>
         </div>
 
         <FormKit
@@ -211,10 +232,24 @@
           <FormKit
             type="text"
             name="parentName"
-            :model-value="layout.name"
+            :model-value="cachedLayout.name"
             label="Parent Layout:"
             disabled
           />
+
+          <!-- Dynamic axis position inputs based on parent layout axes -->
+          <div v-if="cachedLayout" class="axes-section">
+            <h5>Position</h5>
+            <FormKit
+              v-for="(axisName, index) in cachedLayout.axes"
+              :key="index"
+              type="text"
+              :name="`position_${index}`"
+              :label="`${axisName} Axis:`"
+              :placeholder="`Enter position for ${axisName.toLowerCase()} axis`"
+              validation="required"
+            />
+          </div>
 
           <FormKit
             type="text"
@@ -247,33 +282,20 @@
             />
           </div>
 
-          <!-- Dynamic axis position inputs based on parent layout axes -->
-          <div v-if="layout" class="axes-section">
-            <h5>Position</h5>
-            <FormKit
-              v-for="(axisName, index) in layout.axes"
-              :key="index"
-              type="text"
-              :name="`position_${index}`"
-              :label="`${axisName} Axis:`"
-              :placeholder="`Enter position for ${axisName.toLowerCase()} axis`"
-              validation="required"
-            />
-          </div>
 
           <div v-if="addChildError" class="error-message">
             {{ addChildError }}
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="createChildLoading">
-              {{ createChildLoading ? 'Adding...' : 'Add Child' }}
+            <button type="submit" class="btn btn-primary" :disabled="createLayoutLoading">
+              {{ createLayoutLoading ? 'Adding...' : 'Add Child' }}
             </button>
             <button
               type="button"
               @click="closeAddChildModal"
               class="btn btn-secondary"
-              :disabled="createChildLoading"
+              :disabled="createLayoutLoading"
             >
               Cancel
             </button>
@@ -282,15 +304,13 @@
       </div>
     </div>
 
-    <div v-if="expanded && layout.children.length > 0" class="children">
-      <div v-for="childId in layout.children" :key="childId" class="child-item">
+    <div v-if="expanded && cachedLayout.children.length > 0" class="children">
+      <div v-for="child in cachedLayout.children" :key="child.id" class="child-item">
         <LayoutNode
-          :layoutId="childId"
+          :layoutId="child.id"
           :location-id="locationId"
           :layout-types="layoutTypes"
-          :locationCache="locationCache"
-          @load-layouts="handleLoadLayouts"
-          @reload-layouts="handleReloadLayouts"
+          @load-layouts="$emit('load-layouts', $event)"
         />
       </div>
     </div>
@@ -298,17 +318,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 import { FormKit } from '@formkit/vue'
-import { useMutation } from '@vue/apollo-composable'
 
-import ControllerBadge from './ControllerBadge.vue'
-import DELETE_LAYOUT_MUTATION from '@/graphql/arrangements/deleteLayout.graphql'
-import UPDATE_LAYOUT_MUTATION from '@/graphql/arrangements/updateLayout.graphql'
-import CREATE_LAYOUT_MUTATION from '@/graphql/arrangements/createLayout.graphql'
+import ControllerBadge from '../ControllerBadge.vue'
+import {useQueryLayouts} from "@/composables/arrangementManagement/layoutBoxQueries";
+import {useMutateLayouts} from "@/composables/arrangementManagement/mutateLayouts";
 
 
-const {layoutId, locationId, layoutTypes, locationCache } = defineProps({
+const props = defineProps({
   layoutId: {
     type: Number,
     required: true
@@ -320,233 +338,130 @@ const {layoutId, locationId, layoutTypes, locationCache } = defineProps({
   layoutTypes: {
     type: Array,
     required: true
-  },
-  locationCache: {
-    type: Object,
-    required: true
-  },
+  }
 })
 
-const $emit = defineEmits(['load-layouts', 'reload-layouts', 'delete-layouts', 'reload-locations'])
+const locationCache = inject('locationCache')
+const layoutCache = inject('layoutCache')
+const queryLayouts = useQueryLayouts(layoutCache)
+const mutateLayouts = useMutateLayouts(layoutCache, queryLayouts)
+
+const { getRegion, getDescendantLocations } = locationCache
+
+const {
+  getLayout,
+  getAvailableParents
+} = layoutCache
+
+
+// Prepare mutation handlers
+const {
+  createLayout, createLayoutLoading,
+  updateLayout, updateLayoutLoading,
+  deleteLayout, deleteLayoutLoading
+} = mutateLayouts
+
+const $emit = defineEmits(['load-layouts'])
 
 const expanded = ref(false)
 
-// Use the passed cache instance
-const { getLayoutIds, getLayouts, getLayout } = locationCache
 
-
-const handleLoadLayouts = (layoutIds) => {
-  // Emit the new layouts to the parent component
-  if (!layoutIds.length >0) return
-  $emit('load-layouts', layoutIds)
-}
-
-const handleReloadLayouts = (layoutIds) => {
-  // Emit the reload layouts to the parent component
-  if (!layoutIds.length >0) return
-  $emit('reload-layouts', layoutIds)
-}
-
-const handleDeleteLayouts = (layoutIds) => {
-  //emit the delete layouts to parent component
-  if (!layoutIds.length>0) return
-  $emit('delete-layouts', layoutIds)
-}
-
-const allLayouts = computed(() => {
-  const layoutIds = getLayoutIds(locationId)
-  if (layoutIds.size === 0) {
-    return []
-  }
-  return getLayouts(layoutIds)
-})
-
-
-const layout = computed( () => {
-  if (!layoutId) {
-    console.log('no layout ID provided')
-    return null;
-  }
-  const layoutData = getLayout(layoutId)
-  console.log('layoutData', layoutId, layoutData)
-  return layoutData || null
-})
-
-if (layout.value) {
-  handleLoadLayouts(layout.value.children)
-}
-
-// Get other layouts for parent dropdown (exclude self and descendants)
-const otherLayouts = computed(() => {
-  const excludeIds = new Set([layout.value.id])
-  const addDescendants = (layoutId) => {
-    const children = allLayouts.value.filter(l => l.parent?.id === layoutId)
-    children.forEach(child => {
-      excludeIds.add(child.id)
-      addDescendants(child.id)
-    })
-  }
-  addDescendants(layout.value.id)
-  return allLayouts.value.filter(l => !excludeIds.has(l.id))
+const cachedLayout = computed( () => {
+  return getLayout(props.layoutId).value
 })
 
 const toggleExpand = () => {
   expanded.value = !expanded.value
+  if (expanded.value) {
+    $emit('load-layouts', cachedLayout.value.children.map(child => child.id))
+  }
 }
 
-// Edit Modal state
+// Modal states
 const isEditModalOpen = ref(false)
+const isAddChildModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+
+// Form data
 const updateFormData = ref({
   name: '',
   typeId: null,
   parentId: null,
   position: null,
-  locationId: locationId
-})
-const editError = ref('')
-
-const parentLayout = computed(() => {
-  if (!updateFormData.value.parentId) {
-    return
-  }
-  return getLayout(updateFormData.value.parentId)
+  locationId: props.locationId
 })
 
 
-watch(layout, (newLayout) => {
-  console.log('newLayout', layout.value.id, newLayout)
-  handleLoadLayouts(newLayout.children)
-}, {deep: true})
-
-watch(parentLayout, (newParentLayout) => {
-  if (!newParentLayout) return;
-
-  // Dynamically add or remove position fields in updateFormData.value
-  newParentLayout.axes.forEach((axisName, index) => {
-    const positionField = `position_${index}`;
-    console.log('layout:', layout)
-    // If the position field doesn't exist, add it with an empty string
-    if (!Object.prototype.hasOwnProperty.call(updateFormData.value, positionField)) {
-      if (layout.value.position) {
-        updateFormData.value[positionField] = layout.value.position[index];  // Initialize axis with value
-      }
-    }
-  });
-
-  // Remove unused position fields if the number of axes has decreased
-  const maxPositions = Object.keys(updateFormData.value).filter(key => key.startsWith('position_')).length;
-  for (let i = newParentLayout.axes.length; i < maxPositions; i++) {
-    const positionField = `position_${i}`;
-
-    // Safely delete the axis field if it no longer exists
-    if (Object.prototype.hasOwnProperty.call(updateFormData.value, positionField)) {
-      delete updateFormData.value[positionField];
-    }
-  }
-});
-
-
-// Get the selected layout type for edit form
-const selectedEditLayoutType = computed(() => {
-  if (!updateFormData.value.typeId) {
-    return null
-  }
-  return layoutTypes.find(type => type.id === updateFormData.value.typeId)
-})
-
-
-watch(selectedEditLayoutType, (newLayoutType) => {
-  if (!newLayoutType) return;
-
-  // Dynamically add or remove axis fields in updateFormData.value
-  newLayoutType.axes.forEach((axisType, index) => {
-    const axisField = `axis_${index}`;
-
-    // If the axis field doesn't exist, add it with an empty string
-    if (!Object.prototype.hasOwnProperty.call(updateFormData.value, axisField)) {
-      updateFormData.value[axisField] = '';  // Initialize axis with an empty string
-    }
-
-    // Add a name for the axis if it's not already set
-    if (updateFormData.value[axisField] === '') {
-      updateFormData.value[axisField] = axisType;  // Initialize name with the axisType (like 'Tree', 'Row')
-    }
-  });
-
-  // Remove unused axis fields if the number of axes has decreased
-  const maxAxes = Object.keys(updateFormData.value).filter(key => key.startsWith('axis_')).length;
-  for (let i = newLayoutType.axes.length; i < maxAxes; i++) {
-    const axisField = `axis_${i}`;
-
-    // Safely delete the axis field if it no longer exists
-    if (Object.prototype.hasOwnProperty.call(updateFormData.value, axisField)) {
-      delete updateFormData.value[axisField];
-    }
-  }
-});
-
-
-// Add Child Modal state
-const isAddChildModalOpen = ref(false)
 const addChildFormData = ref({
   parentName: '',
   name: '',
   typeId: null,
   position: null
 })
+
+
+// Error states
+const editError = ref('')
+const deleteError = ref('')
 const addChildError = ref('')
 
+//todo, in unit node we handle the below with refs that then get the value assigned,
+// not sure if this pattern is better/worse, both work
 
-// Get the selected layout type for add child form
+// get the parent layout for form position fields
+const parentLayout = computed(() => {
+  if (!updateFormData.value.parentId) {
+    return null
+  }
+  return getLayout(updateFormData.value.parentId)
+})
+
+// Get the selected layout type for form axis name fields
 const selectedAddChildLayoutType = computed(() => {
   if (!addChildFormData.value.typeId) {
     return null
   }
-  return layoutTypes.find(type => type.id === addChildFormData.value.typeId)
-})
-
-// Watch for layout type changes in add child form and reset axis fields
-watch(() => addChildFormData.value.typeId, (newTypeId, oldTypeId) => {
-  if (newTypeId !== oldTypeId) {
-    // Clear axis fields when layout type changes
-    const currentFormData = { ...addChildFormData.value }
-    Object.keys(currentFormData).forEach(key => {
-      if (key.startsWith('axis_')) {
-        delete currentFormData[key]
-      }
-    })
-    addChildFormData.value = currentFormData
-  }
+  return props.layoutTypes.find(type => type.id === addChildFormData.value.typeId)
 })
 
 
-// Delete Modal state
-const isDeleteModalOpen = ref(false)
-const deleteError = ref('')
+// Collect dropdown menu options
+const locationOptions = computed(() => {
+  const region = getRegion(props.locationId).value
+  console.log('regio is:', region)
+  const descendants = getDescendantLocations(region.id).value
+  console.log('descendants are:', descendants)
+  return descendants.map(loc => ({
+    value: loc.id,
+    label: loc.name
+  }))
+})
 
-// Mutations
-const { mutate: deleteLayoutMutation, loading: deleteLoading } = useMutation(DELETE_LAYOUT_MUTATION)
-const { mutate: updateLayoutMutation } = useMutation(UPDATE_LAYOUT_MUTATION)
-const { mutate: createLayoutMutation, loading: createChildLoading } = useMutation(CREATE_LAYOUT_MUTATION)
+const parentOptions = computed(() => {
+  return getAvailableParents(props.layoutId).map(layout => ({
+      value: layout.id,
+      label: layout.name || `${layout.type.name} ${layout.id}`
+    }))
+})
 
-// Edit Modal functions
+
+// Edit Modal
 const openEditModal = () => {
   updateFormData.value = {
-    name: layout.value.name || '',
-    typeId: layout.value.type?.id || null,
-    parentId: layout.value.parent?.id || null,
-    locationId: locationId,
+    typeId: cachedLayout.value.type?.id || null,
+    name: cachedLayout.value.name || '',
+    parentId: cachedLayout.value.parent?.id || null,
+    locationId: props.locationId,
   }
   // Pre-populate axis names if they exist
-  if (layout.value.axes && layout.value.axes.length > 0) {
-    layout.value.axes.forEach((axisName, index) => {
+  if (cachedLayout.value.axes && cachedLayout.value.axes.length > 0) {
+    cachedLayout.value.axes.forEach((axisName, index) => {
       updateFormData.value[`axis_${index}`] = axisName
     })
   }
-  console.log('layout has positions:', layout.value.position)
   // Pre-populate positions if they exist
-  if (layout.value.position && layout.value.position.length > 0) {
-    layout.value.position.forEach((axisPosition, index) => {
+  if (cachedLayout.value.position && cachedLayout.value.position.length > 0) {
+    cachedLayout.value.position.forEach((axisPosition, index) => {
       updateFormData.value[`position_${index}`] = axisPosition
     })
   }
@@ -556,12 +471,6 @@ const openEditModal = () => {
 
 const closeEditModal = () => {
   isEditModalOpen.value = false
-  updateFormData.value = {
-    name: '',
-    typeId: null,
-    parentId: null,
-    locationId: null
-  }
   editError.value = ''
 }
 
@@ -579,7 +488,6 @@ const submitUpdate = async () => {
         }
       }
     }
-
     // Collect positions from form data
     const positions = []
     if (parentLayout.value?.axes) {
@@ -590,49 +498,37 @@ const submitUpdate = async () => {
         }
       }
     }
-    const oldParentId = layout.value?.parent?.id || null
-    console.log('old parent ID', oldParentId)
-    const response = await updateLayoutMutation({
-      layout: {
-        layoutId: layout.value.id,
-        locationId: updateFormData.value.locationId || locationId,
+
+    const layoutData = {
+        layoutId: cachedLayout.value.id,
+        locationId: updateFormData.value.locationId || undefined,
         name: updateFormData.value.name || undefined,
         typeId: updateFormData.value.typeId || undefined,
         parentId: updateFormData.value.parentId || undefined,
         position: positions.length > 0 ? positions : undefined,
         axes: axes.length > 0 ? axes : undefined
       }
-    })
-
-    if (response?.data?.arrangementsUpdateLayout) {
-      const result = response.data.arrangementsUpdateLayout
-      if (result.status === 'SUCCESS') {
-        const toReload = [layout.value.id, oldParentId, updateFormData.value.parentId]
-        console.log('reloading:', toReload)
-        handleReloadLayouts(toReload)
-        if (updateFormData.value.locationId !== locationId) {
-                $emit("reload-locations", [locationId, updateFormData.value.locationId])
-        }
-        closeEditModal()
+    const { status, errors } = await updateLayout(layoutData)
+    if (status === 'SUCCESS') {
+      closeEditModal()
+    } else {
+      if (errors && errors.length > 0) {
+        editError.value = errors.map(err => err.message).join(', ')
       } else {
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          editError.value = errors.map(err => err.message).join(', ')
-        } else {
-          editError.value = 'Failed to update layout. Please try again.'
-        }
+        editError.value = 'Failed to update layout. Please try again.'
       }
     }
+
   } catch (error) {
     console.error('Error updating layout:', error)
-    editError.value = error.message || 'An unexpected error occurred while updating the layout.'
+    editError.value = error.message || 'An unexpected error occurred.'
   }
 }
 
 // Add Child Modal functions
 const openAddChildModal = () => {
   addChildFormData.value = {
-    parentName: layout.value.name,
+    parentName: cachedLayout.value.name,
     name: '',
     typeId: null,
     position: null
@@ -669,43 +565,35 @@ const submitAddChild = async () => {
 
     // Collect position values from form data
     const positions = []
-    if (layout.value) {
-      for (let i = 0; i < layout.value.axes.length; i++) {
+    if (cachedLayout.value) {
+      for (let i = 0; i < cachedLayout.value.axes.length; i++) {
         const axisPosition = addChildFormData.value[`position_${i}`]
         if (axisPosition) {
           positions.push(axisPosition)
         }
       }
     }
-    console.log('creating child with formdata:', addChildFormData.value)
-    const response = await createLayoutMutation({
-      layout: {
-        locationId: locationId,
+    const layoutData = {
+        locationId: props.locationId,
         name: addChildFormData.value.name,
         typeId: addChildFormData.value.typeId,
-        parentId: layoutId,
+        parentId: props.layoutId,
         position: positions.length > 0 ? positions: undefined,
         axes: axes.length > 0 ? axes : undefined
-      }
-    })
-
-    if (response?.data?.arrangementsCreateLayout) {
-      const result = response.data.arrangementsCreateLayout
-      if (result.status === 'SUCCESS') {
-        handleReloadLayouts([layoutId])
-        closeAddChildModal()
+    }
+    const { status, errors } = await createLayout(layoutData)
+    if (status === 'SUCCESS') {
+      closeAddChildModal()
+    } else {
+      if (errors && errors.length > 0) {
+        addChildError.value = errors.map(err => err.message).join(', ')
       } else {
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          addChildError.value = errors.map(err => err.message).join(', ')
-        } else {
-          addChildError.value = 'Failed to add child layout. Please try again.'
-        }
+        addChildError.value = 'Failed to add child layout. Please try again.'
       }
     }
   } catch (error) {
     console.error('Error adding child layout:', error)
-    addChildError.value = error.message || 'An unexpected error occurred while adding the child layout.'
+    addChildError.value = error.message || 'An unexpected error occurred. '
   }
 }
 
@@ -722,45 +610,102 @@ const closeDeleteModal = () => {
 
 const submitDelete = async () => {
   try {
-    const parentId = layout.value.parent?.id || null
     deleteError.value = ''
-    const response = await deleteLayoutMutation({
-      layoutId: layoutId
-    })
-    if (response?.data?.arrangementsDeleteLayout) {
-      const result = response.data.arrangementsDeleteLayout
-
-      if (result.status === 'SUCCESS') {
-        handleDeleteLayouts([layoutId])
-        if (parentId) {
-          handleReloadLayouts([parentId])
-        }
-        closeDeleteModal()
+    const { status, errors } = await deleteLayout(props.layoutId)
+    if (status === 'SUCCESS') {
+      closeDeleteModal()
+    } else {
+      if (errors && errors.length > 0) {
+        deleteError.value = errors.map(err => err.message).join(', ')
       } else {
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          deleteError.value = errors.map(err => err.message).join(', ')
-        } else {
-          deleteError.value = 'Failed to delete layout. Please try again.'
-        }
+        deleteError.value = 'Failed to delete layout. Please try again.'
       }
     }
   } catch (error) {
     console.error('Error deleting layout:', error)
-    deleteError.value = error.message || 'An unexpected error occurred while deleting the layout.'
+    deleteError.value = error.message || 'An unexpected error occurred.'
   }
 }
 
-// Use the passed cache instance
-const { getRegionLocations, getLocationRegionId } = locationCache
+// Dynamic fields in forms
+watch(parentLayout.value, (newParentLayout) => {
+  if (!newParentLayout) return;
 
+  // Dynamically add or remove position fields in updateFormData.value
+  newParentLayout.axes.forEach((axisName, index) => {
+    const positionField = `position_${index}`;
+    // If the position field doesn't exist, add it with an empty string
+    if (!Object.prototype.hasOwnProperty.call(updateFormData.value, positionField)) {
+      if (cachedLayout.value.position) {
+        updateFormData.value[positionField] = cachedLayout.value.position[index];  // Initialize axis with value
+      }
+    }
+  });
 
-// Get all locations in this region for dropdowns
-const regionLocations = computed(() => {
-  const regionId = getLocationRegionId(locationId)
-  return getRegionLocations(regionId)
+  // Remove unused position fields if the number of axes has decreased
+  const maxPositions = Object.keys(updateFormData.value).filter(key => key.startsWith('position_')).length;
+  for (let i = newParentLayout.axes.length; i < maxPositions; i++) {
+    const positionField = `position_${i}`;
+
+    // Safely delete the axis field if it no longer exists
+    if (Object.prototype.hasOwnProperty.call(updateFormData.value, positionField)) {
+      delete updateFormData.value[positionField];
+    }
+  }
+});
+
+// Get the selected layout type for edit form
+const selectedEditLayoutType = computed(() => {
+  if (!updateFormData.value.typeId) {
+    return null
+  }
+  return props.layoutTypes.find(type => type.id === updateFormData.value.typeId)
 })
 
+
+watch(selectedEditLayoutType, (newLayoutType) => {
+  if (!newLayoutType) return;
+
+  // Dynamically add or remove axis fields in updateFormData.value
+  newLayoutType.axes.forEach((axisType, index) => {
+    const axisField = `axis_${index}`;
+
+    // If the axis field doesn't exist, add it with an empty string
+    if (!Object.prototype.hasOwnProperty.call(updateFormData.value, axisField)) {
+      updateFormData.value[axisField] = '';  // Initialize axis with an empty string
+    }
+
+    // Add a name for the axis if it's not already set
+    if (updateFormData.value[axisField] === '') {
+      updateFormData.value[axisField] = axisType;  // Initialize name with the axisType (like 'Tree', 'Row')
+    }
+  });
+
+  // Remove unused axis fields if the number of axes has decreased
+  const maxAxes = Object.keys(updateFormData.value).filter(key => key.startsWith('axis_')).length;
+  for (let i = newLayoutType.axes.length; i < maxAxes; i++) {
+    const axisField = `axis_${i}`;
+
+    // Safely delete the axis field if it no longer exists
+    if (Object.prototype.hasOwnProperty.call(updateFormData.value, axisField)) {
+      delete updateFormData.value[axisField];
+    }
+  }
+});
+
+// Watch for layout type changes in add child form and reset axis fields
+watch(() => addChildFormData.value.typeId, (newTypeId, oldTypeId) => {
+  if (newTypeId !== oldTypeId) {
+    // Clear axis fields when layout-type changes
+    const currentFormData = { ...addChildFormData.value }
+    Object.keys(currentFormData).forEach(key => {
+      if (key.startsWith('axis_')) {
+        delete currentFormData[key]
+      }
+    })
+    addChildFormData.value = currentFormData
+  }
+})
 
 </script>
 

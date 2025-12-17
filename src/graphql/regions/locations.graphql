@@ -1,9 +1,7 @@
 query locations (
-    $locationTypeId: Int,
-    $locationIds: [Int!]
+    $locationIds: [Int!]!
 ){
     regionsLocations(
-        locationTypeId: $locationTypeId,
         locationIds: $locationIds
     ){
         status

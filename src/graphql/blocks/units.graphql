@@ -9,11 +9,10 @@ query units (
             id
             subject {name, id}
             name
-            synonyms
             description
             positions {
                 location {name, id}
-                layout {id, name}
+                layout {id, name, type {id, name}}
                 coordinates
                 start
                 end

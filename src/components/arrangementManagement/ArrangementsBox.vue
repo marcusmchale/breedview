@@ -1,65 +1,46 @@
-
 <template>
   <div class="arrangements-box">
     <div class="arrangements-header">
+      <h5>Arrangements</h5>
       <button
-        v-if="arrangements.length === 0"
         @click="openAddLayoutModal"
         class="btn btn-sm btn-add-layout"
-        title="Add root layout"
+        title="Create new arrangements"
       >
-        + Layout
+        + New Layout
       </button>
     </div>
 
-    <div v-if="loading" class="loading">
+    <div v-if="arrangementsLoading" class="loading">
       Loading layouts...
     </div>
 
-    <div class="layouts-tree">
-      <button
-        v-for="layout in arrangements"
-        :key="layout.id"
-        class="btn btn-sm"
-        @click.prevent="openViewLayoutModal(layout)"
-      >
-        {{ layout.name || 'Layout'}}
-      </button>
+    <div v-else-if="locationArrangements.length === 0" class="empty-state">
+      No layouts at this location
     </div>
 
-    <!-- Modal window for viewing layouts -->
-    <div v-if="isViewLayoutModalOpen" class="modal-overlay" @click="closeViewLayoutModal">
-      <div class="modal" @click.stop>
-         <h4>{{ selectedLayout.name || 'Layout' }}</h4>
-          <div class="layouts-tree">
-            <LayoutNode
-              :key="selectedLayout.id"
-              :layoutId="selectedLayout.id"
-              :location-id="locationId"
-              :layout-types="layoutTypes"
-              :locationCache="locationCache"
-              @load-layouts="handleLoadLayouts"
-              @reload-layouts="handleReloadLayouts"
-              @delete-layouts="handleDeleteLayouts"
-              @reload-locations="handleReloadLocations"
-            />
-          </div>
-
-        <!-- Display layout details here, e.g., layout name, type, axes, etc. -->
-        <button class="btn btn-secondary" @click="closeViewLayoutModal">Close</button>
+    <div v-else class="layouts-list">
+      <div
+        v-for="layout in locationArrangements.filter(Boolean)"
+        :key="layout.id"
+        class="layout-item"
+        @click.prevent="openLayoutModal(layout)"
+      >
+        <span class="layout-name">{{ layout.name || `${layout.type?.name} ${layout.id}` }}</span>
+        <span class="layout-subject">{{ layout.type?.name }}</span>
       </div>
     </div>
 
-    <!-- Add Layout Modal -->
-    <div v-if="isAddLayoutModalOpen" class="modal-overlay" @click="closeAddLayoutModal">
+    <!-- Create Layout Modal -->
+    <div v-if="isCreateLayoutModalOpen" class="modal-overlay" @click="closeAddLayoutModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h4>Add layout</h4>
-          <button @click="closeAddLayoutModal" class="modal-close" :disabled="createLoading">&times;</button>
+          <button @click="closeAddLayoutModal" class="modal-close" :disabled="createLayoutLoading">&times;</button>
         </div>
 
         <FormKit
-          v-model="addLayoutFormData"
+          v-model="createFormData"
           type="form"
           @submit="submitAddLayout"
           :actions="false"
@@ -99,14 +80,14 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="createLoading">
-              {{ createLoading ? 'Adding...' : 'Add Layout' }}
+            <button type="submit" class="btn btn-primary" :disabled="createLayoutLoading">
+              {{ createLayoutLoading ? 'Adding...' : 'Add Layout' }}
             </button>
             <button
               type="button"
               @click="closeAddLayoutModal"
               class="btn btn-secondary"
-              :disabled="createLoading"
+              :disabled="createLayoutLoading"
             >
               Cancel
             </button>
@@ -114,137 +95,143 @@
         </FormKit>
       </div>
     </div>
+
+    <!-- Layout details modal -->
+    <div v-if="selectedLayout" class="modal-overlay" @click="closeLayoutModal">
+      <div class="modal modal-large" @click.stop>
+        <div class="modal-header">
+         <h4>{{ selectedLayout.name || `${selectedLayout.type.name} ${selectedLayout.id}` }}</h4>
+         <button @click="closeLayoutModal" class="modal-close">&times;</button>
+        </div>
+
+        <div class="layout-details">
+          <LayoutNode
+            :key="selectedLayout.id"
+            :layoutId="selectedLayout.id"
+            :locationId="locationId"
+            :layoutTypes="layoutTypes"
+            @load-layouts="handleLoadLayouts"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import {ref, computed, watch, toRefs} from 'vue'
+import {ref, computed, watch, inject } from 'vue'
 import { FormKit } from '@formkit/vue'
-import { useMutation, useQuery, useLazyQuery } from '@vue/apollo-composable'
 
 import LayoutNode from './LayoutNode.vue'
-import LAYOUTS_QUERY from '@/graphql/arrangements/layouts.graphql'
-import CREATE_LAYOUT_MUTATION from '@/graphql/arrangements/createLayout.graphql'
-import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
+import {useQueryLayouts} from "@/composables/arrangementManagement/layoutBoxQueries";
+import {useMutateLayouts} from "@/composables/arrangementManagement/mutateLayouts";
 
+const layoutCache = inject('layoutCache')
+const queryLayouts = useQueryLayouts(layoutCache)
+const mutateLayouts = useMutateLayouts(layoutCache, queryLayouts)
+
+const {
+  getLocationArrangements
+} = layoutCache
+
+const {
+  loadLocationArrangements,
+  reloadLocationArrangements,
+  loadLayouts
+} = queryLayouts
+
+const {
+  createLayout,
+  createLayoutLoading
+} = mutateLayouts
 
 const props = defineProps({
   locationId: {
     type: Number,
     required: true
   },
-  loading: {
+  arrangementsLoading: {
     type: Boolean,
     default: false
   },
-  locationCache: {
-    type: Object,
+  layoutTypes: {
+    type: Array,
     required: true
-  },
-})
-
-const {locationId, loading, locationCache} = toRefs(props)
-
-const $emit = defineEmits(['reload-arrangements', 'reload-locations'])
-
-const selectedLayoutId = ref(null)
-
-const selectedLayout = computed( () => {
-  if (!selectedLayoutId.value) {
-    return null
   }
-  return getLayout(selectedLayoutId.value)
 })
 
-const isViewLayoutModalOpen = ref(false)
-
-// Use the passed cache instance
-const {
-  getArrangementIds,
-  addLayout,
-  getLayout,
-  getLayouts,
-  removeLayout
-} = locationCache.value
-
-const arrangements = computed( () => {
-  const arrangementIds = getArrangementIds(locationId.value)
-  return getLayouts(arrangementIds)
-})
-
-const openViewLayoutModal = (layout) => {
-  console.log('view layout:', layout)
-  selectedLayoutId.value = layout.id
-  isViewLayoutModalOpen.value = true
-}
-
-const closeViewLayoutModal = (layout) => {
-  console.log('close layout:', layout)
-  selectedLayoutId.value = null
-  isViewLayoutModalOpen.value = false
-}
-
-// Fetch layout types from ontology
-const { result: layoutTypesResult } = useQuery(
-  ONTOLOGY_ENTRIES_QUERY,
-  () => ({
-    labels: ['LAYOUT_TYPE']
-  })
-)
-
-const layoutTypes = computed(() => {
-  if (!layoutTypesResult.value?.ontologyEntries?.result) {
-    return []
+watch(() => props.locationId, (newLocationId) => {
+  if (newLocationId) {
+    loadLocationArrangements(newLocationId)
   }
-  return layoutTypesResult.value.ontologyEntries.result
+}, { immediate: true })
+
+// get Arrangements for the selected location
+const locationArrangements = computed( () => {
+  return getLocationArrangements(props.locationId).value
 })
+
+// Handle loading of locations for children on toggle expanded
+
+const handleLoadLayouts = (layoutIds) => {
+  console.log('load layouts:', layoutIds)
+  loadLayouts(layoutIds)
+}
 
 // Add Layout Modal state
-const isAddLayoutModalOpen = ref(false)
-const addLayoutFormData = ref({
+const isCreateLayoutModalOpen = ref(false)
+const createFormData = ref({
   name: '',
   typeId: null
 })
 const addLayoutError = ref('')
 
+// Layout details modal
+const selectedLayout = ref(null)
+
+const openLayoutModal = (layout) => {
+  selectedLayout.value = layout
+}
+
+const closeLayoutModal = () => {
+  selectedLayout.value = null
+}
+
 // Get the selected layout type
 const selectedLayoutType = computed(() => {
-  if (!addLayoutFormData.value.typeId) {
+  if (!createFormData.value.typeId) {
     return null
   }
-  return layoutTypes.value.find(type => type.id === addLayoutFormData.value.typeId)
+  return props.layoutTypes.find(type => type.id === createFormData.value.typeId)
 })
 
 // Watch for layout type changes and reset axis fields
-watch(() => addLayoutFormData.value.typeId, (newTypeId, oldTypeId) => {
+watch(() => createFormData.value.typeId, (newTypeId, oldTypeId) => {
   if (newTypeId !== oldTypeId) {
     // Clear axis fields when layout type changes
-    const currentFormData = { ...addLayoutFormData.value }
+    const currentFormData = { ...createFormData.value }
     Object.keys(currentFormData).forEach(key => {
       if (key.startsWith('axis_')) {
         delete currentFormData[key]
       }
     })
-    addLayoutFormData.value = currentFormData
+    createFormData.value = currentFormData
   }
 })
 
-// Mutations
-const { mutate: createLayoutMutation, loading: createLoading } = useMutation(CREATE_LAYOUT_MUTATION)
-
 // Add Layout Modal functions
 const openAddLayoutModal = () => {
-  addLayoutFormData.value = {
+  createFormData.value = {
     name: '',
     typeId: null
   }
   addLayoutError.value = ''
-  isAddLayoutModalOpen.value = true
+  isCreateLayoutModalOpen.value = true
 }
 
 const closeAddLayoutModal = () => {
-  isAddLayoutModalOpen.value = false
-  addLayoutFormData.value = {
+  isCreateLayoutModalOpen.value = false
+  createFormData.value = {
     name: '',
     typeId: null
   }
@@ -259,92 +246,39 @@ const submitAddLayout = async () => {
     const axes = []
     if (selectedLayoutType.value?.axes) {
       for (let i = 0; i < selectedLayoutType.value.axes.length; i++) {
-        const axisName = addLayoutFormData.value[`axis_${i}`]
+        const axisName = createFormData.value[`axis_${i}`]
         if (axisName) {
           axes.push(axisName)
         }
       }
     }
 
-    const response = await createLayoutMutation({
+    const layoutData = {
       layout: {
-        locationId: locationId.value,
-        name: addLayoutFormData.value.name,
-        typeId: addLayoutFormData.value.typeId,
+        locationId: props.locationId,
+        name: createFormData.value.name,
+        typeId: createFormData.value.typeId,
         axes: axes.length > 0 ? axes : undefined,
       }
-    })
+    }
 
-    if (response?.data?.arrangementsCreateLayout) {
-      const result = response.data.arrangementsCreateLayout
-      if (result.status === 'SUCCESS') {
-        $emit('reload-arrangements', [locationId.value])
-        closeAddLayoutModal()
+    const { status, errors } = await createLayout(layoutData)
 
+    if (status === 'SUCCESS') {
+      closeAddLayoutModal()
+      await reloadLocationArrangements(props.locationId)
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        addLayoutError.value = errors.map(err => err.message).join(', ')
       } else {
-        const errors = result.errors
-        if (errors && errors.length > 0) {
-          addLayoutError.value = errors.map(err => err.message).join(', ')
-        } else {
-          addLayoutError.value = 'Failed to add layout. Please try again.'
-        }
+        addLayoutError.value = 'Failed to add layout. Please try again.'
       }
     }
   } catch (error) {
     console.error('Error adding layout:', error)
-    addLayoutError.value = error.message || 'An unexpected error occurred while adding the layout.'
+    addLayoutError.value = error.message || 'An unexpected error occurred.'
   }
-}
-
-// Store variables for lazy query
-const layoutQueryVariables = ref({
-  layoutIds: []
-})
-
-
-// Fetch layouts
-const { load: loadLayoutsByIds, onResult: onLayoutsResult, refetch: refetchLayoutsByIds } = useLazyQuery(
-  LAYOUTS_QUERY,
-  () => layoutQueryVariables.value
-)
-
-onLayoutsResult((result) => {
-  if (result?.data?.arrangementsLayouts?.result) {
-    console.log('new layout data fetched:', result.data.arrangementsLayouts.result)
-    const newLayouts = result.data.arrangementsLayouts.result
-    newLayouts.forEach((item) => {
-      addLayout(item, locationId.value)
-    })
-  }
-})
-
-// Handle the load-layouts events triggerred by child components
-const handleLoadLayouts = (layoutIds) => {
-  layoutQueryVariables.value = {layoutIds: layoutIds.filter(Boolean)}
-  loadLayoutsByIds()
-}
-
-// Handle the load-layouts events triggerred by child components
-const handleReloadLayouts = (layoutIds) => {
-  console.log('reload layouts:', layoutIds)
-  layoutQueryVariables.value = {layoutIds: layoutIds.filter(Boolean)}
-  refetchLayoutsByIds()
-}
-
-const handleDeleteLayouts = (layoutIds) => {
-  console.log('Remove layouts from cache')
-  layoutIds.forEach(layoutId => {
-    removeLayout(layoutId, locationId.value)
-    if (selectedLayoutId.value === layoutId) {
-      closeViewLayoutModal()
-    }
-  })
-
-  $emit('reload-arrangements', [locationId.value])
-}
-
-const handleReloadLocations = (locationIds) => {
-  $emit('reload-locations', locationIds)
 }
 
 </script>
@@ -372,6 +306,21 @@ const handleReloadLocations = (locationIds) => {
   color: #333;
 }
 
+
+.layout-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 13px;
+}
+
+.layout-subject {
+  font-size: 11px;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
 .btn-add-layout {
   background-color: #28a745;
   color: white;
@@ -390,11 +339,34 @@ const handleReloadLocations = (locationIds) => {
   font-size: 13px;
 }
 
-.layouts-tree {
+.layouts-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
+.layout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.layout-item:hover {
+  background-color: #e3f2fd;
+}
+
+.layout-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 
 /* Axes section styling */
 .axes-section {

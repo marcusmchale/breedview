@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { checkAuthentication } from './useAuthentication'
 
+
 // Global reactive state - only public data
 const user = ref(null)
 const isAuthenticated = ref(false)
@@ -61,8 +62,8 @@ export function useAuthStore() {
   
   const logout = () => {
     clearAuthState()
-    // The actual logout should still be handled by your logout mutation
-    // which will clear the httpOnly cookie server-side
+
+    // The logout mutation causes the back end (breedgraph) to set the httponly cookie to expire immediately
   }
   
   // Periodic auth check to detect session expiry

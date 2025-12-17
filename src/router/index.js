@@ -12,7 +12,10 @@ import OntologyManagementPage from '../components/OntologyManagementPage.vue'
 import CommitHistoryPage from '@/components/CommitHistoryPage.vue'
 import OntologyRolePage from '@/components/OntologyRolePage.vue'
 import GermplasmManagement from '@/components/GermplasmManagement.vue'
-import RegionManagement from '@/components/RegionsManagement.vue'
+import RegionManagement from '@/components/regionManagement/RegionsManagement.vue'
+import ArrangementManagement from "@/components/arrangementManagement/ArrangementManagement.vue";
+import BlockManagement from '@/components/BlockManagement.vue'
+import DatasetManagement from '@/components/DatasetManagement.vue'
 
 
 const routes = [
@@ -49,7 +52,7 @@ const routes = [
     }
   },
   {
-    path: '/edit-profile',
+    path: '/profile',
     name: 'EditProfile',
     component: EditProfilePage,
     meta: {
@@ -58,7 +61,7 @@ const routes = [
     }
   },
   {
-    path: '/edit-affiliations',
+    path: '/affiliations',
     name: 'EditAffiliations',
     component: AffiliationsPage,
     meta: {
@@ -109,6 +112,33 @@ const routes = [
     meta: {
       requiresAuth: true,
       title: 'Regions'
+    }
+  },
+  {
+    path: '/arrangements',
+    name: 'Arrangements',
+    component: ArrangementManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Arrangements'
+    }
+  },
+  {
+    path: '/blocks',
+    name: 'Blocks',
+    component: BlockManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Blocks'
+    }
+  },
+  {
+    path: '/datasets',
+    name: 'Datasets',
+    component: DatasetManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Datasets'
     }
   },
   {

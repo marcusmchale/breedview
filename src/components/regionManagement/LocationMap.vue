@@ -12,6 +12,8 @@
     </div>
 
     <div class="drawing-controls">
+      <span v-if="updateCoordinatesError" class="error-message">{{ updateCoordinatesError }}</span>
+      <span v-if="updateCoordinatesLoading" class="loading-state">Saving coordinates...</span>
       <button
         @click="submitCoordinates"
         class="draw-btn submit-btn"
@@ -42,10 +44,10 @@
     </div>
 
     <div class="map-info">
-      <p v-if="!selectedLocation" class="help-text">
+      <p v-if="!selectedLocationId" class="help-text">
         Select a location from the tree to view it on the map
       </p>
-      <p v-else-if="childLocations.length === 0" class="help-text">
+      <p v-else-if="!childLocations || childLocations.length === 0" class="help-text">
         No child locations with coordinates to display
       </p>
       <p v-else class="help-text">
@@ -56,19 +58,47 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, computed, toRaw } from 'vue'
+import {
+  ref,
+  watch,
+  toRaw
+} from 'vue'
 import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import L from 'leaflet'
 import 'leaflet-draw'
-import { useLocationGeocoding } from '../composables/useLocationGeocoding'
-import { useMutation } from '@vue/apollo-composable'
-import UPDATE_LOCATION_MUTATION from '../graphql/regions/updateLocation.graphql'
+import { useLocationGeocoding } from '@/composables/useLocationGeocoding'
+import { useLocationMapQueries } from "@/composables/regionManagement/locationMapQueries";
+
+const { locationId, selectedLocation, childLocations } = useLocationMapQueries()
 
 // Add Mapbox token (get from environment variable)
 const mapboxToken = `${process.env.VUE_APP_MAPBOX_TOKEN}`
 
+const props = defineProps({
+  selectedLocationId: {
+    type: Number,
+    default: null
+  },
+  updateCoordinatesLoading: {
+    type: Boolean,
+    default: false
+  },
+  updateCoordinatesError: {
+    type: String,
+    default: null
+  }
+})
+
+// Watch for selected location changes
+watch(() => props.selectedLocationId, (newSelectedLocationId) => {
+  locationId.value = newSelectedLocationId
+})
+
+const emit = defineEmits(['update-coordinates'])
+
+// Map state
 // Create a custom emoji icon for markers
 const createEmojiIcon = (emoji, size = 40, color = null) => {
   let html = `<div style="font-size: ${size}px; line-height: 1; text-align: center;`
@@ -89,21 +119,6 @@ const selectedLocationIcon = createEmojiIcon('🟢', 40) // Green circle for sel
 const childLocationIcon = createEmojiIcon('🔵', 40) // Blue circle for child locations
 
 
-const props = defineProps({
-  selectedLocation: {
-    type: Object,
-    default: null
-  },
-  childLocations: {
-    type: Array,
-    default: () => []
-  }
-})
-
-const emit = defineEmits(['update-coordinates'])
-
-
-// Map state
 const mapRef = ref(null)
 const zoom = ref(3)
 const center = ref([10.2, 38.6])
@@ -115,14 +130,6 @@ const displayedItems = new L.FeatureGroup()
 
 // Composables
 const { geocodeCountry } = useLocationGeocoding()
-const { mutate: updateLocation } = useMutation(UPDATE_LOCATION_MUTATION)
-
-// Filter child locations to only those with valid coordinates
-const validChildLocations = computed(() => {
-  return props.childLocations.filter(
-    child => child?.coordinates && hasValidCoordinates(child.coordinates)
-  )
-})
 
 // Initialize map
 const onMapReady = () => {
@@ -136,7 +143,7 @@ const onMapReady = () => {
       map.addLayer(drawnItems)
     }
 
-    map.setView(center.value, zoom.value)
+    map.setView(center.value, zoom.value, { animate: false })
 
     // Initialize draw control with emoji marker icon
     const drawControl = new L.Control.Draw({
@@ -184,29 +191,26 @@ const onMapReady = () => {
       const layer = e.layer
       drawnItems.addLayer(layer)
       updateHasLayer()
-      console.log('Shape drawn:', layer)
     })
 
-    map.on('draw:edited', (e) => {
-      console.log('Shape edited:', e)
-    })
+    //map.on('draw:edited', (e) => {
+    //  console.log('Shape edited:', e)
+    //})
 
-    map.on('draw:deleted', (e) => {
+    map.on('draw:deleted', () => {
       updateHasLayer()
-      console.log('Shape deleted:', e)
     })
 
     // Handle draw:drawstart to track when drawing begins
-    map.on('draw:drawstart', (e) => {
-      console.log('Drawing started:', e)
+    map.on('draw:drawstart', () => {
       // Clear existing drawings
       drawnItems.clearLayers()
     })
 
     // Handle draw:drawstop to clear drawing mode
-    map.on('draw:drawstop', (e) => {
-      console.log('Drawing stopped:', e)
-    })
+    //map.on('draw:drawstop', (e) => {
+    //  console.log('Drawing stopped:', e)
+    //})
   }
 }
 
@@ -243,11 +247,8 @@ const hasValidCoordinates = (coords) => {
 
   // Single object format: { latitude, longitude }
   if (typeof coords === 'object') {
-    console.log('Single GeoCoordinate object:', coords)
     const lat = Number(coords.latitude ?? coords.lat)
     const lng = Number(coords.longitude ?? coords.lng)
-    console.log('lat, lng:', lat, lng)
-    console.log(Number.isFinite(lat), Number.isFinite(lng), !Number.isNaN(lat), !Number.isNaN(lng))
     return Number.isFinite(lat) && Number.isFinite(lng) && !Number.isNaN(lat) && !Number.isNaN(lng)
   }
 
@@ -290,7 +291,7 @@ const submitCoordinates = () => {
 
   // Emit the update-coordinates event with the collected data
   emit('update-coordinates', {
-    locationId: props.selectedLocation?.id,
+    locationId: props.selectedLocationId,
     coordinates: coordinates
   })
 
@@ -301,7 +302,7 @@ const submitCoordinates = () => {
 
 // Helper function to display location coordinates on map
 const displayLocationCoordinates = (location) => {
-
+  if(!location.parent) return // don't display a pin for country level
   if (!location?.coordinates || !mapRef.value?.leafletObject) {
     return
   }
@@ -314,43 +315,48 @@ const displayLocationCoordinates = (location) => {
   }
 
   const coords = location.coordinates
+  if (coords.length === 0) return
 
-  // Check if it's a single point or polygon
-  if (Array.isArray(coords) && coords.length > 0) {
-    if (coords.length === 1) {
-      // Single point - draw a marker with green icon
-      const coord = coords[0]
-      const marker = L.marker([coord.latitude, coord.longitude], {
-        icon: selectedLocationIcon // Use green icon for selected location
-      })
-      displayedItems.addLayer(marker)
-      marker.bindPopup(`<strong>${location.name}</strong><br/>Coordinates: ${coord.latitude.toFixed(6)}, ${coord.longitude.toFixed(6)}`)
-    } else {
-      // Multiple points - draw a polygon
-      const latlngs = coords.map(coord => [coord.latitude, coord.longitude])
-      const polygon = L.polygon(latlngs, {
-        color: '#28a745',
-        weight: 2,
-        opacity: 0.7,
-        fillColor: '#28a745',
-        fillOpacity: 0.2
-      })
-      displayedItems.addLayer(polygon)
-      polygon.bindPopup(`<strong>${location.name}</strong><br/>Polygon with ${coords.length} points`)
-    }
+
+  if (coords.length === 1) {
+    // Single point - draw a marker with green icon
+    const coord = coords[0]
+    const marker = L.marker([coord.latitude, coord.longitude], {
+      icon: selectedLocationIcon // Use green icon for selected location
+    })
+    displayedItems.addLayer(marker)
+    marker.bindPopup(`<strong>${location.name}</strong><br/>Coordinates: ${coord.latitude.toFixed(6)}, ${coord.longitude.toFixed(6)}`)
+  } else {
+    // Multiple points - draw a polygon
+    const latlngs = coords.map(coord => [coord.latitude, coord.longitude])
+    const polygon = L.polygon(latlngs, {
+      color: '#28a745',
+      weight: 2,
+      opacity: 0.7,
+      fillColor: '#28a745',
+      fillOpacity: 0.2
+    })
+    displayedItems.addLayer(polygon)
+    polygon.bindPopup(`<strong>${location.name}</strong><br/>Polygon with ${coords.length} points`)
   }
 
   // Force map to show the displayed items
   const bounds = displayedItems.getBounds()
   if (bounds.isValid()) {
-    map.fitBounds(bounds, { padding: [50, 50] })
-  } else {
-    console.log('DisplayedItems bounds are not valid')
+    map.fitBounds(bounds, {
+      //padding: [50, 50],
+      maxZoom: zoom.value
+    })
   }
 }
 
 // Helper function to display child locations on map
 const displayChildLocations = () => {
+  if (!childLocations.value) {
+    console.log('no children to display')
+    return
+  }
+
 
   if (!mapRef.value?.leafletObject) {
     console.log('Map not ready')
@@ -364,8 +370,15 @@ const displayChildLocations = () => {
     map.addLayer(displayedItems)
   }
 
-  validChildLocations.value.forEach(child => {
-    const coords = child.coordinates
+  childLocations.value.forEach(child => {
+    if (!child?.coordinates) {
+      return
+    }
+    if (!hasValidCoordinates(child?.coordinates)) {
+      return
+    }
+
+    const coords = child?.coordinates
 
     if (Array.isArray(coords) && coords.length > 0) {
       if (coords.length === 1) {
@@ -411,15 +424,16 @@ const displayChildLocations = () => {
 
 
 /**
- * Check if location has coordinates in cache and update if missing
+ * Check if location has coordinates and update if missing
  */
 const updateCoordinatesIfNeeded = async (location, geocodedCoords) => {
-  if (!geocodedCoords || !location?.id) return false
+  if (!geocodedCoords || !location?.id) {
+    return false
+  }
 
   try {
     // Check if location already has coordinates
     if (location.coordinates?.latitude && location.coordinates?.longitude) {
-      console.log(`Location "${location.name}" already has stored coordinates`)
       return false
     }
 
@@ -429,131 +443,27 @@ const updateCoordinatesIfNeeded = async (location, geocodedCoords) => {
       longitude: geocodedCoords.longitude
     }]
 
-    // Submit update with coordinates
-    const result = await updateLocation({
-      location: {
-        locationId: location.id,
-        coordinates: coordinatesInput
-      }
+  // Emit the update-coordinates event with the collected data
+    emit('update-coordinates', {
+      locationId: props.selectedLocationId,
+      coordinates: coordinatesInput
     })
-
-    if (result?.data?.regionsUpdateLocation?.status === 'SUCCESS') {
-      console.log(`Successfully updated coordinates for "${location.name}"`)
-      // Update the location object in place to maintain cache reactivity
-      location.coordinates = [{
-        latitude: geocodedCoords.latitude,
-        longitude: geocodedCoords.longitude
-      }]
-      return true
-    } else {
-      const errorMsg = result?.data?.regionsUpdateLocation?.errors?.[0]?.message
-      console.warn('Update failed:', errorMsg || 'Failed to update coordinates')
-      return false
-    }
   } catch (err) {
     console.error('Error updating coordinates:', err)
     return false
   }
 }
 
-// Watch for selected location changes
-watch(() => props.selectedLocation, async (newLocation) => {
-
-  if (!newLocation) return
-
-  // Clear all displayed items
-  displayedItems.clearLayers()
-
-  // Display the selected location's coordinates on the map
-  displayLocationCoordinates(newLocation)
-
-  // Display child locations
-  displayChildLocations()
-
-  // First, check if location has children with VALID coordinates
-  const hasValidChildren = validChildLocations.value.length > 0
-    // If location has children with coordinates, fit bounds to show all
-  if (hasValidChildren) {
-    await nextTick()
-    fitBoundsToChildren()
-    return
-  }
-
-  // Otherwise if the location has coordinates, zoom to them
-  if (newLocation.coordinates && hasValidCoordinates(newLocation.coordinates)) {
-    await nextTick()
-
-    if (!mapRef.value?.leafletObject) {
-      console.warn('Map not ready yet')
-      return
-    }
-
-    const map = toRaw(mapRef.value.leafletObject)
-    if (newLocation.coordinates.length > 1) {
-      const normalizedBounds = newLocation.coordinates.map(coord => [
-        coord.latitude,
-        coord.longitude
-      ])
-      map.fitBounds(normalizedBounds, {
-        padding: [50, 50],
-        maxZoom: 12
-      })
-    } else {
-      console.log('Zoom to single coordinate:', newLocation.name, newLocation.coordinates, newLocation.coordinates[0])
-      const targetLat = newLocation.coordinates[0].latitude
-      const targetLng = newLocation.coordinates[0].longitude
-      map.setView([targetLat, targetLng], 4)
-
-    }
-    return
-  }
-
-  // Finally, if we don't have coordinates try to geocode by name
-  // Only do this for countries as we don't want to give away private location information
-  if (!newLocation.parent) {
-    console.log('Geocoding location:', newLocation.name)
-    const coords = await geocodeCountry(newLocation.name)
-    if (coords && hasValidCoordinates(coords)) {
-      toRaw(mapRef.value.leafletObject).setView([coords.latitude, coords.longitude], 4)
-
-      // Check if location has coordinates in cache, update if needed
-      await updateCoordinatesIfNeeded(newLocation, coords)
-
-    } else {
-      // If geocoding failed, avoid setting center to undefined
-      console.warn('Geocode did not return valid coordinates for', newLocation.name, coords)
-    }
-  }
-}, { immediate: true, deep: true })
-
-// Watch for child locations changes
-watch(() => props.childLocations, async (newChildren) => {
-  if (newChildren.length > 0) {
-    await nextTick()
-    // Clear and redraw all displayed items when children change
-    displayedItems.clearLayers()
-
-    // Redisplay the selected location
-    if (props.selectedLocation) {
-      displayLocationCoordinates(props.selectedLocation)
-    }
-
-    // Display the new children
-    displayChildLocations()
-
-    // Fit bounds to show all children
-    fitBoundsToChildren()
-  }
-})
 
 // Fit map bounds to show all child locations
 const fitBoundsToChildren = () => {
-  if (!mapRef.value?.leafletObject || props.childLocations.length === 0) return
+
+  if (!mapRef.value?.leafletObject || childLocations.value?.length === 0) return
 
   // Collect all lat/lng pairs from all children's coordinate arrays
   const validPoints = []
 
-  props.childLocations.forEach(child => {
+  childLocations.value?.forEach(child => {
     if (child && child.coordinates && Array.isArray(child.coordinates)) {
       // Each child.coordinates is an array of Geocoordinate objects
       child.coordinates.forEach(coord => {
@@ -568,24 +478,99 @@ const fitBoundsToChildren = () => {
 
   // If there are no valid points, do not change the map
   if (validPoints.length === 0) {
-    console.warn('fitBoundsToChildren: no valid child coordinates, not changing map')
     return
   }
   const map = toRaw(mapRef.value.leafletObject)
   if (validPoints.length === 1) {
-    map.setView([validPoints[0].latitude, validPoints[0].longitude], 4)
+    map.setView([validPoints[0].latitude, validPoints[0].longitude], zoom.value, { animate: false })
     return
   }
   const normalizedBounds = validPoints.map(coord => [
     coord.latitude,
     coord.longitude
   ])
-
   map.fitBounds(normalizedBounds, {
     padding: [50, 50],
-    maxZoom: 12
+    maxZoom: 12,
+    duration: 0  // if we animate it looks strange with the other layers as they are rendered in place before the pan
   })
 }
+
+// Watch for selected location changes
+watch(selectedLocation, async (newLocation) => {
+  if (!newLocation) return
+
+  // Clear all displayed items
+  displayedItems.clearLayers()
+  // Display the selected location's coordinates on the map
+  displayLocationCoordinates(newLocation)
+
+  // Otherwise if the location has coordinates, zoom to them
+  if (newLocation.coordinates && hasValidCoordinates(newLocation.coordinates)) {
+
+    if (!mapRef.value?.leafletObject) {
+      console.warn('Map not ready yet')
+      return
+    }
+
+    const map = toRaw(mapRef.value.leafletObject)
+    if (newLocation.coordinates.length > 1) {
+      const normalizedBounds = newLocation.coordinates.map(coord => [
+        coord.latitude,
+        coord.longitude
+      ])
+      map.fitBounds(normalizedBounds, {
+        //padding: [50, 50],
+        maxZoom: zoom.value
+      })
+    } else {
+      const targetLat = newLocation.coordinates[0].latitude
+      const targetLng = newLocation.coordinates[0].longitude
+      center.value = [targetLat, targetLng]
+      map.setView([targetLat, targetLng], zoom.value,  { animate: false })
+    }
+    return
+  }
+
+  // If we don't have coordinates try to geocode by name
+  // Only automatically do this for countries as we don't want to give away private location information
+  // todo add option to geocode by name for other locations
+  if (!newLocation.parent) {
+    console.log('Geocoding location:', newLocation)
+    const coords = await geocodeCountry(newLocation.name)
+    if (coords && hasValidCoordinates(coords)) {
+      toRaw(mapRef.value.leafletObject).setView([coords.latitude, coords.longitude], zoom.value, { animate: false })
+
+      // Check if location has coordinates, update if needed
+      await updateCoordinatesIfNeeded(newLocation, coords)
+
+    } else {
+      // If geocoding failed, avoid setting center to undefined
+      console.warn('Geocode did not return valid coordinates for', newLocation.name, coords)
+    }
+  }
+}, { immediate: true, deep: true })
+
+// Watch for child locations changes
+watch(childLocations, async (newChildren) => {
+  if (!newChildren) return
+  if (newChildren.length > 0) {
+    //await nextTick()
+    // Clear and redraw all displayed items when children change
+    displayedItems.clearLayers()
+
+    // Redisplay the selected location
+    if (selectedLocation.value) {
+      displayLocationCoordinates(selectedLocation.value)
+    }
+
+    // Display the new children
+    displayChildLocations()
+
+    // Fit bounds to show all children
+    fitBoundsToChildren()
+  }
+}, { deep: true})
 
 </script>
 

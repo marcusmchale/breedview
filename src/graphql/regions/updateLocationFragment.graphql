@@ -1,0 +1,11 @@
+fragment LocationUpdate on Location {
+    id
+    name
+    code
+    type { id name }
+    description
+    address
+    coordinates { latitude longitude }
+    children { id }
+    parent { id }
+}

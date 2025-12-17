@@ -5,16 +5,14 @@ query blocks ($locationId: Int) {
             id
             subject {name, id}
             name
-            synonyms
             description
             positions {
                 location {name, id}
-                layout {id, name}
+                layout {id, name, type {id, name}}
                 coordinates
                 start
                 end
             }
-            parents {id}
             children {id}
         }
         errors {

@@ -1,14 +1,23 @@
 
 import { createApp } from 'vue'
-import { ApolloClients } from '@vue/apollo-composable'
+import { DefaultApolloClient } from '@vue/apollo-composable'
+
+
 import { plugin as formKitPlugin, defaultConfig } from '@formkit/vue'
 import '@formkit/themes/genesis'
+import { createPartialDatetimeRule } from "@/plugins/formkitRules";
+//import { hierarchicalSelectInput, hierarchicalSelectPlugin } from "@/plugins/formkitHierarchicalSelect";
+import { hierarchicalSelectPlugin } from '@/plugins/formkitHierarchicalSelect'
+
 import App from './App.vue'
 import router from './router'
 import apolloClient from './graphql/apollo'
+
+
 import './assets/styles/global.css'
 
 import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
+
 if (process.env.NODE_ENV === "development") {
   // Adds debugging messages only in a dev environment
   loadDevMessages();
@@ -17,15 +26,14 @@ if (process.env.NODE_ENV === "development") {
 
 const app = createApp(App)
 
-app.provide(ApolloClients, {
-  default: apolloClient,
-})
-
+app.provide(DefaultApolloClient, apolloClient)
 app.use(router)
 
-// Register FormKit WITHOUT custom inputs - we'll handle it differently
+
 app.use(formKitPlugin, defaultConfig({
-  theme: 'genesis'
+  theme: 'genesis',
+  rules: [createPartialDatetimeRule()],
+  plugins: [hierarchicalSelectPlugin]
 }))
 
 app.mount('#app')
