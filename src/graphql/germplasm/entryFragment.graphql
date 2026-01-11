@@ -1,0 +1,7 @@
+fragment GermplasmEntryFields on GermplasmEntry {
+    id
+    name
+    description
+    sources { sourceType, description, source { id, name } }
+    sinks { sourceType, description, sink { id, name } }
+}

@@ -1,0 +1,11 @@
+fragment LayoutFields on Layout {
+    id
+    name
+    axes
+    type { id, name }
+    location { id, name }
+    arrangement { id, name }
+    parent { id, name }
+    position  # within parent
+    children { id, name }
+}

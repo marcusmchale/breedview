@@ -1,0 +1,18 @@
+query DatasetSubmission($submissionId: String!) {
+  datasetsSubmission(submissionId: $submissionId) {
+    status
+    result {
+      datasetId
+      status
+      errors
+      itemErrors {
+        index
+        error
+      }
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

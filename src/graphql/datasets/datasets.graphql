@@ -1,0 +1,53 @@
+query Datasets($datasetId: Int, $conceptId: Int) {
+  datasets(datasetId: $datasetId, conceptId: $conceptId) {
+    status
+    result {
+      id
+      concept {
+        id
+        name
+        ... on Variable {
+          scale {
+            id
+            scaleType
+            categories {
+              id
+              name
+            }
+          }
+        }
+        ... on Factor {
+          scale {
+            id
+            scaleType
+            categories {
+              id
+              name
+            }
+          }
+        }
+      }
+      records {
+        id
+        unit {
+          id
+        }
+        value
+        start
+        end
+        referenceIds
+      }
+      contributors {
+        id
+        name
+      }
+      references {
+        id
+      }
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

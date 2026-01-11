@@ -1,3 +1,4 @@
+#import "./entryFragment.graphql"
 query germplasmEntries(
     $entryIds: [Int!]
     $names: [String!]
@@ -8,11 +9,7 @@ query germplasmEntries(
     ){
         status
         result {
-            id
-            name
-            description
-            sources { sourceType, description, source { id, name } }
-            sinks { sourceType, description, sink { id, name } }
+            ...GermplasmEntryFields
         }
         errors {
             message

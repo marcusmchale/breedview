@@ -6,8 +6,8 @@ import { DefaultApolloClient } from '@vue/apollo-composable'
 import { plugin as formKitPlugin, defaultConfig } from '@formkit/vue'
 import '@formkit/themes/genesis'
 import { createPartialDatetimeRule } from "@/plugins/formkitRules";
-//import { hierarchicalSelectInput, hierarchicalSelectPlugin } from "@/plugins/formkitHierarchicalSelect";
 import { hierarchicalSelectPlugin } from '@/plugins/formkitHierarchicalSelect'
+import { hierarchicalMultiSelectPlugin } from '@/plugins/formkitHierarchicalMultiSelect'
 
 import App from './App.vue'
 import router from './router'
@@ -33,7 +33,7 @@ app.use(router)
 app.use(formKitPlugin, defaultConfig({
   theme: 'genesis',
   rules: [createPartialDatetimeRule()],
-  plugins: [hierarchicalSelectPlugin]
+  plugins: [hierarchicalSelectPlugin, hierarchicalMultiSelectPlugin]
 }))
 
 app.mount('#app')

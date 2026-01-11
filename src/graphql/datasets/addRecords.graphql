@@ -1,0 +1,10 @@
+mutation AddRecords($datasetId: Int!, $records: [RecordInput]) {
+  datasetsAddRecords(datasetId: $datasetId, records: $records) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

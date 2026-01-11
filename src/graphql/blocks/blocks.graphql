@@ -1,19 +1,9 @@
-query blocks ($locationId: Int) {
-    blocks (locationId: $locationId) {
+#import "./unitFragment.graphql"
+query blocks ($locationIds: [Int!]!) {
+    blocks (locationIds: $locationIds) {
         status
         result {
-            id
-            subject {name, id}
-            name
-            description
-            positions {
-                location {name, id}
-                layout {id, name, type {id, name}}
-                coordinates
-                start
-                end
-            }
-            children {id}
+            ...UnitFields
         }
         errors {
             message

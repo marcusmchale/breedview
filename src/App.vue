@@ -60,8 +60,8 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMutation, useApolloClient } from '@vue/apollo-composable'
-import { useCsrf } from './composables/useCsrf'
-import { useAuthStore } from './composables/useAuthStore'
+import { useCsrf } from './composables/system/useCsrf'
+import { useAuthStore } from './composables/user/useAuthStore'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
 const router = useRouter()

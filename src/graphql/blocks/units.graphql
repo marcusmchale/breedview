@@ -1,3 +1,4 @@
+#import "./unitFragment.graphql"
 query units (
     $unitIds: [Int!]
 ){
@@ -6,19 +7,7 @@ query units (
     ){
         status
         result {
-            id
-            subject {name, id}
-            name
-            description
-            positions {
-                location {name, id}
-                layout {id, name, type {id, name}}
-                coordinates
-                start
-                end
-            }
-            parents {id}
-            children {id}
+            ...UnitFields
         }
         errors {
             message

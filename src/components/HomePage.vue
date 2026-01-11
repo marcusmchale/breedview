@@ -52,9 +52,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../composables/useAuthStore'
-import InviteUserModal from './InviteUserModal.vue'
-import RequestOntologyRoleModal from "@/components/RequestOntologyRoleModal.vue";
+import { useAuthStore } from '../composables/user/useAuthStore'
+import InviteUserModal from './user/InviteUserModal.vue'
+import RequestOntologyRoleModal from "@/components/user/RequestOntologyRoleModal.vue";
 
 const router = useRouter()
 

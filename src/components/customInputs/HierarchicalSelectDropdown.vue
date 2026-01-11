@@ -1,17 +1,13 @@
 <template>
   <div class="hierarchical-select" ref="dropdownRef">
-    <!-- Selected value display / trigger -->
     <div
       class="select-trigger"
       :class="{ open: isOpen, disabled: disabled }"
       @click.stop="toggleDropdown"
       tabindex="0"
-      @keydown.enter.prevent="toggleDropdown"
-      @keydown.space.prevent="toggleDropdown"
-      @keydown.escape="closeDropdown"
     >
-      <span v-if="selectedNode" class="selected-value">
-        {{ getNodeLabel(selectedNode) }}
+      <span v-if="selected" class="selected-value">
+        {{ getNodeLabel(selected) }}
       </span>
       <span v-else class="placeholder">
         {{ placeholder }}
@@ -32,7 +28,7 @@
           <div v-if="navigationPath.length > 0" class="breadcrumb">
             <button
               v-for="(pathNode, index) in navigationPath"
-              :key="`breadcrumb-${getNodeId(pathNode)}`"
+              :key="`breadcrumb-${pathNode.id}`"
               @click.stop="navigateToLevel(index)"
               class="breadcrumb-item"
               type="button"
@@ -44,48 +40,42 @@
             </span>
           </div>
 
-          <!-- Back button -->
-          <button
-            v-if="navigationPath.length > 0"
-            @click.stop="navigateBack"
-            class="back-button"
-            type="button"
-          >
-            ← Back to {{ getNodeLabel(navigationPath[navigationPath.length - 1]) }}
-          </button>
-
           <!-- Options list -->
           <div class="options-list">
-            <div
-              v-for="node in currentOptions"
-              :key="`option-${getNodeId(node)}`"
-              :class="{
-                'option-item': true,
-                'selected': isNodeSelected(node),
-                'disabled': isNodeDisabled(node),
-                'has-children': hasChildren(node)
-              }"
-            >
-              <button
-                @click.stop="selectNode(node)"
-                :disabled="isNodeDisabled(node)"
-                class="option-label-button"
-                type="button"
-              >
-                <span class="option-label">{{ getNodeLabel(node) }}</span>
-              </button>
-              <button
-                v-if="hasChildren(node)"
-                @click.stop="navigateInto(node)"
-                :disabled="isNodeDisabled(node)"
-                class="expand-button"
-                type="button"
-                title="Show children"
-              >
-                <span class="has-children-indicator">→</span>
-              </button>
+            <div v-if="isLoading" class="loading-state">
+              <span class="spinner"></span> Loading...
             </div>
-
+            <template v-else>
+              <div
+                  v-for="node in currentOptions"
+                  :key="`option-${node.id}`"
+                  :class="{
+                    'option-item': true,
+                    'selected': isNodeSelected(node),
+                    'disabled': isNodeDisabled(node),
+                    'has-children': hasChildren(node)
+                  }"
+              >
+                <button
+                  @click.stop="selectNode(node)"
+                  :disabled="isNodeDisabled(node)"
+                  class="option-label-button"
+                  type="button"
+                >
+                  <span class="option-label">{{ getNodeLabel(node) }}</span>
+                </button>
+                <button
+                  v-if="hasChildren(node)"
+                  @click.stop="navigateInto(node)"
+                  :disabled="isNodeDisabled(node)"
+                  class="expand-button"
+                  type="button"
+                  title="Show children"
+                >
+                  <span class="has-children-indicator">→</span>
+                </button>
+              </div>
+            </template>
             <div v-if="currentOptions.length === 0" class="empty-state">
               No options available
             </div>
@@ -105,26 +95,35 @@ const props = defineProps({
     type: [Number, String, null],
     default: null
   },
-
+  selected: {
+    type: Object,
+    required: false,
+    default: null
+  },
   // Array of root nodes to display initially
   rootNodes: {
     type: Array,
-    required: true,
-    default: () => []
-  },
-
-  // Function to get children for a node (synchronous)
-  // Signature: (nodeId) => Array<Node>
-  getChildrenFn: {
-    type: Function,
     required: true
   },
-
-  // Function to get node ID
-  // Signature: (node) => number|string
-  getNodeIdFn: {
+  hasChildrenFn: {
     type: Function,
-    default: (node) => node.id
+    required: false
+  },
+  loadChildrenFn: {
+    type: Function,
+    required: true,
+    default: () => () => []
+  },
+  childrenLoading: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
+  // Array of child nodes to display, based on selected parent
+  currentChildren: {
+    type: Array,
+    required: true,
+    default: () => []
   },
 
   // Function to get node label/name
@@ -132,13 +131,6 @@ const props = defineProps({
   getNodeLabelFn: {
     type: Function,
     default: (node) => node.name
-  },
-
-  // Function to check if node has children (optional, will use getChildrenFn if not provided)
-  // Signature: (node) => boolean
-  hasChildrenFn: {
-    type: Function,
-    default: null
   },
 
   // Optional function to determine if a node should be disabled
@@ -178,12 +170,48 @@ const emit = defineEmits(['update:modelValue', 'change'])
 // Dropdown state
 const isOpen = ref(false)
 const dropdownRef = ref(null)
+const isLoading = ref(false)
 
 // Navigation state
 const navigationPath = ref([]) // Array of parent nodes leading to current level
 const currentParentNode = ref(null) // The node whose children we're currently viewing
 const dropdownPanelRef = ref(null)
 const dropdownStyle = ref({})
+
+
+const getNodeLabel = (node) => {
+  if(!node) return ''
+  return props.getNodeLabelFn(node)
+}
+
+const hasChildren = (node) => {
+  if (props.hasChildrenFn) {
+    return props.hasChildrenFn(node)
+  } else {
+    return node.children && node.children.length > 0
+  }
+}
+
+const currentOptions = computed( () => {
+  if (!currentParentNode.value) {
+    return props.rootNodes
+  } else {
+    return props.currentChildren
+  }
+})
+
+// Update options whenever navigation changes
+const updateCurrentOptions = async () => {
+  if (!currentParentNode.value) return
+  const nodeId = currentParentNode.value.id
+  props.loadChildrenFn(nodeId)
+}
+
+watch(
+    [() => props.rootNodes, currentParentNode],
+    updateCurrentOptions, { immediate: true }
+)
+
 
 // Position the dropdown panel
 const updateDropdownPosition = () => {
@@ -195,24 +223,31 @@ const updateDropdownPosition = () => {
     const spaceBelow = viewportHeight - triggerRect.bottom
     const spaceAbove = triggerRect.top
 
-    // Decide whether to show dropdown below or above
-    const showBelow = spaceBelow >= 320 || spaceBelow > spaceAbove
+    // Prefer showing below if there is at least 200px (standard dropdown height)
+    // or if there is simply more space below than above.
+    const showBelow = spaceBelow >= 200 || spaceBelow >= spaceAbove
+
+    const commonStyle = {
+      position: 'fixed',
+      left: `${triggerRect.left}px`,
+      width: `${triggerRect.width}px`,
+      zIndex: '99999'
+    }
 
     if (showBelow) {
       dropdownStyle.value = {
-        position: 'fixed',
+        ...commonStyle,
         top: `${triggerRect.bottom + 4}px`,
-        left: `${triggerRect.left}px`,
-        width: `${triggerRect.width}px`,
-        maxHeight: `${Math.min(320, spaceBelow - 8)}px`
+        bottom: 'auto',
+        // Allow it to grow up to 400px, but never more than available space
+        maxHeight: `${Math.min(400, spaceBelow - 12)}px`
       }
     } else {
       dropdownStyle.value = {
-        position: 'fixed',
+        ...commonStyle,
         bottom: `${viewportHeight - triggerRect.top + 4}px`,
-        left: `${triggerRect.left}px`,
-        width: `${triggerRect.width}px`,
-        maxHeight: `${Math.min(320, spaceAbove - 8)}px`
+        top: 'auto',
+        maxHeight: `${Math.min(400, spaceAbove - 12)}px`
       }
     }
   })
@@ -236,8 +271,11 @@ const excludedNodeIds = computed(() => {
   return excluded
 })
 
+
+
+
 // Update position when dropdown opens or window resizes
-watch(isOpen, (newValue) => {
+watch(isOpen, async(newValue) => {
   if (newValue) {
     updateDropdownPosition()
   }
@@ -265,74 +303,20 @@ const handleClickOutside = (event) => {
   }
 }
 
-// Helper functions
-const getNodeId = (node) => {
-  return props.getNodeIdFn(node)
-}
 
-
-// Current options to display
-const currentOptions = computed(() => {
-  if (currentParentNode.value === null) {
-    // Show root nodes
-    return props.rootNodes
-  } else {
-    // Show children of current parent
-    const nodeId = getNodeId(currentParentNode.value)
-    return props.getChildrenFn(nodeId) || []
-  }
-})
 
 // Label for current level
 const currentLevelLabel = computed(() => {
   if (currentParentNode.value === null) {
     return 'Root'
   }
-  return 'Children'
+  return getNodeLabel(currentParentNode.value)
 })
 
-// Find selected node
-const selectedNode = computed(() => {
-  if (!props.modelValue) return null
-
-  // Search through available nodes to find the selected one
-  const findNode = (nodes) => {
-    for (const node of nodes) {
-      if (getNodeId(node) === props.modelValue) {
-        return node
-      }
-      if (hasChildren(node)) {
-        const nodeId = getNodeId(node)
-        const children = props.getChildrenFn(nodeId)
-        const found = findNode(children)
-        if (found) return found
-      }
-    }
-    return null
-  }
-
-  return findNode(props.rootNodes)
-})
-
-
-const getNodeLabel = (node) => {
-  return props.getNodeLabelFn(node)
-}
-
-const hasChildren = (node) => {
-  if (props.hasChildrenFn) {
-    return props.hasChildrenFn(node)
-  }
-  const nodeId = getNodeId(node)
-  const children = props.getChildrenFn(nodeId)
-  return children && children.length > 0
-}
 
 const isNodeDisabled = (node) => {
-  const nodeId = getNodeId(node)
-
   // Check if excluded
-  if (excludedNodeIds.value.has(nodeId)) {
+  if (excludedNodeIds.value.has(node.id)) {
     return true
   }
 
@@ -341,7 +325,7 @@ const isNodeDisabled = (node) => {
 }
 
 const isNodeSelected = (node) => {
-  return getNodeId(node) === props.modelValue
+  return node.id === props.modelValue
 }
 
 // Navigation functions
@@ -351,16 +335,6 @@ const navigateInto = (node) => {
   currentParentNode.value = node
 }
 
-const navigateBack = () => {
-  if (navigationPath.value.length === 0) return
-
-  const previousParent = navigationPath.value.pop()
-  if (previousParent.id === 'root') {
-    currentParentNode.value = null
-  } else {
-    currentParentNode.value = previousParent
-  }
-}
 
 const navigateToLevel = (index) => {
   // Navigate to a specific breadcrumb level
@@ -376,8 +350,7 @@ const navigateToLevel = (index) => {
 }
 
 const selectNode = (node) => {
-  const nodeId = getNodeId(node)
-  emit('update:modelValue', nodeId)
+  emit('update:modelValue', node.id)
   emit('change', node)
   closeDropdown()
 }
@@ -477,16 +450,10 @@ onBeforeUnmount(() => {
 }
 
 .dropdown-panel {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
   background: white;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  max-height: 320px;
   display: flex;
   flex-direction: column;
 }
@@ -644,16 +611,18 @@ onBeforeUnmount(() => {
   transform: translateY(-8px);
 }
 
+
 .dropdown-panel {
-  /* Remove: position: absolute, top, left, right */
+  position: fixed; /* This is correctly set by :style, but base class should be aware */
   background: white;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 10000; /* Changed from 1000 to 10000 */
+  z-index: 99999; /* Boosted to ensure it's above the modal (usually 1000-2000) */
   display: flex;
   flex-direction: column;
-  /* Remove: max-height: 320px */
 }
+
+
 
 </style>

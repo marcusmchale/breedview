@@ -1,11 +1,3 @@
-type File {
-  id: Int
-  filename: String!
-  mimetype: String!
-  encoding: String!
-  path: String!
-}
-
 input LayoutInput {
   """ Location ID from Region """
   locationId: Int!
@@ -55,6 +47,7 @@ input PositionInput {
 input UnitInput {
   """ID of Subject in the ontology"""
   subjectId: Int!
+  germplasmId: Int
   name: String
   description: String
 
@@ -67,21 +60,46 @@ input UnitInput {
 
 input UnitUpdate {
   unitId: Int!
-  subjectId: Int!
+  subjectId: Int
+  germplasmId: Int
   name: String
   description: String
   parentIds: [Int]
   childrenIds: [Int]
-  positions: [PositionInput]
 }
 
 input RecordInput {
-  datasetId: Int!
   unitId: Int!
   value: String
   start: DateTime
   end: DateTime
   referenceIds: [Int]
+}
+
+input RecordUpdate {
+  recordId: Int!
+  unitId: Int
+  value: String
+  start: DateTime
+  end: DateTime
+  referenceIds: [Int]
+}
+
+input DatasetInput {
+  """ concept is either a Factor or Variable in the ontology """
+  conceptId: Int!
+  records: [RecordInput]
+  contributorIds: [Int!]
+  referenceIds: [Int!]
+}
+
+input DatasetUpdate {
+  """Optionally provide a list of records to update"""
+  datasetId: Int!
+  conceptId: Int
+  records: [RecordUpdate]
+  contributorIds: [Int!]
+  referenceIds: [Int!]
 }
 
 enum Reproduction {
@@ -181,15 +199,22 @@ type Mutation {
   blocksCreateUnit(unit: UnitInput!, position: PositionInput): BooleanPayload!
   blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
   blocksDeleteUnit(unitId: Int!): BooleanPayload!
-  blocksAddPosition(unitId: Int!, position: PositionInput): BooleanPayload!
-  blocksRemovePosition(unitId: Int!, position: PositionInput): BooleanPayload!
+  blocksAddPosition(unitId: Int!, position: PositionInput!): BooleanPayload!
+  blocksRemovePosition(unitId: Int!, position: PositionInput!): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
 
   """
-  For each dataset the concept is the Variable or Factor from the Ontology to which this data corresponds
+  Submission Payloads include a key, the dataset is processed asynchronously,
+  you can check status and errors at the
   """
-  datasetsCreateDataset(conceptId: Int!): BooleanPayload!
-  datasetsAddRecord(record: RecordInput): BooleanPayload!
+  datasetsCreateDataset(dataset: DatasetInput!): SubmissionIdPayload!
+  datasetsUpdateDataset(dataset: DatasetUpdate!): SubmissionIdPayload!
+
+  """Extend an existing dataset with new records"""
+  datasetsAddRecords(datasetId: Int!, records: [RecordInput]): SubmissionIdPayload!
+
+  """Delete records from a dataset"""
+  datasetsRemoveRecords(datasetId: Int!, recordIds: [Int!]): BooleanPayload!
   germplasmCreateEntry(entry: GermplasmInput!): BooleanPayload
   germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
   germplasmDeleteEntry(entryId: Int!): BooleanPayload
@@ -231,6 +256,9 @@ type Mutation {
   organisationsCreateTeam(name: String!, fullname: String, parentId: Int): BooleanPayload!
   organisationsDeleteTeam(teamId: Int!): BooleanPayload!
   organisationsUpdateTeam(teamId: Int!, name: String, fullname: String): BooleanPayload!
+  peopleCreatePerson(person: PersonInput!): BooleanPayload!
+  peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
+  peopleDeletePerson(personId: Int!): BooleanPayload!
   programsCreateProgram(program: CreateProgramInput!): BooleanPayload
   programsUpdateProgram(program: UpdateProgramInput!): BooleanPayload
   programsDeleteProgram(programId: Int!): BooleanPayload
@@ -240,6 +268,21 @@ type Mutation {
   programsCreateStudy(study: CreateStudyInput!): BooleanPayload
   programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
   programsDeleteStudy(studyId: Int!): BooleanPayload
+  referencesCreateLegal(reference: CreateLegalReferenceInput!): BooleanPayload
+  referencesCreateExternal(reference: CreateExternalReferenceInput!): BooleanPayload
+  referencesCreateExternalData(reference: CreateExternalDataReferenceInput!): BooleanPayload
+
+  """
+  As for dataset submissions, creating a file is asynchronous and we are returned a key 
+  """
+  referencesCreateFile(reference: CreateFileReferenceInput): FileIdPayload
+  referencesCreateDataFile(reference: CreateDataFileReferenceInput): FileIdPayload
+  referencesUpdateLegal(reference: UpdateLegalReferenceInput!): BooleanPayload
+  referencesUpdateExternal(reference: UpdateExternalReferenceInput!): BooleanPayload
+  referencesUpdateExternalData(reference: UpdateExternalDataReferenceInput!): BooleanPayload
+  referencesUpdateFile(reference: UpdateFileReferenceInput): BooleanPayload
+  referencesUpdateDataFile(reference: UpdateDataFileReferenceInput): BooleanPayload
+  referencesDelete(referenceIds: [Int!]!): BooleanPayload
   regionsCreateLocation(location: LocationInput!): BooleanPayload!
   regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
   regionsDeleteLocation(locationId: Int!): BooleanPayload!
@@ -705,6 +748,17 @@ input LayoutTypeUpdate {
   axes: [AxisType]
 }
 
+input PersonInput {
+  name: String!
+  fullname: String
+}
+
+input PersonUpdate {
+  id: Int!
+  name: String
+  fullname: String
+}
+
 input CreateProgramInput {
   name: String!
   fullname: String
@@ -770,6 +824,75 @@ input UpdateStudyInput {
   designId: Int
   licenceId: Int
   referenceIds: [Int!]
+}
+
+enum DataFormat {
+  JSON
+  HDF5
+  CSV
+  TSV
+}
+
+input CreateLegalReferenceInput {
+  description: String
+  text: String!
+}
+
+input CreateExternalReferenceInput {
+  description: String
+  url: String!
+  externalId: String
+}
+
+input CreateExternalDataReferenceInput {
+  description: String
+  url: String!
+  externalId: String
+  format: DataFormat!
+  schema: String
+}
+
+input CreateFileReferenceInput {
+  description: String
+  file: Upload!
+}
+
+input CreateDataFileReferenceInput {
+  description: String
+  file: Upload!
+  format: DataFormat!
+  schema: String
+}
+
+input UpdateLegalReferenceInput {
+  description: String
+  text: String!
+}
+
+input UpdateExternalReferenceInput {
+  description: String
+  url: String!
+  externalId: String
+}
+
+input UpdateExternalDataReferenceInput {
+  description: String
+  url: String!
+  externalId: String
+  format: DataFormat!
+  schema: String
+}
+
+input UpdateFileReferenceInput {
+  description: String
+  file: Upload
+}
+
+input UpdateDataFileReferenceInput {
+  description: String
+  file: Upload
+  format: DataFormat!
+  schema: String
 }
 
 input GeoCoordinateInput {
@@ -849,6 +972,7 @@ type Layout {
   type: OntologyEntryInterface
   name: String
   axes: [String!]
+  arrangement: Layout!
   parent: Layout
 
   """Position within parent layout"""
@@ -880,6 +1004,7 @@ type Position {
 type Unit {
   id: Int!
   subject: OntologyEntryInterface
+  germplasm: GermplasmEntry
   name: String
   description: String
   positions: [Position]
@@ -943,6 +1068,42 @@ type DataSet {
   records: [Record]
   contributors: [Person]
   references: [Reference]
+}
+
+type SubmittedRecord {
+  id: Int
+  unitId: Int!
+  value: String
+  start: DateTime
+  end: DateTime
+  referenceIds: [Int]
+}
+
+type SubmittedData {
+  conceptId: Int!
+  records: [SubmittedRecord]
+  contributors: [Person]
+  references: [Reference]
+}
+
+enum SubmissionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+type ItemError {
+  index: Int!
+  error: String!
+}
+
+type Submission {
+  data: SubmittedData
+  datasetId: Int
+  status: SubmissionStatus
+  errors: [String]
+  itemErrors: [ItemError]
 }
 
 type GermplasmRelationship {
@@ -1030,7 +1191,6 @@ enum OntologyEntryLabel {
   For Nominal and Ordinal types, additional Category references may be provided.
   Examples:
   "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
-  "Plant Genetic Material" is ScaleType nominal, and categories should include references to GermplasmEntries.
   """
   SCALE
 
@@ -1076,7 +1236,7 @@ enum OntologyEntryLabel {
   """
   Control method entries describe the way a value is maintained for an experiment.
   These are linked to Factor.
-  Examples: "Fluorescent Lighting", "Fertilizer application", "Germplasm selection"
+  Examples: "Fluorescent Lighting", "Fertilizer application"
   """
   CONTROL_METHOD
 
@@ -1236,9 +1396,6 @@ enum ControlMethodType {
   """
   BIOLOGICAL
 
-  """ Genetic controls, e.g. germplasm selection """
-  GENETIC
-
   """ Management controls, e.g. cropping density, pruning """
   MANAGEMENT
 }
@@ -1250,7 +1407,6 @@ enum ScaleType {
   NOMINAL
   ORDINAL
   TEXT
-  GERMPLASM
   COMPLEX
 }
 
@@ -1367,13 +1523,12 @@ Scale entries describe the units, classes or dimensions for values associated wi
 Scale entries require a ScaleType.
 For Nominal and Ordinal types, additional Category references may be provided.
 Ordinal scales represent the rank of categories by their presentation order.
-Germplasm scales reference GermplasmEntries
+
 Complex scales allow for the description of data that cannot be represented by simple values (integer, float, string), nor by
-internal references like Germplasm or Categorical (nominal or ordinal) scales.
+internal references like Categorical (nominal or ordinal) scales.
 Examples:
 "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
-"Plant Genetic Material" would be ScaleType Germplasm
-"MAG abundance" would be ScaleType complex, with associated datasets providing references to stored files, e.g. in HDF5 format.
+"MAG abundance" would be ScaleType complex, with associated datasets or records each providing references to stored files, e.g. in HDF5 format.
 """
 type Scale implements OntologyEntryInterface & RelatedToTerms {
   id: Int!
@@ -1463,7 +1618,7 @@ type Variable implements OntologyEntryInterface & RelatedToTerms {
 """
 Control method entries describe the way a value is maintained for an experiment.
 These are linked to Factor.
-Examples: "Fluorescent Lighting", "Fertilizer application", "Germplasm selection"
+Examples: "Fluorescent Lighting", "Fertilizer application"
 """
 type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
   id: Int!
@@ -1527,24 +1682,6 @@ type Event implements OntologyEntryInterface & RelatedToTerms {
   terms: [Term]
   variables: [Variable]
   factors: [Factor]
-}
-
-"""
-Germplasm method entries describe maintenance or sourcing of germplasm.
-These are linked to GermplasmEntry (see Germplasms).
-Examples: "Controlled cross", "Mutagenesis", "Ecological survey"
-"""
-type GermplasmMethod implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
-  name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [Reference]
-  parents: [GermplasmMethod]
-  children: [GermplasmMethod]
-  terms: [Term]
 }
 
 """
@@ -1638,7 +1775,7 @@ type Title implements OntologyEntryInterface & RelatedToTerms {
   terms: [Term]
 }
 
-union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | GermplasmMethod | LocationType | LayoutType | Design | Role | Title
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | Role | Title
 
 type OntologyRelationship {
   id: Int!
@@ -1821,6 +1958,24 @@ type DatasetsPayload {
   errors: [Error]
 }
 
+type FileIdPayload {
+  status: QueryStatus!
+  result: String
+  errors: [Error]
+}
+
+type SubmissionIdPayload {
+  status: QueryStatus!
+  result: String
+  errors: [Error]
+}
+
+type SubmissionPayload {
+  status: QueryStatus!
+  result: Submission
+  errors: [Error]
+}
+
 type ProgramsPayload {
   status: QueryStatus!
   result: [Program]
@@ -1952,8 +2107,11 @@ type Query {
   """
   regions: LocationsPayload!
 
-  """Search for locations by or locationId or ontology Location type"""
-  regionsLocations(locationIds: [Int!], locationTypeId: Int): LocationsPayload!
+  """Get locations by locationId"""
+  regionsLocations(locationIds: [Int!]!): LocationsPayload!
+
+  """Search for locations by ontology Location type"""
+  regionsLocationsByType(locationTypeId: Int!): LocationsPayload!
 
   """
   Get a list of arrangement roots.
@@ -1969,14 +2127,21 @@ type Query {
   Get a list of block "root" units.
   These are top-level unit in the block hierarchy.
   """
-  blocks(locationId: Int): UnitsPayload!
+  blocks(locationIds: [Int!]): UnitsPayload!
 
   """Get units by ID."""
   blocksUnits(unitIds: [Int!]): UnitsPayload!
 
   """Get a list of programs"""
   programs(programId: Int, trialId: Int, studyId: Int): ProgramsPayload
+
+  """Get datasets by ID or concept"""
   datasets(datasetId: Int, conceptId: Int): DatasetsPayload
+
+  """Get dataset submission by key"""
+  datasetsSubmission(submissionId: String): SubmissionPayload
+
+  """Get the controller data for access controlled entities"""
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [Int]!): ControllersPayload!
 
   """Get a list of Germplasm entries"""
@@ -2020,6 +2185,10 @@ type Location {
   description: String
   address: String
   coordinates: [GeoCoordinate]
+
+  """ The root location for this region, for the root location this references itself. 
+  """
+  region: Location
   parent: Location
   children: [Location]
 }
@@ -2038,3 +2207,5 @@ type LocationTemplate {
 }
 
 scalar DateTime
+
+scalar Upload

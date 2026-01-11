@@ -1,11 +1,9 @@
+#import "./entryFragment.graphql"
 query germplasmCrops {
     germplasmCrops {
         status
         result {
-            id
-            name
-            description
-            sinks { sourceType, description, sink { id, name } }
+            ...GermplasmEntryFields
         }
         errors {
             message

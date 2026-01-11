@@ -1,0 +1,10 @@
+mutation CreateDataset($dataset: DatasetInput!) {
+  datasetsCreateDataset(dataset: $dataset) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

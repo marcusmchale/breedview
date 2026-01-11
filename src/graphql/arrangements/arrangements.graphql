@@ -1,15 +1,9 @@
+#import "./layoutFragment.graphql"
 query arrangements ($locationId: Int) {
     arrangements (locationId: $locationId) {
         status
         result {
-            id
-            name
-            axes
-            type {id, name}
-            parent {id}
-            position
-            children {id}
-            location {name, id}
+            ...LayoutFields
         }
         errors {
             message

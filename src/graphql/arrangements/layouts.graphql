@@ -1,3 +1,4 @@
+#import "./layoutFragment.graphql"
 query layouts (
     $layoutIds: [Int!]
 ){
@@ -6,14 +7,7 @@ query layouts (
     ){
         status
         result {
-            id
-            name
-            axes
-            type {id, name}
-            parent {id}
-            position
-            children {id}
-            location {name, id}
+            ...LayoutFields
         }
         errors {
             message

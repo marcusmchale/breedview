@@ -12,15 +12,16 @@
     <!-- Wrapper -->
     <div :class="context.classes.wrapper">
       <div :class="context.classes.inner">
-        <!-- Your custom dropdown component -->
         <HierarchicalSelectDropdown
           :model-value="context._value"
           @update:model-value="context.node.input($event)"
-          :root-nodes="context.rootNodes"
-          :get-children-fn="context.getChildrenFn"
-          :get-node-id-fn="context.getNodeIdFn"
+          :selected="context.selected"
+          :rootNodes="context.rootNodes"
+          :hasChildrenFn="context.hasChildrenFn"
+          :loadChildrenFn="context.loadChildrenFn"
+          :childrenLoading="context.childrenLoading"
+          :currentChildren="context.currentChildren"
           :get-node-label-fn="context.getNodeLabelFn"
-          :has-children-fn="context.hasChildrenFn"
           :is-disabled-fn="context.isDisabledFn"
           :exclude-node-id="context.excludeNodeId"
           :placeholder="context.placeholder || context.attrs.placeholder"
@@ -63,4 +64,5 @@ defineProps({
     required: true
   }
 })
+
 </script>

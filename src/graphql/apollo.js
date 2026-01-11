@@ -1,7 +1,7 @@
 import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
-import { useCsrf } from '@/composables/useCsrf'
+import { useCsrf } from '@/composables/system/useCsrf'
 
 const graphqlUri = `${process.env.VUE_APP_API_HOST}${process.env.VUE_APP_GRAPHQL_PATH}`
 
@@ -50,10 +50,10 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
   }
 })
 
+
 //the following is to allow composing from list of ids to reduce hits to the server
 // apollo by default requires exact query result matching
-
-const createCachePolicy = (typeName, fieldName, argName) => ({
+const createFlatCachePolicy = (typeName, fieldName, argName) => ({
   Query: {
     fields: {
       [fieldName]: {
@@ -72,6 +72,7 @@ const createCachePolicy = (typeName, fieldName, argName) => ({
   },
 })
 
+
 const createMergeChildPolicy = (typeName) => ({
   [typeName]: {
     fields: {
@@ -87,8 +88,10 @@ const createMergeChildPolicy = (typeName) => ({
 
 const cache = new InMemoryCache({
   typePolicies: {
-    ...createCachePolicy('regionsLocations', 'locationIds'),
-    ...createMergeChildPolicy('Location')
+    ...createFlatCachePolicy('regionsLocations', 'locationIds'),
+    ...createMergeChildPolicy('Location'),
+    ...createFlatCachePolicy('arrangementsLayouts', 'layoutIds'),
+    ...createMergeChildPolicy('Layout')
   }
 })
 

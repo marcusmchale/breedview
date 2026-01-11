@@ -1,0 +1,16 @@
+fragment UnitFields on Unit {
+    id
+    subject { name, id }
+    germplasm { name, id }
+    name
+    description
+    positions {
+        location { name, id }
+        layout { id, name, type { id, name } }
+        coordinates
+        start
+        end
+    }
+    parents { id }
+    children { id }
+}

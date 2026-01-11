@@ -12,6 +12,7 @@
     "@apollo/client": "^3.8.8",
     "@formkit/themes": "^1.6.9",
     "@formkit/vue": "^1.6.9",
+    "@tanstack/vue-table": "^8.21.3",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vue/apollo-composable": "^4.2.2",
     "core-js": "^3.34.0",
