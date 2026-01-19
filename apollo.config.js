@@ -1,8 +1,8 @@
 module.exports = {
   client: {
     service: {
-      name: process.env.VUE_APP_NAME,
-      url: `${process.env.VUE_APP_API_HOST}${process.env.VUE_APP_GRAPHQL_PATH}`,
+      name: import.meta.env.VITE_NAME,
+      url: `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_GRAPHQL_PATH}`,
     },
     // Files processed by the extension
     includes: ['src/**/*.vue', 'src/**/*.js', 'src/**/*.graphql'],

@@ -1,18 +1,20 @@
-import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
+import { ApolloClient, InMemoryCache } from '@apollo/client/core'
+import { createUploadLink } from 'apollo-upload-client'
+
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { useCsrf } from '@/composables/system/useCsrf'
 
-const graphqlUri = `${process.env.VUE_APP_API_HOST}${process.env.VUE_APP_GRAPHQL_PATH}`
 
-const httpLink = createHttpLink({
-  uri: graphqlUri,
-  credentials: 'include', // Important for cookies
-})
+const graphqlUri = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_GRAPHQL_PATH}`
 
 const { csrfToken, fetchCsrfToken, isCSRFTokenExpired, clearCsrfToken } = useCsrf()
 
-// eslint-disable-next-line no-unused-vars
+const uploadLink = createUploadLink({
+  uri: graphqlUri,
+  credentials: 'include',
+})
+
 const authLink = setContext(async (_, { headers }) => {
 
   // If we don't have a token yet, fetch it
@@ -30,8 +32,8 @@ const authLink = setContext(async (_, { headers }) => {
 
 
 // Add error handling for CSRF token expiration
-const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
-  if (networkError && isCSRFTokenExpired(networkError)) {
+const errorLink = onError(({  GraphQLFormattedError, NetworkError, operation, forward }) => {
+  if (NetworkError && isCSRFTokenExpired(NetworkError)) {
     console.log('CSRF token expired, refetching...')
     clearCsrfToken()
 
@@ -39,14 +41,14 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
     return forward(operation)
   }
 
-  if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, locations, path }) =>
+  if (GraphQLFormattedError) {
+    GraphQLFormattedError.forEach(({ message, locations, path }) =>
       console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`)
     )
   }
 
-  if (networkError) {
-    console.error(`[Network error]: ${networkError}`)
+  if (NetworkError) {
+    console.error(`[Network error]: ${NetworkError}`)
   }
 })
 
@@ -87,6 +89,15 @@ const createMergeChildPolicy = (typeName) => ({
 })
 
 const cache = new InMemoryCache({
+  possibleTypes:{
+    ReferenceInterface: [
+      'LegalReference',
+      'ExternalReference',
+      'FileReference',
+      'ExternalDataReference',
+      'DataFileReference'
+    ],
+  },
   typePolicies: {
     ...createFlatCachePolicy('regionsLocations', 'locationIds'),
     ...createMergeChildPolicy('Location'),
@@ -97,7 +108,7 @@ const cache = new InMemoryCache({
 
 
 const apolloClient = new ApolloClient({
-  link: errorLink.concat(authLink).concat(httpLink),
+  link: authLink.concat(errorLink).concat(uploadLink),
   cache: cache,
   defaultOptions: {
     watchQuery: {
@@ -117,7 +128,7 @@ const apolloClient = new ApolloClient({
 
 
 // Ensure DevTools can find it
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   window.__APOLLO_CLIENT__ = apolloClient
 }
 

@@ -1,0 +1,9 @@
+mutation referencesCreateDataFile($reference: CreateDataFileReferenceInput!) {
+  referencesCreateDataFile(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

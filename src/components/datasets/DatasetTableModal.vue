@@ -9,19 +9,24 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
+import DataFileReferenceModal from '@/components/references/DataFileReferenceModal.vue';
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false,
   },
+  selectedStudy: {
+    type: Object,
+    required: true
+  },
   selectedUnits: {
     type: Array,
-    default: () => [],
+    required: true
   },
   selectedConcepts: {
     type: Array,
-    default: () => [],
+    required: true
   },
   rowsPerUnit: {
     type: Number,
@@ -36,6 +41,7 @@ const {
   tableData,
   columnStatus,
   initializeTable,
+  determineCoordinateColumns,
   addRow,
   removeRow,
   rowHasData,
@@ -53,6 +59,7 @@ const {
   hasUnsavedChanges,
   cleanupSubmissions
 } = useDatasetTable({
+  selectedStudy: () => props.selectedStudy,
   selectedUnits: () => props.selectedUnits,
   selectedConcepts: () => props.selectedConcepts,
   rowsPerUnit: () => props.rowsPerUnit,
@@ -95,16 +102,24 @@ const columns = computed(() => {
   const cols = [];
   const columnHelper = createColumnHelper();
 
-  // Unit column (frozen)
-  cols.push(
-    columnHelper.accessor('unitLabel', {
-      id: 'unitLabel',
-      header: 'Unit',
-      cell: (info) => info.getValue(),
-      enableSorting: true,
-      meta: { frozen: true, width: '150px' },
-    })
-  );
+
+  // Define all unit-related columns (visibility handled by table state)
+  cols.push(columnHelper.accessor('unitLabel', { id: 'unitLabel', header: 'Unit Name', meta: { frozen: true, width: '150px' } }));
+  cols.push(columnHelper.accessor('unitId', { id: 'unitId', header: 'Unit ID', meta: { width: '80px' } }));
+  cols.push(columnHelper.accessor('germplasmName', { id: 'germplasmName', header: 'Germplasm', meta: { width: '150px' } }));
+  cols.push(columnHelper.accessor('germplasmId', { id: 'germplasmId', header: 'Germplasm ID', meta: { width: '100px' } }));
+  cols.push(columnHelper.accessor('locationName', { id: 'locationName', header: 'Location', meta: { width: '150px' } }));
+  cols.push(columnHelper.accessor('locationId', { id: 'locationId', header: 'Location ID', meta: { width: '100px' } }));
+  cols.push(columnHelper.accessor('layoutName', { id: 'layoutName', header: 'Layout', meta: { width: '120px' } }));
+
+  // Add dynamic coordinate columns
+  coordinateColumns.value.forEach(coord => {
+    cols.push(columnHelper.accessor(coord.key, {
+      id: coord.key,
+      header: coord.header,
+      meta: { width: '80px' }
+    }));
+  });
 
   // Start Time column
   cols.push(
@@ -169,18 +184,23 @@ const getInputType = (concept) => {
   return 'text';
 };
 
-// Create table instance - only when we have columns
+// Create table instance - recreate whenever columns, sorting, or visibility changes
 const table = computed(() => {
-  // Don't create table until we have columns
-  if (columns.value.length === 0) {
+  // Force dependency tracking by accessing these values
+  const cols = columns.value;
+  const vis = { ...columnVisibility.value };  // Spread to ensure deep tracking
+  const sort = [...sorting.value];  // Spread to ensure deep tracking
+
+  if (cols.length === 0) {
     return null;
   }
 
   return useVueTable({
     data: tableData,
-    columns: columns.value,  // Pass the array value, not the ref
+    columns: cols,
     state: {
-      sorting: sorting.value,
+      sorting: sort,
+      columnVisibility: vis,
     },
     onSortingChange: (updaterOrValue) => {
       sorting.value =
@@ -188,15 +208,43 @@ const table = computed(() => {
           ? updaterOrValue(sorting.value)
           : updaterOrValue;
     },
+    onColumnVisibilityChange: (updaterOrValue) => {
+      columnVisibility.value = typeof updaterOrValue === 'function' ? updaterOrValue(columnVisibility.value) : updaterOrValue;
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 });
 
 const rows = computed(() => {
-  console.log('rows', table.value?.getRowModel().rows)
   return table.value?.getRowModel().rows ?? [];
 });
+
+// Dynamically determine coordinate columns from units
+const coordinateColumns = computed(() => {
+  return determineCoordinateColumns();
+});
+
+// Base column visibility
+const columnVisibility = ref({
+  unitLabel: true,
+  unitId: true,
+  germplasmName: false,
+  germplasmId: false,
+  locationName: false,
+  locationId: false,
+  layoutName: false,
+});
+
+// Watch coordinate columns and add their visibility settings
+watch(coordinateColumns, (coords) => {
+  coords.forEach(coord => {
+    if (!(coord.key in columnVisibility.value)) {
+      columnVisibility.value[coord.key] = false;
+    }
+  });
+}, { immediate: true });
+
 
 // Handle cell editing
 const editingCell = ref(null);
@@ -279,6 +327,7 @@ const openBulkFill = (columnId) => {
 };
 
 const applyBulkFill = () => {
+  cancelEditing();
   if (bulkFillColumnId.value) {
     const result = bulkFillColumn(bulkFillColumnId.value, bulkFillValue.value);
     if (result.success) {
@@ -368,6 +417,44 @@ const getStatusTooltip = (conceptId) => {
       return '';
   }
 };
+
+// Add state for file reference modal
+const showFileReferenceModal = ref(false);
+const editingFileReferenceCell = ref(null);
+
+
+// Add method to open file reference modal
+const openFileReferenceModal = (rowIndex, columnId) => {
+  const currentValue = tableData.value[rowIndex][columnId];
+  // Parse the value as an array of reference IDs
+  const referenceIds = currentValue ? JSON.parse(currentValue) : [];
+
+  editingFileReferenceCell.value = { rowIndex, columnId, referenceIds };
+  showFileReferenceModal.value = true;
+};
+
+// Add method to handle file reference update
+const handleFileReferenceUpdate = (newReferenceIds) => {
+  if (editingFileReferenceCell.value) {
+    const { rowIndex, columnId } = editingFileReferenceCell.value;
+    // Store as JSON string array of IDs
+    const value = JSON.stringify(newReferenceIds);
+    updateCell(rowIndex, columnId, value);
+
+    editingFileReferenceCell.value = null;
+  }
+};
+
+// Add method to display file references
+const getFileReferenceDisplay = (value) => {
+  if (!value) return 'No files';
+  try {
+    const ids = JSON.parse(value);
+    return ids.length === 1 ? '1 file' : `${ids.length} files`;
+  } catch {
+    return 'Invalid data';
+  }
+};
 </script>
 
 <template>
@@ -376,13 +463,29 @@ const getStatusTooltip = (conceptId) => {
       <div class="modal-container">
         <!-- Header -->
         <div class="modal-header">
-          <h2>Create Dataset Table</h2>
+          <h2>Submit Datasets for {{ props.selectedStudy.name }}</h2>
           <button class="close-btn" @click="handleClose">&times;</button>
         </div>
 
         <!-- Content -->
         <div class="modal-content">
-            <div v-if="!table" class="loading-state">
+          <div class="column-config">
+            <p><strong>Include Unit Details:</strong></p>
+            <div class="checkbox-group">
+              <label><input type="checkbox" v-model="columnVisibility.unitLabel" /> Name </label>
+              <label><input type="checkbox" v-model="columnVisibility.unitId" /> ID</label>
+              <label><input type="checkbox" v-model="columnVisibility.germplasmName" /> Germplasm</label>
+              <label><input type="checkbox" v-model="columnVisibility.germplasmId" /> G. ID</label>
+              <label><input type="checkbox" v-model="columnVisibility.locationName" /> Location</label>
+              <label><input type="checkbox" v-model="columnVisibility.locationId" /> L. ID</label>
+              <label><input type="checkbox" v-model="columnVisibility.layoutName" /> Layout</label>
+              <label v-for="coord in coordinateColumns" :key="coord.key">
+                <input type="checkbox" v-model="columnVisibility[coord.key]" /> {{ coord.header }}
+              </label>
+            </div>
+          </div>
+
+          <div v-if="!table" class="loading-state">
               Initializing table...
           </div>
           <div class="table-wrapper">
@@ -455,6 +558,7 @@ const getStatusTooltip = (conceptId) => {
                       'disabled-cell': isColumnDisabled(cell.column.columnDef.meta?.conceptId),
                     }"
                     :title="getCellError(row.index, cell.column.id)?.message"
+                    :style="{ width: cell.column.columnDef.meta?.width }"
                   >
                     <!-- Actions column -->
                     <template v-if="cell.column.columnDef.meta?.isActions">
@@ -478,8 +582,20 @@ const getStatusTooltip = (conceptId) => {
 
                     <!-- Complex scale cell -->
                     <template v-else-if="cell.column.columnDef.meta?.type === 'complex'">
-                      <div class="complex-cell" title="File upload coming soon">
-                        <span class="disabled-text">Upload File (Coming Soon)</span>
+                      <div v-if="isColumnDisabled(cell.column.columnDef.meta?.conceptId)">
+                        <span class="file-count">
+                          📎 {{ getFileReferenceDisplay(cell.getValue()) }}
+                        </span>
+                      </div>
+                      <div v-else
+                        class="complex-cell clickable"
+                          @click="openFileReferenceModal(row.index, cell.column.id)"
+                          title="Click to manage file references"
+                        >
+                        <span class="file-count">
+                          📎 {{ getFileReferenceDisplay(cell.getValue()) }}
+                        </span>
+                        <span class="manage-link">Manage</span>
                       </div>
                     </template>
 
@@ -523,17 +639,17 @@ const getStatusTooltip = (conceptId) => {
                       <div
                         v-else
                         class="cell-display"
-                        @click="startEditing(row.index, cell.column.id, tableData[row.index]?.[cell.column.id])"
+                        @click="startEditing(row.index, cell.column.id, cell.getValue())"
                         @paste="handlePaste($event, row.index, cell.column.id)"
                         tabindex="0"
                       >
-                        {{ tableData[row.index]?.[cell.column.id] || '' }}
+                        {{ cell.getValue() }}
                       </div>
                     </template>
 
                     <!-- Read-only cell -->
                     <template v-else>
-                      {{ tableData[row.index]?.[cell.column.id] || '' }}
+                      {{ cell.getValue() }}
                     </template>
                   </td>
                 </tr>
@@ -607,6 +723,13 @@ const getStatusTooltip = (conceptId) => {
         </div>
       </div>
     </div>
+
+    <DataFileReferenceModal
+      :visible="showFileReferenceModal"
+      :selected-reference-ids="editingFileReferenceCell?.referenceIds || []"
+      @close="showFileReferenceModal = false"
+      @update:selected-reference-ids="handleFileReferenceUpdate"
+    />
   </Teleport>
 </template>
 
@@ -984,5 +1107,36 @@ tr:hover .row-actions {
   color: #666;
   font-style: italic;
 }
+
+
+.complex-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px;
+}
+
+.complex-cell.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.complex-cell.clickable:hover {
+  background-color: #e3f2fd;
+}
+
+.file-count {
+  flex: 1;
+  font-size: 13px;
+  color: #666;
+}
+
+.manage-link {
+  font-size: 12px;
+  color: #2196f3;
+  text-decoration: underline;
+}
+
 
 </style>

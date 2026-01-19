@@ -1,0 +1,9 @@
+mutation referencesCreateLegal($reference: CreateLegalReferenceInput!) {
+  referencesCreateLegal(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

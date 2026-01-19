@@ -1,86 +1,17 @@
-<template>
-  <div class="page-container">
-    <div class="page-header">
-      <h1>Update Profile</h1>
-      <button @click="$emit('back-to-home')" class="btn btn-secondary">Back to Home</button>
-    </div>
-
-    <div v-if="loading" class="loading">
-      Loading user data...
-    </div>
-
-    <div v-else-if="error" class="error">
-      <p>Unable to load user information</p>
-      <button @click="$emit('back-to-home')" class="btn btn-primary">
-        Go Back
-      </button>
-    </div>
-
-    <div v-else-if="account && account.user" class="form-container">
-      <FormKit
-        type="form"
-        v-model="formValues"
-        @submit="updateProfile"
-        :actions="false"
-      >
-        <FormKit
-          type="text"
-          name="name"
-          label="Username"
-          validation="required"
-          placeholder="Enter your username"
-          :value="account.user.name"
-        />
-        <FormKit
-          type="text"
-          name="fullname"
-          label="Full Name"
-          validation="required"
-          placeholder="Enter your full name"
-          :value="account.user.fullname"
-        />
-        <FormKit
-          type="email"
-          name="email"
-          label="Email"
-          validation="required|email"
-          placeholder="Enter your email"
-          :value="account.user.email"
-        />
-        <FormKit
-          type="password"
-          name="password"
-          label="New Password (optional)"
-          placeholder="Leave blank to keep current password"
-          help="Only fill this if you want to change your password"
-        />
-        <div class="form-actions right">
-          <FormKit
-            type="submit"
-            input-class="btn btn-primary"
-            :disabled="updateLoading"
-          >
-            {{ updateLoading ? 'Updating...' : 'Update Profile' }}
-          </FormKit>
-        </div>
-      </FormKit>
-
-      <div v-if="updateError" class="error-message">
-        {{ updateError }}
-      </div>
-
-      <div v-if="successMessage" class="success-message">
-        {{ successMessage }}
-      </div>
-    </div>
-  </div>
-</template>
 
 <script setup>
 import { ref, watch } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
+
 import ACCOUNT_QUERY from '../../graphql/account/account.graphql'
 import UPDATE_USER_MUTATION from '../../graphql/account/updateUser.graphql'
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const account = ref(null)
 const loading = ref(true)
@@ -133,12 +64,7 @@ watch([queryLoading, queryError, result], () => {
     error.value = false
 
     // Pre-populate form with current user data
-    formValues.value = {
-      name: accountData.result.user.name,
-      fullname: accountData.result.user.fullname,
-      email: accountData.result.user.email,
-      password: ''
-    }
+    formValues.value = {}
   } else {
     // Account query returned an error status
     error.value = true
@@ -155,12 +81,8 @@ const updateProfile = async (formData) => {
     const variables = {
       name: formData.name,
       fullname: formData.fullname,
-      email: formData.email
-    }
-
-    // Only include password if user entered one
-    if (formData.password && formData.password.trim() !== '') {
-      variables.password = formData.password
+      email: formData.email,
+      password: formData.password
     }
 
     const response = await updateUserMutation(variables)
@@ -183,16 +105,117 @@ const updateProfile = async (formData) => {
     updateError.value = error.message || 'An unexpected error occurred during update.'
   }
 }
-</script>
 
-<style scoped>
-.page-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+const closeModal = () => {
+  error.value = null
+  emit('close')
 }
 
-.page-header {
+</script>
+
+
+<template>
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Update Profile</h2>
+        <button @click="closeModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <div v-if="loading" class="loading">
+          Loading user data...
+        </div>
+
+        <div v-else-if=           "error" class="error">
+          <p>Unable to load user information</p>
+          <button @click="$emit('back-to-home')" class="btn btn-primary">
+            Go Back
+          </button>
+        </div>
+
+        <div v-else-if="account && account.user" class="form-container">
+          <FormKit
+            type="form"
+            v-model="formValues"
+            @submit="updateProfile"
+            :actions="false"
+          >
+            <FormKit
+              type="text"
+              name="name"
+              label="Username"
+              :help="account.user.name"
+            />
+            <FormKit
+              type="text"
+              name="fullname"
+              label="Full Name"
+              :help="account.user.fullname"
+            />
+            <FormKit
+              type="email"
+              name="email"
+              label="Email"
+              validation="email"
+              :help="account.user.email"
+            />
+            <FormKit
+              type="password"
+              name="password"
+              label="New Password (optional)"
+              help="Leave blank to keep current password"
+            />
+            <div class="form-actions right">
+              <FormKit
+                type="submit"
+                input-class="btn btn-primary"
+                :disabled="updateLoading"
+              >
+                {{ updateLoading ? 'Updating...' : 'Update Profile' }}
+              </FormKit>
+            </div>
+          </FormKit>
+
+        </div>
+
+        <div v-if="updateError" class="error-message">
+          {{ updateError }}
+        </div>
+
+        <div v-if="successMessage" class="success-message">
+          {{ successMessage }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+  overflow: hidden;
+}
+
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -201,7 +224,7 @@ const updateProfile = async (formData) => {
   border-bottom: 2px solid #eee;
 }
 
-.page-header h1 {
+.modal-header h2 {
   margin: 0;
   color: #333;
 }
@@ -212,4 +235,25 @@ const updateProfile = async (formData) => {
   border-radius: 8px;
   border: 1px solid #dee2e6;
 }
+
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+
 </style>

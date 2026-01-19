@@ -6,7 +6,7 @@ fragment UnitFields on Unit {
     description
     positions {
         location { name, id }
-        layout { id, name, type { id, name } }
+        layout { id, name, axes, type { id, name } }
         coordinates
         start
         end

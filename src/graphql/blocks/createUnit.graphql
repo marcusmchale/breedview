@@ -1,4 +1,4 @@
-mutation blocksCreateUnit($unit: UnitInput!, $position: PositionInput) {
+mutation blocksCreateUnit($unit: UnitInput!, $position: PositionInput!) {
   blocksCreateUnit(unit: $unit, position: $position) {
     status
     errors {

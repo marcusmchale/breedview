@@ -1,0 +1,9 @@
+mutation referencesUpdateLegal($reference: UpdateLegalReferenceInput!) {
+  referencesUpdateLegal(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

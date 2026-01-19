@@ -73,7 +73,7 @@ export function useMutateUnits() {
                 })
             }
             const { status, errors} = result
-            return { status, errors}
+            return { status, errors }
         }
     }
 

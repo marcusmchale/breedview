@@ -14,21 +14,17 @@ export function useMutateDatasets() {
     useMutation(ADD_RECORDS);
 
   const submitCreateDataset = async (dataset) => {
-    console.log('submitCreateDataset called')
     const result = await createDataset({ dataset });
-    console.log('result:', result)
     return result?.data?.datasetsCreateDataset;
 
   };
 
   const submitUpdateDataset = async (dataset) => {
-    console.log('submitUpdateDataset called')
     const result = await updateDataset({ dataset });
     return result?.data?.datasetsUpdateDataset;
   };
 
   const submitAddRecords = async (datasetId, records) => {
-    console.log('submitAddRecords called')
     const result = await addRecords({ datasetId, records });
     return result?.data?.datasetsAddRecords;
   };

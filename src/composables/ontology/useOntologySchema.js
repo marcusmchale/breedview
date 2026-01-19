@@ -1,21 +1,12 @@
-
 import { ref } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
-import gql from 'graphql-tag'
+
 import { ontologyLabelsMap } from './nodeColorMap'
 
+// Introspection query for OntologyEntryLabel enum
+import ONTOLOGY_LABELS_QUERY from "@/graphql/ontology/entryLabels.graphql"
+
 export function useOntologySchema() {
-  // Introspection query for OntologyEntryLabel enum
-  const ONTOLOGY_LABELS_QUERY = gql`
-    query {
-      __type(name: "OntologyEntryLabel") {
-        enumValues {
-          name
-          description
-        }
-      }
-    }
-  `
 
     const generateLabelEntries = (enumValues) => {
         return enumValues.map(enumValue => {

@@ -1,7 +1,24 @@
 
-const { getIntrospectionQuery, buildClientSchema, printSchema } = require('graphql');
-const fs = require('fs');
-const path = require('path');
+import { getIntrospectionQuery, buildClientSchema, printSchema } from 'graphql';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables manually from .env.development
+const envPath = path.join(__dirname, '../.env.development');
+const envContent = fs.readFileSync(envPath, 'utf-8');
+envContent.split('\n').forEach(line => {
+  const trimmed = line.trim();
+  if (trimmed && !trimmed.startsWith('#')) {
+    const [key, ...valueParts] = trimmed.split('=');
+    const value = valueParts.join('=').replace(/^['"]|['"]$/g, '');
+    if (key) process.env[key] = value;
+  }
+});
 
 // Handle command line arguments
 const args = process.argv.slice(2);
@@ -9,11 +26,8 @@ const apiHost = args.find(arg => arg.startsWith('--api-host='))?.split('=')[1];
 const graphqlPath = args.find(arg => arg.startsWith('--graphql-path='))?.split('=')[1];
 const outputFile = args.find(arg => arg.startsWith('--output='))?.split('=')[1];
 
-// Fallback to environment variables
-require('dotenv').config({ path: path.join(__dirname, '../.env.development') });
-
-const API_HOST = apiHost || process.env.VUE_APP_API_HOST;
-const GRAPHQL_PATH = graphqlPath || process.env.VUE_APP_GRAPHQL_PATH;
+const API_HOST = apiHost || process.env.VITE_API_HOST;
+const GRAPHQL_PATH = graphqlPath || process.env.VITE_GRAPHQL_PATH;
 const GRAPHQL_URI = `${API_HOST}${GRAPHQL_PATH}`;
 const OUTPUT_PATH = outputFile || './src/graphql/schema.graphql';
 const CSRF_ENDPOINT = `${API_HOST}/csrf`;
@@ -120,8 +134,8 @@ async function main() {
     // Validate required parameters
     if (!API_HOST || !GRAPHQL_PATH) {
       console.error('❌ Missing required parameters:');
-      console.error('   VUE_APP_API_HOST or --api-host=<url>');
-      console.error('   VUE_APP_GRAPHQL_PATH or --graphql-path=<path>');
+      console.error('   VITE_API_HOST or --api-host=<url>');
+      console.error('   VITE_GRAPHQL_PATH or --graphql-path=<path>');
       console.error('');
       console.error('Usage: node scripts/fetchGraphqlSchema.js [options]');
       console.error('Options:');

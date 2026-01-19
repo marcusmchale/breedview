@@ -74,7 +74,7 @@ import { useLocationMapQueries } from "@/composables/regions/locationMapQueries"
 const { locationId, selectedLocation, childLocations } = useLocationMapQueries()
 
 // Add Mapbox token (get from environment variable)
-const mapboxToken = `${process.env.VUE_APP_MAPBOX_TOKEN}`
+const mapboxToken = `${import.meta.env.VITE_MAPBOX_TOKEN}`
 
 const props = defineProps({
   selectedLocationId: {

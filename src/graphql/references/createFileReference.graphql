@@ -1,0 +1,9 @@
+mutation referencesCreateFile($reference: CreateFileReferenceInput!) {
+  referencesCreateFile(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

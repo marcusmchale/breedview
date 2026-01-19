@@ -1,0 +1,9 @@
+fragment ReferenceFields on ReferenceInterface {
+    id
+    description
+    ... on LegalReference { text }
+    ... on ExternalReference { url externalId }
+    ... on FileReference { filename fileId contentType }
+    ... on DataFileReference { filename fileId contentType schema format }
+    ... on ExternalDataReference { url externalId schema format}
+}

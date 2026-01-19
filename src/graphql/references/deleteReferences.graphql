@@ -1,0 +1,9 @@
+mutation referencesDelete($referenceIds: [Int!]!) {
+  referencesDelete(referenceIds: $referenceIds) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

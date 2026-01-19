@@ -23,6 +23,7 @@ export const hierarchicalSelectInput = {
     'getNodeLabelFn',
     'hasChildrenFn',
     'isDisabledFn',
+    'isSelectableFn',
     'placeholder'
   ]
 }
@@ -39,6 +40,7 @@ export const hierarchicalSelectPlugin = (node) => {
     'getNodeLabelFn',
     'hasChildrenFn',
     'isDisabledFn',
+    'isSelectableFn',
     'placeholder'
   ])
 

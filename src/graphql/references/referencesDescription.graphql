@@ -1,0 +1,13 @@
+#import "./referenceFragment.graphql"
+query referencesDescription($description: String!) {
+  referencesDescription(description: $description) {
+    status
+    result {
+        ...ReferenceFields
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

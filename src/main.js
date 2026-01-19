@@ -18,7 +18,7 @@ import './assets/styles/global.css'
 
 import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
 
-if (process.env.NODE_ENV === "development") {
+if (import.meta.env.DEV) {
   // Adds debugging messages only in a dev environment
   loadDevMessages();
   loadErrorMessages();
@@ -40,7 +40,7 @@ app.mount('#app')
 
 
 // Register service worker for tile caching
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

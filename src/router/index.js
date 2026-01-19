@@ -4,7 +4,6 @@ import HomePage from '../components/HomePage.vue'
 import LoginPage from '../components/user/LoginPage.vue'
 import ProgramsPage from '../components/programs/ProgramsPage.vue'
 import RegistrationPage from '../components/user/RegistrationPage.vue'
-import EditProfilePage from '../components/user/EditProfilePage.vue'
 import AffiliationsPage from '../components/affiliations/AffiliationsPage.vue'
 import ResetPassword from '../components/user/ResetPassword.vue'
 import VerifyEmail from '../components/user/VerifyEmail.vue'
@@ -49,15 +48,6 @@ const routes = [
     meta: {
       title: 'Register',
       hideNavigation: true
-    }
-  },
-  {
-    path: '/profile',
-    name: 'EditProfile',
-    component: EditProfilePage,
-    meta: {
-      requiresAuth: true,
-      title: 'Edit Profile'
     }
   },
   {
@@ -169,7 +159,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 

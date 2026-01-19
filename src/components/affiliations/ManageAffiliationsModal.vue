@@ -363,8 +363,6 @@ const allAffiliations = computed(() => ({
   curate: [],
   ...props.teamInfo?.affiliations
 }))
-console.log(allAffiliations.value)
-console.log(props.teamInfo.affiliations)
 
 // Apollo mutations
 const {

@@ -1,0 +1,9 @@
+mutation referencesCreateExternalData($reference: CreateExternalDataReferenceInput!) {
+  referencesCreateExternalData(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

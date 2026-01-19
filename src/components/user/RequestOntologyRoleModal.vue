@@ -1,63 +1,9 @@
-<template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Request Ontology Role</h2>
-        <button @click="closeModal" class="close-btn">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div v-if="error" class="error-message">
-          <p>{{ error }}</p>
-        </div>
-
-        <div v-else-if="user" class="role-selection">
-          <p class="current-role-label">
-            <strong>Current Role:</strong> {{ formatRoleName(user.ontologyRole) || 'None' }}
-          </p>
-
-          <p class="requested-role-label" v-if="user.ontologyRoleRequested">
-            <strong>Requested Role:</strong> {{ formatRoleName(user.ontologyRoleRequested) }}
-          </p>
-
-          <div class="roles-grid">
-            <button
-              v-for="role in ontologyRoles"
-              :key="role"
-              @click="selectRole(role)"
-              :class="[
-                'role-button',
-                { current: role === user.ontologyRole },
-                { requested: role === user.ontologyRoleRequested && role !== user.ontologyRole },
-                { selected: role === selectedRole && role !== user.ontologyRole }
-              ]"
-            >
-              {{ formatRoleName(role) }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button @click="closeModal" class="btn btn-secondary">
-          Cancel
-        </button>
-        <button
-          @click="submitRequest"
-          :disabled="!selectedRole || selectedRole === user?.ontologyRoleRequested || isSubmitting"
-          class="btn btn-primary"
-        >
-          {{ isSubmitting ? 'Submitting...' : 'Request Role' }}
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script setup>
 import { ref, watch } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
-import { useAuthStore } from '../../composables/user/useAuthStore'
+import { useAuthStore } from '@/composables/user/useAuthStore'
+
 import REQUEST_ONTOLOGY_ROLE from '../../graphql/account/requestOntologyRole.graphql'
 
 const props = defineProps({
@@ -134,6 +80,63 @@ const closeModal = () => {
   emit('close')
 }
 </script>
+
+
+<template>
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Request Ontology Role</h2>
+        <button @click="closeModal" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="error" class="error-message">
+          <p>{{ error }}</p>
+        </div>
+
+        <div v-else-if="user" class="role-selection">
+          <p class="current-role-label">
+            <strong>Current Role:</strong> {{ formatRoleName(user.ontologyRole) || 'None' }}
+          </p>
+
+          <p class="requested-role-label" v-if="user.ontologyRoleRequested">
+            <strong>Requested Role:</strong> {{ formatRoleName(user.ontologyRoleRequested) }}
+          </p>
+
+          <div class="roles-grid">
+            <button
+              v-for="role in ontologyRoles"
+              :key="role"
+              @click="selectRole(role)"
+              :class="[
+                'role-button',
+                { current: role === user.ontologyRole },
+                { requested: role === user.ontologyRoleRequested && role !== user.ontologyRole },
+                { selected: role === selectedRole && role !== user.ontologyRole }
+              ]"
+            >
+              {{ formatRoleName(role) }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button @click="closeModal" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button
+          @click="submitRequest"
+          :disabled="!selectedRole || selectedRole === user?.ontologyRoleRequested || isSubmitting"
+          class="btn btn-primary"
+        >
+          {{ isSubmitting ? 'Submitting...' : 'Request Role' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .modal-overlay {

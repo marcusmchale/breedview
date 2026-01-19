@@ -1,0 +1,8 @@
+query {
+      __type(name: "DataFormat") {
+        enumValues {
+          name
+          description
+        }
+      }
+    }

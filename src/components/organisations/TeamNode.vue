@@ -167,7 +167,8 @@ const handleRemoveAffiliation = async () => {
 const handleDeleteTeam = async () => {
   try {
     deleteTeamError.value = ''
-    const response = await deleteTeamMutation({ team: props.teamData.id })
+    console.log('Deleting team:', props.teamData.id)
+    const response = await deleteTeamMutation({ teamId: props.teamData.id })
 
     if (response?.data?.organisationsDeleteTeam?.status === 'SUCCESS') {
       emit('team-deleted', props.teamData.id)

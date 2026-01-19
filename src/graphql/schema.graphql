@@ -86,6 +86,7 @@ input RecordUpdate {
 }
 
 input DatasetInput {
+  studyId: Int!
   """ concept is either a Factor or Variable in the ontology """
   conceptId: Int!
   records: [RecordInput]
@@ -96,6 +97,7 @@ input DatasetInput {
 input DatasetUpdate {
   """Optionally provide a list of records to update"""
   datasetId: Int!
+  studyId: Int
   conceptId: Int
   records: [RecordUpdate]
   contributorIds: [Int!]
@@ -268,21 +270,21 @@ type Mutation {
   programsCreateStudy(study: CreateStudyInput!): BooleanPayload
   programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
   programsDeleteStudy(studyId: Int!): BooleanPayload
-  referencesCreateLegal(reference: CreateLegalReferenceInput!): BooleanPayload
-  referencesCreateExternal(reference: CreateExternalReferenceInput!): BooleanPayload
-  referencesCreateExternalData(reference: CreateExternalDataReferenceInput!): BooleanPayload
+  referencesCreateLegal(reference: CreateLegalReferenceInput!): CreatedIdPayload!
+  referencesCreateExternal(reference: CreateExternalReferenceInput!): CreatedIdPayload!
+  referencesCreateExternalData(reference: CreateExternalDataReferenceInput!): CreatedIdPayload!
 
   """
   As for dataset submissions, creating a file is asynchronous and we are returned a key 
   """
-  referencesCreateFile(reference: CreateFileReferenceInput): FileIdPayload
-  referencesCreateDataFile(reference: CreateDataFileReferenceInput): FileIdPayload
-  referencesUpdateLegal(reference: UpdateLegalReferenceInput!): BooleanPayload
-  referencesUpdateExternal(reference: UpdateExternalReferenceInput!): BooleanPayload
-  referencesUpdateExternalData(reference: UpdateExternalDataReferenceInput!): BooleanPayload
-  referencesUpdateFile(reference: UpdateFileReferenceInput): BooleanPayload
-  referencesUpdateDataFile(reference: UpdateDataFileReferenceInput): BooleanPayload
-  referencesDelete(referenceIds: [Int!]!): BooleanPayload
+  referencesCreateFile(reference: CreateFileReferenceInput): FileIdPayload!
+  referencesCreateDataFile(reference: CreateDataFileReferenceInput): FileIdPayload!
+  referencesUpdateLegal(reference: UpdateLegalReferenceInput!): BooleanPayload!
+  referencesUpdateExternal(reference: UpdateExternalReferenceInput!): BooleanPayload!
+  referencesUpdateExternalData(reference: UpdateExternalDataReferenceInput!): BooleanPayload!
+  referencesUpdateFile(reference: UpdateFileReferenceInput): FileIdPayload!
+  referencesUpdateDataFile(reference: UpdateDataFileReferenceInput): FileIdPayload!
+  referencesDelete(referenceIds: [Int!]!): BooleanPayload!
   regionsCreateLocation(location: LocationInput!): BooleanPayload!
   regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
   regionsDeleteLocation(locationId: Int!): BooleanPayload!
@@ -827,7 +829,9 @@ input UpdateStudyInput {
 }
 
 enum DataFormat {
-  JSON
+  FASTA
+  FASTQ
+  ODGI
   HDF5
   CSV
   TSV
@@ -865,17 +869,20 @@ input CreateDataFileReferenceInput {
 }
 
 input UpdateLegalReferenceInput {
+  referenceId: Int!
   description: String
   text: String!
 }
 
 input UpdateExternalReferenceInput {
+  referenceId: Int!
   description: String
   url: String!
   externalId: String
 }
 
 input UpdateExternalDataReferenceInput {
+  referenceId: Int!
   description: String
   url: String!
   externalId: String
@@ -884,11 +891,13 @@ input UpdateExternalDataReferenceInput {
 }
 
 input UpdateFileReferenceInput {
+  referenceId: Int!
   description: String
   file: Upload
 }
 
 input UpdateDataFileReferenceInput {
+  referenceId: Int!
   description: String
   file: Upload
   format: DataFormat!
@@ -1058,16 +1067,16 @@ type Record {
   value: String
   start: DateTime
   end: DateTime
-  references: [Reference]
+  references: [ReferenceInterface]
   submitted: DateTime
 }
 
-type DataSet {
+type Dataset {
   id: Int!
   concept: OntologyEntryInterface
   records: [Record]
   contributors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
 }
 
 type SubmittedRecord {
@@ -1083,7 +1092,7 @@ type SubmittedData {
   conceptId: Int!
   records: [SubmittedRecord]
   contributors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
 }
 
 enum SubmissionStatus {
@@ -1098,12 +1107,24 @@ type ItemError {
   error: String!
 }
 
-type Submission {
+type DatasetSubmission {
   data: SubmittedData
   datasetId: Int
   status: SubmissionStatus
   errors: [String]
   itemErrors: [ItemError]
+}
+
+type DatasetSummary {
+  id: Int!
+  concept: OntologyEntryInterface
+  subjects: [Subject]
+  locations: [Location]
+  blocks: [Unit]
+  unit_count: Int!
+  record_count: Int!
+  start: DateTime
+  end: DateTime
 }
 
 type GermplasmRelationship {
@@ -1123,7 +1144,7 @@ type GermplasmEntry {
   reproduction: Reproduction
   controlMethods: [ControlMethod!]
   authors: [Person!]
-  references: [Reference!]
+  references: [ReferenceInterface!]
   sources: [GermplasmRelationship!]
   sinks: [GermplasmRelationship!]
 }
@@ -1148,8 +1169,8 @@ type OntologyCommit {
   comment: String
   time: DateTime
   user: User
-  licence: Int
-  copyright: Int
+  licence: LegalReference
+  copyright: LegalReference
 }
 
 """
@@ -1417,7 +1438,7 @@ interface OntologyEntryInterface {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [OntologyEntryInterface]
   children: [OntologyEntryInterface]
 }
@@ -1437,7 +1458,7 @@ type Term implements OntologyEntryInterface {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Term]
   children: [Term]
   subjects: [Subject]
@@ -1469,7 +1490,7 @@ type Subject implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Subject]
   children: [Subject]
   terms: [Term]
@@ -1490,7 +1511,7 @@ type Trait implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Trait]
   children: [Trait]
   terms: [Term]
@@ -1510,7 +1531,7 @@ type Condition implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Condition]
   children: [Condition]
   terms: [Term]
@@ -1537,7 +1558,7 @@ type Scale implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Scale]
   children: [Scale]
   terms: [Term]
@@ -1558,7 +1579,7 @@ type Category implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Category]
   children: [Category]
   terms: [Term]
@@ -1578,7 +1599,7 @@ type ObservationMethod implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [ObservationMethod]
   children: [ObservationMethod]
   terms: [Term]
@@ -1606,7 +1627,7 @@ type Variable implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Variable]
   children: [Variable]
   terms: [Term]
@@ -1627,7 +1648,7 @@ type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [ControlMethod]
   children: [ControlMethod]
   terms: [Term]
@@ -1655,7 +1676,7 @@ type Factor implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Factor]
   children: [Factor]
   terms: [Term]
@@ -1676,7 +1697,7 @@ type Event implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Event]
   children: [Event]
   terms: [Term]
@@ -1696,7 +1717,7 @@ type LocationType implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [LocationType]
   children: [LocationType]
   terms: [Term]
@@ -1714,7 +1735,7 @@ type LayoutType implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [LayoutType]
   children: [LayoutType]
   terms: [Term]
@@ -1733,7 +1754,7 @@ type Design implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Design]
   children: [Design]
   terms: [Term]
@@ -1751,7 +1772,7 @@ type Role implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Role]
   children: [Role]
   terms: [Term]
@@ -1769,7 +1790,7 @@ type Title implements OntologyEntryInterface & RelatedToTerms {
   abbreviation: String
   synonyms: [String]
   authors: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   parents: [Title]
   children: [Title]
   terms: [Term]
@@ -1954,13 +1975,7 @@ type UnitPayload {
 
 type DatasetsPayload {
   status: QueryStatus!
-  result: [DataSet]
-  errors: [Error]
-}
-
-type FileIdPayload {
-  status: QueryStatus!
-  result: String
+  result: [Dataset]
   errors: [Error]
 }
 
@@ -1970,15 +1985,69 @@ type SubmissionIdPayload {
   errors: [Error]
 }
 
-type SubmissionPayload {
+type DatasetSubmissionPayload {
   status: QueryStatus!
-  result: Submission
+  result: DatasetSubmission
+  errors: [Error]
+}
+
+type DatasetSummariesPayload {
+  status: QueryStatus!
+  result: [DatasetSummary]
+  errors: [Error]
+}
+
+type ReferencesPayload {
+  status: QueryStatus!
+  result: [ReferenceInterface!]
+  errors: [Error]
+}
+
+type CreatedIdPayload {
+  status: QueryStatus!
+  result: Int
+  errors: [Error]
+}
+
+type FileIdPayload {
+  status: QueryStatus!
+  result: String
+  errors: [Error]
+}
+
+type FileSubmissionPayload {
+  status: QueryStatus!
+  result: FileSubmission
+  errors: [Error]
+}
+
+type FileDownloadPayload {
+  status: QueryStatus!
+  result: FileDownload
   errors: [Error]
 }
 
 type ProgramsPayload {
   status: QueryStatus!
   result: [Program]
+  errors: [Error]
+}
+
+type ProgramPayload {
+  status: QueryStatus!
+  result: Program
+  errors: [Error]
+}
+
+type TrialPayload {
+  status: QueryStatus!
+  result: Trial
+  errors: [Error]
+}
+
+type StudyPayload {
+  status: QueryStatus!
+  result: Study
   errors: [Error]
 }
 
@@ -2006,7 +2075,7 @@ type Program {
   fullname: String
   description: String
   contacts: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   trials: [Trial]
 }
 
@@ -2018,7 +2087,7 @@ type Trial {
   start: DateTime
   end: DateTime
   contacts: [Person]
-  references: [Reference]
+  references: [ReferenceInterface]
   studies: [Study]
 }
 
@@ -2027,15 +2096,12 @@ type Study {
   name: String!
   fullname: String
   description: String
-  externalId: String
   practices: String
   start: DateTime
   end: DateTime
-  factors: [DataSet]
-  observations: [DataSet]
   design: Design
-  licence: Reference
-  references: [Reference]
+  licence: LegalReference
+  references: [ReferenceInterface]
 }
 
 type Query {
@@ -2107,10 +2173,10 @@ type Query {
   """
   regions: LocationsPayload!
 
-  """Get locations by locationId"""
+  """ Get locations by locationId """
   regionsLocations(locationIds: [Int!]!): LocationsPayload!
 
-  """Search for locations by ontology Location type"""
+  """ Search for locations by ontology Location type """
   regionsLocationsByType(locationTypeId: Int!): LocationsPayload!
 
   """
@@ -2120,7 +2186,7 @@ type Query {
   """
   arrangements(locationId: Int): LayoutsPayload!
 
-  """Get a layout details by ID"""
+  """ Get a layout details by ID """
   arrangementsLayouts(layoutIds: [Int!]): LayoutsPayload!
 
   """
@@ -2129,34 +2195,119 @@ type Query {
   """
   blocks(locationIds: [Int!]): UnitsPayload!
 
-  """Get units by ID."""
+  """ Get units by ID. """
   blocksUnits(unitIds: [Int!]): UnitsPayload!
 
-  """Get a list of programs"""
-  programs(programId: Int, trialId: Int, studyId: Int): ProgramsPayload
+  """ Get a list of all programs """
+  programs: ProgramsPayload!
 
-  """Get datasets by ID or concept"""
-  datasets(datasetId: Int, conceptId: Int): DatasetsPayload
+  """Get a program by Id of program, trial or study """
+  programsProgram(programId: Int, trialId: Int, studyId: Int): ProgramPayload!
 
-  """Get dataset submission by key"""
-  datasetsSubmission(submissionId: String): SubmissionPayload
+  """ Get trials by Id of trial or study """
+  programsTrial(trialId: Int, studyId: Int): TrialPayload!
 
-  """Get the controller data for access controlled entities"""
+  """ Get study by study Id """
+  programsStudy(studyId: Int!): StudyPayload!
+
+  """ Get datasets by ID or concept """
+  datasets(datasetId: Int, conceptId: Int): DatasetsPayload!
+
+  """ Get dataset submission by key """
+  datasetsSubmission(submissionId: String!): DatasetSubmissionPayload!
+
+  """ Get a summary of datasets for a study """
+  datasetsSummaries(studyId: Int!): DatasetSummariesPayload!
+
+  """ Get the controller data for access controlled entities """
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [Int]!): ControllersPayload!
 
   """Get a list of Germplasm entries"""
-  germplasmEntries(names: [String!], entryIds: [Int!]): GermplasmEntriesPayload
+  germplasmEntries(names: [String!], entryIds: [Int!]): GermplasmEntriesPayload!
 
   """
   Get a list of Germplasm entries that have no sources defined,
   these should typically represent the Crop concept
   """
-  germplasmCrops: GermplasmEntriesPayload
+  germplasmCrops: GermplasmEntriesPayload!
+
+  """ Get reference by reference ID """
+  references(referenceIds: [Int!]): ReferencesPayload!
+
+  """ Get a users recently created/updated file references """
+  referencesRecentFiles: ReferencesPayload!
+
+  """ Search for references by text in description """
+  referencesDescription(description: String!): ReferencesPayload!
+
+  """ Get file submission by fileId for progress and status updates """
+  referencesFileSubmission(fileId: String!): FileSubmissionPayload!
+
+  """ Get a token to download a file """
+  referencesFileDownload(fileId: String!): FileDownloadPayload!
 }
 
-type Reference {
+interface ReferenceInterface {
   id: Int!
+  description: String
 }
+
+type LegalReference implements ReferenceInterface {
+  id: Int!
+  description: String
+  text: String
+}
+
+type ExternalReference implements ReferenceInterface {
+  id: Int!
+  description: String
+  url: String
+  externalId: String
+}
+
+type FileReference implements ReferenceInterface {
+  id: Int!
+  description: String
+  filename: String
+  fileId: String
+  contentType: String
+}
+
+type ExternalDataReference implements ReferenceInterface {
+  id: Int!
+  description: String
+  url: String
+  externalId: String
+  format: DataFormat
+  schema: String
+}
+
+type DataFileReference implements ReferenceInterface {
+  id: Int!
+  description: String
+  filename: String
+  fileId: String
+  contentType: String
+  format: DataFormat
+  schema: String
+}
+
+type FileSubmission {
+  referenceId: Int
+  status: SubmissionStatus
+  progress: Int
+  errors: [String]
+}
+
+type FileDownload {
+  filename: String!
+  contentType: String!
+  token: String!
+  expiresAt: DateTime!
+  url: String!
+}
+
+union ReferenceUnion = LegalReference | ExternalReference | ExternalDataReference | DataFileReference | FileReference
 
 type GeoCoordinate {
   """Latitude in degrees according to ISO 6709"""

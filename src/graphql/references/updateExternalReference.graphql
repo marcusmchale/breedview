@@ -1,0 +1,9 @@
+mutation referencesUpdateExternal($reference: UpdateExternalReferenceInput!) {
+  referencesUpdateExternal(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

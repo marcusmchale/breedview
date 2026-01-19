@@ -5,7 +5,7 @@ import { useValueParser} from "@/composables/parsers/valueParser";
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useApolloClient } from '@vue/apollo-composable';
 
-export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }) {
+export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts, rowsPerUnit }) {
 
   const { resolveClient } = useApolloClient();
 
@@ -28,21 +28,78 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
   // { [conceptId]: { submissionId, indexMapping, stopPolling } }
   const activeSubmissions = ref({});
 
+
+  // Helper to determine coordinate columns from all selected units
+  const determineCoordinateColumns = () => {
+    const units = toValue(selectedUnits) || [];
+
+    // Map of axis index to Set of unique axis names
+    const axisNamesMap = new Map();
+    let maxAxisCount = 0;
+
+    units.forEach(unit => {
+      const pos = unit.positions?.[0];
+      const axes = pos?.layout?.axes || [];
+
+      maxAxisCount = Math.max(maxAxisCount, axes.length);
+
+      // Collect unique names for each axis position
+      axes.forEach((axisName, index) => {
+        if (!axisNamesMap.has(index)) {
+          axisNamesMap.set(index, new Set());
+        }
+        axisNamesMap.get(index).add(axisName);
+      });
+    });
+    // Generate column definitions from the collected axis names
+    const columns = [];
+    for (let i = 0; i < maxAxisCount; i++) {
+      const axisNames = axisNamesMap.get(i) || new Set();
+      const header = Array.from(axisNames).sort().join(':');
+
+      columns.push({
+        key: `coord_${i}`,
+        header: header || `axis_${i}`, // fallback if no names found
+        axisIndex: i,
+      });
+    }
+
+    return columns;
+  };
+
   // Initialize table data based on units and rowsPerUnit
   const initializeTable = () => {
+
     const units = toValue(selectedUnits) || [];
     const rows = toValue(rowsPerUnit) || 1;
 
+    // Determine coordinate columns once for ALL units
+    const coordColumns = determineCoordinateColumns();
+
     const newData = [];
     units.forEach((unit) => {
+      // Get latest position if available
+      const pos = unit.positions?.[0];
+
       for (let i = 0; i < rows; i++) {
         const row = {
           _id: `${unit.id}-${i}-${Date.now()}`,
           unitId: unit.id,
           unitLabel: unit.name || unit.subject?.name || `Unit ${unit.id}`,
+          germplasmName: unit.germplasm?.name || '',
+          germplasmId: unit.germplasm?.id || '',
+          locationName: pos?.location?.name || '',
+          locationId: pos?.location?.id || '',
+          layoutName: pos?.layout?.name || '',
           startTime: '',
           endTime: '',
         };
+
+        // Create coordinate columns using pre-computed column info
+        coordColumns.forEach(col => {
+          row[col.key] = pos?.coordinates?.[col.axisIndex] || '';
+        });
+
         // Initialize concept columns with empty values
         (toValue(selectedConcepts) || []).forEach((concept) => {
           row[`concept_${concept.id}`] = '';
@@ -63,29 +120,14 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
     cellErrors.value = {};
   };
 
-  // Add a new row (duplicate of an existing row or blank)
-  const addRow = (afterIndex, duplicateFrom = null) => {
-    const concepts = toValue(selectedConcepts) || [];
-    let newRow;
+    // Duplicate an existing row
+  const addRow = (afterIndex, sourceIndex) => {
+    if (!tableData.value[sourceIndex]) return;
 
-    if (duplicateFrom !== null && tableData.value[duplicateFrom]) {
-      // Duplicate existing row
-      newRow = { ...tableData.value[duplicateFrom], _id: `new-${Date.now()}` };
-    } else {
-      // Create blank row - need a unit
-      const lastRow = tableData.value[afterIndex] || tableData.value[tableData.value.length - 1];
-      newRow = {
-        _id: `new-${Date.now()}`,
-        unitId: lastRow?.unitId || null,
-        unitLabel: lastRow?.unitLabel || '',
-        startTime: '',
-        endTime: '',
-      };
-      concepts.forEach((concept) => {
-        newRow[`concept_${concept.id}`] = '';
-      });
-    }
-    const insertAt = afterIndex !== undefined ? afterIndex + 1 : tableData.value.length;
+    // Duplicate the source row with all its data including coordinate columns
+    const newRow = { ...tableData.value[sourceIndex], _id: `new-${Date.now()}` };
+
+    const insertAt = afterIndex + 1;
     tableData.value = [
       ...tableData.value.slice(0, insertAt),
       newRow,
@@ -119,8 +161,6 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
 
   // Get categories for categorical concepts
   const getCategories = (concept) => {
-    console.log('get categories for concept:', concept, concept?.scale?.categories)
-
     return concept?.scale?.categories || [];
   };
 
@@ -178,14 +218,18 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
         return isCategoricalScale(concept); // Warnings return true for validation
       }
     }
-
     return true;
   };
 
   // Update cell value with validation
   const updateCell = (rowIndex, columnKey, value) => {
     if (tableData.value[rowIndex]) {
-      tableData.value[rowIndex][columnKey] = value;
+      // Create a new array with the updated row to trigger reactivity
+      tableData.value = tableData.value.map((row, idx) =>
+        idx === rowIndex
+          ? { ...row, [columnKey]: value }
+          : row
+      );
 
       validateCell(rowIndex, columnKey, value);
     }
@@ -200,22 +244,25 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
       }
     }
 
-    tableData.value.forEach((row, index) => {
+    // Create a new array to ensure Vue reactivity detects the change
+    tableData.value = tableData.value.map((row, index) => {
       // Skip if column is already submitted successfully
       if (columnKey.startsWith('concept_')) {
         const conceptId = parseInt(columnKey.replace('concept_', ''));
-        if (columnStatus.value[conceptId]?.status === 'success') return;
+        if (columnStatus.value[conceptId]?.status === 'success') return row;
 
         const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
-        if (concept && isComplexScale(concept)) return;
+        if (concept && isComplexScale(concept)) return row;
       }
 
-      row[columnKey] = value;
+      // Create a new row object to trigger reactivity
+      const newRow = { ...row, [columnKey]: value };
       validateCell(index, columnKey, value);
+      return newRow;
     });
 
     return { success: true };
-  };
+  }
 
   // Validate entire column before submission
   const validateColumn = (conceptId) => {
@@ -235,6 +282,7 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
   // Prepare records for submission (excludes empty values)
   const prepareRecords = (conceptId) => {
     const columnKey = `concept_${conceptId}`;
+    const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
     const records = [];
     const indexMapping = []; // Track original indices for error mapping
 
@@ -243,12 +291,30 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
       // Exclude empty string values
       if (value === '' || value === null || value === undefined) return;
 
-      records.push({
+      const record = {
         unitId: row.unitId,
-        value: String(value),
         start: normalizePartialDatetime(row.startTime) || null,
         end: normalizePartialDatetime(row.endTime) || null,
-      });
+      };
+
+      // For complex scales, extract referenceIds from the JSON array
+      if (isComplexScale(concept)) {
+        try {
+          const referenceIds = JSON.parse(value);
+          if (Array.isArray(referenceIds) && referenceIds.length > 0) {
+            record.referenceIds = referenceIds;
+            record.value = null; // Complex scales don't use value field
+          } else {
+            return; // Skip if no references
+          }
+        } catch {
+          return; // Skip invalid JSON
+        }
+      } else {
+        record.value = String(value);
+      }
+
+      records.push(record);
       indexMapping.push(originalIndex);
     });
 
@@ -346,9 +412,11 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
     columnStatus.value[conceptId] = { status: 'submitting' };
 
     try {
+      console.log('submitting dataset', toValue(selectedStudy), conceptId)
       const result = await submitCreateDataset({
-        conceptId,
-        records,
+        studyId: toValue(selectedStudy).id,
+        conceptId: conceptId,
+        records: records,
       });
 
       if (!result) {
@@ -372,7 +440,7 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
   const submitAllColumns = async () => {
     const concepts = toValue(selectedConcepts) || [];
     const pendingConcepts = concepts.filter(
-      (c) => columnStatus.value[c.id]?.status !== 'success' && !isComplexScale(c)
+      (c) => columnStatus.value[c.id]?.status !== 'success'
     );
 
     const submissions = pendingConcepts.map((concept) => submitColumn(concept.id));
@@ -395,8 +463,7 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
   // Check if all columns are submitted successfully
   const allSubmitted = computed(() => {
     const concepts = toValue(selectedConcepts) || [];
-    const nonComplexConcepts = concepts.filter((c) => !isComplexScale(c));
-    return nonComplexConcepts.every(
+    return concepts.every(
       (c) => columnStatus.value[c.id]?.status === 'success'
     );
   });
@@ -414,8 +481,7 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
 
   // Check if column is disabled (submitted successfully or complex)
   const isColumnDisabled = (conceptId) => {
-    const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
-    return columnStatus.value[conceptId]?.status === 'success' || isComplexScale(concept);
+    return columnStatus.value[conceptId]?.status === 'success'
   };
 
   return {
@@ -426,6 +492,7 @@ export function useDatasetTable({ selectedUnits, selectedConcepts, rowsPerUnit }
 
     // Methods
     initializeTable,
+    determineCoordinateColumns,
     addRow,
     removeRow,
     rowHasData,

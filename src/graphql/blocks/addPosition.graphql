@@ -1,4 +1,4 @@
-mutation blocksAddPosition($unitId: Int!, $position: PositionInput) {
+mutation blocksAddPosition($unitId: Int!, $position: PositionInput!) {
   blocksAddPosition(unitId: $unitId, position: $position) {
     status
     errors {

@@ -53,12 +53,13 @@
                     'option-item': true,
                     'selected': isNodeSelected(node),
                     'disabled': isNodeDisabled(node),
+                    'not-selectable': !isNodeSelectable(node),
                     'has-children': hasChildren(node)
                   }"
               >
                 <button
                   @click.stop="selectNode(node)"
-                  :disabled="isNodeDisabled(node)"
+                  :disabled="!isNodeSelectable(node)"
                   class="option-label-button"
                   type="button"
                 >
@@ -140,6 +141,14 @@ const props = defineProps({
     default: () => false
   },
 
+  // Optional function to determine if a node should be selectable
+  // (e.g. programs are not selectable when selecting studies)
+  // Signature: (node) => boolean
+  isSelectableFn: {
+    type: Function,
+    default: () => true
+  },
+
   // Node ID to exclude (along with its descendants)
   excludeNodeId: {
     type: [Number, String, null],
@@ -204,7 +213,7 @@ const currentOptions = computed( () => {
 const updateCurrentOptions = async () => {
   if (!currentParentNode.value) return
   const nodeId = currentParentNode.value.id
-  props.loadChildrenFn(nodeId)
+  props.loadChildrenFn(nodeId, currentParentNode.value)
 }
 
 watch(
@@ -323,6 +332,16 @@ const isNodeDisabled = (node) => {
   // Check custom disabled function
   return props.isDisabledFn(node)
 }
+
+const isNodeSelectable = (node) => {
+  // First check if fully disabled
+  if (isNodeDisabled(node)) {
+    return false
+  }
+  // Then check custom selectable function
+  return props.isSelectableFn(node)
+}
+
 
 const isNodeSelected = (node) => {
   return node.id === props.modelValue
@@ -549,6 +568,20 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
   background-color: #f9f9f9;
 }
+.option-item.not-selectable .option-label-button {
+  color: #999;
+  cursor: default;
+}
+
+.option-item.not-selectable:not(.disabled) {
+  opacity: 1;
+  background-color: white;
+}
+
+.option-item.not-selectable:not(.disabled):hover {
+  background-color: #f8f9fa;
+}
+
 
 .option-label-button {
   flex: 1;

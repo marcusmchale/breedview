@@ -1,0 +1,18 @@
+#import "../references/referenceFragment.graphql"
+query programsProgram($programId: Int, $trialId: Int, $studyId: Int) {
+  programsProgram(programId: $programId, trialId: $trialId, studyId: $studyId) {
+    status
+    result {
+      id
+      name
+      fullname
+      description
+      contacts { id }
+      references { ...ReferenceFields }
+      trials { id name }
+    }
+    errors {
+      message
+    }
+  }
+}

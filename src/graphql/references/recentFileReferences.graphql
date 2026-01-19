@@ -1,0 +1,13 @@
+#import "./referenceFragment.graphql"
+query referencesRecentFiles {
+  referencesRecentFiles {
+    status
+    result {
+        ...ReferenceFields
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

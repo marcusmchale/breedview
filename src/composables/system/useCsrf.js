@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-const csrfEndpoint = `${process.env.VUE_APP_API_HOST}/csrf`
+const csrfEndpoint = `${import.meta.env.VITE_API_HOST}/csrf`
 
 const csrfToken = ref(null)
 

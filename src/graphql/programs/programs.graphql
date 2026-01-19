@@ -1,38 +1,15 @@
-query programs($programId: Int, $trialId: Int, $studyId: Int) {
-  programs(programId: $programId, trialId: $trialId, studyId: $studyId) {
+#import "../references/referenceFragment.graphql"
+query programs {
+  programs {
     status
     result {
       id
       name
       fullname
       description
-      contacts {id}
-      references {id}
-      trials {
-        id
-        name
-        fullname
-        description
-        start
-        end
-        contacts {id}
-        references {id}
-        studies {
-          id
-          name
-          fullname
-          description
-          externalId
-          practices
-          start
-          end
-          factors {id}
-          observations {id}
-          design {id}
-          licence {id}
-          references {id}
-        }
-      }
+      contacts { id }
+      references { ...ReferenceFields }
+      trials { id, name }
     }
     errors {
       message

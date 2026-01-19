@@ -2,12 +2,18 @@
 <script setup>
 import { ref, computed } from "vue"
 import { FormKit } from "@formkit/vue";
+import { useSelectStudyQueries } from "@/composables/datasets/selectStudyQueries";
 import { useSelectLocationsQuery } from "@/composables/datasets/selectLocationsQueries";
 import { useSelectUnitsQuery } from "@/composables/datasets/selectUnitsQueries";
 import { useSelectConceptsQuery } from "@/composables/datasets/selectConceptsQueries";
+
 import DatasetTableModal from "./DatasetTableModal.vue";
 
-const selectUnitData = ref({
+const selectedProgram = ref(null)
+const selectedTrial = ref(null)
+
+const selectionData = ref({
+  studyId: null,
   locationIds: [],
   unitIds: [],
   factorIds: [],
@@ -21,13 +27,32 @@ const rowsPerUnit = ref(1);
 const showTableModal = ref(false);
 
 const {
+  study,
+  studyLoading,
+  studyError,
+  programs,
+  programsLoading,
+  programsError,
+  trials,
+  trialsLoading,
+  trialsError,
+  studies,
+  studiesLoading,
+  studiesError,
+} = useSelectStudyQueries({
+  programId:selectedProgram,
+  trialId:selectedTrial,
+  studyId: () => selectionData.value?.studyId
+})
+
+const {
   regions,
   selectedLocations,
   loadDisplayedChildLocations,
   displayedLocationsLoading,
   displayedLocations
 } = useSelectLocationsQuery({
-  locationIds: () => selectUnitData.value?.locationIds
+  locationIds: () => selectionData.value?.locationIds
 })
 
 const {
@@ -37,8 +62,8 @@ const {
   displayedUnitsLoading,
   displayedUnits
 } = useSelectUnitsQuery({
-  locationIds: () => selectUnitData.value?.locationIds,
-  unitIds: () => selectUnitData.value?.unitIds
+  locationIds: () => selectionData.value?.locationIds,
+  unitIds: () => selectionData.value?.unitIds
 })
 
 const {
@@ -67,16 +92,16 @@ const variableOptions = computed(() => {
 const selectedConcepts = computed(() => {
   const concepts = [];
 
-  if (selectUnitData.value.factorIds && factors.value) {
+  if (selectionData.value.factorIds && factors.value) {
     const selectedFactors = factors.value.filter(f =>
-      selectUnitData.value.factorIds.includes(f.id)
+      selectionData.value.factorIds.includes(f.id)
     );
     concepts.push(...selectedFactors);
   }
 
-  if (selectUnitData.value.variableIds && variables.value) {
+  if (selectionData.value.variableIds && variables.value) {
     const selectedVariables = variables.value.filter(v =>
-      selectUnitData.value.variableIds.includes(v.id)
+      selectionData.value.variableIds.includes(v.id)
     );
     concepts.push(...selectedVariables);
   }
@@ -104,22 +129,83 @@ const handleSubmitted = () => {
   // Optionally close modal or show success message
   // showTableModal.value = false;
 };
+
+const loadChildren = (nodeId, node) => {
+  const typeName = node?.__typename
+  if (typeName === 'Program') {
+    selectedProgram.value = nodeId
+    selectedTrial.value = null
+  } else if (typeName === 'Trial') {
+    selectedTrial.value = nodeId
+  }
+}
+
+const childrenLoading = computed(() => {
+  return studiesLoading || trialsLoading || programsLoading
+})
+
+const currentChildren = computed(() => {
+  if (selectedProgram.value) {
+    if (selectedTrial.value) {
+      return studies
+    } else {
+      return trials
+    }
+  } else {
+    return []
+  }
+})
+
+const hasChildren = (node) => {
+  if (node.__typename === 'Study') {
+    return false
+  } else if (node.__typename === 'Trial') {
+    return node.studies ? node.studies?.length > 0 : true
+  } else if (node.__typename === 'Program') {
+    return node.trials ? node.trials?.length > 0 : true
+  }
+  console.error("unrecognised typename to hasChildren")
+  return false
+}
+
+const isSelectable = (node) => {
+  return node.__typename === 'Study'
+}
+
 </script>
 
 <template>
   <div class="dataset-management">
     <h2>Dataset Management</h2>
     <FormKit
-      v-model="selectUnitData"
+      v-model="selectionData"
       type="form"
       :actions="false"
       >
+
+      <FormKit
+        type="hierarchical-select"
+        name="studyId"
+        label="Study:"
+        help="Select a study"
+        :selected="study"
+        :rootNodes="programs"
+        :loadChildrenFn="loadChildren"
+        :childrenLoading="childrenLoading"
+        :currentChildren="currentChildren"
+        :hasChildrenFn="hasChildren"
+        :isSelectableFn="isSelectable"
+        :exclude-node-id=null
+        :get-node-label-fn="(unit) => unit.name || `${unit.id}`"
+        validation="required"
+      />
+
       <FormKit
         type="hierarchical-multiselect"
         name="locationIds"
         label="Locations:"
         help="Select locations"
-        :value="selectUnitData.locationIds"
+        :value="selectionData.locationIds"
         :selected-nodes="selectedLocations"
         :rootNodes="regions"
         :loadChildrenFn="loadDisplayedChildLocations"
@@ -135,7 +221,7 @@ const handleSubmitted = () => {
         name="unitIds"
         label="Units:"
         help="Select units from blocks at these locations"
-        :value="selectUnitData.unitIds"
+        :value="selectionData.unitIds"
         :selected-nodes="selectedUnits"
         :rootNodes="blocks"
         :loadChildrenFn="loadDisplayedChildUnits"
@@ -198,7 +284,9 @@ const handleSubmitted = () => {
 
     <!-- Dataset Table Modal -->
     <DatasetTableModal
+      v-if="selectionData?.studyId && selectedUnits.length > 0 && selectedConcepts.length > 0"
       :visible="showTableModal"
+      :selected-study="study"
       :selected-units="selectedUnits"
       :selected-concepts="selectedConcepts"
       :rows-per-unit="rowsPerUnit"

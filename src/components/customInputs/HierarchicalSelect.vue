@@ -23,6 +23,7 @@
           :currentChildren="context.currentChildren"
           :get-node-label-fn="context.getNodeLabelFn"
           :is-disabled-fn="context.isDisabledFn"
+          :is-selectable-fn="context.isSelectableFn"
           :exclude-node-id="context.excludeNodeId"
           :placeholder="context.placeholder || context.attrs.placeholder"
           :disabled="context.disabled"

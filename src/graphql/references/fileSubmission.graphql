@@ -1,0 +1,15 @@
+query referencesFileSubmission($fileId: String!) {
+  referencesFileSubmission(fileId: $fileId) {
+    status
+    result {
+      referenceId
+      status
+      progress
+      errors
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

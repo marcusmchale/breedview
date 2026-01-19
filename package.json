@@ -4,17 +4,19 @@
   "private": true,
   "description": "Web interface to breedgraph",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js --fix"
   },
   "dependencies": {
-    "@apollo/client": "^3.8.8",
+    "@apollo/client": "^3.14.0",
     "@formkit/themes": "^1.6.9",
     "@formkit/vue": "^1.6.9",
     "@tanstack/vue-table": "^8.21.3",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vue/apollo-composable": "^4.2.2",
+    "apollo-upload-client": "^17.0.0",
     "core-js": "^3.34.0",
     "d3": "^7.9.0",
     "graphql": "^16.11.0",
@@ -24,18 +26,14 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.6",
-    "@babel/eslint-parser": "^7.23.3",
-    "@vue/cli-plugin-babel": "~5.0.8",
-    "@vue/cli-plugin-eslint": "~5.0.8",
-    "@vue/cli-service": "~5.0.8",
+    "@rollup/plugin-graphql": "^2.0.5",
+    "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.4.0",
     "@vue/eslint-config-prettier": "^8.0.0",
     "eslint": "^8.56.0",
     "eslint-plugin-prettier": "^5.1.0",
     "eslint-plugin-vue": "^9.19.0",
-    "graphql-loader": "^1.2.1",
-    "graphql-tag": "^2.12.6",
-    "prettier": "^3.1.0"
+    "prettier": "^3.1.0",
+    "vite": "^6.4.1"
   }
 }

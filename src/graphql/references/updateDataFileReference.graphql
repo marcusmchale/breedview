@@ -1,0 +1,9 @@
+mutation referencesUpdateDataFile($reference: UpdateDataFileReferenceInput!) {
+  referencesUpdateDataFile(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

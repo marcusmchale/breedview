@@ -271,7 +271,7 @@ const currentOptions = computed(() => {
 const updateCurrentOptions = async () => {
   if (!currentParentNode.value) return
   const nodeId = currentParentNode.value.id
-  props.loadChildrenFn(nodeId)
+  props.loadChildrenFn(nodeId, currentParentNode.value)
 }
 
 watch(
