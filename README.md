@@ -9,14 +9,17 @@ Then to ensure the binary is in your path
   . ~/.bashrc
 Then install the latest lts of node
   nvm install --lts --latest-npm
+  
+Now using vite
 ```
 
 ## Project setup
 npm install
 
 ### Compiles and hot-reloads for development
+
 ```
-npm run serve
+npm run dev
 ```
 With this running you should now be able to visit localhost:8080 and see the page loaded
 
@@ -30,5 +33,3 @@ npm run build
 npm run lint
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
