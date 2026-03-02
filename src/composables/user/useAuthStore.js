@@ -66,15 +66,7 @@ export function useAuthStore() {
     // The logout mutation causes the back end (breedgraph) to set the httponly cookie to expire immediately
   }
   
-  // Periodic auth check to detect session expiry
-  const startPeriodicAuthCheck = () => {
-    setInterval(async () => {
-      if (isAuthenticated.value) {
-        await authenticate(true) // Force refresh
-      }
-    }, AUTH_CACHE_DURATION)
-  }
-  
+
   return {
     user: computed(() => user.value),
     currentUserId,
@@ -83,7 +75,6 @@ export function useAuthStore() {
     error: computed(() => error.value),
     authenticate,
     clearAuthState,
-    logout,
-    startPeriodicAuthCheck
+    logout
   }
 }

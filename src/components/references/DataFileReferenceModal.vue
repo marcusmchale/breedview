@@ -7,6 +7,7 @@ import { useRecentFileReferencesQuery } from '@/composables/references/recentFil
 import { pollFileSubmission } from '@/composables/references/fileSubmissionQuery';
 
 import UploadStatus from "@/components/references/UploadStatus.vue";
+import FileDownloadButton from "@/components/references/FileDownloadButton.vue";
 
 const props = defineProps({
   visible: {
@@ -443,6 +444,12 @@ watch(() => props.visible, (visible) => {
                   />
                   <strong>{{ ref.filename || 'Unnamed File' }}</strong>
                   <span class="reference-id">ID: {{ ref.id }}</span>
+                  <FileDownloadButton
+                    v-if="ref.fileId"
+                    :file-id="ref.fileId"
+                    :filename="ref.filename"
+                    size="small"
+                  />
                 </div>
                 <div class="reference-details">
                   <p v-if="ref.description" class="description">{{ ref.description }}</p>
@@ -487,6 +494,12 @@ watch(() => props.visible, (visible) => {
                     </div>
                   </div>
                   <div class="reference-actions">
+                    <FileDownloadButton
+                      v-if="ref.fileId"
+                      :file-id="ref.fileId"
+                      :filename="ref.filename"
+                      size="small"
+                    />
                     <button 
                       class="btn-small btn-secondary"
                       @click="startEditing(ref)"

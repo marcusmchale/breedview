@@ -1,4 +1,5 @@
 import {useApolloClient} from "@vue/apollo-composable";
+import {toHaveSuspenseCacheEntryUsing} from "@apollo/client/testing/matchers/toHaveSuspenseCacheEntryUsing";
 
 function setsAreEqual(set1, set2) {
   if (set1.size !== set2.size) {
@@ -48,6 +49,35 @@ export function useCacheUpdates({ typename, fragment }) {
         }
         client.cache.evict({ id: itemCacheId})
         client.cache.gc()
+    }
+
+    const updateOntologyEntryLifecycle = (entryId, versionId, phase) => {
+        const itemCacheId = client.cache.identify({
+            __typename: typename,
+            id: entryId,
+            versionId: versionId,
+            draft: true
+        })
+
+        console.log('itemCacheId:', itemCacheId)
+        const cachedData = client.cache.readFragment({
+            id: itemCacheId,
+            fragment: fragment
+        })
+        console.log('cachedData', cachedData)
+        client.cache.modify({
+            id: itemCacheId,
+            fields: {
+                phase() {
+                    return phase
+                }
+            }
+        })
+        const cachedData2 = client.cache.readFragment({
+            id: itemCacheId,
+            fragment: fragment
+        })
+        console.log('cachedData after update', cachedData2)
     }
 
     // takes the data to update (object)
@@ -397,6 +427,8 @@ export function useCacheUpdates({ typename, fragment }) {
         deleteItem,
 
         addPosition,
-        removePosition
+        removePosition,
+
+        updateOntologyEntryLifecycle
     }
 }

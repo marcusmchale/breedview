@@ -108,6 +108,7 @@
                   'option-item': true,
                   'selected': isNodeSelected(node),
                   'disabled': isNodeDisabled(node),
+                  'not-selectable': !isNodeSelectable(node),
                   'has-children': hasChildren(node)
                 }"
               >
@@ -116,7 +117,7 @@
                     type="checkbox"
                     :checked="isNodeSelected(node)"
                     @change="toggleSelection(node)"
-                    :disabled="isNodeDisabled(node)"
+                    :disabled="!isNodeSelectable(node)"
                     class="option-checkbox"
                   />
                   <span class="option-label">{{ getNodeLabel(node) }}</span>
@@ -198,6 +199,10 @@ const props = defineProps({
   isDisabledFn: {
     type: Function,
     default: () => false
+  },
+  isSelectableFn: {
+    type: Function,
+    default: () => true
   },
   // Array of node IDs to exclude
   excludeNodeIds: {
@@ -368,8 +373,18 @@ const isNodeDisabled = (node) => {
   return props.isDisabledFn(node)
 }
 
+const isNodeSelectable = (node) => {
+  // First check if fully disabled
+  if (isNodeDisabled(node)) {
+    return false
+  }
+  // Then check custom selectable function
+  return props.isSelectableFn(node)
+}
+
+
 const isNodeSelected = (node) => {
-  return internalSelectedIds.value.includes(node.id)
+  return internalSelectedIds.value.includes(node.id) && isNodeSelectable(node)
 }
 
 const toggleSelection = (node) => {
@@ -417,7 +432,7 @@ const selectAllDisplayed = () => {
 
   // Filter out disabled and already selected nodes
   const selectableNodes = currentOptions.value.filter(node =>
-    !isNodeDisabled(node) && !newSelectedIds.includes(node.id)
+    !isNodeDisabled(node) && isNodeSelectable(node) && !newSelectedIds.includes(node.id)
   )
 
   // Add as many as possible within the max limit

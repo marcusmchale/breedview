@@ -1,0 +1,10 @@
+mutation RemoveRecords($datasetId: Int!, $recordIds: [Int!]!) {
+  datasetsRemoveRecords(datasetId: $datasetId, recordIds: $recordIds) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

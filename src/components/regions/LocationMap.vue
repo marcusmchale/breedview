@@ -1,62 +1,4 @@
 
-<template>
-  <div class="location-map-container">
-    <div class="map-header">
-      <h3>Location Map</h3>
-      <div v-if="selectedLocation" class="selected-info">
-        <span class="selected-name">{{ selectedLocation.name }}</span>
-        <span v-if="selectedLocation.type" class="selected-type">
-          ({{ selectedLocation.type.name }})
-        </span>
-      </div>
-    </div>
-
-    <div class="drawing-controls">
-      <span v-if="updateCoordinatesError" class="error-message">{{ updateCoordinatesError }}</span>
-      <span v-if="updateCoordinatesLoading" class="loading-state">Saving coordinates...</span>
-      <button
-        @click="submitCoordinates"
-        class="draw-btn submit-btn"
-        title="Submit coordinates"
-        :disabled="!hasLayer"
-      >
-        ✓ Update Coordinates
-      </button>
-    </div>
-
-    <div class="map-wrapper">
-      <l-map
-        ref="mapRef"
-        v-model:zoom="zoom"
-        v-model:center="center"
-        :use-global-leaflet="true"
-        @ready="onMapReady"
-      >
-        <l-tile-layer
-          url="https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}"
-          attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          :options="{ accessToken: mapboxToken }"
-          layer-type="base"
-          name="Mapbox"
-          :max-zoom="19"
-        />
-      </l-map>
-    </div>
-
-    <div class="map-info">
-      <p v-if="!selectedLocationId" class="help-text">
-        Select a location from the tree to view it on the map
-      </p>
-      <p v-else-if="!childLocations || childLocations.length === 0" class="help-text">
-        No child locations with coordinates to display
-      </p>
-      <p v-else class="help-text">
-        Showing {{ childLocations.length }} location{{ childLocations.length !== 1 ? 's' : '' }}
-      </p>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import {
   ref,
@@ -64,10 +6,14 @@ import {
   toRaw
 } from 'vue'
 import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
-import 'leaflet/dist/leaflet.css'
-import 'leaflet-draw/dist/leaflet.draw.css'
+
 import L from 'leaflet'
-import 'leaflet-draw'
+import 'leaflet/dist/leaflet.css'
+
+import '@geoman-io/leaflet-geoman-free'
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
+
+
 import { useLocationGeocoding } from '@/composables/regions/useLocationGeocoding'
 import { useLocationMapQueries } from "@/composables/regions/locationMapQueries";
 
@@ -145,38 +91,34 @@ const onMapReady = () => {
 
     map.setView(center.value, zoom.value, { animate: false })
 
-    // Initialize draw control with emoji marker icon
-    const drawControl = new L.Control.Draw({
+    // Initialize Geoman controls (similar to leaflet-draw)
+    map.pm.addControls({
       position: 'topleft',
-      draw: {
-        polygon: {
-          allowIntersection: false,
-          showArea: true,
-          shapeOptions: {
-            stroke: true,
-            color: '#007bff',
-            weight: 2,
-            opacity: 0.7,
-            fill: true,
-            fillColor: '#007bff',
-            fillOpacity: 0.2
-          }
-        },
-        marker: {
-          icon: pinIcon
-        },
-        polyline: false,
-        rectangle: false,
-        circle: false,
-        circlemarker: false
-      },
-      edit: {
-        featureGroup: drawnItems,
-        remove: true
+      drawMarker: true,
+      drawCircleMarker: false,
+      drawPolyline: false,
+      drawRectangle: false,
+      drawCircle: false,
+      drawPolygon: true,
+      editMode: true,
+      dragMode: false,
+      cutPolygon: false,
+      removalMode: true,
+    })
+
+    // Configure polygon drawing
+    map.pm.setPathOptions({
+      color: '#007bff',
+      fillColor: '#007bff',
+      fillOpacity: 0.2
+    })
+
+    // Set custom marker icon
+    map.pm.setGlobalOptions({
+      markerStyle: {
+        icon: pinIcon
       }
     })
-    map.addControl(drawControl)
-    map._drawControl = drawControl
 
         // --- Reactive sync ---
     const updateHasLayer = () => {
@@ -186,31 +128,22 @@ const onMapReady = () => {
     drawnItems.on('layeradd', updateHasLayer);
     drawnItems.on('layerremove', updateHasLayer);
 
-    // Set up draw event listeners
-    map.on('draw:created', (e) => {
+
+    // Geoman event listeners (replaces draw:created, draw:deleted, etc.)
+    map.on('pm:create', (e) => {
       const layer = e.layer
       drawnItems.addLayer(layer)
       updateHasLayer()
     })
 
-    //map.on('draw:edited', (e) => {
-    //  console.log('Shape edited:', e)
-    //})
-
-    map.on('draw:deleted', () => {
+    map.on('pm:remove', () => {
       updateHasLayer()
     })
 
-    // Handle draw:drawstart to track when drawing begins
-    map.on('draw:drawstart', () => {
+    map.on('pm:drawstart', () => {
       // Clear existing drawings
       drawnItems.clearLayers()
     })
-
-    // Handle draw:drawstop to clear drawing mode
-    //map.on('draw:drawstop', (e) => {
-    //  console.log('Drawing stopped:', e)
-    //})
   }
 }
 
@@ -573,6 +506,66 @@ watch(childLocations, async (newChildren) => {
 }, { deep: true})
 
 </script>
+
+
+<template>
+  <div class="location-map-container">
+    <div class="map-header">
+      <h3>Location Map</h3>
+      <div v-if="selectedLocation" class="selected-info">
+        <span class="selected-name">{{ selectedLocation.name }}</span>
+        <span v-if="selectedLocation.type" class="selected-type">
+          ({{ selectedLocation.type.name }})
+        </span>
+      </div>
+    </div>
+
+    <div class="drawing-controls">
+      <span v-if="updateCoordinatesError" class="error-message">{{ updateCoordinatesError }}</span>
+      <span v-if="updateCoordinatesLoading" class="loading-state">Saving coordinates...</span>
+      <button
+        @click="submitCoordinates"
+        class="draw-btn submit-btn"
+        title="Submit coordinates"
+        :disabled="!hasLayer"
+      >
+        ✓ Update Coordinates
+      </button>
+    </div>
+
+    <div class="map-wrapper">
+      <l-map
+        ref="mapRef"
+        v-model:zoom="zoom"
+        v-model:center="center"
+        :use-global-leaflet="true"
+        @ready="onMapReady"
+      >
+        <l-tile-layer
+          url="https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}"
+          attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          :options="{ accessToken: mapboxToken }"
+          layer-type="base"
+          name="Mapbox"
+          :max-zoom="19"
+        />
+      </l-map>
+    </div>
+
+    <div class="map-info">
+      <p v-if="!selectedLocationId" class="help-text">
+        Select a location from the tree to view it on the map
+      </p>
+      <p v-else-if="!childLocations || childLocations.length === 0" class="help-text">
+        No child locations with coordinates to display
+      </p>
+      <p v-else class="help-text">
+        Showing {{ childLocations.length }} location{{ childLocations.length !== 1 ? 's' : '' }}
+      </p>
+    </div>
+  </div>
+</template>
+
 
 <style scoped>
 .location-map-container {

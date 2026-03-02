@@ -1,11 +1,11 @@
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 import {
     useQuery,
 } from '@vue/apollo-composable'
 
 import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
 
-export function useOntologyEntriesQuery({labels}) {
+export function useOntologyEntriesQuery({entryIds, labels}) {
 
     const {
         result,
@@ -13,8 +13,10 @@ export function useOntologyEntriesQuery({labels}) {
         error: entriesError
     } = useQuery(
         ONTOLOGY_ENTRIES_QUERY,
-        { labels: labels },
-        { fetchPolicy: "cache-and-network"}
+        {
+            entryIds: toValue(entryIds) || null,
+            labels: toValue(labels) || null
+        }
     )
 
     const entries = computed(() => {

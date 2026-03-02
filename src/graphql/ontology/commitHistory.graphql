@@ -6,7 +6,7 @@ query ontologyCommitHistory(
     ){
         status
         result {
-            version {major, minor, patch}
+            version {major, minor, patch, id}
             time
             comment
         }

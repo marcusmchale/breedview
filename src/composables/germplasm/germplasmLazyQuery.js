@@ -40,12 +40,19 @@ export function useGermplasmLazyQuery() {
         loadGermplasm()
     }
 
+    const loadGermplasmByIds = (ids) => {
+        germplasmIds.value = ids
+        loadGermplasm()
+    }
+
     return {
         germplasm,
         germplasmLoading,
         germplasmError,
 
         loadGermplasm,
-        loadChildGermplasm
+        loadChildGermplasm,
+        loadGermplasmByIds
+
     }
 }

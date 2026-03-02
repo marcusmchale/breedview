@@ -1,0 +1,44 @@
+query AnalysisSubmission($analysisId: String!) {
+  analysisSubmission(analysisId: $analysisId) {
+    status
+    result {
+      status
+      result {
+        config {
+          dependentVariable { label, conceptId }
+          independentVariables { label, conceptId }
+          name
+        }
+        anova {
+          term
+          sumSq
+          df
+          fValue
+          pValue
+        }
+        group {
+          group { label, level}
+          mean
+          sd
+          se
+          n
+          Q1
+          median
+          Q3
+        }
+        tukey {
+          group1 { label, level }
+          group2 { label, level }
+          qval
+          lower
+          upper
+        }
+      }
+      errors
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

@@ -1,42 +1,17 @@
+#import "./entryFragment.graphql"
 query ontologyEntries(
     $entryIds: [Int!]
-    $names: [String!]
     $labels: [OntologyEntryLabel!]
-    $phases: [LifecyclePhase]
     $versionId: Int
 ) {
     ontologyEntries(
         entryIds: $entryIds
-        names: $names
         labels: $labels
-        phases: $phases
         versionId: $versionId
     ){
         status
         result {
-            id
-            name
-            description
-            parents { id, name }
-            children { id, name }
-            ... on RelatedToTerms { terms { id, name } }
-            ... on Subject { traits { id, name } , conditions { id, name } }
-            ... on Trait { subjects { id, name }, variables { id, name } }
-            ... on Condition { subjects { id, name } , factors { id, name } }
-            ... on Scale { scaleType, categories  { id, name } , variables { id, name } , factors { id, name } }
-            ... on Category { scales  { id, name } }
-            ... on ObservationMethod { observationType, variables  { id, name } }
-            ... on Variable {
-                trait { id, name } ,
-                observationMethod { id, name },
-                scale  { scaleType, id, name, categories { id, name } } }
-            ... on ControlMethod { controlType, factors { id, name } }
-            ... on Factor {
-                condition { id, name },
-                controlMethod { id, name },
-                scale { scaleType, id, name, categories { id, name } } }
-            ... on Event { variables { id, name }, factors { id, name } }
-            ... on LayoutType { axes }
+            ...OntologyEntryFields
         }
         errors {
             message

@@ -1,0 +1,10 @@
+mutation SubmitAnalysis($analysis: AnalysisInput!) {
+  analysisSubmit(analysis: $analysis) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

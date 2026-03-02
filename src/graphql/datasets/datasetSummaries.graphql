@@ -1,0 +1,20 @@
+query DatasetsSummaries($studyId: Int!){
+  datasetsSummaries(studyId: $studyId) {
+    status
+    result {
+        id
+        concept { id, name }
+        subjects { id, name }
+        locations { id, name }
+        blocks { id, name }
+        unit_count
+        record_count
+        start
+        end
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

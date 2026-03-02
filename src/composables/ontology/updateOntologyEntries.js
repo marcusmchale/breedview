@@ -155,7 +155,6 @@ export function prepareMultiselectOptions(
     }))
     // Sort so pre-existing entries appear first
     .sort((a, b) => Number(b.isPreExisting) - Number(a.isPreExisting))
-  console.log(processedOptions)
   return processedOptions
 }
 

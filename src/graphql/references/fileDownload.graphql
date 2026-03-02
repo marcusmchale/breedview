@@ -1,0 +1,15 @@
+query referencesFileDownload($fileId: String!) {
+  referencesFileDownload (fileId: $fileId) {
+    status
+    result {
+        filename
+        contentType
+        token
+        expiresAt
+        url
+    }
+    errors {
+      message
+    }
+  }
+}

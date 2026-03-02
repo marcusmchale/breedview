@@ -3,15 +3,16 @@ import { useQuery } from '@vue/apollo-composable';
 import { computed } from "vue";
 import DATASETS_QUERY from "@/graphql/datasets/datasets.graphql";
 
-export function useDatasetsQuery({ datasetId, conceptId }) {
+export function useDatasetsQuery({ studyIds, conceptIds, datasetIds }) {
   const { result, loading, error } = useQuery(
     DATASETS_QUERY,
     () => ({
-      datasetId: toValue(datasetId),
-      conceptId: toValue(conceptId),
+      studyIds: toValue(studyIds),
+      datasetIds: toValue(datasetIds),
+      conceptIds: toValue(conceptIds),
     }),
     () => ({
-      enabled: !!(toValue(datasetId)) || !!(toValue(conceptId)),
+      enabled: !!(toValue(datasetIds)) || !!(toValue(conceptIds)) || !!(toValue(studyIds))
     })
   );
 

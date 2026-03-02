@@ -23,6 +23,7 @@ export const hierarchicalMultiSelectInput = {
     'getNodeLabelFn',
     'hasChildrenFn',
     'isDisabledFn',
+    'isSelectableFn',
     'placeholder',
     'maxSelections',      // Optional: limit number of selections
     'showSelectionCount'  // Optional: show count in trigger
@@ -41,6 +42,7 @@ export const hierarchicalMultiSelectPlugin = (node) => {
     'getNodeLabelFn',
     'hasChildrenFn',
     'isDisabledFn',
+    'isSelectableFn',
     'placeholder',
     'maxSelections',
     'showSelectionCount'

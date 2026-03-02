@@ -9,7 +9,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   const { resolveClient } = useApolloClient();
 
-  const { submitCreateDataset } = useMutateDatasets();
+  const { submitRecords } = useMutateDatasets();
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils();
   const { parseValue } = useValueParser();
 
@@ -348,11 +348,12 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Start polling for a submission
   const startSubmissionPolling = (conceptId, submissionId, indexMapping) => {
-
+    console.log('startSubmissionPolling', conceptId, submissionId)
     const client = resolveClient();
 
     const onSubmissionComplete = ({ datasetId, status, errors, itemErrors}) => {
       if (status === 'COMPLETED') {
+
         columnStatus.value[conceptId] = {
           status: 'success',
           datasetId: datasetId,
@@ -413,7 +414,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
     try {
       console.log('submitting dataset', toValue(selectedStudy), conceptId)
-      const result = await submitCreateDataset({
+      const result = await submitRecords({
         studyId: toValue(selectedStudy).id,
         conceptId: conceptId,
         records: records,

@@ -15,7 +15,7 @@ import RegionManagement from '@/components/regions/RegionsManagement.vue'
 import ArrangementManagement from "@/components/arrangements/ArrangementManagement.vue";
 import BlockManagement from '@/components/blocks/BlockManagement.vue'
 import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
-
+import Analysis from "@/components/analysis/analysis.vue";
 
 const routes = [
   {
@@ -131,6 +131,16 @@ const routes = [
       title: 'Datasets'
     }
   },
+  {
+    path: '/analysis',
+    name: 'Analysis',
+    component: Analysis,
+    meta: {
+      requiresAuth: true,
+      title: 'Analysis'
+    }
+  },
+
   {
     path: '/reset-password',
     name: 'ResetPassword',

@@ -1,45 +1,46 @@
 import { useMutation } from '@vue/apollo-composable'
-import CREATE_DATASET from "@/graphql/datasets/createDataset.graphql";
-import UPDATE_DATASET from "@/graphql/datasets/updateDataset.graphql";
-import ADD_RECORDS from "@/graphql/datasets/addRecords.graphql";
+
+import SUBMIT_RECORDS from "@/graphql/datasets/submitRecords.graphql";
+import UPDATE_RECORDS from "@/graphql/datasets/updateRecords.graphql";
+import REMOVE_RECORDS from "@/graphql/datasets/removeRecords.graphql";
 
 export function useMutateDatasets() {
-  const { mutate: createDataset, loading: createLoading, error: createError } =
-    useMutation(CREATE_DATASET);
+  const { mutate: submitRecordsMutation, loading: submitLoading, error: submitError } =
+    useMutation(SUBMIT_RECORDS);
 
-  const { mutate: updateDataset, loading: updateLoading, error: updateError } =
-    useMutation(UPDATE_DATASET);
+  const { mutate: updateRecordsMutation, loading: updateLoading, error: updateError } =
+    useMutation(UPDATE_RECORDS);
 
-  const { mutate: addRecords, loading: addRecordsLoading, error: addRecordsError } =
-    useMutation(ADD_RECORDS);
+  const { mutate: removeRecordsMutation, loading: removeLoading, error: removeError } =
+    useMutation(REMOVE_RECORDS);
 
-  const submitCreateDataset = async (dataset) => {
-    const result = await createDataset({ dataset });
-    return result?.data?.datasetsCreateDataset;
+  const submitRecords = async (dataset) => {
+    const result = await submitRecordsMutation({ dataset });
+    return result?.data?.datasetsSubmitRecords;
 
   };
 
-  const submitUpdateDataset = async (dataset) => {
-    const result = await updateDataset({ dataset });
-    return result?.data?.datasetsUpdateDataset;
+  const updateRecords = async (dataset) => {
+    const result = await updateRecordsMutation({ dataset });
+    return result?.data?.datasetsUpdateRecords;
   };
 
-  const submitAddRecords = async (datasetId, records) => {
-    const result = await addRecords({ datasetId, records });
-    return result?.data?.datasetsAddRecords;
+  const removeRecords = async (datasetId, recordIds) => {
+    const result = await removeRecordsMutation({ datasetId, recordIds });
+    return result?.data?.datasetsRemoveRecords;
   };
 
   return {
-    submitCreateDataset,
-    createLoading,
-    createError,
+    submitRecords,
+    submitLoading,
+    submitError,
 
-    submitUpdateDataset,
+    updateRecords,
     updateLoading,
     updateError,
 
-    submitAddRecords,
-    addRecordsLoading,
-    addRecordsError,
+    removeRecords,
+    removeLoading,
+    removeError,
   };
 }

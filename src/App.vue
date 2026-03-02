@@ -1,4 +1,85 @@
 
+<script setup>
+import { computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useMutation, useApolloClient } from '@vue/apollo-composable'
+import { useCsrf } from './composables/system/useCsrf'
+import { useAuthStore } from './composables/user/useAuthStore'
+import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
+
+const router = useRouter()
+const route = useRoute()
+
+const { fetchCsrfToken, clearCsrfToken } = useCsrf()
+const { clearAuthState } = useAuthStore()
+
+// Get Apollo client once at setup
+const { client } = useApolloClient()
+
+
+// Logout functionality
+const { mutate: logoutMutation, loading: logoutLoading, onError: onLogoutError } = useMutation(LOGOUT_MUTATION)
+
+// Handle logout errors
+onLogoutError((err) => {
+  console.error('Logout error:', err)
+})
+
+// Determine if navigation should be hidden
+const hideNavigation = computed(() => {
+  return route.meta?.hideNavigation || false
+})
+
+const clearApolloCache = async () => {
+  try {
+    // Use clearStore instead of resetStore - doesn't refetch queries
+    await client.clearStore()
+    console.log('Apollo cache cleared')
+  } catch (error) {
+    console.error('Failed to clear Apollo cache:', error)
+  }
+}
+
+const logout = async () => {
+  try {
+    const response = await logoutMutation()
+    if (response?.data?.accountsLogout?.status === 'SUCCESS') {
+      // Successfully logged out, clear auth state and redirect
+      console.log('Logout successful')
+      clearAuthState()
+      clearCsrfToken()
+      await router.push('/login')
+    } else {
+      // Logout failed, but clear auth state and redirect anyway for security
+      console.error('Logout failed:', response?.data?.accountsLogout?.errors)
+      clearAuthState()
+      clearCsrfToken()
+      await clearApolloCache()
+      await router.push('/login')
+    }
+  } catch (error) {
+    console.error('Logout failed:', error)
+    // Clear auth state and redirect even if logout mutation fails
+    clearAuthState()
+    clearCsrfToken()
+    await router.push('/login')
+  }
+}
+
+onMounted(async () => {
+  try {
+    // Initialize CSRF protection
+    await fetchCsrfToken()
+    console.log('CSRF protection initialized successfully')
+
+  } catch (error) {
+    console.error('Failed to initialize app security:', error)
+  }
+})
+
+</script>
+
+
 <template>
   <div id="app">
     <!-- Navigation Bar -->
@@ -38,6 +119,9 @@
           <router-link to="/datasets" class="nav-link" active-class="active">
             Datasets
           </router-link>
+          <router-link to="/analysis" class="nav-link" active-class="active">
+            Analysis
+          </router-link>
           <button @click="logout" class="nav-logout" :disabled="logoutLoading">
             {{ logoutLoading ? 'Logging out...' : 'Logout' }}
           </button>
@@ -52,105 +136,6 @@
   </div>
 </template>
 
-<script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useMutation, useApolloClient } from '@vue/apollo-composable'
-import { useCsrf } from './composables/system/useCsrf'
-import { useAuthStore } from './composables/user/useAuthStore'
-import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
-
-const router = useRouter()
-const route = useRoute()
-
-const { fetchCsrfToken, refreshCsrfToken } = useCsrf()
-const { clearAuthState, startPeriodicAuthCheck } = useAuthStore()
-
-// Get Apollo client once at setup
-const { client } = useApolloClient()
-
-
-// Logout functionality
-const { mutate: logoutMutation, loading: logoutLoading, onError: onLogoutError } = useMutation(LOGOUT_MUTATION)
-
-// Handle logout errors
-onLogoutError((err) => {
-  console.error('Logout error:', err)
-})
-
-// Determine if navigation should be hidden
-const hideNavigation = computed(() => {
-  return route.meta?.hideNavigation || false
-})
-
-const clearApolloCache = async () => {
-  try {
-    // Use clearStore instead of resetStore - doesn't refetch queries
-    await client.clearStore()
-    console.log('Apollo cache cleared')
-  } catch (error) {
-    console.error('Failed to clear Apollo cache:', error)
-  }
-}
-
-const logout = async () => {
-  try {
-    const response = await logoutMutation()
-
-    console.log('Logout response:', response?.data?.accountsLogout)
-
-    if (response?.data?.accountsLogout?.status === 'SUCCESS') {
-      // Successfully logged out, clear auth state and redirect
-      clearAuthState()
-      router.push('/login')
-    } else {
-      // Logout failed, but clear auth state and redirect anyway for security
-      console.error('Logout failed:', response?.data?.accountsLogout?.errors)
-      clearAuthState()
-      clearApolloCache()
-      router.push('/login')
-    }
-  } catch (error) {
-    console.error('Logout failed:', error)
-    // Clear auth state and redirect even if logout mutation fails
-    clearAuthState()
-    router.push('/login')
-  }
-}
-
-let tokenRefreshInterval = null
-
-onMounted(async () => {
-  try {
-    // Initialize CSRF protection
-    await fetchCsrfToken()
-    console.log('CSRF protection initialized successfully')
-
-    // Start periodic authentication checks
-    startPeriodicAuthCheck()
-    console.log('Periodic authentication checks started')
-
-    // Set up periodic token refresh (optional - every 30 minutes)
-    tokenRefreshInterval = setInterval(async () => {
-      try {
-        await refreshCsrfToken()
-        console.log('CSRF token refreshed proactively')
-      } catch (error) {
-        console.warn('Proactive CSRF token refresh failed:', error)
-      }
-    }, 30 * 60 * 1000) // 30 minutes
-
-  } catch (error) {
-    console.error('Failed to initialize app security:', error)
-  }
-})
-
-onUnmounted(() => {
-  if (tokenRefreshInterval) {
-    clearInterval(tokenRefreshInterval)
-  }
-})
-</script>
 
 <style>
 /* Import organized CSS files */

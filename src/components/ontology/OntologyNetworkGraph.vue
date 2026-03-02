@@ -8,24 +8,23 @@ import * as d3 from 'd3'
 import { getNodeColor, getNodeCode, getEnumLabel } from '@/composables/ontology/nodeColorMap'
 
 const props = defineProps({
-  entries: {
-    type: Array,
+  ontology: {
+    type: Object,
     required: true
   },
-  relationships: {
-    type: Array,
-    required: true,
-    default: () => []
-  },
-  relationshipsLoading: {
+  loading: {
     type: Boolean,
     default: false
   },
-  relationshipsError: {
+  error: {
     type: Object,
     default: null
   },
   selectedLabels: {
+    type: Array,
+    default: () => []
+  },
+  selectedPhases: {
     type: Array,
     default: () => []
   }
@@ -52,36 +51,39 @@ const renderGraph = async () => {
   const nodeMap = new Map()
 
   // Create nodes
-  props.entries.forEach(entry => {
+  props.ontology?.entries.forEach(entry => {
     if (!nodeMap.has(entry.id)) {
       const node = {
         id: entry.id,
         name: entry.name,
         description: entry.description,
-        label: getEnumLabel(entry.__typename)
+        label: getEnumLabel(entry.__typename),
+        phase: entry.phase
       }
       nodes.push(node)
       nodeMap.set(entry.id, node)
     }
   })
-
-  // Filter nodes based on selected labels
+  // Filter nodes based on selected labels and phases
   const filteredNodes = props.selectedLabels.length === 0
-    ? nodes
-    : nodes.filter(node => props.selectedLabels.includes(node.label))
+    ? nodes.filter(node => props.selectedPhases.includes(node.phase))
+    : nodes.filter(node => props.selectedLabels.includes(node.label) && props.selectedPhases.includes(node.phase))
+  const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
 
   // Create links from relationships
-  const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
-  props.relationships.forEach(rel => {
-    if (filteredNodeIds.has(rel.source_id) && filteredNodeIds.has(rel.target_id)) {
+  props.ontology?.relationships.forEach(rel => {
+    if (filteredNodeIds.has(rel.sourceId) && filteredNodeIds.has(rel.targetId)) {
       links.push({
-        source: rel.source_id,
-        target: rel.target_id,
+        source: rel.sourceId,
+        target: rel.targetId,
         label: rel.label,
-        type: rel.label
+        type: rel.label,
+        phase: rel.phase
       })
     }
   })
+  const filteredLinks = links.filter(link => props.selectedPhases.includes(link.phase))
+  const filteredLinkIds = new Set(filteredLinks.map(l => l.id))
 
   // Create SVG
   const svg = d3.select(graphContainer.value)
@@ -107,7 +109,7 @@ const renderGraph = async () => {
 
   // Create force simulation
   const simulation = d3.forceSimulation(filteredNodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+    .force("link", d3.forceLink(filteredLinks).id(d => d.id).distance(100))
     .force("charge", d3.forceManyBody().strength(-50))
     .force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2))
     .force("collision", d3.forceCollide(20))
@@ -125,7 +127,7 @@ const renderGraph = async () => {
   // Create link labels
   const linkLabel = g.append("g")
     .selectAll("text")
-    .data(links)
+    .data(filteredLinks)
     .enter().append("text")
     .attr("font-size", 8)
     .attr("fill", "#666")
@@ -234,10 +236,8 @@ onMounted(() => {
   renderGraph()
 })
 
-watch(() => props.entries, renderGraph)
-watch(() => props.relationships, renderGraph)
-watch(() => props.relationshipsLoading, renderGraph)
 watch(() => props.selectedLabels, renderGraph, { deep: true })
+watch(() => props.selectedPhases, renderGraph, { deep: true })
 </script>
 
 <style scoped>

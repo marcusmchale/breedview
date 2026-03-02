@@ -1,0 +1,29 @@
+fragment OntologyEntryFields on OntologyEntryInterface {
+    id
+    versionId
+    draft
+
+    name
+    description
+    parents { id versionId draft name }
+    children { id versionId draft name }
+    phase
+    ... on RelatedToTerms { terms { id versionId draft name } }
+    ... on Subject { traits { id versionId draft name } conditions { id versionId draft name } }
+    ... on Trait { subjects { id versionId draft name } variables { id versionId draft name } }
+    ... on Condition { subjects { id versionId draft name } factors { id versionId draft name } }
+    ... on Scale { scaleType categories  { id versionId draft name } variables { id versionId draft name } factors { id versionId draft name } }
+    ... on Category { scales  { id versionId draft name } }
+    ... on ObservationMethod { observationType variables  { id versionId draft name } }
+    ... on Variable {
+        trait { id versionId draft name }
+        observationMethod { id versionId draft name }
+        scale  { scaleType id versionId draft name categories { id versionId draft name } } }
+    ... on ControlMethod { controlType factors { id versionId draft name } }
+    ... on Factor {
+        condition { id versionId draft name }
+        controlMethod { id versionId draft name }
+        scale { scaleType id versionId draft name categories { id versionId draft name } } }
+    ... on Event { variables { id versionId draft name } factors { id versionId draft name } }
+    ... on LayoutType { axes }
+}

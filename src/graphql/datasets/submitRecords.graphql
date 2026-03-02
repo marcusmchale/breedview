@@ -1,0 +1,10 @@
+mutation SubmitRecords($dataset: DatasetInput!) {
+  datasetsSubmitRecords(dataset: $dataset) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

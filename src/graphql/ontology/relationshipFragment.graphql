@@ -1,0 +1,10 @@
+fragment OntologyRelationshipFields on OntologyRelationship {
+    id
+    versionId
+
+    label
+    sourceId
+    targetId
+    phase
+    rank
+}

@@ -1,8 +1,8 @@
 mutation ontologyDeprecateEntries(
-    $entry_ids: [Int!]
+    $entryIds: [Int!]!
 ) {
     ontologyDeprecateEntries(
-        entryIds: $entry_ids,
+        entryIds: $entryIds,
     ) {
         status
         errors {

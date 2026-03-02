@@ -1,0 +1,23 @@
+#import "./relationshipFragment.graphql"
+#import "./entryFragment.graphql"
+query ontology(
+    $versionId: ID
+) {
+    ontology(
+        versionId: $versionId
+    ){
+        status
+        result {
+            version { major, minor, patch }
+            entries {
+                ...OntologyEntryFields
+            }
+            relationships {
+                ...OntologyRelationshipFields
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

@@ -1,7 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { getReferenceType, getReferenceTypeLabel, getReferenceTypeIcon, isDataReference } from '@/composables/references/referenceTypes'
+import {
+  getReferenceType,
+  getReferenceTypeLabel,
+  getReferenceTypeIcon,
+  isDataReference,
+  REFERENCE_TYPES
+} from '@/composables/references/referenceTypes'
+import { useReferencesFileDownloadLazy } from '@/composables/references/referencesFileDownloadLazyQuery'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
+import FileDownloadButton from '@/components/references/FileDownloadButton.vue'
 
 const props = defineProps({
     reference: {
@@ -43,6 +51,28 @@ const toggleExpand = () => {
     isExpanded.value = !isExpanded.value
     emit('toggle-expand', isExpanded.value)
 }
+
+const { fetchDownloadUrl, getDownloadData, loadingFileId, loading: downloadLoading } = useReferencesFileDownloadLazy()
+
+const hasFileDownload = computed(() => {
+    const type = referenceType.value
+    return (type === REFERENCE_TYPES.FILE || type === REFERENCE_TYPES.DATA_FILE) && props.reference.fileId
+})
+
+const downloadInfo = computed(() => {
+    if (!props.reference.fileId) return null
+    return getDownloadData(props.reference.fileId)
+})
+
+const isDownloading = computed(() => {
+    return downloadLoading.value && loadingFileId.value === props.reference.fileId
+})
+
+const handleFetchDownloadUrl = () => {
+    if (props.reference.fileId && !isDownloading.value) {
+        fetchDownloadUrl(props.reference.fileId)
+    }
+}
 </script>
 
 <template>
@@ -74,6 +104,13 @@ const toggleExpand = () => {
                 <span v-if="isData" class="data-badge">Data Only</span>
             </div>
             <div class="reference-actions-header">
+                <FileDownloadButton
+                    v-if="hasFileDownload"
+                    :file-id="reference.fileId"
+                    :filename="reference.filename"
+                    size="small"
+                    icon-only
+                />
                 <span class="expand-icon">{{ isExpanded ? '▼' : '►' }}</span>
             </div>
         </div>
@@ -330,4 +367,11 @@ const toggleExpand = () => {
 .btn-warning:hover {
     background-color: #f57c00;
 }
+
+.reference-actions-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 </style>
