@@ -204,8 +204,10 @@ const submitCreateOrganisation = async () => {
 
   try {
     await createOrganisationMutation({
-      name: newOrganisation.value.name.trim(),
-      fullname: newOrganisation.value.fullname.trim() || null
+      team: {
+        name: newOrganisation.value.name.trim(),
+        fullname: newOrganisation.value.fullname.trim() || null
+      }
     })
   } catch (error) {
     console.error('Create organisation failed:', error)

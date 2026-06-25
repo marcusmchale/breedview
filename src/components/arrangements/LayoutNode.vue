@@ -8,6 +8,9 @@ import AddChildModal from "@/components/arrangements/addChildModal.vue";
 import UpdateLayoutModal from "@/components/arrangements/updateLayoutModal.vue";
 import DeleteModal from "@/components/arrangements/deleteModal.vue";
 
+import { useApolloClient } from '@vue/apollo-composable'
+import LAYOUTS_QUERY from '@/graphql/arrangements/layouts.graphql'
+
 const props = defineProps({
   layoutId: {
     type: Number,
@@ -27,6 +30,9 @@ const props = defineProps({
   }
 })
 
+const { resolveClient } = useApolloClient()
+const client = resolveClient()
+
 const emit = defineEmits(['close']) // to close layoutDetails modal if the last and is deleted
 
 const {
@@ -38,7 +44,6 @@ const {
   childLayoutsLoading,
   childLayoutsError
 } = useLayoutNodeQueries({ layoutId: props.layoutId})
-
 
 // expanded state for layout tree
 const expanded = ref(false)

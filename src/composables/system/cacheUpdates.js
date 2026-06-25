@@ -107,7 +107,6 @@ export function useCacheUpdates({ typename, fragment }) {
         updateLocationId(updateData, cachedData, idField)
         updateTypeId(updateData, cachedData, idField)
         updateGermplasmId(updateData, cachedData, idField)
-
     }
 
     const updateParentIds = (updateData, cachedData, idField) => {

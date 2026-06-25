@@ -29,7 +29,6 @@ export function useRegionsQuery(){
     // Cache regions as locations when they're loaded
     onRegionsResult((result) => {
         if (result?.data?.regions?.status !== "SUCCESS") return
-
         if (result?.data?.regions?.result) {
             client.cache.writeQuery({
                 query: LOCATIONS_QUERY,

@@ -141,7 +141,7 @@ watch(parentLayout, (newParentLayout) => {
       delete updateFormData.value[positionField];
     }
   }
-});
+}, { immediate: true});
 
 // Compute the selected layout type from form data
 const selectedEditLayoutType = computed(() => {
@@ -254,7 +254,10 @@ watch(selectedEditLayoutType, (newLayoutType) => {
     />
 
     <!-- Dynamic axis position inputs based on parent layout axes -->
-    <div v-if="updateFormData.parentId" class="axes-section">
+    <div
+        v-if="updateFormData.parentId && parentLayout?.axes?.length"
+        class="axes-section"
+    >
       <h5>Position</h5>
       <FormKit
         v-for="(axisName, index) in parentLayout.axes"

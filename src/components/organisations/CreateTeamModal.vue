@@ -117,9 +117,11 @@ const submitCreateTeam = async () => {
   
   try {
     await createTeamMutation({
-      name: teamData.value.name.trim(),
-      fullname: teamData.value.fullname.trim() || null,
-      parent: props.parentTeam.id
+      team: {
+        name: teamData.value.name.trim(),
+        fullname: teamData.value.fullname.trim() || null,
+        parentId: props.parentTeam.id
+      }
     })
   } catch (error) {
     console.error('Create team failed:', error)

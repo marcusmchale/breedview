@@ -1,11 +1,5 @@
-mutation organisationsCreateTeam(
-    $name: String!,
-    $fullname: String
-) {
-    organisationsCreateTeam(
-        name: $name,
-        fullname: $fullname
-    ) {
+mutation organisationsCreateTeam($team: TeamInput!) {
+    organisationsCreateTeam(team: $team) {
         status
         errors {
             message

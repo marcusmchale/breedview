@@ -2,12 +2,12 @@ fragment LocationFields on Location {
     id
     name
     code
-    type { id, name }
+    type { id name }
     description
     address
     coordinates { latitude longitude }
-    region { id, name }
-    children { id, name }
-    parent { id, name }
+    region { id name }
+    children { id name }
+    parent { id name }
 }
 

@@ -8,7 +8,7 @@ export function useUnitUpdateQueries({locationId, blockId, parentIds}) {
         blocks,
         blocksLoading,
         blocksError
-    } = useBlocksQuery(locationId)
+    } = useBlocksQuery({locationIds:[locationId]})
 
     const {
         unit: blockUnit,

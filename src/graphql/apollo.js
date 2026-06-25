@@ -116,23 +116,6 @@ const createInterfaceCachePolicy = (fieldName, interfaceName, possibleTypesMap, 
   },
 })
 
-// The following is to allow composing from list of ids to reduce hits to the server
-// apollo by default requires exact query result matching
-const createFlatCachePolicy = (fieldName, argName) => ({
-  [fieldName]: {
-    keyArgs: false, // Ignore arguments in cache key generation
-    read: (existingData, { args }) => {
-      // If no data is in the cache, return undefined (will trigger a network request)
-      if (!existingData) return undefined;
-      const requestedIds = args[argName]; // (e.g., locationIds, layoutIds, etc.)
-      // If no 'requestedIds' in query, return all data from cache
-      if (!requestedIds || requestedIds.length === 0) return existingData;
-      // Filter cached data based on requested IDs
-      return existingData.filter(item => requestedIds.includes(item.id));
-    },
-  },
-})
-
 const createMergeChildPolicy = (typeName) => ({
   [typeName]: {
     fields: {
@@ -182,16 +165,16 @@ const cache = new InMemoryCache({
             'OntologyEntryInterface',
             possibleTypes,
             'entryIds'
-        ),
-        ...createFlatCachePolicy('regionsLocations', 'locationIds'),
-        ...createFlatCachePolicy('arrangementsLayouts', 'layoutIds'),
+        )
       }
     },
     OntologyEntryInterface: {
-      keyFields: ["id", "versionId", "draft"]
+      //keyFields: ["id", "versionId", "draft"]
+      keyFields: ["id"]
     },
     OntologyRelationship: {
-      keyFields: ["id", "versionId"]
+      //keyFields: ["id", "versionId"]
+      keyFields: ["id"]
     },
     ...createMergeChildPolicy('Location'),
     ...createMergeChildPolicy('Layout')

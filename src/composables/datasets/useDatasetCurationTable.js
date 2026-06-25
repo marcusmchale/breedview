@@ -104,7 +104,7 @@ export function useDatasetCurationTable() {
       // Build concept data map
       datasets.forEach(dataset => {
         const conceptId = dataset.concept?.id
-        if (!conceptId) return
+        if (conceptId == null) return
 
         if (!conceptData.value[conceptId]) {
           conceptData.value[conceptId] = {
@@ -122,12 +122,12 @@ export function useDatasetCurationTable() {
       datasets.forEach(dataset => {
         const conceptId = dataset.concept?.id
         const datasetId = dataset.id
-        if (!conceptId) return
+        if (conceptId == null) return
 
         const records = dataset.records || []
         records.forEach(record => {
           const unitId = record.unit?.id
-          if (!unitId) return
+          if (unitId == null) return
 
           const start = record.start || null
           const end = record.end || null
@@ -187,7 +187,7 @@ export function useDatasetCurationTable() {
           console.log('cellMetadata', cellMetadata.value[cellKey])
 
           // Add value to row
-          targetRow.rowData[`concept_${conceptId}`] = record.value || ''
+          targetRow.rowData[`concept_${conceptId}`] = record.value ?? ''
 
           // Store references for complex scale types
           const concept = dataset.concept
@@ -274,7 +274,7 @@ export function useDatasetCurationTable() {
    * Format datetime for display
    */
   const formatDatetimeForDisplay = (datetime) => {
-    if (!datetime) return ''
+    if (datetime == null) return ''
     // Return as-is if already a string, or format if Date
     if (typeof datetime === 'string') {
       // Remove timezone info for display
@@ -320,7 +320,7 @@ export function useDatasetCurationTable() {
     if (!row) return false
 
     const cellKey = `${row._rowId}-${conceptId}`
-    return !!cellMetadata.value[cellKey]?.recordId
+    return cellMetadata.value[cellKey]?.recordId != null
   }
 
   /**
@@ -350,7 +350,7 @@ export function useDatasetCurationTable() {
     if (!row) return null
 
     const cellKey = `${row._rowId}-${conceptId}`
-    return cellMetadata.value[cellKey]?.datasetId || null
+    return cellMetadata.value[cellKey]?.datasetId ?? null
   }
 
   /**
@@ -373,7 +373,7 @@ export function useDatasetCurationTable() {
     const errorKey = `${rowIndex}-${columnKey}`
     delete cellErrors.value[errorKey]
 
-    if (!value || value === '') return true
+    if (value == null || value === '') return true
 
     // Validate datetime columns
     if (columnKey === 'startTime' || columnKey === 'endTime') {
@@ -424,7 +424,7 @@ export function useDatasetCurationTable() {
     const cellKey = `${row._rowId}-${conceptId}`
     const metadata = cellMetadata.value[cellKey]
 
-    if (!metadata?.recordId || !metadata?.datasetId) return
+    if (metadata?.recordId == null || metadata?.datasetId == null) return
     if (!metadata.canEdit) return // Can't delete if no edit access
 
     const datasetId = metadata.datasetId
@@ -445,14 +445,14 @@ export function useDatasetCurationTable() {
     const cellKey = `${row._rowId}-${conceptId}`
     const metadata = cellMetadata.value[cellKey]
 
-    if (!metadata?.recordId || !metadata?.datasetId) return
+    if (metadata?.recordId == null || metadata?.datasetId == null) return
 
     const datasetId = metadata.datasetId
     if (recordsToDelete.value[datasetId]) {
       recordsToDelete.value[datasetId].delete(metadata.recordId)
 
       // Restore the original value
-      updateCell(rowIndex, `concept_${conceptId}`, metadata.originalValue || '')
+      updateCell(rowIndex, `concept_${conceptId}`, metadata.originalValue ?? '')
     }
   }
 
@@ -466,7 +466,7 @@ export function useDatasetCurationTable() {
     const cellKey = `${row._rowId}-${conceptId}`
     const metadata = cellMetadata.value[cellKey]
 
-    if (!metadata?.recordId || !metadata?.datasetId) return false
+    if (metadata?.recordId == null || metadata?.datasetId == null ) return false
 
     return recordsToDelete.value[metadata.datasetId]?.has(metadata.recordId) || false
   }
@@ -496,8 +496,8 @@ export function useDatasetCurationTable() {
     }
 
 
-    const currentValue = row[`concept_${conceptId}`] || ''
-    const originalValue = metadata.originalValue || ''
+    const currentValue = row[`concept_${conceptId}`] ?? ''
+    const originalValue = metadata.originalValue ?? ''
 
     return currentValue !== originalValue
   }
@@ -553,7 +553,7 @@ export function useDatasetCurationTable() {
       conceptData.value[cid].datasetIds.includes(datasetId)
     )
 
-    if (!conceptId) return { updates, indexMapping, conceptId: null }
+    if (conceptId == null) return { updates, indexMapping, conceptId: null }
 
     const concept = conceptData.value[conceptId]?.concept
 
@@ -563,7 +563,7 @@ export function useDatasetCurationTable() {
       const metadata = cellMetadata.value[cellKey]
 
       if (!metadata || metadata.datasetId !== datasetId) continue
-      if (!metadata.recordId) continue // No existing record
+      if (metadata.recordId == null) continue // No existing record
       if (isMarkedForDeletion(i, parseInt(conceptId))) continue // Will be deleted
 
       const valueChanged = hasValueChanged(i, parseInt(conceptId))
@@ -582,7 +582,7 @@ export function useDatasetCurationTable() {
           update.referenceIds = refs
           update.value = null
         } else {
-          update.value = row[`concept_${conceptId}`] || null
+          update.value = row[`concept_${conceptId}`] ?? null
         }
 
         updates.push(update)
@@ -774,7 +774,7 @@ export function useDatasetCurationTable() {
 
     rows.forEach(row => {
       const values = visibleColumns.map(col => {
-        let value = row[col.id] || ''
+        let value = row[col.id] ?? ''
         // Escape quotes and wrap in quotes if contains comma
         if (typeof value === 'string') {
           value = value.replace(/"/g, '""')

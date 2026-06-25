@@ -227,61 +227,6 @@ const handleSubmit = async (formDataValues) => {
   }
 }
 
-// Commit version form
-const openCommitVersionForm = () => {
-  const fields = [
-    {
-      name: 'versionChange',
-      type: 'select',
-      label: 'Version Change Type',
-      options: ['MAJOR', 'MINOR', 'PATCH'],
-      validation: 'required',
-      placeholder: 'Select version change type'
-    },
-    {
-      name: 'comment',
-      type: 'textarea',
-      label: 'Version Comment',
-      validation: 'required',
-      placeholder: 'Enter version comment'
-    },
-    {
-      name: 'licenceId',
-      type: 'number',
-      label: 'Licence ID (Optional)',
-      validation: '',
-      placeholder: 'Enter licence ID'
-    },
-    {
-      name: 'copyrightId',
-      type: 'number',
-      label: 'Copyright ID (Optional)',
-      validation: '',
-      placeholder: 'Enter copyright ID'
-    }
-  ]
-
-  openForm('Commit Ontology Version', fields, async (formDataValues) => {
-    try {
-      const result = await commitVersionMutation.mutate({
-        versionChange: formDataValues.versionChange,
-        comment: formDataValues.comment,
-        licenceId: formDataValues.licenceId ? parseInt(formDataValues.licenceId) : null,
-        copyrightId: formDataValues.copyrightId ? parseInt(formDataValues.copyrightId) : null
-      })
-
-      return {
-        data: {
-          ontologyCommitVersion: result.data?.ontologyCommitVersion || {}
-        }
-      }
-    } catch (error) {
-      console.error('Commit version mutation error:', error)
-      throw error
-    }
-  })
-}
-
 </script>
 
 <template>
@@ -355,7 +300,7 @@ const openCommitVersionForm = () => {
     </section>
 
 
-<!-- Form Modal -->
+    <!-- Form Modal -->
     <div v-if="showForm" class="form-modal">
       <div class="form-container">
         <h2>{{ formTitle }}</h2>
