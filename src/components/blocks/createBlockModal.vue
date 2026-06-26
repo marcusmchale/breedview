@@ -273,7 +273,7 @@ const submitAddUnit = async () => {
 
 
 <style scoped>
-. h5 {
+h5 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
