@@ -1,4 +1,4 @@
-mutation programsDeleteStudy($studyId: Int!) {
+mutation programsDeleteStudy($studyId: ID!) {
   programsDeleteStudy(studyId: $studyId) {
     status
     errors {

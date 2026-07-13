@@ -11,7 +11,7 @@ import LicenceModal from '@/components/references/LicenceModal.vue'
 
 const props = defineProps({
   trialId: {
-    type: Number,
+    type: String,
     required: true
   },
   trialName: {

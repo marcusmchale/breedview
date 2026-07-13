@@ -1,0 +1,15 @@
+query referencesFileDownloadState($fileId: ID!) {
+  referencesFileDownloadState(fileId: $fileId) {
+    status
+    result {
+      status
+      progress {
+        startedAt
+        progress
+      }
+    }
+    errors {
+      message
+    }
+  }
+}

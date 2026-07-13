@@ -1,4 +1,4 @@
-mutation referencesDelete($referenceIds: [Int!]!) {
+mutation referencesDelete($referenceIds: [ID!]!) {
   referencesDelete(referenceIds: $referenceIds) {
     status
     result

@@ -1,5 +1,5 @@
 mutation organisationsDeleteTeam(
-    $teamId: Int!
+    $teamId: ID!
 ) {
     organisationsDeleteTeam(
         teamId: $teamId

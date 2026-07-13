@@ -80,7 +80,7 @@ const props = defineProps({
     default: null
   },
   studyId: {
-    type: Number,
+    type: String,
     default: null
   }
 })

@@ -1,5 +1,5 @@
 #import "./recordFragment.graphql"
-query Datasets($studyIds: [Int!], $conceptIds: [Int!], $datasetIds: [Int!]) {
+query Datasets($studyIds: [ID!], $conceptIds: [ID!], $datasetIds: [ID!]) {
   datasets(studyIds: $studyIds, conceptIds: $conceptIds, datasetIds: $datasetIds) {
     status
     result {

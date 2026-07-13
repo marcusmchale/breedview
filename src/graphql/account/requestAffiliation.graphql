@@ -1,4 +1,4 @@
-mutation accountsRequestAffiliation($team: Int!, $access: Access!, $heritable: Boolean) {
+mutation accountsRequestAffiliation($team: ID!, $access: Access!, $heritable: Boolean) {
   accountsRequestAffiliation(teamId: $team, access: $access, heritable: $heritable) {
     status
     errors {

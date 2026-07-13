@@ -1,8 +1,8 @@
 mutation ontologyCommitVersion(
     $versionChange: VersionChange!,
     $comment: String,
-    $licenceId: Int,
-    $copyrightId: Int
+    $licenceId: ID,
+    $copyrightId: ID
 ) {
     ontologyCommitVersion(
         versionChange: $versionChange,

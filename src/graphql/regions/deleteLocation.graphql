@@ -1,5 +1,5 @@
 mutation regionsDeleteLocation(
-    $locationId: Int!
+    $locationId: ID!
 ) {
     regionsDeleteLocation(
         locationId: $locationId,

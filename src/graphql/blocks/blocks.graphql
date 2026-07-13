@@ -1,5 +1,5 @@
 #import "./unitFragment.graphql"
-query blocks ($locationIds: [Int!]!) {
+query blocks ($locationIds: [ID!]!) {
     blocks (locationIds: $locationIds) {
         status
         result {

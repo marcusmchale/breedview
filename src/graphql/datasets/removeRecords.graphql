@@ -1,4 +1,4 @@
-mutation RemoveRecords($datasetId: Int!, $recordIds: [Int!]!) {
+mutation RemoveRecords($datasetId: ID!, $recordIds: [ID!]!) {
   datasetsRemoveRecords(datasetId: $datasetId, recordIds: $recordIds) {
     status
     result

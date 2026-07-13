@@ -1,4 +1,4 @@
-mutation programsDeleteTrial($trialId: Int!) {
+mutation programsDeleteTrial($trialId: ID!) {
   programsDeleteTrial(trialId: $trialId) {
     status
     errors {

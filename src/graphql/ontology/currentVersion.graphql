@@ -1,0 +1,15 @@
+query ontologyVersion {
+    ontologyVersion
+    {
+        status
+        result {
+            id
+            major
+            minor
+            patch
+        }
+        errors {
+            message
+        }
+    }
+}

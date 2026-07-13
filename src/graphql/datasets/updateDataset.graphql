@@ -1,0 +1,10 @@
+mutation UpdateDataset($dataset: DatasetUpdate!) {
+  datasetsUpdate(dataset: $dataset) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

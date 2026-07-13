@@ -16,7 +16,7 @@ const props = defineProps({
     required: true
   },
   arrangementId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

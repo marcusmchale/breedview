@@ -1,4 +1,4 @@
-query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [Int]!) {
+query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID]!) {
   controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
     status
     result {

@@ -18,18 +18,13 @@ import UPDATE_LAYOUT_TYPE from '../../graphql/ontology/updateLayoutType.graphql'
 
 // Helper functions
 export function processIdArray(ids) {
-  // Explicitly return an empty array if ids is null or undefined
   if (ids === null || ids === undefined) {
     return []
   }
-
-  // If ids is an array, convert to integers
   if (Array.isArray(ids)) {
-    return ids.length > 0 ? ids.map(id => parseInt(id)) : []
+    return ids.length > 0 ? ids : []
   }
-
-  // If it's a single id, wrap it in an array
-  return [parseInt(ids)]
+  return [ids]
 }
 
 const getEntriesByType = (entries, typename) => {
@@ -98,21 +93,15 @@ const getCurrentValues = (entry) => {
 }
 
 const prepareSingleSelectOptions = (entries, currentValue) => {
-  // Convert to number to ensure consistent comparison
-  const currentValueId = currentValue ? Number(currentValue) : null
-
-  // Process all entries
   const processedOptions = entries.map(entry => ({
     label: entry.name,
     value: entry.id
   }))
 
-  // If current value exists, move it to the top of the list
-  if (currentValueId) {
+  if (currentValue) {
     const currentValueIndex = processedOptions.findIndex(option =>
-      Number(option.value) === currentValueId
+      option.value === currentValue
     )
-
     if (currentValueIndex !== -1) {
       const [currentOption] = processedOptions.splice(currentValueIndex, 1)
       processedOptions.unshift(currentOption)
@@ -131,10 +120,7 @@ export function prepareMultiselectOptions(
   filterFn = null, // Optional custom filter function
   labelKey = 'name' // Optional custom label key
 ) {
-  // Normalize currentRelatedEntryIds to an array of numbers
-  const relatedIds = (currentRelatedEntryIds || [])
-    .map(id => Number(id))
-    .filter(id => !isNaN(id))
+  const relatedIds = (currentRelatedEntryIds || []).filter(id => id != null)
 
   // If no filter function provided, use a default that allows all entries
   const filterFunction = filterFn || (() => true)
@@ -145,13 +131,12 @@ export function prepareMultiselectOptions(
       // Apply custom filter if provided
       // Exclude the current entry if it's a parent/child selection
       return filterFunction(entry) &&
-             (!entry.id || Number(entry.id) !== Number(currentEntryId))
+             (!entry.id || entry.id !== currentEntryId)
     })
     .map(entry => ({
       label: entry[labelKey] || entry.name,
       value: entry.id,
-      // Mark entries that are already related
-      isPreExisting: relatedIds.includes(Number(entry.id))
+      isPreExisting: relatedIds.includes(entry.id)
     }))
     // Sort so pre-existing entries appear first
     .sort((a, b) => Number(b.isPreExisting) - Number(a.isPreExisting))
@@ -383,19 +368,19 @@ export function updateTermHandler(context) {
         value: currentValues.locationTypeIds
       },
       {
-        name: 'layoutTypeIDs',
+        name: 'layoutTypeIds',
         type: 'select',
         label: 'Layout Types',
         validation: '',
         multiple: true,
         options: prepareMultiselectOptions(
-          'layoutTypeIDs',
+          'layoutTypeIds',
           layoutTypes,
-          currentValues.layoutTypeIDs || [],
+          currentValues.layoutTypeIds || [],
           entry.id
         ),
         placeholder: 'Select layout types (optional)',
-        value: currentValues.layoutTypeIDs
+        value: currentValues.layoutTypeIds
       },
       {
         name: 'designIds',
@@ -461,7 +446,7 @@ export function updateTermHandler(context) {
         factorIds: processIdArray(formData.factorIds),
         eventIds: processIdArray(formData.eventIds),
         locationTypeIds: processIdArray(formData.locationTypeIds),
-        layoutTypeIDs: processIdArray(formData.layoutTypeIDs),
+        layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
         roleIds: processIdArray(formData.roleIds),
         titleIds: processIdArray(formData.titleIds)
@@ -1046,7 +1031,7 @@ export function updateVariableHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateVariableMutation({ variable: { id: entry.id, name: formData.name, description: formData.description || undefined, traitId: formData.traitId ? parseInt(formData.traitId) : undefined, observationMethodId: formData.observationMethodId ? parseInt(formData.observationMethodId) : undefined, scaleId: formData.scaleId ? parseInt(formData.scaleId) : undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateVariableMutation({ variable: { id: entry.id, name: formData.name, description: formData.description || undefined, traitId: formData.traitId || undefined, observationMethodId: formData.observationMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
 }
 
 export function updateControlMethodHandler(context) {
@@ -1192,7 +1177,7 @@ export function updateFactorHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateFactorMutation({ factor: { id: entry.id, name: formData.name, description: formData.description || undefined, conditionId: formData.conditionId ? parseInt(formData.conditionId) : undefined, controlMethodId: formData.controlMethodId ? parseInt(formData.controlMethodId) : undefined, scaleId: formData.scaleId ? parseInt(formData.scaleId) : undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateFactorMutation({ factor: { id: entry.id, name: formData.name, description: formData.description || undefined, conditionId: formData.conditionId || undefined, controlMethodId: formData.controlMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
 }
 
 export function updateEventHandler(context) {

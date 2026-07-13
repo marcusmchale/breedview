@@ -1,6 +1,6 @@
 #import "./entryFragment.graphql"
 query germplasmEntries(
-    $entryIds: [Int!]
+    $entryIds: [ID!]
     $names: [String!]
 ) {
     germplasmEntries(

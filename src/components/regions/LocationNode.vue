@@ -116,11 +116,11 @@ import UpdateModal from "@/components/regions/updateLocationModal.vue";
 
 const props = defineProps({
   regionId: {
-    type: Number,
+    type: String,
     required: true
   },
   locationId: {
-    type: Number,
+    type: String,
     required: true
   },
   isExpandedFn: {
@@ -133,7 +133,7 @@ const props = defineProps({
     default: () => []
   },
   selectedLocationId: {
-    type: Number,
+    type: String,
     default: null
   },
   showEdit: {

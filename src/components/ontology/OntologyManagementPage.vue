@@ -1,21 +1,22 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
+import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/composables/user/useAuthStore'
 
 import OntologyEditor from "@/components/ontology/OntologyEditor.vue";
+
 import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
-import { useMutateOntology } from "@/composables/ontology/mutateOntology";
+import COMMIT_VERSION from '../../graphql/ontology/commitVersion.graphql'
+
+const commitVersionMutation = useMutation(COMMIT_VERSION)
 
 const router = useRouter()
 const { user } = useAuthStore()
 
 const showCommitVersionForm = ref(false)
 const commitVersionFormData = ref({})
-
-const { commitVersionMutation } = useMutateOntology({ versionId: null })
 
 const canEdit = computed(() => {
   console.log('user can edit:', ["ADMIN", "EDITOR"].includes( user.value?.ontologyRole ))
@@ -51,8 +52,8 @@ const handleCommitVersionSubmit = async (formDataValues) => {
     const result = await commitVersionMutation.mutate({
       versionChange: formDataValues.versionChange,
       comment: formDataValues.comment,
-      licenceId: formDataValues.licenceId ? parseInt(formDataValues.licenceId) : null,
-      copyrightId: formDataValues.copyrightId ? parseInt(formDataValues.copyrightId) : null
+      licenceId: formDataValues.licenceId || null,
+      copyrightId: formDataValues.copyrightId || null
     })
 
     const response = result.data?.ontologyCommitVersion
@@ -160,14 +161,14 @@ const formatVersion = (version) => {
               />
 
               <FormKit
-                type="number"
+                type="text"
                 name="licenceId"
                 label="Licence ID (Optional)"
                 placeholder="Enter licence ID"
               />
 
               <FormKit
-                type="number"
+                type="text"
                 name="copyrightId"
                 label="Copyright ID (Optional)"
                 placeholder="Enter copyright ID"

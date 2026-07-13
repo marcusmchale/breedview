@@ -11,7 +11,7 @@ import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
 
 export function useDatasetCurationTable() {
   const { resolveClient } = useApolloClient()
-  const { updateRecords, removeRecords } = useMutateDatasets()
+  const { updateDataset, removeRecords } = useMutateDatasets()
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils()
   const { parseValue } = useValueParser()
   const { updateItem: updateRecordInCache, deleteItem: deleteRecordFromCache } = useCacheUpdates({
@@ -210,8 +210,7 @@ export function useDatasetCurationTable() {
       }
 
       tableData.value = allRows.sort((a, b) => {
-        // Sort by unitId, then by start time
-        if (a.unitId !== b.unitId) return a.unitId - b.unitId
+        if (a.unitId !== b.unitId) return String(a.unitId).localeCompare(String(b.unitId))
         return (a.startTime || '').localeCompare(b.startTime || '')
       })
 
@@ -388,7 +387,7 @@ export function useDatasetCurationTable() {
 
     // Validate concept columns
     if (columnKey.startsWith('concept_')) {
-      const conceptId = parseInt(columnKey.replace('concept_', ''))
+      const conceptId = columnKey.replace('concept_', '')
       const concept = conceptData.value[conceptId]?.concept
       if (!concept) return true
 
@@ -536,7 +535,7 @@ export function useDatasetCurationTable() {
 
       // Check concept value changes
       for (const conceptId in conceptData.value) {
-        if (hasValueChanged(i, parseInt(conceptId))) return true
+        if (hasValueChanged(i, conceptId)) return true
       }
     }
 
@@ -564,9 +563,9 @@ export function useDatasetCurationTable() {
 
       if (!metadata || metadata.datasetId !== datasetId) continue
       if (metadata.recordId == null) continue // No existing record
-      if (isMarkedForDeletion(i, parseInt(conceptId))) continue // Will be deleted
+      if (isMarkedForDeletion(i, conceptId)) continue // Will be deleted
 
-      const valueChanged = hasValueChanged(i, parseInt(conceptId))
+      const valueChanged = hasValueChanged(i, conceptId)
       const timesChanged = hasRowTimesChanged(i)
 
       if (valueChanged || timesChanged) {
@@ -589,7 +588,7 @@ export function useDatasetCurationTable() {
         indexMapping.push(i) // Track the original row index
       }
     }
-    return { updates, indexMapping, conceptId: parseInt(conceptId) }
+    return { updates, indexMapping, conceptId }
   }
 
   /**
@@ -605,7 +604,7 @@ export function useDatasetCurationTable() {
       // Check deletions
       Object.keys(recordsToDelete.value).forEach(datasetId => {
         if (recordsToDelete.value[datasetId].size > 0) {
-          datasetsWithChanges.add(parseInt(datasetId))
+          datasetsWithChanges.add(datasetId)
         }
       })
 
@@ -638,7 +637,7 @@ export function useDatasetCurationTable() {
           // Then, handle updates
           const { updates, indexMapping, conceptId } = prepareDatasetUpdates(datasetId)
           if (updates.length > 0) {
-            const result = await updateRecords({
+            const result = await updateDataset({
               datasetId,
               records: updates
             })

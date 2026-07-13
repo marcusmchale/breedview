@@ -9,7 +9,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   const { resolveClient } = useApolloClient();
 
-  const { submitRecords } = useMutateDatasets();
+  const { createDataset } = useMutateDatasets();
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils();
   const { parseValue } = useValueParser();
 
@@ -414,11 +414,12 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
     try {
       console.log('submitting dataset', toValue(selectedStudy), conceptId)
-      const result = await submitRecords({
+      const result = await createDataset({
         studyId: toValue(selectedStudy).id,
         conceptId: conceptId,
         records: records,
       });
+
 
       if (!result) {
         throw new Error('No response from server');

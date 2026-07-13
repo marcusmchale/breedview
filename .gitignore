@@ -2,7 +2,6 @@
 node_modules
 /dist
 
-
 # local and private env files
 .env.local
 .env.*.local
@@ -24,3 +23,5 @@ pnpm-debug.log*
 *.sw?
 
 
+/.agents/
+/.codex/

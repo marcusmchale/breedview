@@ -7,7 +7,7 @@ import AddPositionModal from "@/components/blocks/addPositionModal.vue";
 
 const props = defineProps({
   unitId: {
-    type: Number,
+    type: String,
     required: true
   },
   positions: {

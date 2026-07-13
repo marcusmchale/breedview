@@ -1,5 +1,5 @@
 mutation germplasmDeleteEntry(
-    $entryId: Int!
+    $entryId: ID!
 ) {
     germplasmDeleteEntry(
         entryId: $entryId,

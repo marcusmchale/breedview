@@ -24,7 +24,7 @@ const mapboxToken = `${import.meta.env.VITE_MAPBOX_TOKEN}`
 
 const props = defineProps({
   selectedLocationId: {
-    type: Number,
+    type: String,
     default: null
   },
   updateCoordinatesLoading: {

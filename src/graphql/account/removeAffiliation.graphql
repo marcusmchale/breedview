@@ -1,4 +1,4 @@
-mutation accountsRemoveAffiliation($team: Int!, $access: Access!) {
+mutation accountsRemoveAffiliation($team: ID!, $access: Access!) {
   accountsRemoveAffiliation(teamId: $team, access: $access) {
     status
     errors {

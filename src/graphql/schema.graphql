@@ -8,11 +8,11 @@ input AnalysisVariableInput {
   """Type of variable: concept from dataset, germplasm, or timepoint"""
   type: VariableType!
 
-  """Concept ID (required when type is CONCEPT)"""
-  conceptId: Int
-
   """Human-readable label for the variable"""
   label: String!
+
+  """Concept ID (required when type is CONCEPT)"""
+  conceptId: ID
 }
 
 input InteractionTermInput {
@@ -28,7 +28,7 @@ input AnalysisInput {
   name: String
 
   """Dataset IDs to include in analysis"""
-  datasetIds: [Int!]!
+  datasetIds: [ID!]!
 
   """The dependent (response) variable"""
   dependentVariable: AnalysisVariableInput!
@@ -45,10 +45,10 @@ input AnalysisInput {
 
 input LayoutInput {
   """ Location ID from Region """
-  locationId: Int!
+  locationId: ID!
 
   """ Ontology LayoutType identifier """
-  typeId: Int!
+  typeId: ID!
 
   """ Axis labels """
   axes: [String!]
@@ -57,7 +57,7 @@ input LayoutInput {
   name: String
 
   """ Optional parent layout to construct multiplexed layout arrangements"""
-  parentId: Int
+  parentId: ID
 
   """ When parent is supplied, position according to parent layout axes must be provided.
   """
@@ -65,21 +65,21 @@ input LayoutInput {
 }
 
 input LayoutUpdate {
-  layoutId: Int!
-  locationId: Int
-  typeId: Int
+  layoutId: ID!
+  locationId: ID
+  typeId: ID
   axes: [String!]
   name: String
-  parentId: Int
+  parentId: ID
   position: [String]
 }
 
 input PositionInput {
   """ID of Location in a Region"""
-  locationId: Int!
+  locationId: ID!
 
   """ID of Layout in and Arrangement"""
-  layoutId: Int
+  layoutId: ID
 
   """
   Coordinates should be a list of values corresponding to the stored layout axes.
@@ -91,63 +91,63 @@ input PositionInput {
 
 input UnitInput {
   """ID of Subject in the ontology"""
-  subjectId: Int!
-  germplasmId: Int
+  subjectId: ID!
+  germplasmId: ID
   name: String
   description: String
 
   """IDs of parent Units, of which this unit forms a component"""
-  parentIds: [Int]
+  parentIds: [ID]
 
   """IDs of child Units, which represent a component of this unit."""
-  childrenIds: [Int]
+  childrenIds: [ID]
 }
 
 input UnitUpdate {
-  unitId: Int!
-  subjectId: Int
-  germplasmId: Int
+  unitId: ID!
+  subjectId: ID
+  germplasmId: ID
   name: String
   description: String
-  parentIds: [Int]
-  childrenIds: [Int]
+  parentIds: [ID!]
+  childrenIds: [ID!]
 }
 
 input RecordInput {
-  unitId: Int!
+  unitId: ID!
   value: String
   start: DateTime
   end: DateTime
-  referenceIds: [Int]
+  referenceIds: [ID]
 }
 
 input RecordUpdate {
-  recordId: Int!
-  unitId: Int
+  recordId: ID!
+  unitId: ID
   value: String
   start: DateTime
   end: DateTime
-  referenceIds: [Int]
+  referenceIds: [ID]
 }
 
 input DatasetInput {
-  studyId: Int!
+  studyId: ID!
 
   """ concept is either a Factor or Variable in the ontology """
-  conceptId: Int!
-  records: [RecordInput]
-  contributorIds: [Int!]
-  referenceIds: [Int!]
+  conceptId: ID!
+  records: [RecordInput!]!
+  contributorIds: [ID!]
+  referenceIds: [ID!]
 }
 
 input DatasetUpdate {
   """Optionally provide a list of records to update"""
-  datasetId: Int!
-  studyId: Int
-  conceptId: Int
-  records: [RecordUpdate]
-  contributorIds: [Int!]
-  referenceIds: [Int!]
+  datasetId: ID!
+  studyId: ID
+  conceptId: ID
+  records: [RecordUpdate!]!
+  contributorIds: [ID!]
+  referenceIds: [ID!]
 }
 
 enum Reproduction {
@@ -165,13 +165,13 @@ enum GermplasmSourceType {
 }
 
 input GermplasmSourceRelationship {
-  sourceId: Int!
+  sourceId: ID!
   sourceType: GermplasmSourceType!
   description: String
 }
 
 input GermplasmSinkRelationship {
-  sinkId: Int!
+  sinkId: ID!
   sourceType: GermplasmSourceType!
   description: String
 }
@@ -182,7 +182,7 @@ input GermplasmInput {
   synonyms: [String!]
 
   """Place of origin, a reference to a Location stored in Regions"""
-  originId: Int
+  originId: ID
 
   """Time sourced from origin"""
   time: DateTime
@@ -195,13 +195,13 @@ input GermplasmInput {
   """
   Control methods (referenced in the ontology) to provide further details about how this germplasm is maintained
   """
-  controlMethodIds: [Int!]
+  controlMethodIds: [ID!]
 
   """Authors of this germplasm entry (A list of personId)"""
-  authorIds: [Int!] = []
+  authorIds: [ID!] = []
 
   """References for ths germplasm entry (A list of referenceId)"""
-  referenceIds: [Int!] = []
+  referenceIds: [ID!] = []
 
   """Source relationships"""
   sources: [GermplasmSourceRelationship!]
@@ -211,16 +211,16 @@ input GermplasmInput {
 }
 
 input GermplasmUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   synonyms: [String!]
-  originId: Int
+  originId: ID
   time: DateTime
   reproduction: Reproduction
-  controlMethodIds: [Int!]
-  authorIds: [Int] = []
-  referenceIds: [Int] = []
+  controlMethodIds: [ID!]
+  authorIds: [ID!] = []
+  referenceIds: [ID!] = []
   sources: [GermplasmSourceRelationship!]
   sinks: [GermplasmSinkRelationship!]
 }
@@ -235,37 +235,38 @@ type Mutation {
   accountsLogout: BooleanPayload!
   accountsAddEmail(email: String!): BooleanPayload!
   accountsRemoveEmail(email: String!): BooleanPayload!
-  accountsRequestAffiliation(teamId: Int!, access: Access!, heritable: Boolean): BooleanPayload!
-  accountsApproveAffiliation(userId: Int!, teamId: Int!, access: Access!, heritable: Boolean): BooleanPayload!
-  accountsRemoveAffiliation(teamId: Int!, access: Access!): BooleanPayload!
-  accountsRevokeAffiliation(userId: Int!, teamId: Int!, access: Access!): BooleanPayload!
+  accountsRequestAffiliation(teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
+  accountsApproveAffiliation(userId: ID!, teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
+  accountsRemoveAffiliation(teamId: ID!, access: Access!): BooleanPayload!
+  accountsRevokeAffiliation(userId: ID!, teamId: ID!, access: Access!): BooleanPayload!
   accountsRequestOntologyRole(ontologyRole: OntologyRole!): BooleanPayload!
-  accountsSetOntologyRole(userId: Int!, ontologyRole: OntologyRole!): BooleanPayload!
+  accountsSetOntologyRole(userId: ID!, ontologyRole: OntologyRole!): BooleanPayload!
 
   """Submit an analysis request"""
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
   arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
-  arrangementsDeleteLayout(layoutId: Int!): BooleanPayload!
+  arrangementsDeleteLayout(layoutId: ID!): BooleanPayload!
   blocksCreateUnit(unit: UnitInput!, position: PositionInput): BooleanPayload!
   blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
-  blocksDeleteUnit(unitId: Int!): BooleanPayload!
-  blocksAddPosition(unitId: Int!, position: PositionInput!): BooleanPayload!
-  blocksRemovePosition(unitId: Int!, position: PositionInput!): BooleanPayload!
-  controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [Int!]!, release: ReadRelease!): BooleanPayload!
+  blocksDeleteUnit(unitId: ID!): BooleanPayload!
+  blocksAddPosition(unitId: ID!, position: PositionInput!): BooleanPayload!
+  blocksRemovePosition(unitId: ID!, position: PositionInput!): BooleanPayload!
+  controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [ID!]!, release: ReadRelease!): BooleanPayload!
 
   """
-  Submission Payloads include a key, the dataset is processed asynchronously
+  Submission Payloads include a key, the data is processed asynchronously
   Poll the datasetsSubmission using the returned submission ID for status reports.
   """
-  datasetsSubmitRecords(dataset: DatasetInput!): SubmissionIdPayload!
-  datasetsUpdateRecords(dataset: DatasetUpdate!): SubmissionIdPayload!
+  datasetsCreate(dataset: DatasetInput!): SubmissionIdPayload!
+  datasetsUpdate(dataset: DatasetUpdate!): SubmissionIdPayload!
+  datasetsAddRecords(datasetId: ID!, records: [RecordInput!]): SubmissionIdPayload!
 
   """Delete records from a dataset"""
-  datasetsRemoveRecords(datasetId: Int!, recordIds: [Int!]!): BooleanPayload!
+  datasetsRemoveRecords(datasetId: ID!, recordIds: [ID!]!): BooleanPayload!
   germplasmCreateEntry(entry: GermplasmInput!): BooleanPayload
   germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
-  germplasmDeleteEntry(entryId: Int!): BooleanPayload
+  germplasmDeleteEntry(entryId: ID!): BooleanPayload
   ontologyCreateTerm(term: TermInput!): BooleanPayload!
   ontologyCreateSubject(subject: SubjectInput!): BooleanPayload!
   ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
@@ -294,28 +295,28 @@ type Mutation {
   ontologyUpdateLocationType(locationType: LocationTypeUpdate!): BooleanPayload!
   ontologyUpdateDesign(design: DesignUpdate!): BooleanPayload!
   ontologyUpdateLayoutType(layoutType: LayoutTypeUpdate!): BooleanPayload!
-  ontologyActivateEntries(entryIds: [Int]): BooleanPayload!
-  ontologyDeprecateEntries(entryIds: [Int]): BooleanPayload!
-  ontologyRemoveEntries(entryIds: [Int]): BooleanPayload!
-  ontologyActivateRelationships(relationshipIds: [Int]): BooleanPayload!
-  ontologyDeprecateRelationships(relationshipIds: [Int]): BooleanPayload!
-  ontologyRemoveRelationships(relationshipIds: [Int]): BooleanPayload!
-  ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: Int, copyrightId: Int): BooleanPayload!
-  organisationsCreateTeam(name: String!, fullname: String, parentId: Int): BooleanPayload!
-  organisationsDeleteTeam(teamId: Int!): BooleanPayload!
-  organisationsUpdateTeam(teamId: Int!, name: String, fullname: String): BooleanPayload!
+  ontologyActivateEntries(entryIds: [ID!]!): BooleanPayload!
+  ontologyDeprecateEntries(entryIds: [ID!]!): BooleanPayload!
+  ontologyRemoveEntries(entryIds: [ID!]!): BooleanPayload!
+  ontologyActivateRelationships(relationshipIds: [ID!]!): BooleanPayload!
+  ontologyDeprecateRelationships(relationshipIds: [ID!]!): BooleanPayload!
+  ontologyRemoveRelationships(relationshipIds: [ID!]!): BooleanPayload!
+  ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: ID, copyrightId: ID): BooleanPayload!
+  organisationsCreateTeam(team: TeamInput!): BooleanPayload!
+  organisationsDeleteTeam(teamId: ID!): BooleanPayload!
+  organisationsUpdateTeam(team: TeamUpdate!): BooleanPayload!
   peopleCreatePerson(person: PersonInput!): BooleanPayload!
   peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
-  peopleDeletePerson(personId: Int!): BooleanPayload!
+  peopleDeletePerson(personId: ID!): BooleanPayload!
   programsCreateProgram(program: CreateProgramInput!): BooleanPayload
   programsUpdateProgram(program: UpdateProgramInput!): BooleanPayload
-  programsDeleteProgram(programId: Int!): BooleanPayload
+  programsDeleteProgram(programId: ID!): BooleanPayload
   programsCreateTrial(trial: CreateTrialInput!): BooleanPayload
   programsUpdateTrial(trial: UpdateTrialInput!): BooleanPayload
-  programsDeleteTrial(trialId: Int!): BooleanPayload
+  programsDeleteTrial(trialId: ID!): BooleanPayload
   programsCreateStudy(study: CreateStudyInput!): BooleanPayload
   programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
-  programsDeleteStudy(studyId: Int!): BooleanPayload
+  programsDeleteStudy(studyId: ID!): BooleanPayload
   referencesCreateLegal(reference: CreateLegalReferenceInput!): CreatedIdPayload!
   referencesCreateExternal(reference: CreateExternalReferenceInput!): CreatedIdPayload!
   referencesCreateExternalData(reference: CreateExternalDataReferenceInput!): CreatedIdPayload!
@@ -330,10 +331,13 @@ type Mutation {
   referencesUpdateExternalData(reference: UpdateExternalDataReferenceInput!): BooleanPayload!
   referencesUpdateFile(reference: UpdateFileReferenceInput): FileIdPayload!
   referencesUpdateDataFile(reference: UpdateDataFileReferenceInput): FileIdPayload!
-  referencesDelete(referenceIds: [Int!]!): BooleanPayload!
+  referencesDelete(referenceIds: [ID!]!): BooleanPayload!
+
+  """ Request to make an archived file available for download """
+  referencesRequestFileRetrieval(fileId: ID!): BooleanPayload!
   regionsCreateLocation(location: LocationInput!): BooleanPayload!
   regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
-  regionsDeleteLocation(locationId: Int!): BooleanPayload!
+  regionsDeleteLocation(locationId: ID!): BooleanPayload!
 }
 
 enum VersionChange {
@@ -346,129 +350,123 @@ input TermInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
+  synonyms: [String!]
 
-  """People stored in the database that established this entry"""
-  authorIds: [Int]
+  """People that established this entry (Person ID)"""
+  authorIds: [ID!]
 
   """
-  References stored in the database for additional details, e.g. a link to another ontology.
+  References for additional details, (Reference ID) e.g. a link to another ontology.
   """
-  referenceIds: [Int]
+  referenceIds: [ID!]
 
   """
   To establish a hierarchy and relationships among terms.
   Parents or children may be defined for any entry.
   """
-  parentIds: [Int]
-  childIds: [Int]
-  subjectIds: [Int]
-  scaleIds: [Int]
-  categoryIds: [Int]
-  observationMethodIds: [Int]
-  traitIds: [Int]
-  variableIds: [Int]
-  controlMethodIds: [Int]
-  conditionIds: [Int]
-  factorIds: [Int]
-  eventIds: [Int]
-  locationTypeIds: [Int]
-  layoutTypeIDs: [Int]
-  designIds: [Int]
-  roleIds: [Int]
-  titleIds: [Int]
+  parentIds: [ID!]
+  childIds: [ID!]
+  subjectIds: [ID!]
+  scaleIds: [ID!]
+  categoryIds: [ID!]
+  observationMethodIds: [ID!]
+  traitIds: [ID!]
+  variableIds: [ID!]
+  controlMethodIds: [ID!]
+  conditionIds: [ID!]
+  factorIds: [ID!]
+  eventIds: [ID!]
+  locationTypeIds: [ID!]
+  layoutTypeIds: [ID!]
+  designIds: [ID!]
+  roleIds: [ID!]
+  titleIds: [ID!]
 }
 
 input SubjectInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  traitIds: [Int]
-  conditionIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  traitIds: [ID!]
+  conditionIds: [ID!]
 }
 
 input TraitInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """When creating a trait, subjects must be specified by ID"""
-  subjectIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  subjectIds: [ID!]
 }
 
 input ConditionInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input ScaleInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """Scale entries require an additional type parameter."""
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   scaleType: ScaleType!
 
   """
   When defining a scale using existing categories, their identifiers may be listed in their proposed rank order.
   """
-  categoryIds: [Int]
+  categoryIds: [ID!]
 }
 
 input CategoryInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 
   """
   When creating a category for an ordinal scale, a rank should be provided.
   """
-  rankId: Int
+  rank: Int
 }
 
 input ObservationMethodInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """ObservationMethod entries require an additional type parameter."""
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   observationType: ObservationMethodType!
 }
 
@@ -476,35 +474,27 @@ input VariableInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """When creating a variable, a Trait identifier is required."""
-  traitId: Int!
-
-  """When defining a Variable an ObservationMethod is required."""
-  observationMethodId: Int!
-
-  """When defining a Variable, a Scale identifier is required."""
-  scaleId: Int!
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  traitId: ID!
+  observationMethodId: ID!
+  scaleId: ID!
 }
 
 input ControlMethodInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """ControlMethod entries require an additional type parameter."""
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   controlType: ControlMethodType!
 }
 
@@ -512,288 +502,295 @@ input FactorInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """When creating a factor, a Condition identifier is required."""
-  conditionId: Int!
-
-  """When defining a factor a ControlMethod identifier is required."""
-  controlMethodId: Int!
-
-  """When defining a factor, a Scale identifier is required."""
-  scaleId: Int!
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  conditionId: ID!
+  controlMethodId: ID!
+  scaleId: ID!
 }
 
 input EventInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  variableIds: [Int]
-  factorIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  variableIds: [ID!]
+  factorIds: [ID!]
+  termIds: [ID!]
 }
 
 input LocationTypeInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input DesignInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input LayoutTypeInput {
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-
-  """
-  When creating a LayoutType, each axis type for position descriptions is required
-  """
-  axes: [AxisType]!
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  axes: [AxisType!]!
 }
 
 input TermUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  subjectIds: [Int]
-  scaleIds: [Int]
-  categoryIds: [Int]
-  observationMethodIds: [Int]
-  traitIds: [Int]
-  variableIds: [Int]
-  controlMethodIds: [Int]
-  conditionIds: [Int]
-  factorIds: [Int]
-  eventIds: [Int]
-  locationTypeIds: [Int]
-  layoutTypeIDs: [Int]
-  designIds: [Int]
-  roleIds: [Int]
-  titleIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  subjectIds: [ID!]
+  scaleIds: [ID!]
+  categoryIds: [ID!]
+  observationMethodIds: [ID!]
+  traitIds: [ID!]
+  variableIds: [ID!]
+  controlMethodIds: [ID!]
+  conditionIds: [ID!]
+  factorIds: [ID!]
+  eventIds: [ID!]
+  locationTypeIds: [ID!]
+  layoutTypeIds: [ID!]
+  designIds: [ID!]
+  roleIds: [ID!]
+  titleIds: [ID!]
 }
 
 input SubjectUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input TraitUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  subjectIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  subjectIds: [ID!]
 }
 
 input ConditionUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  subjectIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  subjectIds: [ID!]
 }
 
 input ScaleUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   scaleType: ScaleType!
-  categoryIds: [Int]
+  categoryIds: [ID!]
 }
 
 input CategoryUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  rankId: Int
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  rank: Int
 }
 
 input ObservationMethodUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   observationType: ObservationMethodType!
 }
 
 input VariableUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  traitId: Int
-  observationMethodId: Int
-  scaleId: Int
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  traitId: ID
+  observationMethodId: ID
+  scaleId: ID
 }
 
 input ControlMethodUpdate {
-  id: Int
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
   controlType: ControlMethodType
 }
 
 input FactorUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  conditionId: Int
-  controlMethodId: Int
-  scaleId: Int
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  conditionId: ID
+  controlMethodId: ID
+  scaleId: ID
 }
 
 input EventUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  variableIds: [Int]
-  factorIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  variableIds: [ID!]
+  factorIds: [ID!]
+  termIds: [ID!]
 }
 
 input LocationTypeUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input DesignUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
 }
 
 input LayoutTypeUpdate {
-  id: Int!
+  id: ID!
   name: String
   description: String
   abbreviation: String
-  synonyms: [String]
-  authorIds: [Int]
-  referenceIds: [Int]
-  parentIds: [Int]
-  childIds: [Int]
-  termIds: [Int]
-  axes: [AxisType]
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+  axes: [AxisType!]
+}
+
+input TeamInput {
+  """ Required name for the team """
+  name: String!
+
+  """ Optional full name for the team """
+  fullname: String
+
+  """ Optional parent team to extend an organisation"""
+  parentId: ID
+}
+
+input TeamUpdate {
+  teamId: ID!
+  name: String
+  fullname: String
 }
 
 input PersonInput {
@@ -802,7 +799,7 @@ input PersonInput {
 }
 
 input PersonUpdate {
-  id: Int!
+  id: ID!
   name: String
   fullname: String
 }
@@ -811,67 +808,67 @@ input CreateProgramInput {
   name: String!
   fullname: String
   description: String
-  contactIds: [Int!] = []
-  referenceIds: [Int!] = []
+  contactIds: [ID!] = []
+  referenceIds: [ID!] = []
 }
 
 input UpdateProgramInput {
-  programId: Int!
+  programId: ID!
   name: String
   fullname: String
   description: String
-  contactIds: [Int!]
-  referenceIds: [Int!]
+  contactIds: [ID!]
+  referenceIds: [ID!]
 }
 
 input CreateTrialInput {
-  programId: Int!
+  programId: ID!
   name: String!
   fullname: String
   description: String
   start: DateTime
   end: DateTime
-  contactIds: [Int!] = []
-  referenceIds: [Int!] = []
+  contactIds: [ID!] = []
+  referenceIds: [ID!] = []
 }
 
 input UpdateTrialInput {
-  trialId: Int!
+  trialId: ID!
   name: String
   fullname: String
   description: String
   start: DateTime
   end: DateTime
-  contactIds: [Int!]
-  referenceIds: [Int!]
+  contactIds: [ID!]
+  referenceIds: [ID!]
 }
 
 input CreateStudyInput {
-  trialId: Int!
+  trialId: ID!
   name: String!
   fullname: String
   description: String
   practices: String
   start: DateTime
   end: DateTime
-  datasetIds: [Int!] = []
-  designId: Int
-  licenceId: Int
-  referenceIds: [Int!] = []
+  datasetIds: [ID!] = []
+  designId: ID
+  licenceId: ID
+  referenceIds: [ID!] = []
 }
 
 input UpdateStudyInput {
-  studyId: Int!
+  studyId: ID!
   name: String
   fullname: String
   description: String
   practices: String
   start: DateTime
   end: DateTime
-  datasetIds: [Int!]
-  designId: Int
-  licenceId: Int
-  referenceIds: [Int!]
+  datasetIds: [ID!]
+  designId: ID
+  licenceId: ID
+  referenceIds: [ID!]
 }
 
 enum DataFormat {
@@ -915,20 +912,20 @@ input CreateDataFileReferenceInput {
 }
 
 input UpdateLegalReferenceInput {
-  referenceId: Int!
+  referenceId: ID!
   description: String
   text: String!
 }
 
 input UpdateExternalReferenceInput {
-  referenceId: Int!
+  referenceId: ID!
   description: String
   url: String!
   externalId: String
 }
 
 input UpdateExternalDataReferenceInput {
-  referenceId: Int!
+  referenceId: ID!
   description: String
   url: String!
   externalId: String
@@ -937,13 +934,13 @@ input UpdateExternalDataReferenceInput {
 }
 
 input UpdateFileReferenceInput {
-  referenceId: Int!
+  referenceId: ID!
   description: String
   file: Upload
 }
 
 input UpdateDataFileReferenceInput {
-  referenceId: Int!
+  referenceId: ID!
   description: String
   file: Upload
   format: DataFormat!
@@ -960,7 +957,7 @@ input GeoCoordinateInput {
   """Meters above WGS84 reference ellipsoid"""
   altitude: Float
 
-  """Uncertainty in meters associated with these coordinates"""
+  """UncertaIDy in meters associated with these coordinates"""
   uncertainty: Float
 
   """Additional coordinate description"""
@@ -977,14 +974,14 @@ input LocationInput {
   coordinates: [GeoCoordinateInput]
 
   """ Ontology LocationType identifier """
-  typeId: Int!
+  typeId: ID!
 
   """ A parent location, required unless a country (see countries) """
-  parentId: Int
+  parentId: ID
 }
 
 input LocationUpdate {
-  locationId: Int!
+  locationId: ID!
   name: String
 
   """ Optional code for location, e.g. zip-code """
@@ -994,10 +991,10 @@ input LocationUpdate {
   coordinates: [GeoCoordinateInput]
 
   """ Ontology LocationType identifier """
-  typeId: Int
+  typeId: ID
 
   """ A parent location, required unless a country (see countries) """
-  parentId: Int
+  parentId: ID
 }
 
 enum OntologyRole {
@@ -1008,7 +1005,7 @@ enum OntologyRole {
 }
 
 type User {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String!
   email: String!
@@ -1093,7 +1090,7 @@ type AnalysisVariable {
   type: VariableType!
 
   """Concept ID (provided when type is CONCEPT)"""
-  conceptId: Int
+  conceptId: ID
 
   """Human-readable label for the variable"""
   label: String!
@@ -1109,7 +1106,7 @@ type InteractionTerm {
 
 type AnalysisConfig {
   """Dataset IDs included in analysis"""
-  datasetIds: [Int!]!
+  datasetIds: [ID!]!
 
   """The dependent (response) variable"""
   dependentVariable: AnalysisVariable!
@@ -1139,7 +1136,7 @@ type AnalysisSubmission {
 }
 
 type Layout {
-  id: Int!
+  id: ID!
   type: OntologyEntryInterface
   name: String
   axes: [String!]
@@ -1173,7 +1170,7 @@ type Position {
 }
 
 type Unit {
-  id: Int!
+  id: ID!
   subject: OntologyEntryInterface
   germplasm: GermplasmEntry
   name: String
@@ -1223,7 +1220,7 @@ type Controller {
 }
 
 type Record {
-  id: Int!
+  id: ID!
   unit: Unit
   value: String
   start: DateTime
@@ -1233,7 +1230,7 @@ type Record {
 }
 
 type Dataset {
-  id: Int!
+  id: ID!
   concept: OntologyEntryInterface
   records: [Record]
   contributors: [Person]
@@ -1241,7 +1238,7 @@ type Dataset {
 }
 
 type SubmittedRecord {
-  id: Int
+  id: ID
   unitId: Int!
   value: String
   start: DateTime
@@ -1250,7 +1247,7 @@ type SubmittedRecord {
 }
 
 type SubmittedData {
-  conceptId: Int!
+  conceptId: ID!
   records: [SubmittedRecord]
   contributors: [Person]
   references: [ReferenceInterface]
@@ -1269,15 +1266,15 @@ type ItemError {
 }
 
 type DatasetSubmission {
+  datasetId: ID
   data: SubmittedData
-  datasetId: Int
   status: SubmissionStatus
   errors: [String]
   itemErrors: [ItemError]
 }
 
 type DatasetSummary {
-  id: Int!
+  id: ID!
   concept: OntologyEntryInterface
   subjects: [Subject]
   locations: [Location]
@@ -1296,7 +1293,7 @@ type GermplasmRelationship {
 }
 
 type GermplasmEntry {
-  id: Int!
+  id: ID!
   name: String!
   description: String
   synonyms: [String!]
@@ -1322,7 +1319,6 @@ type Version {
   major: Int!
   minor: Int!
   patch: Int!
-  comment: String!
 }
 
 type OntologyCommit {
@@ -1593,7 +1589,7 @@ enum ScaleType {
 }
 
 interface OntologyEntryInterface {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1616,7 +1612,7 @@ Term entries may be used to relate other key terms in the ontology.
 Example: "Metabolism" may be a term.
 """
 type Term implements OntologyEntryInterface {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1651,7 +1647,7 @@ These are linked to Unit and Trait.
 Examples: "Leaf", "Tree", "Field", "Rhizosphere"
 """
 type Subject implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1675,7 +1671,7 @@ Examples:
 "Height", "Gene expression" linked to a tree subject.
 """
 type Trait implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1698,7 +1694,7 @@ These are linked to Factor entries.
 Examples: "Light level", "Controlled Grafting", "Water availability"
 """
 type Condition implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1728,7 +1724,7 @@ Examples:
 "MAG abundance" would be ScaleType complex, with associated datasets or records each providing references to stored files, e.g. in HDF5 format.
 """
 type Scale implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1752,7 +1748,7 @@ Category entries describe classes for Scale entries with type Nominal or Ordinal
 These are linked to Scale entries.
 """
 type Category implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1775,7 +1771,7 @@ Observation method entries require an ObservationMethodType.
 Examples: "Distance measurement with calibrated reference", "Short-read sequencing", "Rain Gauge".
 """
 type ObservationMethod implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1806,7 +1802,7 @@ Examples:
     Scale = "Counts per million"
 """
 type Variable implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1830,7 +1826,7 @@ These are linked to Factor.
 Examples: "Fluorescent Lighting", "Fertilizer application"
 """
 type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1861,7 +1857,7 @@ OR
     Condition = "Genetic material", ControlMethod = "Controlled Grafting", Scale = "Plant Genetic Material"
 """
 type Factor implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1885,7 +1881,7 @@ Examples:
 "Harvest" where "harvest method" may be a factor and "yield" may be a variable.
 """
 type Event implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1908,7 +1904,7 @@ These are linked to Location (see Regions).
 Examples: "Country", "State", "Field"
 """
 type LocationType implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1929,7 +1925,7 @@ These are linked to Layout (see Arrangements).
 Examples: "Grid", "Rows"
 """
 type LayoutType implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1951,7 +1947,7 @@ These are linked to Study (see Programs).
 Examples: "Split-plot", "Randomized block"
 """
 type Design implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1972,7 +1968,7 @@ These are linked to Person (see People).
 Examples: "Post-doctoral researcher", "Principal Investigator"
 """
 type Role implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -1993,7 +1989,7 @@ These are linked to Person (see People).
 Examples: "Professor", "Doctor"
 """
 type Title implements OntologyEntryInterface & RelatedToTerms {
-  id: Int!
+  id: ID!
   versionId: ID!
   draft: Boolean!
   name: String!
@@ -2011,10 +2007,10 @@ type Title implements OntologyEntryInterface & RelatedToTerms {
 union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | Role | Title
 
 type OntologyRelationship {
-  id: Int!
+  id: ID!
   versionId: ID!
-  sourceId: Int!
-  targetId: Int!
+  sourceId: ID!
+  targetId: ID!
   label: OntologyRelationshipLabel!
   phase: LifecyclePhase
   rank: Int
@@ -2053,7 +2049,7 @@ type Affiliations {
 }
 
 type Team {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String!
   parent: Team
@@ -2248,6 +2244,12 @@ type FileSubmissionPayload {
   errors: [Error]
 }
 
+type FileDownloadStatePayload {
+  status: QueryStatus!
+  result: FileDownloadState
+  errors: [Error]
+}
+
 type FileDownloadPayload {
   status: QueryStatus!
   result: FileDownload
@@ -2303,13 +2305,13 @@ type AnalysisSubmissionPayload {
 }
 
 type Person {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String
 }
 
 type Program {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String
   description: String
@@ -2319,7 +2321,7 @@ type Program {
 }
 
 type Trial {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String
   description: String
@@ -2331,7 +2333,7 @@ type Trial {
 }
 
 type Study {
-  id: Int!
+  id: ID!
   name: String!
   fullname: String
   description: String
@@ -2348,7 +2350,7 @@ type Query {
   accountsAccount: AccountPayload!
 
   """Get user details for administrative tasks"""
-  accountsUsers(userId: Int): UsersPayload!
+  accountsUsers(userId: ID): UsersPayload!
 
   """Get the user access map of access type to team"""
   accountsUserAccess: UserAccessPayload!
@@ -2365,10 +2367,10 @@ type Query {
   Get a single team details
   As with organisations, the organisation can be explored from this node.
   """
-  organisationsTeam(teamId: Int!): TeamPayload!
+  organisationsTeam(teamId: ID!): TeamPayload!
 
   """Get a multiple team details"""
-  organisationsTeams(teamIds: [Int!]): TeamsPayload!
+  organisationsTeams(teamIds: [ID!]): TeamsPayload!
 
   """Get the latest ontology version"""
   ontologyVersion: VersionPayload!
@@ -2378,14 +2380,14 @@ type Query {
   Defaults to latest version.
   Relationship attributes on entries (e.g. terms) are determined by draft and active relationships.
   """
-  ontology(versionId: Int): OntologyPayload!
+  ontology(versionId: ID): OntologyPayload!
 
   """
   Get a list of ontology entries.
   Defaults to latest version.
   Relationship attributes (e.g. terms) are determined by active relationships in the given version only.
   """
-  ontologyEntries(entryIds: [Int!], labels: [OntologyEntryLabel], versionId: Int): OntologyEntriesPayload!
+  ontologyEntries(entryIds: [ID!], labels: [OntologyEntryLabel], versionId: ID, draft: Boolean = false): OntologyEntriesPayload!
 
   """Get an ontology commit history"""
   ontologyCommitHistory(limit: Int): OntologyCommitsPayload!
@@ -2418,57 +2420,57 @@ type Query {
   regions: LocationsPayload!
 
   """ Get locations by locationId """
-  regionsLocations(locationIds: [Int!]!): LocationsPayload!
+  regionsLocations(locationIds: [ID!]!): LocationsPayload!
 
   """ Search for locations by ontology Location type """
-  regionsLocationsByType(locationTypeId: Int!): LocationsPayload!
+  regionsLocationsByType(locationTypeId: ID!): LocationsPayload!
 
   """
   Get a list of arrangement roots.
   These are all layouts that form the top-level layout in an arrangement.
   Optionally retrieve only those at a given location by supplying locationId.
   """
-  arrangements(locationId: Int): LayoutsPayload!
+  arrangements(locationId: ID): LayoutsPayload!
 
   """ Get a layout details by ID """
-  arrangementsLayouts(layoutIds: [Int!]): LayoutsPayload!
+  arrangementsLayouts(layoutIds: [ID!]): LayoutsPayload!
 
   """
   Get a list of block "root" units.
   These are top-level unit in the block hierarchy.
   """
-  blocks(locationIds: [Int!]): UnitsPayload!
+  blocks(locationIds: [ID!]): UnitsPayload!
 
   """ Get units by ID. """
-  blocksUnits(unitIds: [Int!]): UnitsPayload!
+  blocksUnits(unitIds: [ID!]): UnitsPayload!
 
   """ Get a list of all programs """
   programs: ProgramsPayload!
 
   """Get a program by Id of program, trial or study """
-  programsProgram(programId: Int, trialId: Int, studyId: Int): ProgramPayload!
+  programsProgram(programId: ID, trialId: ID, studyId: ID): ProgramPayload!
 
   """ Get trials by Id of trial or study """
-  programsTrial(trialId: Int, studyId: Int): TrialPayload!
+  programsTrial(trialId: ID, studyId: ID): TrialPayload!
 
   """ Get study by study Id """
-  programsStudy(studyId: Int!): StudyPayload!
+  programsStudy(studyId: ID!): StudyPayload!
 
   """ Filter datasets by study and/or concept Id, OR retrieve by array of dataset ids 
   """
-  datasets(studyIds: [Int!], conceptIds: [Int!], datasetIds: [Int!]): DatasetsPayload!
+  datasets(studyIds: [ID!], conceptIds: [ID!], datasetIds: [ID!]): DatasetsPayload!
 
   """ Get dataset submission by key """
-  datasetsSubmission(submissionId: String!): DatasetSubmissionPayload!
+  datasetsSubmission(submissionId: ID!): DatasetSubmissionPayload!
 
   """ Get a summary of datasets for a study """
-  datasetsSummaries(studyId: Int!): DatasetSummariesPayload!
+  datasetsSummaries(studyId: ID!): DatasetSummariesPayload!
 
   """ Get the controller data for access controlled entities """
-  controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [Int]!): ControllersPayload!
+  controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID]!): ControllersPayload!
 
   """Get a list of Germplasm entries"""
-  germplasmEntries(names: [String!], entryIds: [Int!]): GermplasmEntriesPayload!
+  germplasmEntries(names: [String!], entryIds: [ID!]): GermplasmEntriesPayload!
 
   """
   Get a list of Germplasm entries that have no sources defined,
@@ -2477,7 +2479,7 @@ type Query {
   germplasmCrops: GermplasmEntriesPayload!
 
   """ Get reference by reference ID """
-  references(referenceIds: [Int!]): ReferencesPayload!
+  references(referenceIds: [ID!]): ReferencesPayload!
 
   """ Get a users recently created/updated file references """
   referencesRecentFiles: ReferencesPayload!
@@ -2486,43 +2488,46 @@ type Query {
   referencesDescription(description: String!): ReferencesPayload!
 
   """ Get file submission by fileId for progress and status updates """
-  referencesFileSubmission(fileId: String!): FileSubmissionPayload!
+  referencesFileSubmission(fileId: ID!): FileSubmissionPayload!
+
+  """ Check the availability of a file for download"""
+  referencesFileDownloadState(fileId: ID!): FileDownloadStatePayload!
 
   """ Get a token to download a file """
-  referencesFileDownload(fileId: String!): FileDownloadPayload!
+  referencesFileDownload(fileId: ID!): FileDownloadPayload!
 
   """ Get analysis status and results """
-  analysisSubmission(analysisId: String!): AnalysisSubmissionPayload!
+  analysisSubmission(analysisId: ID!): AnalysisSubmissionPayload!
 }
 
 interface ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
 }
 
 type LegalReference implements ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
   text: String
 }
 
 type ExternalReference implements ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
   url: String
   externalId: String
 }
 
 type FileReference implements ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
   filename: String
-  fileId: String
+  fileId: ID
   contentType: String
 }
 
 type ExternalDataReference implements ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
   url: String
   externalId: String
@@ -2531,10 +2536,10 @@ type ExternalDataReference implements ReferenceInterface {
 }
 
 type DataFileReference implements ReferenceInterface {
-  id: Int!
+  id: ID!
   description: String
   filename: String
-  fileId: String
+  fileId: ID
   contentType: String
   format: DataFormat
   schema: String
@@ -2547,10 +2552,24 @@ type FileSubmission {
   errors: [String]
 }
 
+enum FileStatus {
+  ARCHIVED
+  RETRIEVING
+  AVAILABLE
+  FAILED
+}
+
+type FileRetrieval {
+  startedAt: DateTime
+  progress: Int
+}
+
+type FileDownloadState {
+  status: FileStatus!
+  progress: FileRetrieval
+}
+
 type FileDownload {
-  filename: String!
-  contentType: String!
-  token: String!
   expiresAt: DateTime!
   url: String!
 }
@@ -2576,7 +2595,7 @@ type GeoCoordinate {
 
 type Location {
   """Stored Locations"""
-  id: Int!
+  id: ID!
   name: String!
   type: OntologyEntryInterface
   code: String
@@ -2602,7 +2621,7 @@ type LocationTemplate {
   coordinates: [GeoCoordinate]
 
   """ Ontology LocationType identifier """
-  typeId: Int!
+  typeId: ID!
 }
 
 scalar DateTime

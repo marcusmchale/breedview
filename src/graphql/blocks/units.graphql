@@ -1,6 +1,6 @@
 #import "./unitFragment.graphql"
 query units (
-    $unitIds: [Int!]
+    $unitIds: [ID!]
 ){
     blocksUnits(
         unitIds: $unitIds

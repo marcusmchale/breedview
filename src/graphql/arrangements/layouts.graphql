@@ -1,6 +1,6 @@
 #import "./layoutFragment.graphql"
 query layouts (
-    $layoutIds: [Int!]
+    $layoutIds: [ID!]
 ){
     arrangementsLayouts(
         layoutIds: $layoutIds

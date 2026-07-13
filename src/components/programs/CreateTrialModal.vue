@@ -9,7 +9,7 @@ import ReferencesModal from '@/components/references/ReferencesModal.vue'
 
 const props = defineProps({
   programId: {
-    type: Number,
+    type: String,
     required: true
   },
   programName: {

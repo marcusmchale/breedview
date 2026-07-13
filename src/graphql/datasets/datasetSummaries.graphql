@@ -1,4 +1,4 @@
-query DatasetsSummaries($studyId: Int!){
+query DatasetsSummaries($studyId: ID!){
   datasetsSummaries(studyId: $studyId) {
     status
     result {

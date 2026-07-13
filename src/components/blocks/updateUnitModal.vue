@@ -17,11 +17,11 @@ const props = defineProps({
     required: true
   },
   blockId: {
-    type: Number,
+    type: String,
     required: true
   },
   locationId: {
-    type: Number,
+    type: String,
     required: false  // only needed when updating a root unit (block) to allow merging into another block.
   }
 })

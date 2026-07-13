@@ -1,10 +1,7 @@
-query referencesFileDownload($fileId: String!) {
+query referencesFileDownload($fileId: ID!) {
   referencesFileDownload (fileId: $fileId) {
     status
     result {
-        filename
-        contentType
-        token
         expiresAt
         url
     }

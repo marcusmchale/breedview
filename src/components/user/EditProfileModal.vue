@@ -84,6 +84,7 @@ const updateProfile = async (formData) => {
       email: formData.email,
       password: formData.password
     }
+    console.log("variables:", variables)
 
     const response = await updateUserMutation(variables)
 
@@ -146,6 +147,7 @@ const closeModal = () => {
               name="name"
               label="Username"
               :help="account.user.name"
+              autocomplete="off"
             />
             <FormKit
               type="text"
@@ -165,6 +167,7 @@ const closeModal = () => {
               name="password"
               label="New Password (optional)"
               help="Leave blank to keep current password"
+              autocomplete="new-password"
             />
             <div class="form-actions right">
               <FormKit

@@ -1,8 +1,8 @@
 #import "./entryFragment.graphql"
 query ontologyEntries(
-    $entryIds: [Int!]
+    $entryIds: [ID!]
     $labels: [OntologyEntryLabel!]
-    $versionId: Int
+    $versionId: ID
 ) {
     ontologyEntries(
         entryIds: $entryIds

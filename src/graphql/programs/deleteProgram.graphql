@@ -1,4 +1,4 @@
-mutation programsDeleteProgram($programId: Int!) {
+mutation programsDeleteProgram($programId: ID!) {
   programsDeleteProgram(programId: $programId) {
     status
     errors {

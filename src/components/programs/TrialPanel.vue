@@ -12,11 +12,11 @@ import CreateStudyModal from './CreateStudyModal.vue'
 
 const props = defineProps({
   trialId: {
-    type: Number,
+    type: String,
     required: true
   },
   programId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

@@ -163,7 +163,7 @@ const props = defineProps({
     required: false
   },
   entityId: {
-    type: Number,
+    type: String,
     required: false
   }
 })

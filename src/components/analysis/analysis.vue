@@ -141,7 +141,6 @@ const yAxisTicks = computed(() => {
 // Y-axis label with unit
 const yAxisLabel = computed(() => {
   if (!dependentVariable.value) return ''
-  console.log('dv', dependentVariable.value)
   const label = dependentVariable.value.concept?.name || 'Value'
   return label
   //const scale = dependentVariable.value.concept?.scale
@@ -217,11 +216,9 @@ const {
 } = useAnalysisQuery(currentAnalysisId, {
   pollInterval: 2000,
   onComplete: ({ status, errors }) => {
-    console.log('Analysis complete:', status)
     currentAnalysisId.value = null  // stop the query
     if (status === 'COMPLETED') {
       analysisResults.value = result.value
-      console.log('Analysis results received:', analysisResults.value)
       phase.value = 'results'
       isSubmitting.value = false
     } else if (status === 'FAILED') {
@@ -449,13 +446,11 @@ const handleSubmit = async () => {
 
   try {
     const config = exportModelConfig()
-    console.log('Model config for submission:', config)
     const dataset_input = {
       datasetIds: datasets?.value.map(dataset => dataset.id),
       ...config
     }
     const analysisSubmission = await submitAnalysis(dataset_input)
-    console.log('Analysis submitted with ID:', analysisSubmission.result)
     // Now poll for the result
     // Set the analysis ID to start polling via useQuery
     if (analysisSubmission.result) {
@@ -588,6 +583,7 @@ const tukeyData = computed(() => {
 })
 
 const formatGroupLabel = (group) => {
+  if(group == null) return null;
   return group.map(g => {
     const displayValue = g.label === 'Germplasm' ? getGermplasmName(g.level) : g.level
     return `${g.label}: ${displayValue}`

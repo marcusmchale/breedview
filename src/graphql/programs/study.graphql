@@ -1,5 +1,5 @@
 #import "../references/referenceFragment.graphql"
-query programsStudy($studyId: Int!) {
+query programsStudy($studyId: ID!) {
   programsStudy(studyId: $studyId) {
     status
     result {

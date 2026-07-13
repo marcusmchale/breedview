@@ -13,7 +13,7 @@ const props = defineProps({
         required: true
     },
     locationId: {
-        type: Number,
+        type: String,
         required: true
     }
 })

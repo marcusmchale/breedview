@@ -38,7 +38,7 @@ const props = defineProps({
     ].includes(value)
   },
   entityId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

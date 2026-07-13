@@ -1,4 +1,4 @@
-query referencesFileSubmission($fileId: String!) {
+query referencesFileSubmission($fileId: ID!) {
   referencesFileSubmission(fileId: $fileId) {
     status
     result {

@@ -13,15 +13,15 @@ import LAYOUTS_QUERY from '@/graphql/arrangements/layouts.graphql'
 
 const props = defineProps({
   layoutId: {
-    type: Number,
+    type: String,
     required: true
   },
   parentId: {
-    type: Number,
+    type: String,
     required: false
   },
   arrangementId: {
-    type: Number,
+    type: String,
     required: true
   },
   layoutTypes: {

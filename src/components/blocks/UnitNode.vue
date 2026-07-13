@@ -12,15 +12,15 @@ import PositionDetails from "@/components/blocks/positionDetails.vue";
 
 const props = defineProps({
   unitId: {
-    type: Number,
+    type: String,
     required: true
   },
   parentId: {
-    type: Number,
+    type: String,
     required: false
   },
   blockId: {
-    type: Number,
+    type: String,
     required: true
   },
   subjects: {
@@ -28,7 +28,7 @@ const props = defineProps({
     required: true
   },
   locationId: {
-    type: Number,
+    type: String,
     required: false  // only needed for root nodes to allow merging to other blocks at that location
   },
 })

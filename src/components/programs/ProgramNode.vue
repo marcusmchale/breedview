@@ -57,7 +57,7 @@ const props = defineProps({
     required: true
   },
   selectedStudyId: {
-    type: Number,
+    type: String,
     default: null
   },
   getChildrenFn: {

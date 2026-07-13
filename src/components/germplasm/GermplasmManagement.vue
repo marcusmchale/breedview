@@ -824,7 +824,7 @@ const submitCreate = async () => {
       const validSources = sources.value
         .filter(s => s.sourceId !== null)
         .map(s => ({
-          sourceId: parseInt(s.sourceId),
+          sourceId: s.sourceId,
           sourceType: s.sourceType,
           description: s.description || null
         }))
@@ -838,7 +838,7 @@ const submitCreate = async () => {
       const validSinks = sinks.value
         .filter(s => s.sinkId !== null)
         .map(s => ({
-          sinkId: parseInt(s.sinkId),
+          sinkId: s.sinkId,
           sourceType: s.sourceType,
           description: s.description || null
         }))
@@ -971,7 +971,7 @@ const submitUpdate = async () => {
       : []
 
     const entry = {
-      id: parseInt(updateFormData.value.id),
+      id: updateFormData.value.id,
       name: updateFormData.value.name,
       description: updateFormData.value.description || null,
       synonyms: synonyms.length > 0 ? synonyms : null
@@ -986,7 +986,7 @@ const submitUpdate = async () => {
       const validSources = updateSources.value
         .filter(s => s.sourceId !== null)
         .map(s => ({
-          sourceId: parseInt(s.sourceId),
+          sourceId: s.sourceId,
           sourceType: s.sourceType,
           description: s.description || null
         }))
@@ -1001,7 +1001,7 @@ const submitUpdate = async () => {
       const validSinks = updateSinks.value
         .filter(s => s.sinkId !== null)
         .map(s => ({
-          sinkId: parseInt(s.sinkId),
+          sinkId: s.sinkId,
           sourceType: s.sourceType,
           description: s.description || null
         }))
@@ -1017,7 +1017,7 @@ const submitUpdate = async () => {
       updateSuccess.value = 'Entry updated successfully!'
 
       // Fetch the updated entry by ID AND the defined sources/sinks by ID
-      const entryId = parseInt(updateFormData.value.id)
+      const entryId = updateFormData.value.id
       const idsToFetch = [...sourceIds, ...sinkIds].filter(id => id !== entryId)
 
       const [byId, byIds] = await Promise.all([

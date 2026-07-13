@@ -1,4 +1,4 @@
-query DatasetSubmission($submissionId: String!) {
+query DatasetSubmission($submissionId: ID!) {
   datasetsSubmission(submissionId: $submissionId) {
     status
     result {

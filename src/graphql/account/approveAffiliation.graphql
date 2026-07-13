@@ -1,4 +1,4 @@
-mutation accountsApproveAffiliation($user: Int!, $team: Int!, $access: Access!, $heritable: Boolean) {
+mutation accountsApproveAffiliation($user: ID!, $team: ID!, $access: Access!, $heritable: Boolean) {
   accountsApproveAffiliation(userId: $user, teamId: $team, access: $access, heritable: $heritable) {
     status
     errors {

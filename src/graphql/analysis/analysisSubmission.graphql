@@ -1,4 +1,4 @@
-query AnalysisSubmission($analysisId: String!) {
+query AnalysisSubmission($analysisId: ID!) {
   analysisSubmission(analysisId: $analysisId) {
     status
     result {

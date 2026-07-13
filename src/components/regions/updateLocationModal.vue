@@ -16,7 +16,7 @@ const props = defineProps({
     required: true
   },
   regionId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

@@ -9,7 +9,7 @@ import CreateBlockModal from "@/components/blocks/createBlockModal.vue";
 
 const props = defineProps({
   locationId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

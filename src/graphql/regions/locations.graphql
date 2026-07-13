@@ -1,6 +1,6 @@
 #import "./locationFragment.graphql"
 query locations (
-    $locationIds: [Int!]!
+    $locationIds: [ID!]!
 ){
     regionsLocations(
         locationIds: $locationIds

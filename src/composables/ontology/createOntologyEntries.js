@@ -18,7 +18,7 @@ import CREATE_LAYOUT_TYPE from '../../graphql/ontology/createLayoutType.graphql'
 // Helper functions
 const processIdArray = (ids) => {
   if (ids && ids.length > 0) {
-    return ids.map(id => parseInt(id))
+    return ids
   }
   return undefined
 }
@@ -195,7 +195,7 @@ export function createTermHandler(context) {
         placeholder: 'Select location types (optional)'
       },
       {
-        name: 'layoutTypeIDs',
+        name: 'layoutTypeIds',
         type: 'select',
         label: 'Layout Types',
         validation: '',
@@ -248,7 +248,7 @@ export function createTermHandler(context) {
         factorIds: processIdArray(formData.factorIds),
         eventIds: processIdArray(formData.eventIds),
         locationTypeIds: processIdArray(formData.locationTypeIds),
-        layoutTypeIDs: processIdArray(formData.layoutTypeIDs),
+        layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
         roleIds: processIdArray(formData.roleIds),
         titleIds: processIdArray(formData.titleIds)
@@ -728,9 +728,9 @@ export function createVariableHandler(context) {
       const processedData = {
         name: formData.name,
         description: formData.description || undefined,
-        traitId: parseInt(formData.traitId),
-        observationMethodId: parseInt(formData.observationMethodId),
-        scaleId: parseInt(formData.scaleId),
+        traitId: formData.traitId,
+        observationMethodId: formData.observationMethodId,
+        scaleId: formData.scaleId,
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
         termIds: processIdArray(formData.termIds)
@@ -876,9 +876,9 @@ export function createFactorHandler(context) {
       const processedData = {
         name: formData.name,
         description: formData.description || undefined,
-        conditionId: parseInt(formData.conditionId),
-        controlMethodId: parseInt(formData.controlMethodId),
-        scaleId: parseInt(formData.scaleId),
+        conditionId: formData.conditionId,
+        controlMethodId: formData.controlMethodId,
+        scaleId: formData.scaleId,
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
         termIds: processIdArray(formData.termIds)

@@ -22,48 +22,60 @@ const props = defineProps({
     }
 })
 
-const { fetchDownloadUrl, getDownloadData, loadingFileId, loading: downloadLoading } = useReferencesFileDownloadLazy()
+const { phase, progress, downloadUrl, errorMessage, startDownload } = useReferencesFileDownloadLazy()
 
-const downloadInfo = computed(() => {
-    return getDownloadData(props.fileId)
-})
+const isActive = computed(() => !['idle', 'ready', 'failed'].includes(phase.value))
 
-const isLoading = computed(() => {
-    return downloadLoading.value && loadingFileId.value === props.fileId
-})
-
-const handleFetchDownloadUrl = () => {
-    if (props.fileId && !isLoading.value) {
-        fetchDownloadUrl(props.fileId)
+const statusLabel = computed(() => {
+    switch (phase.value) {
+        case 'checking': return 'Checking...'
+        case 'requesting': return 'Requesting...'
+        case 'retrieving': return progress.value != null ? `Retrieving ${progress.value}%` : 'Retrieving...'
+        case 'failed': return 'Retry'
+        default: return 'Get Link'
     }
+})
+
+const handleClick = () => {
+    if (!props.fileId || isActive.value) return
+    startDownload(props.fileId)
 }
 </script>
 
 <template>
-    <!-- Show download link if URL is already fetched -->
     <a
-        v-if="downloadInfo?.url"
-        :href="downloadInfo.url"
-        :download="downloadInfo.filename || filename"
+        v-if="phase === 'ready'"
+        :href="downloadUrl"
         class="download-btn"
         :class="[size, { 'icon-only': iconOnly }]"
+        target="_blank"
+        rel="noopener"
         @click.stop
         title="Download file"
     >
-        <span>⬇️</span>
+        <span class="btn-icon">&#x2B07;</span>
         <span v-if="!iconOnly">Download</span>
     </a>
-    <!-- Show fetch button if URL not yet fetched -->
     <button
         v-else
         class="download-btn"
-        :class="[size, { 'icon-only': iconOnly }]"
-        :disabled="isLoading"
-        @click.stop="handleFetchDownloadUrl"
-        :title="isLoading ? 'Loading...' : 'Get download link'"
+        :class="[size, { 'icon-only': iconOnly, 'failed': phase === 'failed' }]"
+        :disabled="isActive"
+        @click.stop="handleClick"
+        :title="phase === 'failed' ? (errorMessage || 'Failed — click to retry') : statusLabel"
     >
-        <span>{{ isLoading ? '⏳' : '🔗' }}</span>
-        <span v-if="!iconOnly">{{ isLoading ? 'Loading...' : 'Get Link' }}</span>
+        <span class="btn-icon">{{ isActive ? '⏳' : phase === 'failed' ? '✕' : '&#x1F517;' }}</span>
+        <span v-if="!iconOnly">{{ statusLabel }}</span>
+        <span
+            v-if="phase === 'retrieving' && progress != null && !iconOnly"
+            class="progress-bar"
+            role="progressbar"
+            :aria-valuenow="progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+        >
+            <span class="progress-fill" :style="{ width: progress + '%' }"></span>
+        </span>
     </button>
 </template>
 
@@ -93,8 +105,17 @@ const handleFetchDownloadUrl = () => {
     font-size: 1em;
 }
 
+.download-btn.failed {
+    border-color: #e53935;
+    color: #e53935;
+}
+
 .download-btn:hover:not(:disabled) {
     background: #e8f5e9;
+}
+
+.download-btn.failed:hover:not(:disabled) {
+    background: #ffebee;
 }
 
 .download-btn:disabled {
@@ -109,5 +130,23 @@ a.download-btn {
 
 a.download-btn:hover {
     background: #e3f2fd;
+}
+
+.progress-bar {
+    display: inline-block;
+    width: 60px;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.progress-fill {
+    display: block;
+    height: 100%;
+    background: #2196f3;
+    border-radius: 2px;
+    transition: width 0.3s ease;
 }
 </style>

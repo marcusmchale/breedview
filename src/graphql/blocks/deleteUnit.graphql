@@ -1,5 +1,5 @@
 mutation blocksDeleteUnit(
-    $unitId: Int!
+    $unitId: ID!
 ) {
     blocksDeleteUnit(
         unitId: $unitId,

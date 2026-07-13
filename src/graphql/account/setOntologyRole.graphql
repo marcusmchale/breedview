@@ -1,5 +1,5 @@
 mutation accountsSetOntologyRole(
-    $userId: Int!,
+    $userId: ID!,
     $ontologyRole: OntologyRole!
 ) {
     accountsSetOntologyRole(

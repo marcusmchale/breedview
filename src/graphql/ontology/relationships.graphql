@@ -1,8 +1,8 @@
 query ontologyRelationships(
-    $entryIds: [Int!]
+    $entryIds: [ID!]
     $labels: [OntologyRelationshipLabel!]
     $phases: [LifecyclePhase]
-    $versionId: Int
+    $versionId: ID
 ) {
     ontologyRelationships(
         entryIds: $entryIds

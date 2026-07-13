@@ -1,0 +1,8 @@
+mutation referencesRequestFileRetrieval($fileId: ID!) {
+  referencesRequestFileRetrieval(fileId: $fileId) {
+    status
+    errors {
+      message
+    }
+  }
+}

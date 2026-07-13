@@ -1,28 +1,27 @@
 import { useMutation } from '@vue/apollo-composable'
 
-import SUBMIT_RECORDS from "@/graphql/datasets/submitRecords.graphql";
-import UPDATE_RECORDS from "@/graphql/datasets/updateRecords.graphql";
+import CREATE_DATASET from "@/graphql/datasets/createDataset.graphql";
+import UPDATE_DATASET from "@/graphql/datasets/updateDataset.graphql";
 import REMOVE_RECORDS from "@/graphql/datasets/removeRecords.graphql";
 
 export function useMutateDatasets() {
-  const { mutate: submitRecordsMutation, loading: submitLoading, error: submitError } =
-    useMutation(SUBMIT_RECORDS);
+  const { mutate: createDatasetMutation, loading: createLoading, error: createError } =
+    useMutation(CREATE_DATASET);
 
-  const { mutate: updateRecordsMutation, loading: updateLoading, error: updateError } =
-    useMutation(UPDATE_RECORDS);
+  const { mutate: updateDatasetMutation, loading: updateLoading, error: updateError } =
+    useMutation(UPDATE_DATASET);
 
   const { mutate: removeRecordsMutation, loading: removeLoading, error: removeError } =
     useMutation(REMOVE_RECORDS);
 
-  const submitRecords = async (dataset) => {
-    const result = await submitRecordsMutation({ dataset });
-    return result?.data?.datasetsSubmitRecords;
-
+  const createDataset = async (dataset) => {
+    const result = await createDatasetMutation({ dataset });
+    return result?.data?.datasetsCreate;
   };
 
-  const updateRecords = async (dataset) => {
-    const result = await updateRecordsMutation({ dataset });
-    return result?.data?.datasetsUpdateRecords;
+  const updateDataset = async (dataset) => {
+    const result = await updateDatasetMutation({ dataset });
+    return result?.data?.datasetsUpdate;
   };
 
   const removeRecords = async (datasetId, recordIds) => {
@@ -31,11 +30,11 @@ export function useMutateDatasets() {
   };
 
   return {
-    submitRecords,
-    submitLoading,
-    submitError,
+    createDataset,
+    createLoading,
+    createError,
 
-    updateRecords,
+    updateDataset,
     updateLoading,
     updateError,
 

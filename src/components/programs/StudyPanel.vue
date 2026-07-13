@@ -10,11 +10,11 @@ import DeleteStudyModal from './DeleteStudyModal.vue'
 
 const props = defineProps({
   studyId: {
-    type: Number,
+    type: String,
     required: true
   },
   trialId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

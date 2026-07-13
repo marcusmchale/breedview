@@ -1,6 +1,7 @@
 import { useMutation } from '@vue/apollo-composable'
 
 import COMMIT_VERSION from '../../graphql/ontology/commitVersion.graphql'
+const commitVersionMutation = useMutation(COMMIT_VERSION)
 import DEPRECATE_ENTRIES from '../../graphql/ontology/deprecateEntries.graphql'
 import ENTRY_FRAGMENT from '../../graphql/ontology/entryFragment.graphql'
 
@@ -19,6 +20,7 @@ export function useMutateOntology( { versionId } ) {
     const updateMutations = useOntologyUpdateMutations()
     const creatorHandlers = useOntologyCreatorHandlers()
     const updateHandlers = useOntologyUpdateHandlers()
+
 
     const {
         mutate: deprecateMutation,
@@ -47,7 +49,8 @@ export function useMutateOntology( { versionId } ) {
             return { status, errors }
         }
     }
-    const commitVersionMutation = useMutation(COMMIT_VERSION)
+
+
 
 
     return {

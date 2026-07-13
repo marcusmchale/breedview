@@ -9,7 +9,7 @@ import CreateArrangementModal from "@/components/arrangements/createArrangementM
 
 const props = defineProps({
   locationId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

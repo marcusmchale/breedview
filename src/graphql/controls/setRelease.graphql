@@ -1,6 +1,6 @@
 mutation controlsSetRelease(
     $entityLabel: ControlledModelLabel!
-    $entityIds: [Int!]!
+    $entityIds: [ID!]!
     $release: ReadRelease!
 ) {
   controlsSetRelease(entityLabel: $entityLabel, entityIds: $entityIds, release: $release) {

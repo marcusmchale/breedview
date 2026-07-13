@@ -12,7 +12,7 @@ import CreateTrialModal from './CreateTrialModal.vue'
 
 const props = defineProps({
   programId: {
-    type: Number,
+    type: String,
     required: true
   }
 })

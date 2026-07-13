@@ -1,5 +1,5 @@
 mutation arrangementsDeleteLayout(
-    $layoutId: Int!
+    $layoutId: ID!
 ) {
     arrangementsDeleteLayout(
         layoutId: $layoutId,
