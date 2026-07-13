@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 
 import OntologyEditor from "@/components/ontology/OntologyEditor.vue";
+import LicenceModal from '@/components/references/LicenceModal.vue'
 
 import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
 import COMMIT_VERSION from '../../graphql/ontology/commitVersion.graphql'
@@ -17,6 +18,16 @@ const { user } = useAuthStore()
 
 const showCommitVersionForm = ref(false)
 const commitVersionFormData = ref({})
+
+
+// Licence state
+const selectedLicence = ref(null)
+const isLicenceModalOpen = ref(false)
+
+// Copyright state
+const selectedCopyright = ref(null)
+const isCopyrightModalOpen = ref(false)
+
 
 const canEdit = computed(() => {
   console.log('user can edit:', ["ADMIN", "EDITOR"].includes( user.value?.ontologyRole ))
@@ -39,21 +50,53 @@ const goToOntologyRoles = () => {
 
 const openCommitVersionForm = () => {
   commitVersionFormData.value = {}
+  selectedLicence.value = null
+  selectedCopyright.value = null
   showCommitVersionForm.value = true
 }
 
 const closeCommitVersionForm = () => {
   showCommitVersionForm.value = false
   commitVersionFormData.value = {}
+  selectedLicence.value = null
+  selectedCopyright.value = null
 }
+
+
+// Licence handlers
+const openLicenceModal = () => {
+  isLicenceModalOpen.value = true
+}
+
+const closeLicenceModal = () => {
+  isLicenceModalOpen.value = false
+}
+
+const handleLicenceSave = (licence) => {
+  selectedLicence.value = licence
+}
+
+// Copyright handlers
+const openCopyrightModal = () => {
+  isCopyrightModalOpen.value = true
+}
+
+const closeCopyrightModal = () => {
+  isCopyrightModalOpen.value = false
+}
+
+const handleCopyrightSave = (copyright) => {
+  selectedCopyright.value = copyright
+}
+
 
 const handleCommitVersionSubmit = async (formDataValues) => {
   try {
     const result = await commitVersionMutation.mutate({
       versionChange: formDataValues.versionChange,
       comment: formDataValues.comment,
-      licenceId: formDataValues.licenceId || null,
-      copyrightId: formDataValues.copyrightId || null
+      licenceId: selectedLicence.value?.id || null,
+      copyrightId: selectedCopyright.value?.id || null
     })
 
     const response = result.data?.ontologyCommitVersion
@@ -159,20 +202,49 @@ const formatVersion = (version) => {
                 validation="required"
                 placeholder="Enter version comment"
               />
+<!-- Licence Section -->
+              <div class="reference-section">
+                <label class="section-label">Licence (Optional)</label>
+                <div class="section-content">
+                  <div v-if="selectedLicence" class="selected-item">
+                    <span class="item-icon">⚖️</span>
+                    <span class="item-description">{{ selectedLicence.description || 'Legal Reference #' + selectedLicence.id }}</span>
+                    <button type="button" class="btn-link" @click="openLicenceModal">
+                      Change
+                    </button>
+                  </div>
+                  <button
+                    v-else
+                    type="button"
+                    class="btn-outline"
+                    @click="openLicenceModal"
+                  >
+                    + Select Licence
+                  </button>
+                </div>
+              </div>
 
-              <FormKit
-                type="text"
-                name="licenceId"
-                label="Licence ID (Optional)"
-                placeholder="Enter licence ID"
-              />
-
-              <FormKit
-                type="text"
-                name="copyrightId"
-                label="Copyright ID (Optional)"
-                placeholder="Enter copyright ID"
-              />
+              <!-- Copyright Section -->
+              <div class="reference-section">
+                <label class="section-label">Copyright (Optional)</label>
+                <div class="section-content">
+                  <div v-if="selectedCopyright" class="selected-item">
+                    <span class="item-icon">©️</span>
+                    <span class="item-description">{{ selectedCopyright.description || 'Legal Reference #' + selectedCopyright.id }}</span>
+                    <button type="button" class="btn-link" @click="openCopyrightModal">
+                      Change
+                    </button>
+                  </div>
+                  <button
+                    v-else
+                    type="button"
+                    class="btn-outline"
+                    @click="openCopyrightModal"
+                  >
+                    + Select Copyright
+                  </button>
+                </div>
+              </div>
 
               <div class="form-actions">
                 <button type="submit" class="btn-version">Commit</button>
@@ -181,6 +253,22 @@ const formatVersion = (version) => {
             </FormKit>
           </div>
         </div>
+     <!-- Licence Modal -->
+    <LicenceModal
+      :visible="isLicenceModalOpen"
+      :currentLicence="selectedLicence"
+      @close="closeLicenceModal"
+      @save="handleLicenceSave"
+    />
+
+    <!-- Copyright Modal (reusing LicenceModal for legal references) -->
+    <LicenceModal
+      :visible="isCopyrightModalOpen"
+      :currentLicence="selectedCopyright"
+      title="Select Copyright"
+      @close="closeCopyrightModal"
+      @save="handleCopyrightSave"
+    />
   </div>
 </template>
 
@@ -272,6 +360,72 @@ const formatVersion = (version) => {
 .latest-commit-info p {
   margin: 0.25rem 0;
   font-size: 0.9em;
+}
+
+
+.reference-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.section-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.section-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selected-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.item-icon {
+  font-size: 1.2em;
+}
+
+.item-description {
+  flex: 1;
+  color: #333;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #2196F3;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
 }
 
 

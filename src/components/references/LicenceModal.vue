@@ -15,6 +15,10 @@ const props = defineProps({
     currentLicence: {
         type: Object,
         default: null
+    },
+    title: {
+      type: String,
+      default: 'Select Licence'
     }
 })
 
@@ -73,7 +77,7 @@ const handleClose = () => {
         <div v-if="visible" class="modal-overlay" @click.self="handleClose">
             <div class="modal-container">
                 <div class="modal-header">
-                    <h2>Select Study Licence</h2>
+                    <h2>{{ title }}</h2>
                     <button class="close-btn" @click="handleClose">&times;</button>
                 </div>
 
