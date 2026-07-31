@@ -1,5 +1,5 @@
 mutation programsDeleteTrial($trialId: ID!) {
-  programsDeleteTrial(trialId: $trialId) {
+  programsDeleteTrial(id: $trialId) {
     status
     errors {
       message

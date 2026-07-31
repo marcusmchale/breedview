@@ -1,4 +1,3 @@
-<!-- src/components/datasets/DatasetSubmission.vue -->
 <script setup>
 import { ref, computed, watch } from "vue"
 import { FormKit } from "@formkit/vue";

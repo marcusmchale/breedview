@@ -3,6 +3,8 @@ import { ref, computed, watch, markRaw } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { pollFileSubmission } from '@/composables/references/fileSubmissionQuery'
+
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import UploadStatus from '@/components/references/UploadStatus.vue'
 
@@ -38,6 +40,11 @@ const uploadStatus = ref(null)
 const uploadProgress = ref(0)
 const uploadErrors = ref([])
 const createdReferenceId = ref(null)
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (errorMessage) => {
+  formError.value = errorMessage
+}
 
 const isEditing = computed(() => props.mode === 'edit' && props.reference?.id)
 const isLoading = computed(() =>
@@ -116,7 +123,7 @@ const submitForm = async () => {
             uploadStatus.value = 'uploading'
 
             const { result: fileId, status, errors } = await updateFileReference({
-                referenceId: props.reference.id,
+                id: props.reference.id,
                 description: formData.value.description?.trim() || null,
                 file: formData.value.file || null
             })
@@ -143,7 +150,7 @@ const submitForm = async () => {
             const { result: fileId, status, errors } = await createFileReference({
                 description: formData.value.description?.trim() || null,
                 file: formData.value.file
-            })
+            }, selectedControlTeamId.value)
 
             if (status === 'SUCCESS') {
                 startFilePolling(fileId)
@@ -226,6 +233,11 @@ const resetForm = () => {
         </div>
 
         <div class="form-actions">
+            <ControlTeamSelector
+              v-model="selectedControlTeamId"
+              class="form-control"
+              @error="handleControlTeamError"
+            />
             <button
                 type="button"
                 class="btn btn-primary"

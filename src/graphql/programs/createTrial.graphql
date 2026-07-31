@@ -1,5 +1,11 @@
-mutation programsCreateTrial($trial: CreateTrialInput!) {
-  programsCreateTrial(trial: $trial) {
+mutation programsCreateTrial(
+  $trial: CreateTrialInput!
+  $controlTeamId: ID!
+) {
+  programsCreateTrial(
+    trial: $trial
+    controlTeamId: $controlTeamId
+  ) {
     status
     errors {
       message

@@ -238,6 +238,8 @@ onMounted(() => {
 
 watch(() => props.selectedLabels, renderGraph, { deep: true })
 watch(() => props.selectedPhases, renderGraph, { deep: true })
+watch( () => props.ontology.entries, renderGraph, { deep: true })
+
 </script>
 
 <style scoped>

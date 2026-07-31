@@ -28,7 +28,7 @@ const onLocationSelected = (locationId) => {
 const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
   try {
     const locationData = {
-        locationId: locationId,
+        id: locationId,
         coordinates: coordinates
       }
 

@@ -5,7 +5,6 @@ query ontologyRoleRequests {
         result {
             id
             name
-            email
             fullname
             ontologyRole
             ontologyRoleRequested

@@ -1,21 +1,17 @@
+#import "./relationshipFragment.graphql"
 query ontologyRelationships(
-    $entryIds: [ID!]
-    $labels: [OntologyRelationshipLabel!]
-    $phases: [LifecyclePhase]
+    $entryIds: [ID!]!
     $versionId: ID
+    $view: OntologyView
 ) {
     ontologyRelationships(
         entryIds: $entryIds
-        labels: $labels
-        phases: $phases
         versionId: $versionId
+        view: $view
     ){
         status
         result {
-            id
-            source_id,
-            target_id,
-            label
+            ...OntologyRelationshipFields
         }
         errors {
             message

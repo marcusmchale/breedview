@@ -115,7 +115,7 @@ const { result: accountResult, loading: accountLoading, refetch: refetchAccount 
 
 // Computed property for allowed emails
 const allowedEmails = computed(() => {
-  return accountResult.value?.account?.result?.allowed_emails || []
+  return accountResult.value?.accountsAccount?.result?.allowedEmails || []
 })
 
 // Use the addEmail mutation

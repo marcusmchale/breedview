@@ -1,5 +1,5 @@
 query DatasetSubmission($submissionId: ID!) {
-  datasetsSubmission(submissionId: $submissionId) {
+  datasetsSubmission(id: $submissionId) {
     status
     result {
       datasetId

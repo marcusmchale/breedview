@@ -10,7 +10,6 @@ export function useReferenceSchema() {
   const { result } = useQuery(DATA_FORMATS)
 
   const dataFormats = computed(() => {
-    console.log('Data formats fetched:', result.value?.__type?.enumValues)
     return result.value?.__type?.enumValues || []
   })
   return {

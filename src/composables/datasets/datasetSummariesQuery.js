@@ -21,7 +21,6 @@ export function useDatasetSummariesQuery(studyId) {
   )
 
   const datasetSummaries = computed(() => {
-    console.log(summariesResult.value)
     return summariesResult.value?.datasetsSummaries?.result || []
   })
 

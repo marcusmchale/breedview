@@ -1,6 +1,6 @@
 #import "../references/referenceFragment.graphql"
 query programsProgram($programId: ID, $trialId: ID, $studyId: ID) {
-  programsProgram(programId: $programId, trialId: $trialId, studyId: $studyId) {
+  programsProgram(id: $programId, trialId: $trialId, studyId: $studyId) {
     status
     result {
       id

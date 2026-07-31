@@ -4,7 +4,7 @@ import { useMutateDatasets } from './mutateDatasets'
 import { useDatetimeUtils } from '@/composables/parsers/partialDatetime'
 import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
-import { useCacheUpdates } from "@/composables/system/cacheUpdates";
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import CONTROLLERS_QUERY from '@/graphql/controls/controllers.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
@@ -14,7 +14,7 @@ export function useDatasetCurationTable() {
   const { updateDataset, removeRecords } = useMutateDatasets()
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils()
   const { parseValue } = useValueParser()
-  const { updateItem: updateRecordInCache, deleteItem: deleteRecordFromCache } = useCacheUpdates({
+  const { updateCache: updateRecordInCache, deleteFromCache: deleteRecordFromCache } = useCacheUpdates({
     typename: 'Record',
     fragment: RECORD_FRAGMENT
   })
@@ -173,8 +173,6 @@ export function useDatasetCurationTable() {
 
           // Add cell metadata
           const cellKey = `${targetRow.rowId}-${conceptId}`
-          console.log('cellKey', cellKey)
-          console.log('record.references', record.references)
           cellMetadata.value[cellKey] = {
             recordId: record.id,
             datasetId: datasetId,
@@ -184,7 +182,6 @@ export function useDatasetCurationTable() {
               : [],
             canEdit: datasetControllers.value[datasetId]?.canEdit || false
           }
-          console.log('cellMetadata', cellMetadata.value[cellKey])
 
           // Add value to row
           targetRow.rowData[`concept_${conceptId}`] = record.value ?? ''
@@ -195,9 +192,8 @@ export function useDatasetCurationTable() {
             const refCellKey = `${targetRow.rowId}-${conceptId}`
             cellReferences.value[refCellKey] = record.references
               .filter(r => r != null)
-              .map(r => r.id)
+              .map(({id, __typename}) => ({id, __typename}))
           }
-
         })
       })
 
@@ -489,11 +485,10 @@ export function useDatasetCurationTable() {
       const originalRefs = metadata.originalReferences || []
 
       if (currentRefs.length !== originalRefs.length) return true
-      const sortedCurrent = [...currentRefs].sort()
-      const sortedOriginal = [...originalRefs].sort()
+      const sortedCurrent = [...currentRefs].sort((a,b) => a.id.localeCompare(b.id))
+      const sortedOriginal = [...originalRefs].sort((a,b) => a.id.localeCompare(b.id))
       return !sortedCurrent.every((val, idx) => val === sortedOriginal[idx])
     }
-
 
     const currentValue = row[`concept_${conceptId}`] ?? ''
     const originalValue = metadata.originalValue ?? ''
@@ -577,13 +572,11 @@ export function useDatasetCurationTable() {
 
         // For complex scales, include referenceIds instead of value
         if (concept && isComplexScale(concept)) {
-          const refs = cellReferences.value[cellKey] || []
-          update.referenceIds = refs
+          update.referenceIds = cellReferences.value[cellKey].map(reference => reference.id) || []
           update.value = null
         } else {
           update.value = row[`concept_${conceptId}`] ?? null
         }
-
         updates.push(update)
         indexMapping.push(i) // Track the original row index
       }
@@ -638,7 +631,7 @@ export function useDatasetCurationTable() {
           const { updates, indexMapping, conceptId } = prepareDatasetUpdates(datasetId)
           if (updates.length > 0) {
             const result = await updateDataset({
-              datasetId,
+              id: datasetId,
               records: updates
             })
 
@@ -810,12 +803,12 @@ export function useDatasetCurationTable() {
     /**
    * Update references for a complex scale cell
    */
-  const updateCellReferences = (rowIndex, conceptId, referenceIds) => {
+  const updateCellReferences = (rowIndex, conceptId, references) => {
     const row = tableData.value[rowIndex]
     if (!row) return
 
     const cellKey = `${row._rowId}-${conceptId}`
-    cellReferences.value[cellKey] = referenceIds || []
+    cellReferences.value[cellKey] = references || []
   }
 
   /**

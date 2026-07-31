@@ -28,13 +28,15 @@ const {
     ontologyLoading,
     ontologyErrors,
     ontologyRefetch,
-} = useOntologyQuery({ versionId: props.versionId })
+} = useOntologyQuery({ versionId: props.versionId, view: "EDITORIAL" })
 
 const {
     createMutations, creatorHandlers,
     updateMutations, updateHandlers,
-    deprecateEntries, deprecateLoading, deprecateError
-} = useMutateOntology({versionId: props.versionId})
+    deprecateEntries,
+    cancelDeprecateEntries,
+    refetchConnected,
+} = useMutateOntology({versionId: props.versionId, view: "EDITORIAL"})
 
 const { getCreateEntriesForLabels } = useOntologySchema()
 const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
@@ -48,7 +50,7 @@ const formFields = ref([])
 const currentMutation = ref(null)
 const currentEntryId = ref(null)
 const formData = ref({})
-
+const updateFormPhase = ref(null)
 
 // Toggle functions
 const togglePhaseSelection = (phase) => {
@@ -68,11 +70,12 @@ const toggleLabelFilter = (label) => {
 }
 
 // Form management
-const openForm = (title, fields, mutation) => {
+const openForm = (title, fields, mutation, entryPhase = null) => {
   formTitle.value = title
   formFields.value = fields
   currentMutation.value = mutation
   showForm.value = true
+  updateFormPhase.value = entryPhase
 }
 
 const closeForm = () => {
@@ -104,7 +107,7 @@ const getAxisLabel = (options, value) => {
 }
 
 // Main entry creation
-const createEntry = (methodName) => {
+const createEntry = async (methodName) => {
   const handler = creatorHandlers[methodName]
 
   if (handler) {
@@ -184,13 +187,27 @@ const deprecateEntry = async (entryId) => {
 
     if (status === 'SUCCESS') {
       closeForm()
-
-      //await ontologyRefetch()
     } else {
       alert('Error: ' + errors.map(e => e.message).join(', '))
     }
   } catch (error) {
     console.error('Error deprecating entry:', error)
+    alert('An error occurred: ' + error.message)
+  }
+}
+
+// Deprecate entry
+const cancelDeprecateEntry = async (entryId) => {
+  try {
+    const { status, errors } = await cancelDeprecateEntries([entryId])
+
+    if (status === 'SUCCESS') {
+      closeForm()
+    } else {
+      alert('Error: ' + errors.map(e => e.message).join(', '))
+    }
+  } catch (error) {
+    console.error('Error cancelling deprecate entry:', error)
     alert('An error occurred: ' + error.message)
   }
 }
@@ -216,9 +233,13 @@ const handleSubmit = async (formDataValues) => {
       if (response.errors && response.errors.length > 0) {
         alert('Error: ' + response.errors.map(e => e.message).join(', '))
       } else if (response.status === 'success' || response.status === 'SUCCESS') {
-        alert('Successfully created!')
-        closeForm()
-        await ontologyRefetch()
+        if (mutationKey.includes("Create")) {
+          closeForm()
+          await ontologyRefetch()
+        } else {
+          await refetchConnected(currentEntryId.value)
+          closeForm()
+        }
       }
     }
   } catch (error) {
@@ -365,13 +386,22 @@ const handleSubmit = async (formDataValues) => {
             <button type="submit" class="btn-primary">Submit</button>
             <button type="button" @click="closeForm" class="btn-secondary">Cancel</button>
             <button
-              v-if="currentEntryId"
+              v-if="currentEntryId && ['DRAFT', 'ACTIVE'].includes(updateFormPhase)"
               type="button"
               @click="deprecateEntry(currentEntryId)"
               class="btn-danger"
               title="Deprecate this entry"
             >
               Deprecate
+            </button>
+             <button
+              v-if="currentEntryId && updateFormPhase === 'DEPRECATED'"
+              type="button"
+              @click="cancelDeprecateEntry(currentEntryId)"
+              class="btn-primary"
+              title="Cancel deprecation of this entry"
+            >
+              Cancel Deprecation
             </button>
           </div>
         </FormKit>

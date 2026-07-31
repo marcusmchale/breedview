@@ -2,7 +2,7 @@ mutation blocksDeleteUnit(
     $unitId: ID!
 ) {
     blocksDeleteUnit(
-        unitId: $unitId,
+        id: $unitId,
     ) {
         status
         errors {

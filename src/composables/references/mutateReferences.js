@@ -1,9 +1,11 @@
 
 import { useMutation } from '@vue/apollo-composable'
-import { useCacheUpdates } from "@/composables/system/cacheUpdates";
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import CREATE_DATA_FILE_REFERENCE from "@/graphql/references/createDataFileReference.graphql";
 import UPDATE_DATA_FILE_REFERENCE from "@/graphql/references/updateDataFileReference.graphql";
+import CREATE_EXTERNAL_DATA_REFERENCE from "@/graphql/references/createExternalDataReference.graphql";
+import UPDATE_EXTERNAL_DATA_REFERENCE from "@/graphql/references/updateExternalDataReference.graphql";
 import CREATE_LEGAL_REFERENCE from "@/graphql/references/createLegalReference.graphql";
 import UPDATE_LEGAL_REFERENCE from "@/graphql/references/updateLegalReference.graphql";
 import CREATE_EXTERNAL_REFERENCE from "@/graphql/references/createExternalReference.graphql";
@@ -13,22 +15,25 @@ import UPDATE_FILE_REFERENCE from "@/graphql/references/updateFileReference.grap
 import DELETE_REFERENCES from "@/graphql/references/deleteReferences.graphql";
 import REFERENCE_FRAGMENT from "@/graphql/references/referenceFragment.graphql";
 
-export function useMutateReferences() {
 
-    const { updateItem, deleteItem } = useCacheUpdates({
+export function useMutateReferences() {
+    // Data File Reference mutations
+    const { updateCache, deleteFromCache } = useCacheUpdates({
         typename: "Reference",
         fragment: REFERENCE_FRAGMENT
     })
 
-    // Data File Reference mutations (existing)
     const {
         mutate: createDataFileReferenceMutation,
         loading: createDataFileReferenceLoading,
         error: createDataFileReferenceError
     } = useMutation(CREATE_DATA_FILE_REFERENCE);
 
-    const createDataFileReference = async (reference) => {
-      const response = await createDataFileReferenceMutation({ reference: reference });
+    const createDataFileReference = async (reference, controlTeamId) => {
+      const response = await createDataFileReferenceMutation({
+          reference: reference,
+          controlTeamId: controlTeamId
+      });
       const { result, status, errors } = response?.data?.referencesCreateDataFile
       return { result, status, errors }
     }
@@ -44,13 +49,50 @@ export function useMutateReferences() {
         if (response?.data?.referencesUpdateDataFile) {
           const data = response.data.referencesUpdateDataFile
           if (data.status === "SUCCESS" ) {
-            updateItem({
+            updateCache({
               updateData: reference,
               idField: 'referenceId'
             })
           }
           const { result, status, errors} = data
           return { result, status, errors }
+        }
+    }
+
+    // External Data Reference mutations
+    const {
+        mutate: createExternalDataReferenceMutation,
+        loading: createExternalDataReferenceLoading,
+        error: createExternalDataReferenceError
+    } = useMutation(CREATE_EXTERNAL_DATA_REFERENCE);
+
+    const createExternalDataReference = async (reference, controlTeamId) => {
+        const response = await createExternalDataReferenceMutation({
+            reference: reference,
+            controlTeamId: controlTeamId
+        });
+        const { result, status, errors } = response?.data?.referencesCreateExternalData || {}
+        return { result, status, errors }
+    }
+
+    const {
+        mutate: updateExternalDataReferenceMutation,
+        loading: updateExternalDataReferenceLoading,
+        error: updateExternalDataReferenceError
+    } = useMutation(UPDATE_EXTERNAL_DATA_REFERENCE);
+
+    const updateExternalDataReference = async (reference) => {
+        const response = await updateExternalDataReferenceMutation({ reference });
+        if (response?.data?.referencesUpdateExternalData) {
+            const data = response.data.referencesUpdateExternalData
+            if (data.status === "SUCCESS") {
+                updateCache({
+                    updateData: reference,
+                    idField: 'referenceId'
+                })
+            }
+            const { result, status, errors } = data
+            return { result, status, errors }
         }
     }
 
@@ -61,8 +103,12 @@ export function useMutateReferences() {
         error: createLegalReferenceError
     } = useMutation(CREATE_LEGAL_REFERENCE);
 
-    const createLegalReference = async (reference) => {
-        const response = await createLegalReferenceMutation({ reference });
+    const createLegalReference = async (reference, controlTeamId) => {
+        const response = await createLegalReferenceMutation(
+            {
+                reference: reference,
+                controlTeamId: controlTeamId
+            });
         const { result, status, errors } = response?.data?.referencesCreateLegal || {}
         return { result, status, errors }
     }
@@ -78,7 +124,7 @@ export function useMutateReferences() {
         if (response?.data?.referencesUpdateLegal) {
             const data = response.data.referencesUpdateLegal
             if (data.status === "SUCCESS") {
-                updateItem({
+                updateCache({
                     updateData: reference,
                     idField: 'referenceId'
                 })
@@ -95,8 +141,11 @@ export function useMutateReferences() {
         error: createExternalReferenceError
     } = useMutation(CREATE_EXTERNAL_REFERENCE);
 
-    const createExternalReference = async (reference) => {
-        const response = await createExternalReferenceMutation({ reference });
+    const createExternalReference = async (reference, controlTeamId) => {
+        const response = await createExternalReferenceMutation({
+            reference: reference,
+            controlTeamId:controlTeamId
+        });
         const { result, status, errors } = response?.data?.referencesCreateExternal || {}
         return { result, status, errors }
     }
@@ -112,7 +161,7 @@ export function useMutateReferences() {
         if (response?.data?.referencesUpdateExternal) {
             const data = response.data.referencesUpdateExternal
             if (data.status === "SUCCESS") {
-                updateItem({
+                updateCache({
                     updateData: reference,
                     idField: 'referenceId'
                 })
@@ -129,8 +178,11 @@ export function useMutateReferences() {
         error: createFileReferenceError
     } = useMutation(CREATE_FILE_REFERENCE);
 
-    const createFileReference = async (reference) => {
-        const response = await createFileReferenceMutation({ reference });
+    const createFileReference = async (reference, controlTeamId) => {
+        const response = await createFileReferenceMutation({
+            reference: reference,
+            controlTeamId: controlTeamId
+        });
         const { result, status, errors } = response?.data?.referencesCreateFile || {}
         return { result, status, errors }
     }
@@ -143,6 +195,7 @@ export function useMutateReferences() {
 
     const updateFileReference = async (reference) => {
         const response = await updateFileReferenceMutation({ reference });
+        console.log('update response', response)
         if (response?.data?.referencesUpdateFile) {
             const data = response.data.referencesUpdateFile
             const { result, status, errors } = data
@@ -164,7 +217,7 @@ export function useMutateReferences() {
             const result = response.data.referencesDelete
             if (result.status === 'SUCCESS') {
                 referenceIds.forEach((referenceId) => {
-                  deleteItem({itemId: referenceId})
+                  deleteFromCache({itemId: referenceId})
                 })
             }
             const { status, errors } = result
@@ -180,6 +233,14 @@ export function useMutateReferences() {
       updateDataFileReference,
       updateDataFileReferenceLoading,
       updateDataFileReferenceError,
+
+      // Externa Data
+      createExternalDataReference,
+      createExternalDataReferenceLoading,
+      createExternalDataReferenceError,
+      updateExternalDataReference,
+      updateExternalDataReferenceLoading,
+      updateExternalDataReferenceError,
 
       // Legal
       createLegalReference,

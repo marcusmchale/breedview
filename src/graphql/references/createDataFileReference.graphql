@@ -1,5 +1,11 @@
-mutation referencesCreateDataFile($reference: CreateDataFileReferenceInput!) {
-  referencesCreateDataFile(reference: $reference) {
+mutation referencesCreateDataFile(
+  $reference: CreateDataFileReferenceInput!
+  $controlTeamId: ID!
+) {
+  referencesCreateDataFile(
+    reference: $reference
+    controlTeamId: $controlTeamId
+  ) {
     status
     result
     errors {

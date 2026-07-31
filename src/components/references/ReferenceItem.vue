@@ -4,8 +4,7 @@ import {
   getReferenceType,
   getReferenceTypeLabel,
   getReferenceTypeIcon,
-  isDataReference,
-  REFERENCE_TYPES
+  isFileReference
 } from '@/composables/references/referenceTypes'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import FileDownloadButton from '@/components/references/FileDownloadButton.vue'
@@ -44,17 +43,13 @@ const isExpanded = ref(props.expanded)
 const referenceType = computed(() => getReferenceType(props.reference))
 const typeLabel = computed(() => getReferenceTypeLabel(props.reference))
 const typeIcon = computed(() => getReferenceTypeIcon(props.reference))
-const isData = computed(() => isDataReference(props.reference))
+const hasFileDownload = computed(() => isFileReference(props.reference))
 
 const toggleExpand = () => {
     isExpanded.value = !isExpanded.value
     emit('toggle-expand', isExpanded.value)
 }
 
-const hasFileDownload = computed(() => {
-    const type = referenceType.value
-    return (type === REFERENCE_TYPES.FILE || type === REFERENCE_TYPES.DATA_FILE) && props.reference.fileId
-})
 </script>
 
 <template>
@@ -62,18 +57,17 @@ const hasFileDownload = computed(() => {
         class="reference-item"
         :class="{
             expanded: isExpanded,
-            selected: selected,
-            disabled: disabled || isData,
-            'data-reference': isData
+            selected: props.selected,
+            disabled: props.disabled
         }"
     >
         <div class="reference-header" @click="toggleExpand">
             <div class="reference-main">
-                <span v-if="selectable && !isData" class="select-checkbox">
+                <span v-if="props.selectable" class="select-checkbox">
                     <input
                         type="checkbox"
-                        :checked="selected"
-                        :disabled="disabled"
+                        :checked="props.selected"
+                        :disabled="props.disabled"
                         @click.stop
                         @change="$emit('toggle-select', reference.id)"
                     />
@@ -83,7 +77,6 @@ const hasFileDownload = computed(() => {
                 <span class="reference-description">
                     {{ reference.description || 'No description' }}
                 </span>
-                <span v-if="isData" class="data-badge">Data Only</span>
             </div>
             <div class="reference-actions-header">
                 <FileDownloadButton
@@ -141,6 +134,9 @@ const hasFileDownload = computed(() => {
                     <strong>URL:</strong>
                     <a :href="reference.url" target="_blank" rel="noopener">{{ reference.url }}</a>
                 </div>
+                <div v-if="reference.externalId" class="detail-row">
+                    <strong>External ID:</strong> {{ reference.externalId }}
+                </div>
                 <div v-if="reference.format" class="detail-row">
                     <strong>Format:</strong> {{ reference.format }}
                 </div>
@@ -167,7 +163,7 @@ const hasFileDownload = computed(() => {
                 </div>
             </template>
 
-            <div v-if="showActions && !isData" class="reference-actions">
+            <div v-if="showActions" class="reference-actions">
                 <button class="btn btn-sm btn-outline" @click="$emit('edit', reference)">
                     Edit
                 </button>
@@ -199,11 +195,6 @@ const hasFileDownload = computed(() => {
 
 .reference-item.disabled {
     opacity: 0.6;
-}
-
-.reference-item.data-reference {
-    background: #f5f5f5;
-    border-style: dashed;
 }
 
 .reference-header {

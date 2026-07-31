@@ -6,7 +6,7 @@ export function useLocationTypesQuery(){
         entries: locationTypes,
         entriesLoading: locationTypesLoading,
         entriesError: locationTypesError,
-    } = useOntologyEntriesQuery({labels: ['LOCATION_TYPE']})
+    } = useOntologyEntriesQuery({labels: ['LOCATION_TYPE'], view: "PUBLISHED"})
 
     return {
         locationTypes,

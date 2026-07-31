@@ -1,14 +1,22 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 
-import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
 
 const emit = defineEmits(['close', 'success'])
 
 const { createProgram, createProgramLoading } = useMutatePrograms()
+
+const formError = ref('')
+const selectedControlTeamId = ref(null)
+const handleControlTeamError = (errorMessage) => {
+  formError.value = errorMessage
+}
+
 
 const formData = ref({
   name: '',
@@ -16,7 +24,6 @@ const formData = ref({
   description: ''
 })
 
-const formError = ref('')
 
 // References state
 const selectedReferenceIds = ref([])
@@ -38,6 +45,10 @@ const handleReferencesSave = ({ referenceIds, references }) => {
 }
 
 const submitForm = async (values) => {
+  if (!selectedControlTeamId.value) {
+    formError.value = 'Please select a control team'
+    return
+  }
   try {
     formError.value = ''
 
@@ -52,7 +63,7 @@ const submitForm = async (values) => {
       cleanValues.referenceIds = selectedReferenceIds.value
     }
 
-    const { status, errors } = await createProgram(cleanValues)
+    const { status, errors } = await createProgram(cleanValues, selectedControlTeamId.value)
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -129,6 +140,11 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
+          <ControlTeamSelector
+            v-model="selectedControlTeamId"
+            class="form-control"
+            @error="handleControlTeamError"
+          />
           <button type="submit" class="btn btn-primary" :disabled="createProgramLoading">
             {{ createProgramLoading ? 'Creating...' : 'Create Program' }}
           </button>
@@ -140,7 +156,7 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <ReferencesModal
+    <EntityReferencesModal
       :visible="isReferencesModalOpen"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"

@@ -3,32 +3,36 @@ import {
     useQuery,
 } from '@vue/apollo-composable'
 
-import { useCurrentVersionQuery } from "@/composables/ontology/currentVersion";
-
 import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
 
-export function useOntologyEntriesQuery({entryIds, labels}) {
+import { useCurrentVersionQuery } from "@/composables/ontology/currentVersion";
 
-    // to support caching with updates we first always fetch the version ID, then apollo can decide whether
+export function useOntologyEntriesQuery({entryIds, labels, view}) {
+
+    // we need the current version to be able to read from cache
+    // this is also required for the custom read policy,
+    // not required in the graphql spec which does allow nullable version
     const { version } = useCurrentVersionQuery()
 
     const variables = computed(() => {
       return {
-          entryIds: toValue(entryIds) ?? null,
-          labels: toValue(labels) ?? null,
-          versionId: version.value?.id ?? null,  // ensure versionID is still reactive
+          entryIds: toValue(entryIds),
+          labels: toValue(labels),
+          versionId: version.value?.id,
+          view: view
       }
     });
 
     const {
         result,
         loading: entriesLoading,
-        error: entriesError
+        error: entriesError,
+        refetch
     } = useQuery(
         ONTOLOGY_ENTRIES_QUERY,
         variables,
         {
-            enabled: computed(() => !!version.value)
+            enabled: computed(() => Boolean(toValue(entryIds) || toValue(labels)))
         }
     )
 
@@ -42,6 +46,7 @@ export function useOntologyEntriesQuery({entryIds, labels}) {
     return {
         entries,
         entriesLoading,
-        entriesError
+        entriesError,
+        refetch
     }
 }

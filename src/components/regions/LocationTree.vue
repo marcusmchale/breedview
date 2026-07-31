@@ -1,49 +1,3 @@
-<template>
-  <button v-if="showEdit" @click="openModal" class="btn btn-primary">
-    Register New Region
-  </button>
-  <div v-if="locationTypesLoading" class="loading">
-    Loading location types...
-  </div>
-  <div v-else-if="locationTypesError" class="error">
-    Error loading location types!
-  </div>
-  <div v-if="regionsLoading" class="loading">
-    Loading regions...
-  </div>
-  <div v-else-if="regionsError" class="error">
-    Error loading regions!
-  </div>
-  <div v-else-if="regions.length === 0" class="empty-state">
-    No regions found.
-  </div>
-  <div v-else class="regions-tree">
-    <div v-for="region in regions" :key="`locationNode_${region?.id}`" class="location-item">
-      <LocationNode
-          :regionId="region?.id"
-          :locationId="region?.id"
-          :isExpandedFn="isExpanded"
-          :locationTypes="locationTypes"
-          :selectedLocationId="selectedLocationId"
-          :showEdit="showEdit"
-          @toggle-expand="handleToggleExpanded"
-          @select-location="handleSelectLocationAndEmit"
-      />
-    </div>
-  </div>
-
-  <!-- Create Region Modal -->
-  <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
-    <CreateRegionModal
-        :countries="countries"
-        :countriesLoading="countriesLoading.value"
-        :countriesError="countriesError"
-        :enableCountries="enableCountries"
-        @success="handleSuccess"
-        @close="closeModal"
-    />
-  </div>
-</template>
 
 <script setup>
 import { ref } from "vue";
@@ -116,6 +70,54 @@ const closeModal = () => {
 const isModalOpen = ref(false)
 
 </script>
+
+<template>
+  <button v-if="showEdit" @click="openModal" class="btn btn-primary">
+    Register New Region
+  </button>
+  <div v-if="locationTypesLoading" class="loading">
+    Loading location types...
+  </div>
+  <div v-else-if="locationTypesError" class="error">
+    Error loading location types! {{ locationTypesError }}
+  </div>
+  <div v-if="regionsLoading" class="loading">
+    Loading regions...
+  </div>
+  <div v-else-if="regionsError" class="error">
+    Error loading regions!
+  </div>
+  <div v-else-if="regions.length === 0" class="empty-state">
+    No regions found.
+  </div>
+  <div v-else class="regions-tree">
+    <div v-for="region in regions" :key="`locationNode_${region?.id}`" class="location-item">
+      <LocationNode
+          :regionId="region?.id"
+          :locationId="region?.id"
+          :isExpandedFn="isExpanded"
+          :locationTypes="locationTypes"
+          :selectedLocationId="selectedLocationId"
+          :showEdit="showEdit"
+          @toggle-expand="handleToggleExpanded"
+          @select-location="handleSelectLocationAndEmit"
+      />
+    </div>
+  </div>
+
+  <!-- Create Region Modal -->
+  <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
+    <CreateRegionModal
+        :countries="countries"
+        :countriesLoading="countriesLoading"
+        :countriesError="countriesError"
+        :enableCountries="enableCountries"
+        @success="handleSuccess"
+        @close="closeModal"
+    />
+  </div>
+</template>
+
 
 <style scoped>
 

@@ -148,7 +148,6 @@ onCreateOrgError((error) => {
 // Handle successful create organisation
 onCreateOrgDone((result) => {
   const response = result.data?.organisationsCreateTeam
-  console.log('Create organisation response:', result)
   if (response?.status === 'SUCCESS') {
     createOrgSuccess.value = 'Organisation created successfully!'
     createOrgError.value = ''
@@ -226,17 +225,14 @@ const handleRequestAffiliation = (team) => {
 }
 
 const handleTeamCreated = (newTeam) => {
-  console.log('Team created:', newTeam)
   refetchOrganisations()
 }
 
 const handleTeamDeleted = (deletedTeam) => {
-  console.log('Team deleted:', deletedTeam)
   refetchOrganisations()
 }
 
 const handleAffiliationRequested = (affiliationData) => {
-  console.log('Affiliation requested:', affiliationData)
   refetchOrganisations()
 }
 </script>

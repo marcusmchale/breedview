@@ -1,234 +1,9 @@
-<template>
-  <div class="ontology-role-page">
-    <div class="header">
-      <h1>Ontology Role Management</h1>
-      <button @click="goBack" class="btn-back">
-        ← Back to Ontology Management
-      </button>
-    </div>
-
-    <div v-if="loadingRequests" class="loading">
-      Loading role requests...
-    </div>
-    <div v-else-if="errorRequests" class="error">
-      Error: {{ errorRequests.message }}
-    </div>
-    <div v-else class="role-requests-container">
-      <h2>Users with Outstanding Role Requests</h2>
-
-      <div v-if="roleRequests.length === 0" class="no-data">
-        <p>No users found.</p>
-      </div>
-
-      <div v-else class="users-table">
-        <div class="table-header">
-          <div class="col-user">User</div>
-          <div class="col-email">Email</div>
-          <div class="col-current">Current Role</div>
-          <div class="col-requested">Requested Role</div>
-          <div class="col-action">Action</div>
-        </div>
-
-        <div
-          v-for="u in roleRequests"
-          :key="u.id"
-          class="table-row"
-          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
-        >
-          <div class="col-user">
-            <div class="user-info">
-              <p class="user-name">{{ u.fullname }}</p>
-            </div>
-          </div>
-
-          <div class="col-email">
-            {{ u.email }}
-          </div>
-
-          <div class="col-current">
-            <span class="role-badge role-current">
-              {{ formatRoleName(u.ontologyRole) }}
-            </span>
-          </div>
-
-          <div class="col-requested">
-            <span
-              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
-              class="role-badge role-pending"
-            >
-              {{ formatRoleName(u.ontologyRoleRequested) }}
-            </span>
-            <span v-else class="role-badge role-none">—</span>
-          </div>
-
-          <div class="col-action">
-            <button
-              @click="openModal(u)"
-              :disabled="!user || user.ontologyRole !== 'ADMIN'"
-              class="btn-set-role"
-              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
-            >
-              Set Role
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="loadingEditors" class="loading">
-      Loading editors...
-    </div>
-    <div v-else-if="errorEditors" class="error">
-      Error: {{ errorEditors.message }}
-    </div>
-    <div v-else class="role-requests-container">
-      <h2>Editors</h2>
-      <div v-if="editors.length === 0" class="no-data">
-        <p>No editors found.</p>
-      </div>
-
-      <div v-else class="users-table">
-        <div class="table-header">
-          <div class="col-user">User</div>
-          <div class="col-email">Email</div>
-          <div class="col-current">Current Role</div>
-          <div class="col-requested">Requested Role</div>
-          <div class="col-action">Action</div>
-        </div>
-
-        <div
-          v-for="u in editors"
-          :key="u.id"
-          class="table-row"
-          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
-        >
-          <div class="col-user">
-            <div class="user-info">
-              <p class="user-name">{{ u.fullname }}</p>
-            </div>
-          </div>
-
-          <div class="col-email">
-            {{ u.email }}
-          </div>
-
-          <div class="col-current">
-            <span class="role-badge role-current">
-              {{ formatRoleName(u.ontologyRole) }}
-            </span>
-          </div>
-
-          <div class="col-requested">
-            <span
-              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
-              class="role-badge role-pending"
-            >
-              {{ formatRoleName(u.ontologyRoleRequested) }}
-            </span>
-            <span v-else class="role-badge role-none">—</span>
-          </div>
-
-          <div class="col-action">
-            <button
-              @click="openModal(u)"
-              :disabled="!user || user.ontologyRole !== 'ADMIN'"
-              class="btn-set-role"
-              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
-            >
-              Set Role
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="loadingAdmins" class="loading">
-      Loading admins...
-    </div>
-    <div v-else-if="errorAdmins" class="error">
-      Error: {{ errorAdmins.message }}
-    </div>
-    <div v-else class="role-requests-container">
-      <h2>Admins</h2>
-
-      <div v-if="admins.length === 0" class="no-data">
-        <p>No admins found.</p>
-      </div>
-
-      <div v-else class="users-table">
-        <div class="table-header">
-          <div class="col-user">User</div>
-          <div class="col-email">Email</div>
-          <div class="col-current">Current Role</div>
-          <div class="col-requested">Requested Role</div>
-          <div class="col-action">Action</div>
-        </div>
-
-        <div
-          v-for="u in admins"
-          :key="u.id"
-          class="table-row"
-          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
-        >
-          <div class="col-user">
-            <div class="user-info">
-              <p class="user-name">{{ u.fullname }}</p>
-            </div>
-          </div>
-
-          <div class="col-email">
-            {{ u.email }}
-          </div>
-
-          <div class="col-current">
-            <span class="role-badge role-current">
-              {{ formatRoleName(u.ontologyRole) }}
-            </span>
-          </div>
-
-          <div class="col-requested">
-            <span
-              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
-              class="role-badge role-pending"
-            >
-              {{ formatRoleName(u.ontologyRoleRequested) }}
-            </span>
-            <span v-else class="role-badge role-none">—</span>
-          </div>
-
-          <div v-if="user && user.id === u.id" class="col-action">
-            <button
-              @click="openModal(u)"
-              :disabled="!user || user.ontologyRole !== 'ADMIN'"
-              class="btn-set-role"
-              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
-            >
-              Set Role
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Set Ontology Role Modal -->
-    <SetOntologyRoleModal
-      :is-open="showModal"
-      :user="selectedUser"
-      :ontology-roles="ontologyRoles"
-      :is-submitting="isSubmitting"
-      :error="modalError"
-      @close="closeModal"
-      @set-role="handleSetRole"
-    />
-  </div>
-</template>
-
-
 <script setup>
 import { ref, computed, watchEffect } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/composables/user/useAuthStore'
+
 import ROLE_REQUESTS from '../../graphql/ontology/roleRequests.graphql'
 import EDITORS from '../../graphql/ontology/editors.graphql'
 import ADMINS from '../../graphql/ontology/admins.graphql'
@@ -320,6 +95,218 @@ const formatRoleName = (role) => {
 
 const ontologyRoles = ['VIEWER', 'CONTRIBUTOR', 'EDITOR', 'ADMIN']
 </script>
+
+
+<template>
+  <div class="ontology-role-page">
+    <div class="header">
+      <h1>Ontology Role Management</h1>
+      <button @click="goBack" class="btn-back">
+        ← Back to Ontology Management
+      </button>
+    </div>
+
+    <div v-if="loadingRequests" class="loading">
+      Loading role requests...
+    </div>
+    <div v-else-if="errorRequests" class="error">
+      Error: {{ errorRequests.message }}
+    </div>
+    <div v-else class="role-requests-container">
+      <h2>Users with Outstanding Role Requests</h2>
+
+      <div v-if="roleRequests.length === 0" class="no-data">
+        <p>No users found.</p>
+      </div>
+
+      <div v-else class="users-table">
+        <div class="table-header">
+          <div class="col-user">User</div>
+          <div class="col-current">Current Role</div>
+          <div class="col-requested">Requested Role</div>
+          <div class="col-action">Action</div>
+        </div>
+
+        <div
+          v-for="u in roleRequests"
+          :key="u.id"
+          class="table-row"
+          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
+        >
+          <div class="col-user">
+            <div class="user-info">
+              <p class="user-name">{{ u.name }}</p>
+              <p class="user-name">{{ u.fullname }}</p>
+            </div>
+          </div>
+
+          <div class="col-current">
+            <span class="role-badge role-current">
+              {{ formatRoleName(u.ontologyRole) }}
+            </span>
+          </div>
+
+          <div class="col-requested">
+            <span
+              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
+              class="role-badge role-pending"
+            >
+              {{ formatRoleName(u.ontologyRoleRequested) }}
+            </span>
+            <span v-else class="role-badge role-none">—</span>
+          </div>
+
+          <div class="col-action">
+            <button
+              @click="openModal(u)"
+              :disabled="!user || user.ontologyRole !== 'ADMIN'"
+              class="btn-set-role"
+              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
+            >
+              Set Role
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="loadingEditors" class="loading">
+      Loading editors...
+    </div>
+    <div v-else-if="errorEditors" class="error">
+      Error: {{ errorEditors.message }}
+    </div>
+    <div v-else class="role-requests-container">
+      <h2>Editors</h2>
+      <div v-if="editors.length === 0" class="no-data">
+        <p>No editors found.</p>
+      </div>
+
+      <div v-else class="users-table">
+        <div class="table-header">
+          <div class="col-user">User</div>
+          <div class="col-current">Current Role</div>
+          <div class="col-requested">Requested Role</div>
+          <div class="col-action">Action</div>
+        </div>
+
+        <div
+          v-for="u in editors"
+          :key="u.id"
+          class="table-row"
+          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
+        >
+          <div class="col-user">
+            <div class="user-info">
+              <p class="user-name">{{ u.fullname }}</p>
+            </div>
+          </div>
+
+          <div class="col-current">
+            <span class="role-badge role-current">
+              {{ formatRoleName(u.ontologyRole) }}
+            </span>
+          </div>
+
+          <div class="col-requested">
+            <span
+              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
+              class="role-badge role-pending"
+            >
+              {{ formatRoleName(u.ontologyRoleRequested) }}
+            </span>
+            <span v-else class="role-badge role-none">—</span>
+          </div>
+
+          <div class="col-action">
+            <button
+              @click="openModal(u)"
+              :disabled="!user || user.ontologyRole !== 'ADMIN'"
+              class="btn-set-role"
+              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
+            >
+              Set Role
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="loadingAdmins" class="loading">
+      Loading admins...
+    </div>
+    <div v-else-if="errorAdmins" class="error">
+      Error: {{ errorAdmins.message }}
+    </div>
+    <div v-else class="role-requests-container">
+      <h2>Admins</h2>
+
+      <div v-if="admins.length === 0" class="no-data">
+        <p>No admins found.</p>
+      </div>
+
+      <div v-else class="users-table">
+        <div class="table-header">
+          <div class="col-user">User</div>
+          <div class="col-current">Current Role</div>
+          <div class="col-requested">Requested Role</div>
+          <div class="col-action">Action</div>
+        </div>
+
+        <div
+          v-for="u in admins"
+          :key="u.id"
+          class="table-row"
+          :class="{ 'has-request': u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole }"
+        >
+          <div class="col-user">
+            <div class="user-info">
+              <p class="user-name">{{ u.fullname }}</p>
+            </div>
+          </div>
+
+          <div class="col-current">
+            <span class="role-badge role-current">
+              {{ formatRoleName(u.ontologyRole) }}
+            </span>
+          </div>
+
+          <div class="col-requested">
+            <span
+              v-if="u.ontologyRoleRequested && u.ontologyRoleRequested !== u.ontologyRole"
+              class="role-badge role-pending"
+            >
+              {{ formatRoleName(u.ontologyRoleRequested) }}
+            </span>
+            <span v-else class="role-badge role-none">—</span>
+          </div>
+
+          <div v-if="user && user.id === u.id" class="col-action">
+            <button
+              @click="openModal(u)"
+              :disabled="!user || user.ontologyRole !== 'ADMIN'"
+              class="btn-set-role"
+              :title="user?.ontologyRole !== 'ADMIN' ? 'Only admins can set roles' : 'Set role for this user'"
+            >
+              Set Role
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set Ontology Role Modal -->
+    <SetOntologyRoleModal
+      :is-open="showModal"
+      :user="selectedUser"
+      :ontology-roles="ontologyRoles"
+      :is-submitting="isSubmitting"
+      :error="modalError"
+      @close="closeModal"
+      @set-role="handleSetRole"
+    />
+  </div>
+</template>
 
 <style scoped>
 .ontology-role-page {
@@ -439,11 +426,6 @@ const ontologyRoles = ['VIEWER', 'CONTRIBUTOR', 'EDITOR', 'ADMIN']
   margin: 0;
   font-weight: 500;
   color: #333;
-}
-
-.col-email {
-  color: #666;
-  word-break: break-word;
 }
 
 .col-current,

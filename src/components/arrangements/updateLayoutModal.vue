@@ -89,7 +89,7 @@ const submitUpdate = async () => {
     }
 
     const layoutData = {
-        layoutId: props.layout.id,
+        id: props.layout.id,
         locationId: updateFormData.value.locationId || undefined,
         name: updateFormData.value.name || undefined,
         typeId: updateFormData.value.typeId || undefined,

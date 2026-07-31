@@ -1,5 +1,11 @@
-mutation arrangementsCreateLayout($layout: LayoutInput!) {
-  arrangementsCreateLayout(layout: $layout) {
+mutation arrangementsCreateLayout(
+  $layout: LayoutInput!
+  $controlTeamId: ID!
+) {
+  arrangementsCreateLayout(
+    layout: $layout
+    controlTeamId: $controlTeamId
+  ) {
     status
     errors {
       message

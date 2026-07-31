@@ -1,10 +1,11 @@
 fragment OntologyRelationshipFields on OntologyRelationship {
     id
     versionId
+    view
+
+    phase
 
     label
     sourceId
     targetId
-    phase
-    rank
 }

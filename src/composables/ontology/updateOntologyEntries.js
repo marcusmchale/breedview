@@ -85,8 +85,10 @@ const getCurrentValues = (entry) => {
     // scaleId is already defined above for Factor as well
     // For Scale
     scaleType: entry.scaleType,
+    // Type enums
     observationType: entry.observationType,
     controlType: entry.controlType,
+    // Lists of enums
     axes: entry.axes,
 
   }
@@ -146,8 +148,8 @@ export function prepareMultiselectOptions(
 
 // Update handlers
 export function updateTermHandler(context) {
+  console.log('update term handler entry data', context.entry)
   const { entry, ontologyEntries, updateTermMutation, openForm } = context
-
   const currentValues = getCurrentValues(entry, ontologyEntries)
 
   const terms = getEntriesByType(ontologyEntries, 'Term')
@@ -453,7 +455,8 @@ export function updateTermHandler(context) {
       }
 
       return updateTermMutation({ term: processedData })
-    }
+    },
+    entry.phase
   )
 }
 
@@ -526,7 +529,8 @@ export function updateSubjectHandler(context) {
       }
 
       return updateSubjectMutation({ subject: processedData })
-    }
+    },
+    entry.phase
   )
 }
 
@@ -616,7 +620,8 @@ export function updateTraitHandler(context) {
       }
 
       return updateTraitMutation({ trait: processedData })
-    }
+    },
+    entry.phase
   )
 }
 
@@ -706,10 +711,10 @@ export function updateConditionHandler(context) {
       }
 
       return updateConditionMutation({ condition: processedData })
-    }
+    },
+    entry.phase
   )
 }
-
 
 export function updateScaleHandler(context) {
   const { entry, ontologyEntries, updateScaleMutation, openForm } = context
@@ -813,7 +818,8 @@ export function updateScaleHandler(context) {
       }
 
       return updateScaleMutation({ scale: processedData })
-    }
+    },
+    entry.phase
   )
 }
 
@@ -871,7 +877,17 @@ export function updateCategoryHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateCategoryMutation({ category: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateCategoryMutation(
+      { category: {
+        id: entry.id,
+          name: formData.name,
+          description: formData.description || undefined,
+          parentIds: processIdArray(formData.parentIds),
+          childIds: processIdArray(formData.childIds),
+          termIds: processIdArray(formData.termIds) }
+      }),
+    entry.phase
+  )
 }
 
 export function updateObservationMethodHandler(context) {
@@ -943,7 +959,8 @@ export function updateObservationMethodHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateObservationMethodMutation({ observationMethod: { id: entry.id, name: formData.name, description: formData.description || undefined, observationType: formData.observationType, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateObservationMethodMutation({ observationMethod: { id: entry.id, name: formData.name, description: formData.description || undefined, observationType: formData.observationType, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateVariableHandler(context) {
@@ -1031,7 +1048,8 @@ export function updateVariableHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateVariableMutation({ variable: { id: entry.id, name: formData.name, description: formData.description || undefined, traitId: formData.traitId || undefined, observationMethodId: formData.observationMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateVariableMutation({ variable: { id: entry.id, name: formData.name, description: formData.description || undefined, traitId: formData.traitId || undefined, observationMethodId: formData.observationMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateControlMethodHandler(context) {
@@ -1089,7 +1107,8 @@ export function updateControlMethodHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateControlMethodMutation({ controlMethod: { id: entry.id, name: formData.name, description: formData.description || undefined, controlType: formData.controlType, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateControlMethodMutation({ controlMethod: { id: entry.id, name: formData.name, description: formData.description || undefined, controlType: formData.controlType, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateFactorHandler(context) {
@@ -1177,7 +1196,8 @@ export function updateFactorHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateFactorMutation({ factor: { id: entry.id, name: formData.name, description: formData.description || undefined, conditionId: formData.conditionId || undefined, controlMethodId: formData.controlMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateFactorMutation({ factor: { id: entry.id, name: formData.name, description: formData.description || undefined, conditionId: formData.conditionId || undefined, controlMethodId: formData.controlMethodId || undefined, scaleId: formData.scaleId || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateEventHandler(context) {
@@ -1267,7 +1287,8 @@ export function updateEventHandler(context) {
       value: currentValues.termIds
     }
 
-  ], (formData) => updateEventMutation({ event: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds), variableIds: processIdArray(formData.variableIds), factorIds: processIdArray(formData.factorIds) } }))
+  ], (formData) => updateEventMutation({ event: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds), variableIds: processIdArray(formData.variableIds), factorIds: processIdArray(formData.factorIds) } })),
+    entry.phase
 }
 
 export function updateLocationTypeHandler(context) {
@@ -1324,7 +1345,8 @@ export function updateLocationTypeHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateLocationTypeMutation({ locationType: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateLocationTypeMutation({ locationType: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateDesignHandler(context) {
@@ -1381,7 +1403,8 @@ export function updateDesignHandler(context) {
       placeholder: 'Select terms (optional)',
       value: currentValues.termIds
     },
-  ], (formData) => updateDesignMutation({ design: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } }))
+  ], (formData) => updateDesignMutation({ design: { id: entry.id, name: formData.name, description: formData.description || undefined, parentIds: processIdArray(formData.parentIds), childIds: processIdArray(formData.childIds), termIds: processIdArray(formData.termIds) } })),
+    entry.phase
 }
 
 export function updateLayoutTypeHandler(context) {
@@ -1461,7 +1484,9 @@ export function updateLayoutTypeHandler(context) {
       childIds: processIdArray(formData.childIds),
       termIds: processIdArray(formData.termIds)
     }
-  }))
+  }),
+    entry.phase
+  )
 }
 
 // Export all handlers

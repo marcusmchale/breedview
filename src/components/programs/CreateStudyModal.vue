@@ -6,7 +6,9 @@ import { FormKit } from '@formkit/vue'
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
 
-import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+
+import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
 import LicenceModal from '@/components/references/LicenceModal.vue'
 
 const props = defineProps({
@@ -25,6 +27,14 @@ const emit = defineEmits(['close', 'success'])
 const { createStudy, createStudyLoading } = useMutateStudies()
 const { designTypes, designTypesLoading } = useDesignTypesQuery()
 
+const formError = ref('')
+const selectedControlTeamId = ref(null)
+
+
+const handleControlTeamError = (errorMessage) => {
+  formError.value = errorMessage
+}
+
 const designOptions = computed(() => {
   return designTypes.value.map(design => ({
     value: design.id,
@@ -42,7 +52,6 @@ const formData = ref({
   designId: null
 })
 
-const formError = ref('')
 
 // References state
 const selectedReferenceIds = ref([])
@@ -104,7 +113,7 @@ const submitForm = async (values) => {
       }
     })
 
-    const { status, errors } = await createStudy(cleanValues)
+    const { status, errors } = await createStudy(cleanValues, selectedControlTeamId.value)
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -240,6 +249,11 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
+          <ControlTeamSelector
+            v-model="selectedControlTeamId"
+            class="form-control"
+            @error="handleControlTeamError"
+          />
           <button type="submit" class="btn btn-primary" :disabled="createStudyLoading">
             {{ createStudyLoading ? 'Creating...' : 'Create Study' }}
           </button>
@@ -251,7 +265,7 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <ReferencesModal
+    <EntityReferencesModal
       :visible="isReferencesModalOpen"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"

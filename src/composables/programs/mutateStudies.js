@@ -12,8 +12,11 @@ export function useMutateStudies() {
     error: createStudyError
   } = useMutation(CREATE_STUDY_MUTATION)
 
-  const createStudy = async (studyData) => {
-    const response = await createStudyMutation({ study: studyData })
+  const createStudy = async (studyData, controlTeamId) => {
+    const response = await createStudyMutation({
+      study: studyData,
+      controlTeamId: controlTeamId
+    })
     if (response?.data?.programsCreateStudy) {
       const { status, errors } = response.data.programsCreateStudy
       return { status, errors }

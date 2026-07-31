@@ -18,10 +18,7 @@ export function useRegionsQuery(){
     } = useQuery(REGIONS_QUERY)
 
     const regions = computed(() => {
-        if (!regionsResult.value) {
-            return []
-        }
-        const regions = [...regionsResult.value.regions.result]
+        const regions = [...regionsResult.value?.regions?.result ?? []]
         regions.sort((a, b) => a?.name.localeCompare(b?.name))
         return regions
     })

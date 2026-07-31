@@ -1,5 +1,11 @@
-mutation referencesCreateExternalData($reference: CreateExternalDataReferenceInput!) {
-  referencesCreateExternalData(reference: $reference) {
+mutation referencesCreateExternalData(
+  $reference: CreateExternalDataReferenceInput!
+  $controlTeamId: ID!
+) {
+  referencesCreateExternalData(
+    reference: $reference
+    controlTeamId: $controlTeamId
+  ) {
     status
     result
     errors {

@@ -1,7 +1,7 @@
 fragment RecordFields on Record {
         id
         unit {
-          id, name, germplasm { id, name }
+          id name germplasm { id name }
         }
         value
         start

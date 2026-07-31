@@ -1,13 +1,17 @@
+<!-- src/components/references/DataReferenceModal.vue -->
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
-import { isSelectableForEntity, getReferenceTypeLabel, getReferenceTypeIcon } from '@/composables/references/referenceTypes'
+import {
+    DATA_REFERENCE_TYPE_CONFIGS,
+    isDataReference,
+    REFERENCE_TYPE_CONFIGS
+} from '@/composables/references/referenceTypes'
 
-import LegalReferenceForm from './LegalReferenceForm.vue'
-import ExternalReferenceForm from './ExternalReferenceForm.vue'
-import FileReferenceForm from './FileReferenceForm.vue'
+import ExternalDataReferenceForm from './ExternalDataReferenceForm.vue'
+import DataFileReferenceForm from './DataFileReferenceForm.vue'
 import ReferenceItem from './ReferenceItem.vue'
 
 const props = defineProps({
@@ -25,16 +29,23 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['close', 'update:selectedReferenceIds', 'save'])
+const emit = defineEmits(['close', 'save'])
 
 const searchQuery = ref('')
 
 const { deleteReferences, deleteReferencesLoading } = useMutateReferences()
-const { searchResults, searchLoading, searchError } = useReferencesSearchQuery(searchQuery)
-const { recentFileReferences, refetchRecentFiles } = useRecentFileReferencesQuery()
+
+const { searchResults, searchLoading, searchError } = useReferencesSearchQuery({
+    description: searchQuery,
+    referenceTypes: DATA_REFERENCE_TYPE_CONFIGS.map(({ key }) => key)
+})
+
+const { recentFileReferences, refetchRecentFiles } = useRecentFileReferencesQuery(
+    DATA_REFERENCE_TYPE_CONFIGS.map(({ key }) => key)
+)
 
 // State
-const activeTab = ref('legal')
+const activeTab = ref('external_data')
 const selectedIds = ref([...props.selectedReferenceIds])
 const selectedReferencesData = ref([...props.initialReferences])
 const editingReference = ref(null)
@@ -68,7 +79,7 @@ const filteredSearchResults = computed(() => {
 const filteredRecentFiles = computed(() => {
     if (!recentFileReferences.value) return []
     return recentFileReferences.value.filter(ref =>
-        !selectedIds.value.includes(ref.id) && isSelectableForEntity(ref)
+        !selectedIds.value.includes(ref.id) && isDataReference(ref)
     )
 })
 
@@ -78,7 +89,7 @@ const selectedReferences = computed(() => {
 
 // Handlers
 const handleReferenceCreated = (reference) => {
-    if (isSelectableForEntity(reference)) {
+    if (isDataReference(reference)) {
         selectedIds.value.push(reference.id)
         selectedReferencesData.value.push(reference)
     }
@@ -115,14 +126,11 @@ const startEditing = (reference) => {
     editingReference.value = reference
     // Switch to appropriate tab based on reference type
     switch (reference.__typename) {
-        case 'LegalReference':
-            activeTab.value = 'legal'
+        case 'ExternalDataReference':
+            activeTab.value = 'external_data'
             break
-        case 'ExternalReference':
-            activeTab.value = 'external'
-            break
-        case 'FileReference':
-            activeTab.value = 'file'
+        case 'DataFileReference':
+            activeTab.value = 'data_file'
             break
     }
 }
@@ -151,11 +159,7 @@ const handleDeleteReference = async (referenceId) => {
 }
 
 const handleSave = () => {
-    emit('update:selectedReferenceIds', selectedIds.value)
-    emit('save', {
-        referenceIds: selectedIds.value,
-        references: selectedReferences.value
-    })
+    emit('save', selectedReferences.value)
     emit('close')
 }
 
@@ -170,28 +174,22 @@ const handleClose = () => {
         <div v-if="visible" class="modal-overlay" @click.self="handleClose">
             <div class="modal-container">
                 <div class="modal-header">
-                    <h2>Manage References</h2>
+                    <h2>Manage Data References</h2>
                     <button class="close-btn" @click="handleClose">&times;</button>
                 </div>
 
                 <div class="tabs">
                     <button
-                        :class="['tab', { active: activeTab === 'legal' }]"
-                        @click="activeTab = 'legal'; editingReference = null"
+                        :class="['tab', { active: activeTab === 'external_data' }]"
+                        @click="activeTab = 'external_data'; editingReference = null"
                     >
-                        ⚖️ Legal
+                        📊 External Data
                     </button>
                     <button
-                        :class="['tab', { active: activeTab === 'external' }]"
-                        @click="activeTab = 'external'; editingReference = null"
+                        :class="['tab', { active: activeTab === 'data_file' }]"
+                        @click="activeTab = 'data_file'; editingReference = null"
                     >
-                        🔗 External
-                    </button>
-                    <button
-                        :class="['tab', { active: activeTab === 'file' }]"
-                        @click="activeTab = 'file'; editingReference = null"
-                    >
-                        📄 File
+                        📁 Data File
                     </button>
                     <button
                         :class="['tab', { active: activeTab === 'search' }]"
@@ -208,33 +206,22 @@ const handleClose = () => {
                 </div>
 
                 <div class="modal-content">
-                    <!-- Legal Tab -->
-                    <div v-if="activeTab === 'legal'" class="tab-content">
-                        <LegalReferenceForm
-                            :reference="editingReference?.__typename === 'LegalReference' ? editingReference : null"
-                            :mode="editingReference?.__typename === 'LegalReference' ? 'edit' : 'create'"
+                    <!-- External Data Tab -->
+                    <div v-if="activeTab === 'external_data'" class="tab-content">
+                        <ExternalDataReferenceForm
+                            :reference="editingReference?.__typename === 'ExternalDataReference' ? editingReference : null"
+                            :mode="editingReference?.__typename === 'ExternalDataReference' ? 'edit' : 'create'"
                             @created="handleReferenceCreated"
                             @success="handleReferenceUpdated"
                             @cancel="cancelEditing"
                         />
                     </div>
 
-                    <!-- External Tab -->
-                    <div v-if="activeTab === 'external'" class="tab-content">
-                        <ExternalReferenceForm
-                            :reference="editingReference?.__typename === 'ExternalReference' ? editingReference : null"
-                            :mode="editingReference?.__typename === 'ExternalReference' ? 'edit' : 'create'"
-                            @created="handleReferenceCreated"
-                            @success="handleReferenceUpdated"
-                            @cancel="cancelEditing"
-                        />
-                    </div>
-
-                    <!-- File Tab -->
-                    <div v-if="activeTab === 'file'" class="tab-content">
-                        <FileReferenceForm
-                            :reference="editingReference?.__typename === 'FileReference' ? editingReference : null"
-                            :mode="editingReference?.__typename === 'FileReference' ? 'edit' : 'create'"
+                    <!-- Data File Tab -->
+                    <div v-if="activeTab === 'data_file'" class="tab-content">
+                        <DataFileReferenceForm
+                            :reference="editingReference?.__typename === 'DataFileReference' ? editingReference : null"
+                            :mode="editingReference?.__typename === 'DataFileReference' ? 'edit' : 'create'"
                             @created="handleReferenceCreated"
                             @success="handleReferenceUpdated"
                             @cancel="cancelEditing"
@@ -242,7 +229,7 @@ const handleClose = () => {
 
                         <!-- Recent Files Section -->
                         <div v-if="filteredRecentFiles.length > 0 && !editingReference" class="recent-section">
-                            <h4>Recent File References</h4>
+                            <h4>Recent Data File References</h4>
                             <div class="reference-list">
                                 <ReferenceItem
                                     v-for="ref in filteredRecentFiles"
@@ -250,7 +237,7 @@ const handleClose = () => {
                                     :reference="ref"
                                     :selectable="true"
                                     :selected="selectedIds.includes(ref.id)"
-                                    :disabled="!isSelectableForEntity(ref)"
+                                    :disabled="!isDataReference(ref)"
                                     @toggle-select="toggleSelection(ref.id, ref)"
                                 />
                             </div>
@@ -265,7 +252,7 @@ const handleClose = () => {
                                     type="text"
                                     :value="searchQuery"
                                     @input="handleSearchInput($event.target.value)"
-                                    placeholder="Search references by description..."
+                                    placeholder="Search data references by description..."
                                     class="search-input"
                                 />
                                 <span v-if="searchLoading" class="search-spinner">⏳</span>
@@ -280,7 +267,7 @@ const handleClose = () => {
                             </div>
 
                             <div v-else-if="filteredSearchResults.length === 0 && !searchLoading" class="empty-state">
-                                No references found matching "{{ searchQuery }}"
+                                No data references found matching "{{ searchQuery }}"
                             </div>
 
                             <div v-else class="reference-list">
@@ -290,7 +277,7 @@ const handleClose = () => {
                                     :reference="ref"
                                     :selectable="true"
                                     :selected="selectedIds.includes(ref.id)"
-                                    :disabled="!isSelectableForEntity(ref)"
+                                    :disabled="!isDataReference(ref)"
                                     @toggle-select="toggleSelection(ref.id, ref)"
                                 />
                             </div>
@@ -300,7 +287,7 @@ const handleClose = () => {
                     <!-- Selected Tab -->
                     <div v-if="activeTab === 'selected'" class="tab-content">
                         <div v-if="selectedReferences.length === 0" class="empty-state">
-                            No references selected. Create new references or search for existing ones.
+                            No data references selected. Create new references or search for existing ones.
                         </div>
 
                         <div v-else class="reference-list">

@@ -1,3 +1,78 @@
+<script setup>
+import { ref, watch } from "vue";
+import { FormKit } from '@formkit/vue'
+
+import { useMutateLocations } from "@/composables/regions/mutateLocations";
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+
+const props = defineProps({
+  locationTypes: {
+    type: Array,
+    required: true
+  },
+  parentLocation: {
+    type: Object,
+    required: true
+  }
+})
+
+const emit = defineEmits(['success', 'close'])
+
+// Prepare mutation handlers
+const {
+  createLocation, createLocationLoading, createLocationError,
+} = useMutateLocations()
+
+const addChildError = ref('')
+const selectedControlTeamId = ref(null)
+
+
+const handleControlTeamError = (errorMessage) => {
+  addChildError.value = errorMessage
+}
+
+const addChildFormData = ref({
+  parentName: props.parentLocation?.name || '',
+  typeId: null,
+  name: '',
+  code: '',
+  address: '',
+  description: ''
+})
+
+
+const submitAddChild = async () => {
+  try {
+
+    const locationData = {
+        name: addChildFormData.value.name,
+        code: addChildFormData.value.code || undefined,
+        address: addChildFormData.value.address || undefined,
+        description: addChildFormData.value.description || undefined,
+        typeId: addChildFormData.value.typeId,
+        parentId: props.parentLocation.id
+    }
+
+    const { status, errors } = await createLocation(locationData, selectedControlTeamId.value)
+    if (status === 'SUCCESS') {
+      emit('success')
+      emit('close')
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        addChildError.value = errors.map(err => err.message).join(', ')
+      } else {
+        addChildError.value = 'Failed to add child location. Please try again.'
+      }
+    }
+  } catch (error) {
+    addChildError.value = error.message || 'An unexpected error occurred while adding the child location.'
+  }
+}
+
+</script>
+
+
 <template>
   <div class="modal" @click.stop>
     <div class="modal-header">
@@ -63,6 +138,11 @@
         {{ addChildError }}
       </div>
       <div class="form-actions">
+        <ControlTeamSelector
+          v-model="selectedControlTeamId"
+          class="form-control"
+          @error="handleControlTeamError"
+        />
         <button type="submit" class="btn btn-primary" :disabled="createLocationLoading">
           {{ createLocationLoading ? 'Adding...' : 'Add Child' }}
         </button>
@@ -79,72 +159,6 @@
   </div>
 
 </template>
-
-<script setup>
-import { ref } from "vue";
-import { FormKit } from '@formkit/vue'
-
-import { useMutateLocations } from "@/composables/regions/mutateLocations";
-
-const props = defineProps({
-  locationTypes: {
-    type: Array,
-    required: true
-  },
-  parentLocation: {
-    type: Object,
-    required: true
-  }
-})
-
-const emit = defineEmits(['success', 'close'])
-
-// Prepare mutation handlers
-const {
-  createLocation, createLocationLoading, createLocationError,
-} = useMutateLocations()
-
-const addChildFormData = ref({
-  parentName: props.parentLocation?.name || '',
-  typeId: null,
-  name: '',
-  code: '',
-  address: '',
-  description: ''
-})
-const addChildError = ref('')
-
-const submitAddChild = async () => {
-  try {
-
-    const locationData = {
-        name: addChildFormData.value.name,
-        code: addChildFormData.value.code || undefined,
-        address: addChildFormData.value.address || undefined,
-        description: addChildFormData.value.description || undefined,
-        typeId: addChildFormData.value.typeId,
-        parentId: props.parentLocation.id
-    }
-
-    const { status, errors } = await createLocation(locationData)
-    if (status === 'SUCCESS') {
-      emit('success')
-      emit('close')
-    } else {
-      // Handle server errors
-      if (errors && errors.length > 0) {
-        addChildError.value = errors.map(err => err.message).join(', ')
-      } else {
-        addChildError.value = 'Failed to add child location. Please try again.'
-      }
-    }
-  } catch (error) {
-    addChildError.value = error.message || 'An unexpected error occurred while adding the child location.'
-  }
-}
-
-</script>
-
 
 <style scoped>
 

@@ -1,5 +1,11 @@
-mutation CreateDataset($dataset: DatasetInput!) {
-  datasetsCreate(dataset: $dataset) {
+mutation CreateDataset(
+  $dataset: DatasetInput!
+  $controlTeamId: ID!
+) {
+  datasetsCreate(
+    dataset: $dataset
+    controlTeamId: $controlTeamId
+  ) {
     status
     result
     errors {

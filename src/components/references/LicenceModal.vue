@@ -1,8 +1,7 @@
-<!-- src/components/references/LicenceModal.vue -->
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
-import { getReferenceType } from '@/composables/references/referenceTypes'
+import { REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
 
 import LegalReferenceForm from './LegalReferenceForm.vue'
 import ReferenceItem from './ReferenceItem.vue'
@@ -25,7 +24,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 const searchQuery = ref('')
-const { searchResults, searchLoading, searchError } = useReferencesSearchQuery(searchQuery)
+const { searchResults, searchLoading, searchError } = useReferencesSearchQuery({
+  description: searchQuery,
+  referenceTypes: [REFERENCE_TYPE_CONFIGS.LEGAL.key]
+})
 
 // State
 const activeTab = ref('create')
@@ -33,7 +35,6 @@ const selectedLicence = ref(props.currentLicence)
 
 
 const handleSearchInput = (value) => {
-    console.log('search value:', value)
     searchQuery.value = value
 }
 
@@ -42,11 +43,6 @@ watch(() => props.currentLicence, (newLicence) => {
     selectedLicence.value = newLicence
 })
 
-
-// Filter to only show legal references in search
-const legalSearchResults = computed(() => {
-    return searchResults.value.filter(ref => getReferenceType(ref) === 'LegalReference')
-})
 
 // Handlers
 const handleLicenceCreated = (licence) => {
@@ -142,13 +138,13 @@ const handleClose = () => {
                                 Enter at least 2 characters to search for existing legal references
                             </div>
 
-                            <div v-else-if="legalSearchResults.length === 0 && !searchLoading" class="empty-state">
+                            <div v-else-if="searchResults.length === 0 && !searchLoading" class="empty-state">
                                 No legal references found matching "{{ searchQuery }}"
                             </div>
 
                             <div v-else class="reference-list">
                                 <div
-                                    v-for="ref in legalSearchResults"
+                                    v-for="ref in searchResults"
                                     :key="ref.id"
                                     class="selectable-item"
                                     :class="{ selected: selectedLicence?.id === ref.id }"

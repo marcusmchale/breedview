@@ -1,10 +1,10 @@
-query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID]!) {
+query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
   controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
     status
     result {
-      controls { team { id, name }, release, time }
-      writes {user {id, name}, time }
-      teams { id, name }
+      controls { team { id name } release time }
+      writes { user { id name } time }
+      teams { id name }
       release
       created
       updated

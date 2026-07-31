@@ -1,5 +1,11 @@
-mutation referencesCreateLegal($reference: CreateLegalReferenceInput!) {
-  referencesCreateLegal(reference: $reference) {
+mutation referencesCreateLegal(
+  $reference: CreateLegalReferenceInput!
+  $controlTeamId: ID!
+) {
+  referencesCreateLegal(
+    reference: $reference
+    controlTeamId: $controlTeamId
+  ) {
     status
     result
     errors {

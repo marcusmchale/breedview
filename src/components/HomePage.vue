@@ -24,10 +24,10 @@ const redirectToLogin = () => {
 }
 
 const handleUserInvited = (email) => {
-  console.log('User invited:', email)
+  console.debug('User invited:', email)
 }
 const handleRequestOntologyRoleRequest = (ontologyRole) => {
-  console.log('User requested ontology role:', ontologyRole)
+  console.debug('User requested ontology role:', ontologyRole)
 }
 
 </script>

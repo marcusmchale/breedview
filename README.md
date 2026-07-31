@@ -27,6 +27,7 @@ With this running you should now be able to visit localhost:8080 and see the pag
 ```
 npm run build
 ```
+then copy dist contents to /var/www/breedview
 
 ### Lints and fixes files
 ```

@@ -2,7 +2,7 @@ mutation germplasmDeleteEntry(
     $entryId: ID!
 ) {
     germplasmDeleteEntry(
-        entryId: $entryId,
+        id: $entryId,
     ) {
         status
         errors {

@@ -3,10 +3,10 @@ query DatasetsSummaries($studyId: ID!){
     status
     result {
         id
-        concept { id, name }
-        subjects { id, name }
-        locations { id, name }
-        blocks { id, name }
+        concept { id versionId view name }
+        subjects { id versionId view name }
+        locations { id name }
+        blocks { id name }
         unit_count
         record_count
         start

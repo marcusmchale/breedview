@@ -5,6 +5,8 @@ import { FormKit } from '@formkit/vue'
 import { useDefinePositionQueries } from '@/composables/blocks/definePositionQueries'
 import { useSelectGermplasmQueries } from '@/composables/germplasm/selectGermplasmQueries'
 import { useMutateUnits } from '@/composables/blocks/mutateUnits'
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+
 import BulkChildRow from '@/components/blocks/BulkChildRow.vue'
 
 const props = defineProps({
@@ -25,6 +27,13 @@ const props = defineProps({
 const emit = defineEmits(['close', 'success'])
 
 const { createUnit, createUnitLoading, createUnitError } = useMutateUnits()
+
+const selectedControlTeamId = ref(null)
+const addChildError = ref('')
+
+const handleControlTeamError = (errorMessage) => {
+  addChildError.value = errorMessage
+}
 
 const mode = ref('single')
 const bulkSubmitting = ref(false)
@@ -140,8 +149,6 @@ const subjectsWithNull = computed(() => {
   ]
 })
 
-const addChildError = ref('')
-
 const singleCoordinateKeys = computed(() => {
   return singleLayout.value?.axes?.map((_, index) => `coordinate_${index}`) || []
 })
@@ -212,7 +219,8 @@ const submitSingle = async () => {
 
     const { status, errors } = await createUnit(
       buildUnitData(singleFormData.value, singleFormData.value),
-      buildPosition(singleFormData.value, singleCoordinateKeys.value)
+      buildPosition(singleFormData.value, singleCoordinateKeys.value),
+      selectedControlTeamId.value
     )
 
     if (status === 'SUCCESS') {
@@ -310,7 +318,8 @@ const submitBulk = async () => {
         buildPosition({
           ...bulkTemplate.value,
           ...row
-        }, bulkCoordinateKeys.value)
+        }, bulkCoordinateKeys.value),
+        selectedControlTeamId.value
       )
 
       if (status === 'SUCCESS') {
@@ -642,6 +651,11 @@ const setMode = (nextMode) => {
       <div v-if="addChildError" class="error-message">{{ addChildError }}</div>
 
       <div class="form-actions">
+        <ControlTeamSelector
+          v-model="selectedControlTeamId"
+          class="form-control"
+          @error="handleControlTeamError"
+        />
         <button type="button" class="btn btn-primary" :disabled="createUnitLoading || bulkSubmitting" @click="submitCurrentMode">
           {{ (createUnitLoading || bulkSubmitting) ? 'Adding...' : 'Add Children' }}
         </button>

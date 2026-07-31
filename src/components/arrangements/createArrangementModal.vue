@@ -4,6 +4,7 @@ import { ref, computed, watch } from "vue";
 import { FormKit } from "@formkit/vue";
 
 import { useMutateLayouts } from "@/composables/arrangements/mutateLayouts";
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 
 const props = defineProps({
   layoutTypes: {
@@ -20,11 +21,18 @@ const emit = defineEmits(['success', 'close'])
 
 const { createLayout, createLayoutLoading, createLayoutError } = useMutateLayouts()
 
+const addLayoutError = ref('')
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (errorMessage) => {
+  addLayoutError.value = errorMessage
+}
+
 const createFormData = ref({
   name: '',
   typeId: null
 })
-const addLayoutError = ref('')
+
 
 // Get the selected layout type
 const selectedLayoutType = computed(() => {
@@ -69,8 +77,7 @@ const submitAddLayout = async () => {
         typeId: createFormData.value.typeId,
         axes: axes.length > 0 ? axes : undefined,
     }
-
-    const { status, errors } = await createLayout(layoutData)
+    const { status, errors } = await createLayout(layoutData, selectedControlTeamId.value)
 
     if (status === 'SUCCESS') {
       emit('close')
@@ -141,6 +148,11 @@ const submitAddLayout = async () => {
       </div>
 
       <div class="form-actions">
+        <ControlTeamSelector
+          v-model="selectedControlTeamId"
+          class="form-control"
+          @error="handleControlTeamError"
+        />
         <button type="submit" class="btn btn-primary" :disabled="createLayoutLoading">
           {{ createLayoutLoading ? 'Adding...' : 'Add Layout' }}
         </button>

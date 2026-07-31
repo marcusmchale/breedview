@@ -61,7 +61,7 @@ const submitUpdate = async () => {
   try {
     updateError.value = ''
     const updateData = {
-        locationId: props.location.id,
+        id: props.location.id,
         name: updateFormData.value.name || undefined,
         code: updateFormData.value.code || undefined,
         address: updateFormData.value.address || undefined,

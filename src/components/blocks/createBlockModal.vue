@@ -1,10 +1,12 @@
 <script setup>
 
-import { ref, computed } from "vue";
+import {ref, computed, watch} from "vue";
 import { FormKit } from "@formkit/vue";
 
 import { useDefinePositionQueries } from "@/composables/blocks/definePositionQueries";
 import { useMutateUnits } from "@/composables/blocks/mutateUnits";
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+
 import { useSelectGermplasmQueries } from "@/composables/germplasm/selectGermplasmQueries";
 
 const props = defineProps({
@@ -50,6 +52,13 @@ const {
     layoutId: () => createFormData.value.positionLayoutId
 })
 
+const addUnitError = ref('')
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (errorMessage) => {
+  addUnitError.value = errorMessage
+}
+
 const arrangementsWithNull = computed(() => {
   return [
     { id: null, name: '-- None --' },
@@ -73,9 +82,6 @@ const {
     loadChildGermplasm,
     hasChildren
 } = useSelectGermplasmQueries({germplasmId: () => createFormData.value.germplasmId })
-
-
-const addUnitError = ref('')
 
 const submitAddUnit = async () => {
   try {
@@ -106,7 +112,7 @@ const submitAddUnit = async () => {
         parentIds: [], // New block has no parents
         childrenIds: []
     }
-    const { status, errors } = await createUnit(unitData, position)
+    const { status, errors } = await createUnit(unitData, position, selectedControlTeamId.value)
 
     if (status === 'SUCCESS') {
       emit('close')
@@ -255,6 +261,11 @@ const submitAddUnit = async () => {
     </div>
 
     <div class="form-actions">
+      <ControlTeamSelector
+        v-model="selectedControlTeamId"
+        class="form-control"
+        @error="handleControlTeamError"
+      />
       <button type="submit" class="btn btn-primary" :disabled="createUnitLoading">
         {{ createUnitLoading ? 'Adding...' : 'Add Unit' }}
       </button>

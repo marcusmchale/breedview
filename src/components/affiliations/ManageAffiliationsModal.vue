@@ -19,7 +19,6 @@
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
                 <div class="user-meta">
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
-                  <span v-if="affiliation.user.email" class="email">{{ affiliation.user.email }}</span>
                 </div>
                 <span class="affiliation-meta">
                   {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
@@ -92,7 +91,6 @@
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
                 <div class="user-meta">
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
-                  <span v-if="affiliation.user.email" class="email">{{ affiliation.user.email }}</span>
                 </div>
                 <span class="affiliation-meta">
                   {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
@@ -155,7 +153,6 @@
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
                 <div class="user-meta">
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
-                  <span v-if="affiliation.user.email" class="email">{{ affiliation.user.email }}</span>
                 </div>
                 <span class="affiliation-meta">
                   {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
@@ -230,7 +227,6 @@
                 <strong>{{ affiliation.user.fullname || affiliation.user.name || `User ${affiliation.user.id}` }}</strong>
                 <div class="user-meta">
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
-                  <span v-if="affiliation.user.email" class="email">{{ affiliation.user.email }}</span>
                 </div>
                 <span class="affiliation-meta">
                   {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |

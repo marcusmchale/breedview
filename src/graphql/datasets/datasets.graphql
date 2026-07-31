@@ -1,15 +1,15 @@
 #import "./recordFragment.graphql"
-query Datasets($studyIds: [ID!], $conceptIds: [ID!], $datasetIds: [ID!]) {
-  datasets(studyIds: $studyIds, conceptIds: $conceptIds, datasetIds: $datasetIds) {
+query Datasets($datasetIds: [ID!], $studyIds: [ID!], $conceptIds: [ID!]) {
+  datasets(ids: $datasetIds, studyIds: $studyIds, conceptIds: $conceptIds) {
     status
     result {
       id
       concept {
-        id
+        id versionId view
         name
         ... on Variable {
           scale {
-            id
+            id versionId view
             name
             scaleType
             categories {
@@ -20,7 +20,7 @@ query Datasets($studyIds: [ID!], $conceptIds: [ID!], $datasetIds: [ID!]) {
         }
         ... on Factor {
           scale {
-            id
+            id versionId view
             name
             scaleType
             categories {

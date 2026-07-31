@@ -1,32 +1,7 @@
-<template>
-  <div class="controller-badge-container">
-    <button
-      @click="fetchAndShowModal"
-      class="controller-badge"
-      :title="'Click to view controller details'"
-      :disabled="loading"
-    >
-      🔒
-      <span class="badge-text">{{ loading ? 'Loading...' : 'Security' }}</span>
-    </button>
-
-    <ControllerModal
-      :is-visible="showModal"
-      :controller="controller"
-      :loading="loading"
-      :error="error"
-      :entity-label="entityLabel"
-      :entity-id="entityId"
-      @close="closeModal"
-      @release-updated="handleReleaseUpdated"
-    />
-  </div>
-</template>
-
 <script setup>
-import { ref, defineProps } from 'vue'
+import { ref } from 'vue'
 import ControllerModal from './ControllerModal.vue'
-import { useControllerData } from '../../composables/controls/useControllerData'
+import { useControllerData } from '@/composables/controls/useControllerData'
 
 const props = defineProps({
   entityLabel: {
@@ -66,6 +41,31 @@ const handleReleaseUpdated = async () => {
   await refetchController()
 }
 </script>
+
+<template>
+  <div class="controller-badge-container">
+    <button
+      @click="fetchAndShowModal"
+      class="controller-badge"
+      :title="'Click to view controller details'"
+      :disabled="loading"
+    >
+      🔒
+      <span class="badge-text">{{ loading ? 'Loading...' : 'Security' }}</span>
+    </button>
+
+    <ControllerModal
+      :is-visible="showModal"
+      :controller="controller"
+      :loading="loading"
+      :error="error"
+      :entity-label="entityLabel"
+      :entity-id="entityId"
+      @close="closeModal"
+      @release-updated="handleReleaseUpdated"
+    />
+  </div>
+</template>
 
 <style scoped>
 .controller-badge-container {

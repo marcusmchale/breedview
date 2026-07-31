@@ -300,10 +300,10 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
       // For complex scales, extract referenceIds from the JSON array
       if (isComplexScale(concept)) {
         try {
-          const referenceIds = JSON.parse(value);
-          if (Array.isArray(referenceIds) && referenceIds.length > 0) {
-            record.referenceIds = referenceIds;
-            record.value = null; // Complex scales don't use value field
+          const references = JSON.parse(value);
+          if (Array.isArray(references) && references.length > 0) {
+            record.referenceIds = references.map(reference => reference.id);
+            record.value = null; // Complex scales don't use value field, only references
           } else {
             return; // Skip if no references
           }
@@ -348,7 +348,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Start polling for a submission
   const startSubmissionPolling = (conceptId, submissionId, indexMapping) => {
-    console.log('startSubmissionPolling', conceptId, submissionId)
+    console.debug('start submission polling', conceptId, submissionId)
     const client = resolveClient();
 
     const onSubmissionComplete = ({ datasetId, status, errors, itemErrors}) => {
@@ -385,7 +385,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
 
   // Submit a single concept column
-  const submitColumn = async (conceptId) => {
+  const submitColumn = async (conceptId, controlTeamId) => {
     // Skip if already submitted
     if (columnStatus.value[conceptId]?.status === 'success') return;
 
@@ -418,7 +418,9 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
         studyId: toValue(selectedStudy).id,
         conceptId: conceptId,
         records: records,
-      });
+      },
+      controlTeamId
+    );
 
 
       if (!result) {
@@ -439,13 +441,13 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
   };
 
   // Submit all columns in parallel
-  const submitAllColumns = async () => {
+  const submitAllColumns = async (controlTeamId) => {
     const concepts = toValue(selectedConcepts) || [];
     const pendingConcepts = concepts.filter(
       (c) => columnStatus.value[c.id]?.status !== 'success'
     );
 
-    const submissions = pendingConcepts.map((concept) => submitColumn(concept.id));
+    const submissions = pendingConcepts.map((concept) => submitColumn(concept.id, controlTeamId));
     await Promise.allSettled(submissions);
   };
 

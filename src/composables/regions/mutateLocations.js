@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
-import { useCacheUpdates } from "@/composables/system/cacheUpdates";
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import DELETE_LOCATION_MUTATION from '@/graphql/regions/deleteLocation.graphql'
 import UPDATE_LOCATION_MUTATION from '@/graphql/regions/updateLocation.graphql'
@@ -10,7 +10,7 @@ import LOCATIONS_QUERY from "@/graphql/regions/locations.graphql";
 
 export function useMutateLocations() {
 
-    const { updateItem, deleteItem } = useCacheUpdates({
+    const { updateCache, deleteFromCache } = useCacheUpdates({
         typename: "Location",
         fragment: LOCATION_FRAGMENT
     })
@@ -38,8 +38,13 @@ export function useMutateLocations() {
         loading: createLocationLoading,
     } = useMutation(CREATE_LOCATION_MUTATION)
 
-    const createLocation = async (locationData) => {
-        const response = await createLocationMutation({location: locationData})
+    const createLocation = async (locationData, controlTeamId) => {
+        const response = await createLocationMutation(
+            {
+                location: locationData,
+                controlTeamId: controlTeamId
+            }
+        )
 
         if (response?.data?.regionsCreateLocation) {
           const result = response.data.regionsCreateLocation
@@ -62,10 +67,7 @@ export function useMutateLocations() {
         if (response?.data?.regionsUpdateLocation) {
             const result = response.data.regionsUpdateLocation
             if (result.status === 'SUCCESS') {
-                updateItem({
-                    updateData: locationData,
-                    idField: 'locationId'
-                })
+                updateCache(locationData)
             }
             const { status, errors} = result
             return { status, errors}
@@ -86,7 +88,7 @@ export function useMutateLocations() {
             const result = response.data.regionsDeleteLocation
 
             if (result.status === 'SUCCESS') {
-                deleteItem({itemId: locationId })
+                deleteFromCache({itemId: locationId })
             }
             const {status, errors} = result
             return {status, errors}

@@ -2,13 +2,16 @@
 #import "./entryFragment.graphql"
 query ontology(
     $versionId: ID
+    $view: OntologyView
 ) {
     ontology(
         versionId: $versionId
+        view: $view
     ){
         status
         result {
             version { major, minor, patch }
+            view
             entries {
                 ...OntologyEntryFields
             }

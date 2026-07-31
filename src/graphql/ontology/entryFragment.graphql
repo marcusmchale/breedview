@@ -1,29 +1,77 @@
-fragment OntologyEntryFields on OntologyEntryInterface {
+fragment OntologyEntryFields on OntologyNodeInterface {
     id
     versionId
-    draft
+    view
+
+    phase
 
     name
     description
-    parents { id versionId draft name }
-    children { id versionId draft name }
-    phase
-    ... on RelatedToTerms { terms { id versionId draft name } }
-    ... on Subject { traits { id versionId draft name } conditions { id versionId draft name } }
-    ... on Trait { subjects { id versionId draft name } variables { id versionId draft name } }
-    ... on Condition { subjects { id versionId draft name } factors { id versionId draft name } }
-    ... on Scale { scaleType categories  { id versionId draft name } variables { id versionId draft name } factors { id versionId draft name } }
-    ... on Category { scales  { id versionId draft name } }
-    ... on ObservationMethod { observationType variables  { id versionId draft name } }
+    ... on Term {
+        subjects { id versionId view name }
+        scales { id versionId view name }
+        categories { id versionId view name }
+        observationMethods { id versionId view name }
+        traits { id versionId view name }
+        variables { id versionId view name }
+        controlMethods { id versionId view name }
+        conditions { id versionId view name }
+        factors { id versionId view name }
+        events { id versionId view name }
+        locationTypes { id versionId view name }
+        layoutTypes { id versionId view name }
+        designs { id versionId view name }
+        roles { id versionId view name }
+        titles { id versionId view name }
+    }
+    ... on OntologyRelationships {
+        parents { id versionId view name }
+        children { id versionId view name }
+    }
+    ... on RelatedToTerms { terms { id versionId view name } }
+    ... on Subject {
+        traits { id versionId view name }
+        conditions { id versionId view name }
+    }
+    ... on Trait {
+        subjects { id versionId view name }
+        variables { id versionId view name }
+    }
+    ... on Condition {
+        subjects { id versionId view name }
+        factors { id versionId view name }
+    }
+    ... on Scale {
+        scaleType
+        categories  { id versionId view name }
+        variables { id versionId view name }
+        factors { id versionId view name }
+    }
+    ... on Category { scales  { id versionId view name } }
+    ... on ObservationMethod {
+        observationType
+        variables  { id versionId view name }
+    }
     ... on Variable {
-        trait { id versionId draft name }
-        observationMethod { id versionId draft name }
-        scale  { scaleType id versionId draft name categories { id versionId draft name } } }
-    ... on ControlMethod { controlType factors { id versionId draft name } }
+        trait { id versionId view name }
+        observationMethod { id versionId view name }
+        scale  {
+            id versionId view name
+            scaleType
+            categories { id versionId view name }
+        }
+    }
+    ... on ControlMethod { controlType factors { id versionId view name } }
     ... on Factor {
-        condition { id versionId draft name }
-        controlMethod { id versionId draft name }
-        scale { scaleType id versionId draft name categories { id versionId draft name } } }
-    ... on Event { variables { id versionId draft name } factors { id versionId draft name } }
+        condition { id versionId view name }
+        controlMethod { id versionId view name }
+        scale {
+            id versionId view name
+            scaleType
+            categories { id versionId view name } } }
+    ... on Event {
+        variables { id versionId view name }
+        factors { id versionId view name }
+    }
     ... on LayoutType { axes }
 }

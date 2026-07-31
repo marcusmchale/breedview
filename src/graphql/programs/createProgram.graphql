@@ -1,5 +1,11 @@
-mutation programsCreateProgram($program: CreateProgramInput!) {
-  programsCreateProgram(program: $program) {
+mutation programsCreateProgram(
+  $program: CreateProgramInput!
+  $controlTeamId: ID!
+) {
+  programsCreateProgram(
+    program: $program
+    controlTeamId: $controlTeamId
+  ) {
     status
     errors {
       message

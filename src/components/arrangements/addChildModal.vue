@@ -1,8 +1,10 @@
 <script setup>
 
-import { ref, computed, watch} from "vue";
+import { ref, computed, watch } from "vue";
 import { useMutateLayouts } from "@/composables/arrangements/mutateLayouts";
 import { FormKit } from "@formkit/vue";
+
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 
 const props = defineProps({
   parentLayout: {
@@ -22,6 +24,15 @@ const {
   createLayout, createLayoutLoading, createLayoutError
 } = useMutateLayouts()
 
+
+const addChildError = ref('' )
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (errorMessage) => {
+  addChildError.value = errorMessage
+}
+
+
 const addChildFormData = ref({
   parentName: props.parentLayout?.name || `${props.parentLayout?.subject?.name} ${props.parentLayout?.id}`,
   name: '',
@@ -29,7 +40,7 @@ const addChildFormData = ref({
   position: null
 })
 
-const addChildError = ref('')
+
 
 // Get the selected layout type for form axis name fields
 const selectedAddChildLayoutType = computed(() => {
@@ -72,7 +83,7 @@ const submitAddChild = async () => {
         position: positions.length > 0 ? positions: undefined,
         axes: axes.length > 0 ? axes : undefined
     }
-    const { status, errors } = await createLayout(layoutData)
+    const { status, errors } = await createLayout(layoutData, selectedControlTeamId.value)
     if (status === 'SUCCESS') {
       emit('close')
       emit('success')
@@ -179,6 +190,11 @@ watch(() => addChildFormData.value.typeId, (newTypeId, oldTypeId) => {
     </div>
 
     <div class="form-actions">
+      <ControlTeamSelector
+        v-model="selectedControlTeamId"
+        class="form-control"
+        @error="handleControlTeamError"
+      />
       <button type="submit" class="btn btn-primary" :disabled="createLayoutLoading">
         {{ createLayoutLoading ? 'Adding...' : 'Add Child' }}
       </button>

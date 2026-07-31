@@ -3,8 +3,8 @@ import { useQuery } from '@vue/apollo-composable'
 
 import { ontologyLabelsMap } from './nodeColorMap'
 
-// Introspection query for OntologyEntryLabel enum
-import ONTOLOGY_LABELS_QUERY from "@/graphql/ontology/entryLabels.graphql"
+// Introspection query for OntologyNodeLabel enum
+import ONTOLOGY_LABELS_QUERY from "@/graphql/ontology/nodeLabels.graphql"
 
 export function useOntologySchema() {
 

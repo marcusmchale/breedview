@@ -9,7 +9,9 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
-import DataFileReferenceModal from '@/components/references/DataFileReferenceModal.vue';
+
+import DataReferenceModal from '@/components/references/DataReferenceModal.vue';
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 
 const props = defineProps({
   visible: {
@@ -35,6 +37,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submitted']);
+
+const selectedControlTeamId = ref(null)
+const errorMessage = ref('')
+
+const handleControlTeamError = (error) => {
+  errorMessage.value = error
+}
 
 
 const {
@@ -95,7 +104,7 @@ watch(
 const columns = computed(() => {
   // Guard: return empty array if no concepts yet
   if (!props.selectedConcepts || props.selectedConcepts.length === 0) {
-    console.log('No concepts selected, returning empty columns array');
+    console.debug('No concepts selected, returning empty columns array');
     return [];
   }
 
@@ -378,7 +387,7 @@ const confirmClose = () => {
 
 // Submit handler
 const handleSubmit = async () => {
-  await submitAllColumns();
+  await submitAllColumns(selectedControlTeamId.value);
   if (allSubmitted.value) {
     emit('submitted');
   }
@@ -434,13 +443,11 @@ const openFileReferenceModal = (rowIndex, columnId) => {
 };
 
 // Add method to handle file reference update
-const handleFileReferenceUpdate = (newReferenceIds) => {
+const handleFileReferenceUpdate = (references) => {
   if (editingFileReferenceCell.value) {
     const { rowIndex, columnId } = editingFileReferenceCell.value;
-    // Store as JSON string array of IDs
-    const value = JSON.stringify(newReferenceIds);
+    const value = JSON.stringify(references.map(({id, __typename}) => ({id, __typename})));
     updateCell(rowIndex, columnId, value);
-
     editingFileReferenceCell.value = null;
   }
 };
@@ -660,9 +667,14 @@ const getFileReferenceDisplay = (value) => {
 
         <!-- Footer -->
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="handleClose" :disabled="isSubmitting">
-            Close
-          </button>
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+          <ControlTeamSelector
+            v-model="selectedControlTeamId"
+            class="form-control"
+            @error="handleControlTeamError"
+          />
           <button
             class="btn btn-primary"
             @click="handleSubmit"
@@ -671,6 +683,9 @@ const getFileReferenceDisplay = (value) => {
             <span v-if="isSubmitting">Submitting...</span>
             <span v-else-if="allSubmitted">All Submitted</span>
             <span v-else>Submit All Datasets</span>
+          </button>
+          <button class="btn btn-secondary" @click="handleClose" :disabled="isSubmitting">
+            Close
           </button>
         </div>
 
@@ -724,11 +739,12 @@ const getFileReferenceDisplay = (value) => {
       </div>
     </div>
 
-    <DataFileReferenceModal
+    <DataReferenceModal
       :visible="showFileReferenceModal"
       :selected-reference-ids="editingFileReferenceCell?.referenceIds || []"
       @close="showFileReferenceModal = false"
-      @update:selected-reference-ids="handleFileReferenceUpdate"
+      @save="handleFileReferenceUpdate"
+
     />
   </Teleport>
 </template>

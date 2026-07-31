@@ -1,5 +1,5 @@
 mutation programsDeleteProgram($programId: ID!) {
-  programsDeleteProgram(programId: $programId) {
+  programsDeleteProgram(id: $programId) {
     status
     errors {
       message

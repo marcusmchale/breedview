@@ -97,9 +97,6 @@ const submitHandler = async (formData) => {
     }
     const response = await mutate(variables)
 
-    // Add debugging logs
-    console.log('Login status:', response?.data?.accountsLogin?.status)
-
     if (response?.data?.accountsLogin?.status === 'SUCCESS') {
       await router.push('/')
     } else {

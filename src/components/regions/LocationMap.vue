@@ -150,7 +150,7 @@ const onMapReady = () => {
 
 // Handle marker clicks
 const handleMarkerClick = (location) => {
-  console.log('Marker clicked:', location.name)
+  console.debug('Marker clicked:', location.name)
 }
 
 // Helper: validate coordinates object/values
@@ -286,7 +286,7 @@ const displayLocationCoordinates = (location) => {
 // Helper function to display child locations on map
 const displayChildLocations = () => {
   if (!childLocations.value) {
-    console.log('no children to display')
+    console.debug('no children to display')
     return
   }
 

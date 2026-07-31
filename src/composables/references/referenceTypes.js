@@ -1,65 +1,88 @@
-// src/composables/references/referenceTypes.js
-
-export const REFERENCE_TYPES = {
-    LEGAL: 'LegalReference',
-    EXTERNAL: 'ExternalReference',
-    FILE: 'FileReference',
-    EXTERNAL_DATA: 'ExternalDataReference',
-    DATA_FILE: 'DataFileReference'
+export const REFERENCE_TYPE_CONFIGS = {
+    LEGAL: {
+        key: 'LEGAL',
+        typename: 'LegalReference',
+        label: 'Legal',
+        icon: '⚖️'
+    },
+    EXTERNAL: {
+        key: 'EXTERNAL',
+        typename: 'ExternalReference',
+        label: 'External',
+        icon:'🔗'
+    },
+    FILE: {
+        key: 'FILE',
+        typename: 'FileReference',
+        label: 'File',
+        icon:'📄'
+    },
+    EXTERNAL_DATA: {
+        key: 'EXTERNAL_DATA',
+        typename: 'ExternalDataReference',
+        label: 'External Data',
+        icon:'📊'
+    },
+    DATA_FILE: {
+        key: 'DATA_FILE',
+        typename: 'DataFileReference',
+        label: 'Data File',
+        icon:'📁'
+    },
 }
 
-export const DATA_REFERENCE_TYPES = [
-    REFERENCE_TYPES.EXTERNAL_DATA,
-    REFERENCE_TYPES.DATA_FILE
+export const DATA_REFERENCE_TYPE_CONFIGS = [
+    REFERENCE_TYPE_CONFIGS.EXTERNAL_DATA,
+    REFERENCE_TYPE_CONFIGS.DATA_FILE
 ]
+
+export const FILE_REFERENCE_TYPE_CONFIGS = [
+    REFERENCE_TYPE_CONFIGS.FILE,
+    REFERENCE_TYPE_CONFIGS.DATA_FILE
+]
+
+export const ENTITY_REFERENCE_TYPE_CONFIGS = [
+    REFERENCE_TYPE_CONFIGS.LEGAL,
+    REFERENCE_TYPE_CONFIGS.EXTERNAL,
+    REFERENCE_TYPE_CONFIGS.FILE
+]
+
+const REFERENCE_TYPE_BY_TYPENAME = Object.fromEntries(
+  Object.values(REFERENCE_TYPE_CONFIGS).map(config => [
+    config.typename,
+    config,
+  ])
+)
+
+export function getReferenceTypeConfig(reference) {
+  const type = getReferenceType(reference)
+  return type ? REFERENCE_TYPE_BY_TYPENAME[type] ?? null : null
+}
 
 export function getReferenceType(reference) {
     if (!reference) return null
     return reference.__typename || null
 }
 
+export function getReferenceTypeIcon(reference) {
+  return getReferenceTypeConfig(reference)?.icon ?? '📎'
+}
+
+export function getReferenceTypeLabel(reference) {
+  return getReferenceTypeConfig(reference)?.label ?? 'Unknown'
+}
+
 export function isDataReference(reference) {
-    const type = getReferenceType(reference)
-    return DATA_REFERENCE_TYPES.includes(type)
+    const type = getReferenceTypeConfig(reference)
+    return DATA_REFERENCE_TYPE_CONFIGS.includes(type)
+}
+
+export function isFileReference(reference) {
+    const type = getReferenceTypeConfig(reference)
+    return FILE_REFERENCE_TYPE_CONFIGS.includes(type)
 }
 
 export function isSelectableForEntity(reference) {
     // For Programs, Trials, Studies - exclude data references
     return !isDataReference(reference)
-}
-
-export function getReferenceTypeLabel(reference) {
-    const type = getReferenceType(reference)
-    switch (type) {
-        case REFERENCE_TYPES.LEGAL:
-            return 'Legal'
-        case REFERENCE_TYPES.EXTERNAL:
-            return 'External'
-        case REFERENCE_TYPES.FILE:
-            return 'File'
-        case REFERENCE_TYPES.EXTERNAL_DATA:
-            return 'External Data'
-        case REFERENCE_TYPES.DATA_FILE:
-            return 'Data File'
-        default:
-            return 'Unknown'
-    }
-}
-
-export function getReferenceTypeIcon(reference) {
-    const type = getReferenceType(reference)
-    switch (type) {
-        case REFERENCE_TYPES.LEGAL:
-            return '⚖️'
-        case REFERENCE_TYPES.EXTERNAL:
-            return '🔗'
-        case REFERENCE_TYPES.FILE:
-            return '📄'
-        case REFERENCE_TYPES.EXTERNAL_DATA:
-            return '📊'
-        case REFERENCE_TYPES.DATA_FILE:
-            return '📁'
-        default:
-            return '📎'
-    }
 }

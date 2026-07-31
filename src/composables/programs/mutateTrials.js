@@ -12,8 +12,11 @@ export function useMutateTrials() {
     error: createTrialError
   } = useMutation(CREATE_TRIAL_MUTATION)
 
-  const createTrial = async (trialData) => {
-    const response = await createTrialMutation({ trial: trialData })
+  const createTrial = async (trialData, controlTeamId) => {
+    const response = await createTrialMutation({
+      trial: trialData,
+      controlTeamId: controlTeamId
+    })
     if (response?.data?.programsCreateTrial) {
       const { status, errors } = response.data.programsCreateTrial
       return { status, errors }

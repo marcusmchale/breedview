@@ -1,6 +1,6 @@
 #import "../references/referenceFragment.graphql"
 query programsStudy($studyId: ID!) {
-  programsStudy(studyId: $studyId) {
+  programsStudy(id: $studyId) {
     status
     result {
       id
@@ -10,8 +10,8 @@ query programsStudy($studyId: ID!) {
       practices
       start
       end
-      design { id name }
-      licence { id }
+      design { id versionId view name }
+      licence { id description text }
       references { ...ReferenceFields }
     }
     errors {

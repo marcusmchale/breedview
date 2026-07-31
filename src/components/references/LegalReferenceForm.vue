@@ -2,6 +2,8 @@
 import { ref, computed, watch } from 'vue'
 import { FormKit } from '@formkit/vue'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
+
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 
 const props = defineProps({
@@ -32,6 +34,11 @@ const formData = ref({
 
 const formError = ref('')
 const createdReferenceId = ref(null)
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (errorMessage) => {
+  formError.value = errorMessage
+}
 
 const isEditing = computed(() => props.mode === 'edit' && props.reference?.id)
 const isLoading = computed(() => createLegalReferenceLoading.value || updateLegalReferenceLoading.value)
@@ -51,7 +58,7 @@ const submitForm = async () => {
     try {
         if (isEditing.value) {
             const { status, errors } = await updateLegalReference({
-                referenceId: props.reference.id,
+                id: props.reference.id,
                 description: formData.value.description?.trim() || null,
                 text: formData.value.text.trim()
             })
@@ -65,7 +72,8 @@ const submitForm = async () => {
             const { result, status, errors } = await createLegalReference({
                 description: formData.value.description?.trim() || null,
                 text: formData.value.text.trim()
-            })
+              }, selectedControlTeamId.value
+            )
 
             if (status === 'SUCCESS') {
                 createdReferenceId.value = result
@@ -140,6 +148,11 @@ const resetForm = () => {
             />
 
             <div class="form-actions">
+                <ControlTeamSelector
+                  v-model="selectedControlTeamId"
+                  class="form-control"
+                  @error="handleControlTeamError"
+                />
                 <button
                     type="submit"
                     class="btn btn-primary"

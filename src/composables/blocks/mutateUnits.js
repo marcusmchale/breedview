@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
-import { useCacheUpdates } from "@/composables/system/cacheUpdates";
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import UNITS_QUERY from '@/graphql/blocks/units.graphql'
 import UNIT_FRAGMENT from '@/graphql/blocks/unitFragment.graphql'
@@ -37,7 +37,7 @@ const extractApolloErrorMessage = (error, fallbackMessage) => {
 
 export function useMutateUnits() {
 
-    const { getCached, updateItem, deleteItem } = useCacheUpdates({
+    const { getCached, updateCache, deleteFromCache } = useCacheUpdates({
         typename: "Unit",
         fragment: UNIT_FRAGMENT
     })
@@ -67,9 +67,13 @@ export function useMutateUnits() {
         error: createUnitError
     } = useMutation(CREATE_UNIT_MUTATION)
 
-    const createUnit = async (unitData, position) => {
+    const createUnit = async (unitData, position, controlTeamId) => {
         try {
-            const response = await createUnitMutation({unit: unitData, position: position})
+            const response = await createUnitMutation({
+                unit: unitData,
+                position: position,
+                controlTeamId: controlTeamId
+            })
 
             if (response?.data?.blocksCreateUnit) {
                 const result = response.data.blocksCreateUnit
@@ -106,7 +110,8 @@ export function useMutateUnits() {
             if (response?.data?.blocksUpdateUnit) {
                 const result = response.data.blocksUpdateUnit
                 if (result.status === 'SUCCESS') {
-                    updateItem({
+                    
+                    updateCache({
                         updateData: unitData,
                         idField: 'unitId'
                     })
@@ -141,7 +146,7 @@ export function useMutateUnits() {
             if (response?.data?.blocksDeleteUnit) {
                 const result = response.data.blocksDeleteUnit
                 if (result.status === 'SUCCESS') {
-                    deleteItem({itemId: unitId})
+                    deleteFromCache({itemId: unitId})
                 }
                 const {status, errors} = result
                 return {status, errors}

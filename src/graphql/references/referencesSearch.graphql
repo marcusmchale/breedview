@@ -1,0 +1,19 @@
+#import "./referenceFragment.graphql"
+query referencesSearch(
+  $description: String!
+  $referenceTypes: [ReferenceType!]
+) {
+  referencesSearch(
+    description: $description
+    referenceTypes: $referenceTypes
+  ) {
+    status
+    result {
+        ...ReferenceFields
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

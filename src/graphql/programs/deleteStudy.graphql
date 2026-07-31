@@ -1,5 +1,5 @@
 mutation programsDeleteStudy($studyId: ID!) {
-  programsDeleteStudy(studyId: $studyId) {
+  programsDeleteStudy(id: $studyId) {
     status
     errors {
       message

@@ -1,48 +1,3 @@
-<template>
-  <div v-if="isOpen" class="modal-overlay">
-    <div class="modal">
-      <h3>Create New Team</h3>
-      <form @submit.prevent="submitCreateTeam">
-        <div class="form-group">
-          <label>Team Name:</label>
-          <input
-            v-model="teamData.name"
-            type="text"
-            required
-            placeholder="Enter team name"
-            :disabled="loading"
-          />
-        </div>
-        <div class="form-group">
-          <label>Team Full Name (Optional):</label>
-          <input
-            v-model="teamData.fullname"
-            type="text"
-            placeholder="Enter team full name (optional)"
-            :disabled="loading"
-          />
-        </div>
-        <div class="form-group">
-          <label>Parent Team:</label>
-          <p class="info-display">{{ parentTeam?.fullname || parentTeam?.name }}</p>
-        </div>
-        <div class="form-actions right">
-          <button type="submit" class="btn btn-primary" :disabled="loading">
-            {{ loading ? 'Creating...' : 'Create Team' }}
-          </button>
-          <button type="button" @click="handleCancel" class="btn btn-secondary" :disabled="loading">
-            Cancel
-          </button>
-        </div>
-      </form>
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
-      </div>
-    </div>
-  </div>
-</template>
-
-
 <script setup>
 import { ref, watch } from 'vue'
 import { useMutation, useApolloClient } from '@vue/apollo-composable'
@@ -137,6 +92,51 @@ const handleCancel = () => {
   }
 }
 </script>
+
+<template>
+  <div v-if="isOpen" class="modal-overlay">
+    <div class="modal">
+      <h3>Create New Team</h3>
+      <form @submit.prevent="submitCreateTeam">
+        <div class="form-group">
+          <label>Team Name:</label>
+          <input
+            v-model="teamData.name"
+            type="text"
+            required
+            placeholder="Enter team name"
+            :disabled="loading"
+          />
+        </div>
+        <div class="form-group">
+          <label>Team Full Name (Optional):</label>
+          <input
+            v-model="teamData.fullname"
+            type="text"
+            placeholder="Enter team full name (optional)"
+            :disabled="loading"
+          />
+        </div>
+        <div class="form-group">
+          <label>Parent Team:</label>
+          <p class="info-display">{{ parentTeam?.fullname || parentTeam?.name }}</p>
+        </div>
+        <div class="form-actions right">
+          <button type="submit" class="btn btn-primary" :disabled="loading">
+            {{ loading ? 'Creating...' : 'Create Team' }}
+          </button>
+          <button type="button" @click="handleCancel" class="btn btn-secondary" :disabled="loading">
+            Cancel
+          </button>
+        </div>
+      </form>
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+    </div>
+  </div>
+</template>
+
 
 <style scoped>
 .info-display {

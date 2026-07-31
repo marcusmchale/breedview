@@ -2,7 +2,7 @@ mutation arrangementsDeleteLayout(
     $layoutId: ID!
 ) {
     arrangementsDeleteLayout(
-        layoutId: $layoutId,
+        id: $layoutId,
     ) {
         status
         errors {

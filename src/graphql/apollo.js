@@ -1,9 +1,15 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client/core'
+import { ApolloClient, InMemoryCache, ApolloLink } from '@apollo/client/core'
 import { createUploadLink } from 'apollo-upload-client'
+
 
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { useCsrf } from '@/composables/system/useCsrf'
+
+import possibleTypes from './possibleTypes.json';
+
+import { getIdentityResolver, OntologyKeyFields } from "@/apolloConfig/identityResolvers";
+import { createUnionResolver, createUnionListReadPolicy, createUnionListTrackingPolicy, createReplaceOnMergePolicy} from "@/apolloConfig/apolloCachePolicy";
 
 const graphqlUri = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_GRAPHQL_PATH}`
 
@@ -29,19 +35,22 @@ const authLink = setContext(async (_, { headers }) => {
   }
 })
 
+const logLink = new ApolloLink((operation, forward) => {
+  return forward(operation).map(response => {
+    console.log("LogLink", operation.operationName, response);
+    return response;
+  });
+});
+
 // the docs for apollo don't match what we get, networkError is there and error is not!
 const errorLink = onError(({ networkError, operation, forward }) => {
   if (networkError && networkError.statusCode === 403) {
-    console.log('csrfToken.value:', csrfToken.value)
     const newToken =
       networkError.result?.headers?.['x-csrf-token'] ||
       (networkError.response?.headers?.get && networkError.response.headers.get('X-CSRF-Token'));
-    console.log('newToken', newToken)
     if (newToken) {
       console.log('Received 403 with new CSRF token. Updating and retrying operation...');
       csrfToken.value = newToken;
-      console.log('csrfToken.value:', csrfToken.value)
-
       // Ensure the CSRF token is added to the headers for the retry request
       operation.setContext({
         headers: {
@@ -68,121 +77,50 @@ const errorLink = onError(({ networkError, operation, forward }) => {
 });
 
 
-function createInterfaceListReadPolicy({
-  interfaceName,
-  possibleTypesMap,
-  idArgName
-}) {
-  return function read(existing, { args, cache }) {
-    if (!args || !args[idArgName]) return existing
-
-    const ids = args[idArgName]
-    const implementingTypes = possibleTypesMap[interfaceName] || []
-
-    const results = []
-    const store = cache.extract()
-
-    for (const id of ids) {
-      let foundRef = null
-
-      for (const typename of implementingTypes) {
-        const cacheId = cache.identify({ __typename: typename, id })
-
-        if (cacheId && store[cacheId]) {
-          foundRef = { __ref: cacheId }
-          break
-        }
-      }
-
-      // If any ID is missing → let Apollo fetch from network
-      if (!foundRef) {
-        return undefined
-      }
-
-      results.push(foundRef)
-    }
-
-    return results
-  }
-}
-
-const createInterfaceCachePolicy = (fieldName, interfaceName, possibleTypesMap, idArgName = 'ids') => ({
-  [fieldName]: {
-    read: createInterfaceListReadPolicy({
-      interfaceName,
-      possibleTypesMap,
-      idArgName
-    }),
-  },
-})
-
-const createMergeChildPolicy = (typeName) => ({
-  [typeName]: {
-    fields: {
-      children: {
-        // eslint-disable-next-line no-unused-vars
-        merge(existing = [], incoming) {
-          return incoming
-        }
-      }
-    }
-  }
-})
-
-const possibleTypes = {
-    ReferenceInterface: [
-      'LegalReference',
-      'ExternalReference',
-      'FileReference',
-      'ExternalDataReference',
-      'DataFileReference'
-    ],
-    OntologyEntryInterface: [
-      'Term',
-      'Subject',
-      'Trait',
-      'Condition',
-      'Scale',
-      'Category',
-      'ObservationMethod',
-      'Variable',
-      'ControlMethod',
-      'Factor',
-      'Event',
-      'LocationType',
-      'Design',
-      'LayoutType'
-    ]
-}
-
 const cache = new InMemoryCache({
   possibleTypes: possibleTypes,
   typePolicies: {
     Query: {
       fields: {
-        ...createInterfaceCachePolicy(
-            'ontologyEntries',
-            'OntologyEntryInterface',
-            possibleTypes,
-            'entryIds'
-        )
+        ontologyEntries: {
+          read: createUnionListReadPolicy({
+            idArgName: "ids",
+            resolveReference: createUnionResolver(
+                getIdentityResolver("OntologyEntryUnion")
+            )
+          })
+        },
       }
     },
-    OntologyEntryInterface: {
-      //keyFields: ["id", "versionId", "draft"]
-      keyFields: ["id"]
+    Ontology: {
+        fields: {
+          entries: {
+            merge: createUnionListTrackingPolicy()
+          }
+        }
+    },
+    OntologyEntriesPayload: {
+      fields: {
+        result: {
+          merge: createUnionListTrackingPolicy()
+        }
+      }
+    },
+    OntologyNodeInterface: {
+      keyFields: OntologyKeyFields,
     },
     OntologyRelationship: {
-      //keyFields: ["id", "versionId"]
-      keyFields: ["id"]
+      keyFields: OntologyKeyFields
     },
-    ...createMergeChildPolicy('Location'),
-    ...createMergeChildPolicy('Layout')
+    ...createReplaceOnMergePolicy('Location', 'children'),
+    ...createReplaceOnMergePolicy('Layout', 'children'),
+    ...createReplaceOnMergePolicy('Scale', 'categories'),
+    ...createReplaceOnMergePolicy('Category', 'scales')
   }
 })
 
-
 const apolloClient = new ApolloClient({
+  //link: logLink.concat(authLink).concat(errorLink).concat(uploadLink),
   link: authLink.concat(errorLink).concat(uploadLink),
   cache: cache,
   defaultOptions: {

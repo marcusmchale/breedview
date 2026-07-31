@@ -84,11 +84,8 @@ const updateProfile = async (formData) => {
       email: formData.email,
       password: formData.password
     }
-    console.log("variables:", variables)
 
     const response = await updateUserMutation(variables)
-
-    console.log('Update response:', response?.data?.accountsUpdateUser)
 
     if (response?.data?.accountsUpdateUser?.status === 'SUCCESS') {
       successMessage.value = 'Profile updated successfully!'
@@ -113,7 +110,7 @@ const closeModal = () => {
 }
 
 </script>
-
+091544388 Pauline
 
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">>

@@ -4,7 +4,7 @@ query germplasmEntries(
     $names: [String!]
 ) {
     germplasmEntries(
-        entryIds: $entryIds
+        ids: $entryIds
         names: $names
     ){
         status

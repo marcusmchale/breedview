@@ -1,5 +1,11 @@
-mutation regionsCreateLocation($location: LocationInput!) {
-  regionsCreateLocation(location: $location) {
+mutation regionsCreateLocation(
+  $location: LocationInput!
+  $controlTeamId: ID!
+) {
+  regionsCreateLocation(
+    location: $location
+    controlTeamId: $controlTeamId
+  ) {
     status
     errors {
       message

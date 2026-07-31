@@ -1,5 +1,13 @@
-mutation blocksCreateUnit($unit: UnitInput!, $position: PositionInput!) {
-  blocksCreateUnit(unit: $unit, position: $position) {
+mutation blocksCreateUnit(
+  $unit: UnitInput!
+  $position: PositionInput!
+  $controlTeamId: ID!
+) {
+  blocksCreateUnit(
+    unit: $unit
+    position: $position
+    controlTeamId: $controlTeamId
+  ) {
     status
     errors {
       message

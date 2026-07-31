@@ -65,7 +65,7 @@ input LayoutInput {
 }
 
 input LayoutUpdate {
-  layoutId: ID!
+  id: ID!
   locationId: ID
   typeId: ID
   axes: [String!]
@@ -104,7 +104,7 @@ input UnitInput {
 }
 
 input UnitUpdate {
-  unitId: ID!
+  id: ID!
   subjectId: ID
   germplasmId: ID
   name: String
@@ -122,7 +122,7 @@ input RecordInput {
 }
 
 input RecordUpdate {
-  recordId: ID!
+  id: ID!
   unitId: ID
   value: String
   start: DateTime
@@ -142,7 +142,7 @@ input DatasetInput {
 
 input DatasetUpdate {
   """Optionally provide a list of records to update"""
-  datasetId: ID!
+  id: ID!
   studyId: ID
   conceptId: ID
   records: [RecordUpdate!]!
@@ -244,29 +244,29 @@ type Mutation {
 
   """Submit an analysis request"""
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
-  arrangementsCreateLayout(layout: LayoutInput!): BooleanPayload!
+  arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
-  arrangementsDeleteLayout(layoutId: ID!): BooleanPayload!
-  blocksCreateUnit(unit: UnitInput!, position: PositionInput): BooleanPayload!
+  arrangementsDeleteLayout(id: ID!): BooleanPayload!
+  blocksCreateUnit(unit: UnitInput!, controlTeamId: ID!, position: PositionInput): BooleanPayload!
   blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
-  blocksDeleteUnit(unitId: ID!): BooleanPayload!
-  blocksAddPosition(unitId: ID!, position: PositionInput!): BooleanPayload!
-  blocksRemovePosition(unitId: ID!, position: PositionInput!): BooleanPayload!
+  blocksDeleteUnit(id: ID!): BooleanPayload!
+  blocksAddPosition(id: ID!, position: PositionInput!): BooleanPayload!
+  blocksRemovePosition(id: ID!, position: PositionInput!): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [ID!]!, release: ReadRelease!): BooleanPayload!
 
   """
   Submission Payloads include a key, the data is processed asynchronously
   Poll the datasetsSubmission using the returned submission ID for status reports.
   """
-  datasetsCreate(dataset: DatasetInput!): SubmissionIdPayload!
+  datasetsCreate(dataset: DatasetInput!, controlTeamId: ID!): SubmissionIdPayload!
   datasetsUpdate(dataset: DatasetUpdate!): SubmissionIdPayload!
-  datasetsAddRecords(datasetId: ID!, records: [RecordInput!]): SubmissionIdPayload!
+  datasetsAddRecords(id: ID!, records: [RecordInput!]): SubmissionIdPayload!
 
   """Delete records from a dataset"""
-  datasetsRemoveRecords(datasetId: ID!, recordIds: [ID!]!): BooleanPayload!
-  germplasmCreateEntry(entry: GermplasmInput!): BooleanPayload
+  datasetsRemoveRecords(id: ID!, recordIds: [ID!]!): BooleanPayload!
+  germplasmCreateEntry(entry: GermplasmInput!, controlTeamId: ID!): BooleanPayload
   germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
-  germplasmDeleteEntry(entryId: ID!): BooleanPayload
+  germplasmDeleteEntry(id: ID!): BooleanPayload
   ontologyCreateTerm(term: TermInput!): BooleanPayload!
   ontologyCreateSubject(subject: SubjectInput!): BooleanPayload!
   ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
@@ -295,49 +295,45 @@ type Mutation {
   ontologyUpdateLocationType(locationType: LocationTypeUpdate!): BooleanPayload!
   ontologyUpdateDesign(design: DesignUpdate!): BooleanPayload!
   ontologyUpdateLayoutType(layoutType: LayoutTypeUpdate!): BooleanPayload!
-  ontologyActivateEntries(entryIds: [ID!]!): BooleanPayload!
-  ontologyDeprecateEntries(entryIds: [ID!]!): BooleanPayload!
-  ontologyRemoveEntries(entryIds: [ID!]!): BooleanPayload!
-  ontologyActivateRelationships(relationshipIds: [ID!]!): BooleanPayload!
-  ontologyDeprecateRelationships(relationshipIds: [ID!]!): BooleanPayload!
-  ontologyRemoveRelationships(relationshipIds: [ID!]!): BooleanPayload!
+  ontologyDeprecateEntries(ids: [ID!]!): BooleanPayload!
+  ontologyCancelDeprecateEntries(ids: [ID!]!): BooleanPayload!
   ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: ID, copyrightId: ID): BooleanPayload!
   organisationsCreateTeam(team: TeamInput!): BooleanPayload!
-  organisationsDeleteTeam(teamId: ID!): BooleanPayload!
+  organisationsDeleteTeam(id: ID!): BooleanPayload!
   organisationsUpdateTeam(team: TeamUpdate!): BooleanPayload!
-  peopleCreatePerson(person: PersonInput!): BooleanPayload!
+  peopleCreatePerson(person: PersonInput!, controlTeamId: ID!): BooleanPayload!
   peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
-  peopleDeletePerson(personId: ID!): BooleanPayload!
-  programsCreateProgram(program: CreateProgramInput!): BooleanPayload
-  programsUpdateProgram(program: UpdateProgramInput!): BooleanPayload
-  programsDeleteProgram(programId: ID!): BooleanPayload
-  programsCreateTrial(trial: CreateTrialInput!): BooleanPayload
-  programsUpdateTrial(trial: UpdateTrialInput!): BooleanPayload
-  programsDeleteTrial(trialId: ID!): BooleanPayload
-  programsCreateStudy(study: CreateStudyInput!): BooleanPayload
-  programsUpdateStudy(study: UpdateStudyInput!): BooleanPayload
-  programsDeleteStudy(studyId: ID!): BooleanPayload
-  referencesCreateLegal(reference: CreateLegalReferenceInput!): CreatedIdPayload!
-  referencesCreateExternal(reference: CreateExternalReferenceInput!): CreatedIdPayload!
-  referencesCreateExternalData(reference: CreateExternalDataReferenceInput!): CreatedIdPayload!
+  peopleDeletePerson(id: ID!): BooleanPayload!
+  programsCreateProgram(program: ProgramInput!, controlTeamId: ID!): BooleanPayload
+  programsUpdateProgram(program: ProgramUpdate!): BooleanPayload
+  programsDeleteProgram(id: ID!): BooleanPayload
+  programsCreateTrial(trial: TrialInput!, controlTeamId: ID!): BooleanPayload
+  programsUpdateTrial(trial: TrialUpdate!): BooleanPayload
+  programsDeleteTrial(id: ID!): BooleanPayload
+  programsCreateStudy(study: StudyInput!, controlTeamId: ID!): BooleanPayload
+  programsUpdateStudy(study: StudyUpdate!): BooleanPayload
+  programsDeleteStudy(id: ID!): BooleanPayload
+  referencesCreateLegal(reference: LegalReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
+  referencesCreateExternal(reference: ExternalReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
+  referencesCreateExternalData(reference: ExternalDataReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
 
   """
   As for dataset submissions, creating a file is asynchronous and we are returned a key 
   """
-  referencesCreateFile(reference: CreateFileReferenceInput): FileIdPayload!
-  referencesCreateDataFile(reference: CreateDataFileReferenceInput): FileIdPayload!
-  referencesUpdateLegal(reference: UpdateLegalReferenceInput!): BooleanPayload!
-  referencesUpdateExternal(reference: UpdateExternalReferenceInput!): BooleanPayload!
-  referencesUpdateExternalData(reference: UpdateExternalDataReferenceInput!): BooleanPayload!
-  referencesUpdateFile(reference: UpdateFileReferenceInput): FileIdPayload!
-  referencesUpdateDataFile(reference: UpdateDataFileReferenceInput): FileIdPayload!
-  referencesDelete(referenceIds: [ID!]!): BooleanPayload!
+  referencesCreateFile(reference: FileReferenceInput, controlTeamId: ID!): FileIdPayload!
+  referencesCreateDataFile(reference: DataFileReferenceInput, controlTeamId: ID!): FileIdPayload!
+  referencesUpdateLegal(reference: LegalReferenceUpdate!): BooleanPayload!
+  referencesUpdateExternal(reference: ExternalReferenceUpdate!): BooleanPayload!
+  referencesUpdateExternalData(reference: ExternalDataReferenceUpdate!): BooleanPayload!
+  referencesUpdateFile(reference: FileReferenceUpdate): FileIdPayload!
+  referencesUpdateDataFile(reference: DataFileReferenceUpdate): FileIdPayload!
+  referencesDelete(ids: [ID!]!): BooleanPayload!
 
   """ Request to make an archived file available for download """
   referencesRequestFileRetrieval(fileId: ID!): BooleanPayload!
-  regionsCreateLocation(location: LocationInput!): BooleanPayload!
+  regionsCreateLocation(location: LocationInput!, controlTeamId: ID!): BooleanPayload!
   regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
-  regionsDeleteLocation(locationId: ID!): BooleanPayload!
+  regionsDeleteLocation(id: ID!): BooleanPayload!
 }
 
 enum VersionChange {
@@ -788,7 +784,7 @@ input TeamInput {
 }
 
 input TeamUpdate {
-  teamId: ID!
+  id: ID!
   name: String
   fullname: String
 }
@@ -804,7 +800,7 @@ input PersonUpdate {
   fullname: String
 }
 
-input CreateProgramInput {
+input ProgramInput {
   name: String!
   fullname: String
   description: String
@@ -812,8 +808,8 @@ input CreateProgramInput {
   referenceIds: [ID!] = []
 }
 
-input UpdateProgramInput {
-  programId: ID!
+input ProgramUpdate {
+  id: ID!
   name: String
   fullname: String
   description: String
@@ -821,7 +817,7 @@ input UpdateProgramInput {
   referenceIds: [ID!]
 }
 
-input CreateTrialInput {
+input TrialInput {
   programId: ID!
   name: String!
   fullname: String
@@ -832,8 +828,8 @@ input CreateTrialInput {
   referenceIds: [ID!] = []
 }
 
-input UpdateTrialInput {
-  trialId: ID!
+input TrialUpdate {
+  id: ID!
   name: String
   fullname: String
   description: String
@@ -843,7 +839,7 @@ input UpdateTrialInput {
   referenceIds: [ID!]
 }
 
-input CreateStudyInput {
+input StudyInput {
   trialId: ID!
   name: String!
   fullname: String
@@ -857,8 +853,8 @@ input CreateStudyInput {
   referenceIds: [ID!] = []
 }
 
-input UpdateStudyInput {
-  studyId: ID!
+input StudyUpdate {
+  id: ID!
   name: String
   fullname: String
   description: String
@@ -880,18 +876,18 @@ enum DataFormat {
   TSV
 }
 
-input CreateLegalReferenceInput {
+input LegalReferenceInput {
   description: String
   text: String!
 }
 
-input CreateExternalReferenceInput {
+input ExternalReferenceInput {
   description: String
   url: String!
   externalId: String
 }
 
-input CreateExternalDataReferenceInput {
+input ExternalDataReferenceInput {
   description: String
   url: String!
   externalId: String
@@ -899,33 +895,33 @@ input CreateExternalDataReferenceInput {
   schema: String
 }
 
-input CreateFileReferenceInput {
+input FileReferenceInput {
   description: String
   file: Upload!
 }
 
-input CreateDataFileReferenceInput {
+input DataFileReferenceInput {
   description: String
   file: Upload!
   format: DataFormat!
   schema: String
 }
 
-input UpdateLegalReferenceInput {
-  referenceId: ID!
+input LegalReferenceUpdate {
+  id: ID!
   description: String
   text: String!
 }
 
-input UpdateExternalReferenceInput {
-  referenceId: ID!
+input ExternalReferenceUpdate {
+  id: ID!
   description: String
   url: String!
   externalId: String
 }
 
-input UpdateExternalDataReferenceInput {
-  referenceId: ID!
+input ExternalDataReferenceUpdate {
+  id: ID!
   description: String
   url: String!
   externalId: String
@@ -933,14 +929,14 @@ input UpdateExternalDataReferenceInput {
   schema: String
 }
 
-input UpdateFileReferenceInput {
-  referenceId: ID!
+input FileReferenceUpdate {
+  id: ID!
   description: String
   file: Upload
 }
 
-input UpdateDataFileReferenceInput {
-  referenceId: ID!
+input DataFileReferenceUpdate {
+  id: ID!
   description: String
   file: Upload
   format: DataFormat!
@@ -981,7 +977,7 @@ input LocationInput {
 }
 
 input LocationUpdate {
-  locationId: ID!
+  id: ID!
   name: String
 
   """ Optional code for location, e.g. zip-code """
@@ -1015,8 +1011,15 @@ type User {
 
 type Account {
   user: User!
-  allowedEmails: [String]
-  allowedUsers: [User]
+  allowedEmails: [String!]
+}
+
+type UserDisplay {
+  id: ID!
+  name: String!
+  fullname: String!
+  ontologyRole: OntologyRole!
+  ontologyRoleRequested: OntologyRole
 }
 
 type AnovaRow {
@@ -1137,7 +1140,7 @@ type AnalysisSubmission {
 
 type Layout {
   id: ID!
-  type: OntologyEntryInterface
+  type: LayoutType!
   name: String
   axes: [String!]
   arrangement: Layout!
@@ -1171,7 +1174,7 @@ type Position {
 
 type Unit {
   id: ID!
-  subject: OntologyEntryInterface
+  subject: Subject
   germplasm: GermplasmEntry
   name: String
   description: String
@@ -1206,7 +1209,7 @@ type Control {
 }
 
 type WriteStamp {
-  user: User!
+  user: UserDisplay
   time: DateTime!
 }
 
@@ -1231,7 +1234,7 @@ type Record {
 
 type Dataset {
   id: ID!
-  concept: OntologyEntryInterface
+  concept: OntologyNodeInterface!
   records: [Record]
   contributors: [Person]
   references: [ReferenceInterface]
@@ -1275,7 +1278,7 @@ type DatasetSubmission {
 
 type DatasetSummary {
   id: ID!
-  concept: OntologyEntryInterface
+  concept: OntologyNodeInterface!
   subjects: [Subject]
   locations: [Location]
   blocks: [Unit]
@@ -1307,13 +1310,6 @@ type GermplasmEntry {
   sinks: [GermplasmRelationship!]
 }
 
-"""
-Ontology entries with a given label should form directed acyclic graphs with source and sink
-relationships described for each label type as parents and children.
-Relationships across labels may be formed through the term type,
-or through type specific links for other types,
-such as the subject type which is associated with traits and conditions.
-"""
 type Version {
   id: ID!
   major: Int!
@@ -1322,16 +1318,16 @@ type Version {
 }
 
 type OntologyCommit {
-  version: Version
+  version: Version!
   comment: String
-  time: DateTime
-  user: User
+  time: DateTime!
+  user: UserDisplay
   licence: LegalReference
   copyright: LegalReference
 }
 
 """
-Ontology entries are created in draft phase.
+Ontology nodes and relationships are created in draft phase.
 When a commit is submitted, drafts become active,
 and deprecated become removed.
 """
@@ -1343,12 +1339,11 @@ enum LifecyclePhase {
 }
 
 """
-Ontology entries form a graph
-Each label is represented by directed acyclic graphs with source and sink
-relationships described for each node as parents and children.
-Each entry has an OntologyEntryLabel to distinguish various classes of entry.
+Ontology nodes form a graph with ontology relationships as edges.
+Each collection of nodes with a common label forms a directed acyclic sub-graph
+Each entry has an OntologyNodeLabel to distinguish various classes of entry.
 """
-enum OntologyEntryLabel {
+enum OntologyNodeLabel {
   """
   Term entries may be used to relate other key terms in the ontology.
   Example: "Metabolism" may be a term.
@@ -1375,7 +1370,8 @@ enum OntologyEntryLabel {
   """
   Category entries describe classes for Scale entries with type Nominal or Ordinal.
   These are linked to Scale entries.
-  Ordinal scales require a "rank" parameter for each category.
+  Ordinal scales require a "rank" parameter on relationships to categories
+  that determine their order in the attribute.
   Examples: "High", "Medium", "Low" with ranks 2, 1 and 0, respectively.
   """
   CATEGORY
@@ -1588,57 +1584,110 @@ enum ScaleType {
   COMPLEX
 }
 
-interface OntologyEntryInterface {
+"""Controls how the ontology is materialized for a given version."""
+enum OntologyView {
+  """
+  The ontology as seen by editors working on the specified version.
+  
+  Includes draft changes that are part of the version under edit.
+  """
+  EDITORIAL
+
+  """
+  The ontology as published to consumers.
+  
+  Includes only approved content.
+  """
+  PUBLISHED
+}
+
+interface OntologyNodeInterface {
+  """Entries are keyed by id, versionId and the view context for caching"""
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+
+  """The current lifecycle phase"""
+  phase: LifecyclePhase!
+
+  """Intrinsic attributes"""
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [OntologyEntryInterface]
-  children: [OntologyEntryInterface]
-  phase: LifecyclePhase
+  synonyms: [String!]
+
+  """
+  External relationships attributes are also handled with versioned change tracking like intrinsic attributes.
+  """
+  authors: [Person!]
+  references: [ReferenceInterface!]
 }
 
+"""
+All nodes also have projected attributes that are dependent on their relationships
+Parents and children describe connected nodes with the same label,
+with inbound edges being parents, and outbound edges being children.
+"""
+interface OntologyRelationships {
+  parents: [OntologyNodeInterface!]
+  children: [OntologyNodeInterface!]
+}
+
+"""
+Term entries may be used to relate other nodes in the ontology.
+Example: "Metabolism" may be a term used to relate trait "Glycine" with ObservationMethod "GCMS"
+"""
+interface TermRelationships {
+  subjects: [Subject!]
+  scales: [Scale!]
+  categories: [Category!]
+  observationMethods: [ObservationMethod!]
+  traits: [Trait!]
+  variables: [Variable!]
+  controlMethods: [ControlMethod!]
+  conditions: [Condition!]
+  factors: [Factor!]
+  events: [Event!]
+  locationTypes: [LocationType!]
+  layoutTypes: [LayoutType!]
+  designs: [Design!]
+  roles: [Role!]
+  titles: [Title!]
+}
+
+type Term implements OntologyNodeInterface & OntologyRelationships & TermRelationships {
+  id: ID!
+  versionId: ID!
+  view: OntologyView!
+  phase: LifecyclePhase!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Term!]
+  children: [Term!]
+  subjects: [Subject!]
+  scales: [Scale!]
+  categories: [Category!]
+  observationMethods: [ObservationMethod!]
+  traits: [Trait!]
+  variables: [Variable!]
+  controlMethods: [ControlMethod!]
+  conditions: [Condition!]
+  factors: [Factor!]
+  events: [Event!]
+  locationTypes: [LocationType!]
+  layoutTypes: [LayoutType!]
+  designs: [Design!]
+  roles: [Role!]
+  titles: [Title!]
+}
+
+"""Other nodes may all have a relationship to terms"""
 interface RelatedToTerms {
-  terms: [Term]
-}
-
-"""
-Term entries may be used to relate other key terms in the ontology.
-Example: "Metabolism" may be a term.
-"""
-type Term implements OntologyEntryInterface {
-  id: ID!
-  versionId: ID!
-  draft: Boolean!
-  name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Term]
-  children: [Term]
-  phase: LifecyclePhase
-  subjects: [Subject]
-  scales: [Scale]
-  categories: [Category]
-  observationMethods: [ObservationMethod]
-  traits: [Trait]
-  variables: [Variable]
-  controlMethods: [ControlMethod]
-  conditions: [Condition]
-  factors: [Factor]
-  events: [Event]
-  locationTypes: [LocationType]
-  layoutTypes: [LayoutType]
-  designs: [Design]
-  roles: [Role]
-  titles: [Title]
+  terms: [Term!]
 }
 
 """
@@ -1646,22 +1695,27 @@ Subject entries describe Units (see Blocks) being observed in a study.
 These are linked to Unit and Trait.
 Examples: "Leaf", "Tree", "Field", "Rhizosphere"
 """
-type Subject implements OntologyEntryInterface & RelatedToTerms {
+interface SubjectRelationships {
+  traits: [Trait!]
+  conditions: [Condition!]
+}
+
+type Subject implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & SubjectRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Subject]
-  children: [Subject]
-  phase: LifecyclePhase
-  terms: [Term]
-  traits: [Trait]
-  conditions: [Condition]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Subject!]
+  children: [Subject!]
+  terms: [Term!]
+  traits: [Trait!]
+  conditions: [Condition!]
 }
 
 """
@@ -1670,22 +1724,27 @@ These are linked to Variable and Subject.
 Examples:
 "Height", "Gene expression" linked to a tree subject.
 """
-type Trait implements OntologyEntryInterface & RelatedToTerms {
+interface TraitRelationships {
+  subjects: [Subject!]
+  variables: [Variable!]
+}
+
+type Trait implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & TraitRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Trait]
-  children: [Trait]
-  phase: LifecyclePhase
-  terms: [Term]
-  subjects: [Subject]
-  variables: [Variable]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Trait!]
+  children: [Trait!]
+  terms: [Term!]
+  subjects: [Subject!]
+  variables: [Variable!]
 }
 
 """
@@ -1693,22 +1752,27 @@ Condition entries describe the quantities/qualities that are fixed/controlled th
 These are linked to Factor entries.
 Examples: "Light level", "Controlled Grafting", "Water availability"
 """
-type Condition implements OntologyEntryInterface & RelatedToTerms {
+interface ConditionRelationships {
+  subjects: [Subject!]
+  factors: [Factor!]
+}
+
+type Condition implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & ConditionRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Condition]
-  children: [Condition]
-  phase: LifecyclePhase
-  terms: [Term]
-  subjects: [Subject]
-  factors: [Factor]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Condition!]
+  children: [Condition!]
+  terms: [Term!]
+  subjects: [Subject!]
+  factors: [Factor!]
 }
 
 """
@@ -1723,45 +1787,59 @@ Examples:
 "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
 "MAG abundance" would be ScaleType complex, with associated datasets or records each providing references to stored files, e.g. in HDF5 format.
 """
-type Scale implements OntologyEntryInterface & RelatedToTerms {
+interface ScaleInterface {
+  scaleType: ScaleType!
+}
+
+interface ScaleRelationships {
+  categories: [Category!]
+  variables: [Variable!]
+  factors: [Factor!]
+}
+
+type Scale implements OntologyNodeInterface & ScaleInterface & OntologyRelationships & RelatedToTerms & ScaleRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Scale]
-  children: [Scale]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
   scaleType: ScaleType!
-  categories: [Category]
-  variables: [Variable]
-  factors: [Factor]
+  parents: [Scale!]
+  children: [Scale!]
+  terms: [Term!]
+  categories: [Category!]
+  variables: [Variable!]
+  factors: [Factor!]
 }
 
 """
 Category entries describe classes for Scale entries with type Nominal or Ordinal.
 These are linked to Scale entries.
 """
-type Category implements OntologyEntryInterface & RelatedToTerms {
+interface CategoryRelationships {
+  scales: [Scale!]
+}
+
+type Category implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & CategoryRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Category]
-  children: [Category]
-  phase: LifecyclePhase
-  terms: [Term]
-  scales: [Scale]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Category!]
+  children: [Category!]
+  terms: [Term!]
+  scales: [Scale!]
 }
 
 """
@@ -1770,22 +1848,30 @@ These are linked to Variable.
 Observation method entries require an ObservationMethodType.
 Examples: "Distance measurement with calibrated reference", "Short-read sequencing", "Rain Gauge".
 """
-type ObservationMethod implements OntologyEntryInterface & RelatedToTerms {
+interface ObservationMethodInterface {
+  observationType: ObservationMethodType!
+}
+
+interface ObservationMethodRelationships {
+  variables: [Variable!]
+}
+
+type ObservationMethod implements OntologyNodeInterface & ObservationMethodInterface & OntologyRelationships & RelatedToTerms & ObservationMethodRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [ObservationMethod]
-  children: [ObservationMethod]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [ObservationMethod!]
+  children: [ObservationMethod!]
+  terms: [Term!]
   observationType: ObservationMethodType!
-  variables: [Variable]
+  variables: [Variable!]
 }
 
 """
@@ -1801,20 +1887,26 @@ Examples:
     Method = "Short read sequencing",
     Scale = "Counts per million"
 """
-type Variable implements OntologyEntryInterface & RelatedToTerms {
+interface VariableRelationships {
+  trait: Trait!
+  observationMethod: ObservationMethod!
+  scale: Scale!
+}
+
+type Variable implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & VariableRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Variable]
-  children: [Variable]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Variable!]
+  children: [Variable!]
+  terms: [Term!]
   trait: Trait!
   observationMethod: ObservationMethod!
   scale: Scale!
@@ -1825,22 +1917,30 @@ Control method entries describe the way a value is maintained for an experiment.
 These are linked to Factor.
 Examples: "Fluorescent Lighting", "Fertilizer application"
 """
-type ControlMethod implements OntologyEntryInterface & RelatedToTerms {
+interface ControlMethodInterface {
+  controlType: ControlMethodType!
+}
+
+interface ControlMethodRelationships {
+  factors: [Factor!]
+}
+
+type ControlMethod implements OntologyNodeInterface & ControlMethodInterface & OntologyRelationships & RelatedToTerms & ControlMethodRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [ControlMethod]
-  children: [ControlMethod]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [ControlMethod!]
+  children: [ControlMethod!]
+  terms: [Term!]
   controlType: ControlMethodType!
-  factors: [Factor]
+  factors: [Factor!]
 }
 
 """
@@ -1856,20 +1956,26 @@ OR
 "Grafted Material" where:
     Condition = "Genetic material", ControlMethod = "Controlled Grafting", Scale = "Plant Genetic Material"
 """
-type Factor implements OntologyEntryInterface & RelatedToTerms {
+interface FactorRelationships {
+  condition: Condition!
+  controlMethod: ControlMethod!
+  scale: Scale!
+}
+
+type Factor implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & FactorRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Factor]
-  children: [Factor]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Factor!]
+  children: [Factor!]
+  terms: [Term!]
   condition: Condition!
   controlMethod: ControlMethod!
   scale: Scale!
@@ -1880,22 +1986,27 @@ Event entries link multiple Variables and Factors
 Examples:
 "Harvest" where "harvest method" may be a factor and "yield" may be a variable.
 """
-type Event implements OntologyEntryInterface & RelatedToTerms {
+interface EventRelationships {
+  variables: [Variable!]
+  factors: [Factor!]
+}
+
+type Event implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & EventRelationships {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Event]
-  children: [Event]
-  phase: LifecyclePhase
-  terms: [Term]
-  variables: [Variable]
-  factors: [Factor]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Event!]
+  children: [Event!]
+  terms: [Term!]
+  variables: [Variable!]
+  factors: [Factor!]
 }
 
 """
@@ -1903,20 +2014,20 @@ LocationType entries describe types of locations.
 These are linked to Location (see Regions).
 Examples: "Country", "State", "Field"
 """
-type LocationType implements OntologyEntryInterface & RelatedToTerms {
+type LocationType implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [LocationType]
-  children: [LocationType]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [LocationType!]
+  children: [LocationType!]
+  terms: [Term!]
 }
 
 """
@@ -1924,21 +2035,25 @@ LayoutType entries describe types of arrangements.
 These are linked to Layout (see Arrangements).
 Examples: "Grid", "Rows"
 """
-type LayoutType implements OntologyEntryInterface & RelatedToTerms {
+interface LayoutTypeInterface {
+  axes: [AxisType!]
+}
+
+type LayoutType implements OntologyNodeInterface & LayoutTypeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [LayoutType]
-  children: [LayoutType]
-  phase: LifecyclePhase
-  terms: [Term]
-  axes: [String]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  axes: [AxisType!]
+  parents: [LayoutType!]
+  children: [LayoutType!]
+  terms: [Term!]
 }
 
 """
@@ -1946,20 +2061,20 @@ Design entries describe statistical designs for a study.
 These are linked to Study (see Programs).
 Examples: "Split-plot", "Randomized block"
 """
-type Design implements OntologyEntryInterface & RelatedToTerms {
+type Design implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Design]
-  children: [Design]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Design!]
+  children: [Design!]
+  terms: [Term!]
 }
 
 """
@@ -1967,20 +2082,20 @@ Role entries describe roles for people.
 These are linked to Person (see People).
 Examples: "Post-doctoral researcher", "Principal Investigator"
 """
-type Role implements OntologyEntryInterface & RelatedToTerms {
+type Role implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Role]
-  children: [Role]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Role!]
+  children: [Role!]
+  terms: [Term!]
 }
 
 """
@@ -1988,20 +2103,20 @@ Title entries describe titles for people.
 These are linked to Person (see People).
 Examples: "Professor", "Doctor"
 """
-type Title implements OntologyEntryInterface & RelatedToTerms {
+type Title implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
   versionId: ID!
-  draft: Boolean!
+  view: OntologyView!
+  phase: LifecyclePhase!
   name: String!
   description: String
   abbreviation: String
-  synonyms: [String]
-  authors: [Person]
-  references: [ReferenceInterface]
-  parents: [Title]
-  children: [Title]
-  phase: LifecyclePhase
-  terms: [Term]
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Title!]
+  children: [Title!]
+  terms: [Term!]
 }
 
 union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | Role | Title
@@ -2009,17 +2124,28 @@ union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category
 type OntologyRelationship {
   id: ID!
   versionId: ID!
+  view: OntologyView!
+  
+  phase: LifecyclePhase!
   sourceId: ID!
   targetId: ID!
   label: OntologyRelationshipLabel!
-  phase: LifecyclePhase
-  rank: Int
 }
 
+"""An ontology snapshot for a specific version and view."""
 type Ontology {
   version: Version!
-  entries: [OntologyEntryInterface!]
-  relationships: [OntologyRelationship!]
+  view: OntologyView!
+
+  """The ontology entities materialized for this snapshot."""
+  entries: [OntologyEntryUnion!]!
+
+  """
+  A graph representation of the relationships between entries in this
+  snapshot. This is provided as a convenience for graph-oriented clients
+  such as visualizations.
+  """
+  relationships: [OntologyRelationship!]!
 }
 
 enum Access {
@@ -2036,16 +2162,16 @@ enum Authorisation {
 }
 
 type Affiliation {
-  user: User
-  authorisation: Authorisation
+  user: UserDisplay!
+  authorisation: Authorisation!
   heritable: Boolean!
 }
 
 type Affiliations {
-  read: [Affiliation]
-  write: [Affiliation]
-  admin: [Affiliation]
-  curate: [Affiliation]
+  read: [Affiliation!]
+  write: [Affiliation!]
+  admin: [Affiliation!]
+  curate: [Affiliation!]
 }
 
 type Team {
@@ -2053,17 +2179,17 @@ type Team {
   name: String!
   fullname: String!
   parent: Team
-  children: [Team]
+  children: [Team!]
   affiliations: Affiliations
   directAffiliations: Affiliations
   inheritedAffiliations: Affiliations
 }
 
 type UserAccess {
-  read: [Team]
-  write: [Team]
-  admin: [Team]
-  curate: [Team]
+  read: [Team!]
+  write: [Team!]
+  admin: [Team!]
+  curate: [Team!]
 }
 
 enum QueryStatus {
@@ -2073,235 +2199,235 @@ enum QueryStatus {
 }
 
 type Error {
-  name: String!
-  message: String!
+  name: String
+  message: String
 }
 
 type StatusPayload {
-  status: QueryStatus
-  errors: [Error]
+  status: QueryStatus!
+  errors: [Error!]
 }
 
 type BooleanPayload {
   status: QueryStatus!
   result: Boolean
-  errors: [Error]
+  errors: [Error!]
 }
 
 type LoginPayload {
   status: QueryStatus!
   result: Token
-  errors: [Error]
+  errors: [Error!]
 }
 
 type TeamsPayload {
   status: QueryStatus!
-  result: [Team]
-  errors: [Error]
+  result: [Team!]
+  errors: [Error!]
 }
 
 type AffiliationsPayload {
   status: QueryStatus!
   result: Affiliations
-  errors: [Error]
+  errors: [Error!]
 }
 
 type UserAccessPayload {
   status: QueryStatus!
   result: UserAccess
-  errors: [Error]
+  errors: [Error!]
 }
 
 type TeamPayload {
   status: QueryStatus!
   result: Team
-  errors: [Error]
+  errors: [Error!]
 }
 
 type AccountPayload {
   status: QueryStatus!
   result: Account
-  errors: [Error]
+  errors: [Error!]
 }
 
 type UsersPayload {
   status: QueryStatus!
-  result: [User!]
-  errors: [Error]
+  result: [UserDisplay!]
+  errors: [Error!]
 }
 
 type VersionPayload {
   status: QueryStatus!
   result: Version
-  errors: [Error]
+  errors: [Error!]
 }
 
 type OntologyPayload {
   status: QueryStatus!
   result: Ontology
-  errors: [Error]
+  errors: [Error!]
 }
 
 type OntologyCommitsPayload {
   status: QueryStatus!
   result: [OntologyCommit!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type OntologyEntryPayload {
   status: QueryStatus!
-  result: OntologyEntryInterface
-  errors: [Error]
+  result: OntologyNodeInterface
+  errors: [Error!]
 }
 
 type OntologyEntriesPayload {
   status: QueryStatus!
-  result: [OntologyEntryInterface!]
-  errors: [Error]
+  result: [OntologyNodeInterface!]
+  errors: [Error!]
 }
 
 type OntologyRelationshipsPayload {
   status: QueryStatus!
-  result: [OntologyRelationship]
-  errors: [Error]
+  result: [OntologyRelationship!]
+  errors: [Error!]
 }
 
 type LocationsPayload {
   status: QueryStatus!
   result: [Location!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type LocationTemplatesPayload {
   status: QueryStatus!
   result: [LocationTemplate!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type LayoutsPayload {
   status: QueryStatus!
   result: [Layout!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type UnitsPayload {
   status: QueryStatus!
   result: [Unit!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type UnitPayload {
   status: QueryStatus!
   result: Unit
-  errors: [Error]
+  errors: [Error!]
 }
 
 type DatasetsPayload {
   status: QueryStatus!
-  result: [Dataset]
-  errors: [Error]
+  result: [Dataset!]
+  errors: [Error!]
 }
 
 type SubmissionIdPayload {
   status: QueryStatus!
   result: String
-  errors: [Error]
+  errors: [Error!]
 }
 
 type DatasetSubmissionPayload {
   status: QueryStatus!
   result: DatasetSubmission
-  errors: [Error]
+  errors: [Error!]
 }
 
 type DatasetSummariesPayload {
   status: QueryStatus!
   result: [DatasetSummary]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type ReferencesPayload {
   status: QueryStatus!
   result: [ReferenceInterface!]
-  errors: [Error]
+  errors: [Error!]
 }
 
 type CreatedIdPayload {
   status: QueryStatus!
   result: Int
-  errors: [Error]
+  errors: [Error!]
 }
 
 type FileIdPayload {
   status: QueryStatus!
   result: String
-  errors: [Error]
+  errors: [Error!]
 }
 
 type FileSubmissionPayload {
   status: QueryStatus!
   result: FileSubmission
-  errors: [Error]
+  errors: [Error!]
 }
 
 type FileDownloadStatePayload {
   status: QueryStatus!
   result: FileDownloadState
-  errors: [Error]
+  errors: [Error!]
 }
 
 type FileDownloadPayload {
   status: QueryStatus!
   result: FileDownload
-  errors: [Error]
+  errors: [Error!]
 }
 
 type ProgramsPayload {
   status: QueryStatus!
-  result: [Program]
-  errors: [Error]
+  result: [Program!]
+  errors: [Error!]
 }
 
 type ProgramPayload {
   status: QueryStatus!
   result: Program
-  errors: [Error]
+  errors: [Error!]
 }
 
 type TrialPayload {
   status: QueryStatus!
   result: Trial
-  errors: [Error]
+  errors: [Error!]
 }
 
 type StudyPayload {
   status: QueryStatus!
   result: Study
-  errors: [Error]
+  errors: [Error!]
 }
 
 type ControllersPayload {
   status: QueryStatus!
-  result: [Controller]
-  errors: [Error]
+  result: [Controller!]
+  errors: [Error!]
 }
 
 type GermplasmEntriesPayload {
   status: QueryStatus!
-  result: [GermplasmEntry]
-  errors: [Error]
+  result: [GermplasmEntry!]
+  errors: [Error!]
 }
 
 type AnalysisSubmissionIdPayload {
   status: QueryStatus!
   result: String
-  errors: [Error]
+  errors: [Error!]
 }
 
 type AnalysisSubmissionPayload {
   status: QueryStatus!
-  result: AnalysisSubmission
-  errors: [Error]
+  result: AnalysisSubmission!
+  errors: [Error!]
 }
 
 type Person {
@@ -2349,9 +2475,6 @@ type Query {
   """Get own account details for administrative tasks"""
   accountsAccount: AccountPayload!
 
-  """Get user details for administrative tasks"""
-  accountsUsers(userId: ID): UsersPayload!
-
   """Get the user access map of access type to team"""
   accountsUserAccess: UserAccessPayload!
 
@@ -2367,27 +2490,41 @@ type Query {
   Get a single team details
   As with organisations, the organisation can be explored from this node.
   """
-  organisationsTeam(teamId: ID!): TeamPayload!
+  organisationsTeam(id: ID!): TeamPayload!
 
   """Get a multiple team details"""
-  organisationsTeams(teamIds: [ID!]): TeamsPayload!
+  organisationsTeams(ids: [ID!]): TeamsPayload!
 
   """Get the latest ontology version"""
   ontologyVersion: VersionPayload!
 
   """
   Get the complete ontology at a given version for editing.
-  Defaults to latest version.
-  Relationship attributes on entries (e.g. terms) are determined by draft and active relationships.
+  Defaults to latest version with view PUBLISHED.
   """
-  ontology(versionId: ID): OntologyPayload!
+  ontology(versionId: ID, view: OntologyView = PUBLISHED): OntologyPayload!
 
   """
   Get a list of ontology entries.
-  Defaults to latest version.
-  Relationship attributes (e.g. terms) are determined by active relationships in the given version only.
+  Defaults to latest version with view PUBLISHED
   """
-  ontologyEntries(entryIds: [ID!], labels: [OntologyEntryLabel], versionId: ID, draft: Boolean = false): OntologyEntriesPayload!
+  ontologyEntries(
+    """Snapshot"""
+    versionId: ID
+    view: OntologyView = PUBLISHED
+
+    """Filters (at least one is required)"""
+    ids: [ID!]
+    labels: [OntologyNodeLabel!]
+  ): OntologyEntriesPayload!
+  ontologyRelationships(
+    """Snapshot"""
+    versionId: ID
+    view: OntologyView = PUBLISHED
+
+    """Filters"""
+    entryIds: [ID!]!
+  ): OntologyRelationshipsPayload!
 
   """Get an ontology commit history"""
   ontologyCommitHistory(limit: Int): OntologyCommitsPayload!
@@ -2420,7 +2557,7 @@ type Query {
   regions: LocationsPayload!
 
   """ Get locations by locationId """
-  regionsLocations(locationIds: [ID!]!): LocationsPayload!
+  regionsLocations(ids: [ID!]!): LocationsPayload!
 
   """ Search for locations by ontology Location type """
   regionsLocationsByType(locationTypeId: ID!): LocationsPayload!
@@ -2433,7 +2570,7 @@ type Query {
   arrangements(locationId: ID): LayoutsPayload!
 
   """ Get a layout details by ID """
-  arrangementsLayouts(layoutIds: [ID!]): LayoutsPayload!
+  arrangementsLayouts(ids: [ID!]): LayoutsPayload!
 
   """
   Get a list of block "root" units.
@@ -2442,35 +2579,35 @@ type Query {
   blocks(locationIds: [ID!]): UnitsPayload!
 
   """ Get units by ID. """
-  blocksUnits(unitIds: [ID!]): UnitsPayload!
+  blocksUnits(ids: [ID!]): UnitsPayload!
 
   """ Get a list of all programs """
   programs: ProgramsPayload!
 
   """Get a program by Id of program, trial or study """
-  programsProgram(programId: ID, trialId: ID, studyId: ID): ProgramPayload!
+  programsProgram(id: ID, trialId: ID, studyId: ID): ProgramPayload!
 
   """ Get trials by Id of trial or study """
-  programsTrial(trialId: ID, studyId: ID): TrialPayload!
+  programsTrial(id: ID, studyId: ID): TrialPayload!
 
   """ Get study by study Id """
-  programsStudy(studyId: ID!): StudyPayload!
+  programsStudy(id: ID!): StudyPayload!
 
   """ Filter datasets by study and/or concept Id, OR retrieve by array of dataset ids 
   """
-  datasets(studyIds: [ID!], conceptIds: [ID!], datasetIds: [ID!]): DatasetsPayload!
+  datasets(ids: [ID!], studyIds: [ID!], conceptIds: [ID!]): DatasetsPayload!
 
   """ Get dataset submission by key """
-  datasetsSubmission(submissionId: ID!): DatasetSubmissionPayload!
+  datasetsSubmission(id: ID!): DatasetSubmissionPayload!
 
   """ Get a summary of datasets for a study """
   datasetsSummaries(studyId: ID!): DatasetSummariesPayload!
 
   """ Get the controller data for access controlled entities """
-  controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID]!): ControllersPayload!
+  controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): ControllersPayload!
 
   """Get a list of Germplasm entries"""
-  germplasmEntries(names: [String!], entryIds: [ID!]): GermplasmEntriesPayload!
+  germplasmEntries(names: [String!], ids: [ID!]): GermplasmEntriesPayload!
 
   """
   Get a list of Germplasm entries that have no sources defined,
@@ -2479,13 +2616,14 @@ type Query {
   germplasmCrops: GermplasmEntriesPayload!
 
   """ Get reference by reference ID """
-  references(referenceIds: [ID!]): ReferencesPayload!
+  references(ids: [ID!]): ReferencesPayload!
 
   """ Get a users recently created/updated file references """
-  referencesRecentFiles: ReferencesPayload!
+  referencesRecentFiles(referenceTypes: [ReferenceType!]): ReferencesPayload!
 
-  """ Search for references by text in description """
-  referencesDescription(description: String!): ReferencesPayload!
+  """ Search for references by text in description. Also searches for filename, url and externalId where relevant. 
+  """
+  referencesSearch(description: String!, referenceTypes: [ReferenceType!]): ReferencesPayload!
 
   """ Get file submission by fileId for progress and status updates """
   referencesFileSubmission(fileId: ID!): FileSubmissionPayload!
@@ -2497,12 +2635,20 @@ type Query {
   referencesFileDownload(fileId: ID!): FileDownloadPayload!
 
   """ Get analysis status and results """
-  analysisSubmission(analysisId: ID!): AnalysisSubmissionPayload!
+  analysisSubmission(id: ID!): AnalysisSubmissionPayload!
 }
 
 interface ReferenceInterface {
   id: ID!
   description: String
+}
+
+enum ReferenceType {
+  LEGAL
+  EXTERNAL
+  FILE
+  EXTERNAL_DATA
+  DATA_FILE
 }
 
 type LegalReference implements ReferenceInterface {
@@ -2597,7 +2743,7 @@ type Location {
   """Stored Locations"""
   id: ID!
   name: String!
-  type: OntologyEntryInterface
+  type: LocationType!
   code: String
   synonyms: [String]
   description: String

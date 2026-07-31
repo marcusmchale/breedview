@@ -14,8 +14,8 @@ export function useMutateDatasets() {
   const { mutate: removeRecordsMutation, loading: removeLoading, error: removeError } =
     useMutation(REMOVE_RECORDS);
 
-  const createDataset = async (dataset) => {
-    const result = await createDatasetMutation({ dataset });
+  const createDataset = async (dataset, controlTeamId) => {
+    const result = await createDatasetMutation({ dataset: dataset, controlTeamId: controlTeamId });
     return result?.data?.datasetsCreate;
   };
 

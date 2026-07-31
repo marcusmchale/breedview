@@ -1,5 +1,5 @@
 mutation referencesDelete($referenceIds: [ID!]!) {
-  referencesDelete(referenceIds: $referenceIds) {
+  referencesDelete(ids: $referenceIds) {
     status
     result
     errors {

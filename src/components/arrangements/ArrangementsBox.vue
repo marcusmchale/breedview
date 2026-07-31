@@ -23,7 +23,6 @@ const {
     layoutTypes
 } = useArrangementsBoxQueries(locationId)
 
-
 // Add Layout Modal state
 const isAddLayoutModalOpen = ref(false)
 const openAddLayoutModal = () => {

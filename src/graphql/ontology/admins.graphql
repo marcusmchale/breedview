@@ -5,7 +5,6 @@ query ontologyAdmins {
         result {
             id
             name
-            email
             fullname
             ontologyRole
             ontologyRoleRequested

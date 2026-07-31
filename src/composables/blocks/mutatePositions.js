@@ -1,5 +1,5 @@
 import { toValue} from "vue";
-import { useCacheUpdates } from "@/composables/system/cacheUpdates"
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates"
 
 
 import ADD_POSITION_MUTATION from '@/graphql/blocks/addPosition.graphql'
@@ -21,8 +21,6 @@ export function useMutatePositions({unitId}) {
     } = useMutation(ADD_POSITION_MUTATION)
 
     const addPosition = async (position) => {
-        console.log('add position:', position)
-
         const { location, layout, coordinates, start, end } = position
         const positionData = {
             locationId: location.id,
@@ -52,7 +50,6 @@ export function useMutatePositions({unitId}) {
     } = useMutation(REMOVE_POSITION_MUTATION)
 
     const removePosition = async (position) => {
-        console.log('position to remove2', position)
         const {location, layout, coordinates, start, end } = position
 
         const positionData = {
@@ -62,7 +59,6 @@ export function useMutatePositions({unitId}) {
             start,
             end
         }
-        console.log('positionData', positionData)
         const response = await removePositionMutation({unitId: toValue(unitId), position: positionData})
 
         if (response?.data?.blocksRemovePosition) {

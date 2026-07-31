@@ -9,6 +9,7 @@
 </template>
 
 <script setup>
+
 import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import { onMounted } from 'vue'

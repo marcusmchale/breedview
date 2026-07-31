@@ -1,5 +1,5 @@
 mutation RemoveRecords($datasetId: ID!, $recordIds: [ID!]!) {
-  datasetsRemoveRecords(datasetId: $datasetId, recordIds: $recordIds) {
+  datasetsRemoveRecords(id: $datasetId, recordIds: $recordIds) {
     status
     result
     errors {

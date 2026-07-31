@@ -1,10 +1,16 @@
-// src/composables/user/useUserAccess.js
 import { computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import USER_ACCESS_QUERY from '@/graphql/account/userAccess.graphql'
 
-export function useUserAccess() {
-  const { result, loading, error } = useQuery(USER_ACCESS_QUERY)
+export function useUserAccess(options= {} ) {
+  const { result, loading, error , onResult, onError} = useQuery(
+      USER_ACCESS_QUERY,
+      {},
+      {
+        fetchPolicy: "cache-and-network",
+        ...options
+      }
+  )
 
   const userAccess = computed(() => result.value?.accountsUserAccess?.result || null)
 
@@ -22,6 +28,8 @@ export function useUserAccess() {
     userAccess,
     loading,
     error,
+    onResult,
+    onError,
     readTeams,
     writeTeams,
     adminTeams,

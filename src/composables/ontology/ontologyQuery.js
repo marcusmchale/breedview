@@ -5,7 +5,7 @@ import {
 
 import ONTOLOGY_QUERY from '@/graphql/ontology/ontology.graphql'
 
-export function useOntologyQuery({versionId}) {
+export function useOntologyQuery({versionId, view}) {
 
     const {
         result,
@@ -15,7 +15,8 @@ export function useOntologyQuery({versionId}) {
     } = useQuery(
         ONTOLOGY_QUERY,
         {
-            versionId: toValue(versionId) || null
+            versionId: toValue(versionId) || null,
+            view: toValue(view) || null
         }
     )
 

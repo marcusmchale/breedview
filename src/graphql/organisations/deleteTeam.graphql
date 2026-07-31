@@ -2,7 +2,7 @@ mutation organisationsDeleteTeam(
     $teamId: ID!
 ) {
     organisationsDeleteTeam(
-        teamId: $teamId
+        id: $teamId
     ) {
         status
         errors {

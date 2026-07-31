@@ -12,8 +12,11 @@ export function useMutatePrograms() {
     error: createProgramError
   } = useMutation(CREATE_PROGRAM_MUTATION)
 
-  const createProgram = async (programData) => {
-    const response = await createProgramMutation({ program: programData })
+  const createProgram = async (programData, controlTeamId) => {
+    const response = await createProgramMutation({
+      program: programData,
+      controlTeamId: controlTeamId
+    })
     if (response?.data?.programsCreateProgram) {
       const { status, errors } = response.data.programsCreateProgram
       return { status, errors }

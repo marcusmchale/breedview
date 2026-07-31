@@ -1,10 +1,11 @@
 import { useQuery } from '@vue/apollo-composable';
-import { computed } from "vue";
+import { computed, toValue } from "vue";
 import RECENT_FILES from "@/graphql/references/recentFileReferences.graphql";
 
-export function useRecentFileReferencesQuery() {
+export function useRecentFileReferencesQuery(referenceTypes) {
   const { result, loading, error , refetch: refetchRecentFiles } = useQuery(
-    RECENT_FILES
+      RECENT_FILES,
+      { referenceTypes: toValue(referenceTypes) }
   );
 
   const recentFileReferences = computed(() => {

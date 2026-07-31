@@ -1,13 +1,15 @@
 #import "./entryFragment.graphql"
 query ontologyEntries(
     $entryIds: [ID!]
-    $labels: [OntologyEntryLabel!]
+    $labels: [OntologyNodeLabel!]
     $versionId: ID
+    $view: OntologyView
 ) {
     ontologyEntries(
-        entryIds: $entryIds
+        ids: $entryIds
         labels: $labels
         versionId: $versionId
+        view: $view
     ){
         status
         result {

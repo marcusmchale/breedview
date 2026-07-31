@@ -4,7 +4,7 @@ import { FormKit } from '@formkit/vue'
 
 import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
 
-import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
 
 const props = defineProps({
   program: {
@@ -55,7 +55,7 @@ const submitForm = async (values) => {
     )
 
     const { status, errors } = await updateProgram({
-      programId: props.program.id,
+      id: props.program.id,
       ...cleanValues,
       referenceIds: selectedReferenceIds.value
     })
@@ -146,7 +146,7 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <ReferencesModal
+    <EntityReferencesModal
       :visible="isReferencesModalOpen"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"

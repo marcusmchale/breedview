@@ -1,0 +1,132 @@
+{
+  "OntologyNodeInterface": [
+    "Term",
+    "Subject",
+    "Trait",
+    "Condition",
+    "Scale",
+    "Category",
+    "ObservationMethod",
+    "Variable",
+    "ControlMethod",
+    "Factor",
+    "Event",
+    "LocationType",
+    "LayoutType",
+    "Design",
+    "Role",
+    "Title"
+  ],
+  "OntologyRelationships": [
+    "Term",
+    "Subject",
+    "Trait",
+    "Condition",
+    "Scale",
+    "Category",
+    "ObservationMethod",
+    "Variable",
+    "ControlMethod",
+    "Factor",
+    "Event",
+    "LocationType",
+    "LayoutType",
+    "Design",
+    "Role",
+    "Title"
+  ],
+  "TermRelationships": [
+    "Term"
+  ],
+  "RelatedToTerms": [
+    "Subject",
+    "Trait",
+    "Condition",
+    "Scale",
+    "Category",
+    "ObservationMethod",
+    "Variable",
+    "ControlMethod",
+    "Factor",
+    "Event",
+    "LocationType",
+    "LayoutType",
+    "Design",
+    "Role",
+    "Title"
+  ],
+  "SubjectRelationships": [
+    "Subject"
+  ],
+  "TraitRelationships": [
+    "Trait"
+  ],
+  "ConditionRelationships": [
+    "Condition"
+  ],
+  "ScaleInterface": [
+    "Scale"
+  ],
+  "ScaleRelationships": [
+    "Scale"
+  ],
+  "CategoryRelationships": [
+    "Category"
+  ],
+  "ObservationMethodInterface": [
+    "ObservationMethod"
+  ],
+  "ObservationMethodRelationships": [
+    "ObservationMethod"
+  ],
+  "VariableRelationships": [
+    "Variable"
+  ],
+  "ControlMethodInterface": [
+    "ControlMethod"
+  ],
+  "ControlMethodRelationships": [
+    "ControlMethod"
+  ],
+  "FactorRelationships": [
+    "Factor"
+  ],
+  "EventRelationships": [
+    "Event"
+  ],
+  "LayoutTypeInterface": [
+    "LayoutType"
+  ],
+  "ReferenceInterface": [
+    "LegalReference",
+    "ExternalReference",
+    "FileReference",
+    "ExternalDataReference",
+    "DataFileReference"
+  ],
+  "OntologyEntryUnion": [
+    "Term",
+    "Subject",
+    "Trait",
+    "Condition",
+    "Scale",
+    "Category",
+    "ObservationMethod",
+    "Variable",
+    "ControlMethod",
+    "Factor",
+    "Event",
+    "LocationType",
+    "LayoutType",
+    "Design",
+    "Role",
+    "Title"
+  ],
+  "ReferenceUnion": [
+    "LegalReference",
+    "ExternalReference",
+    "ExternalDataReference",
+    "DataFileReference",
+    "FileReference"
+  ]
+}

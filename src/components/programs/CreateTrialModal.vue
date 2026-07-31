@@ -1,11 +1,12 @@
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
-import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
 
 const props = defineProps({
   programId: {
@@ -22,6 +23,13 @@ const emit = defineEmits(['close', 'success'])
 
 const { createTrial, createTrialLoading } = useMutateTrials()
 
+const formError = ref('')
+const selectedControlTeamId = ref(null)
+const handleControlTeamError = (errorMessage) => {
+  formError.value = errorMessage
+}
+
+
 const formData = ref({
   name: '',
   fullname: '',
@@ -30,7 +38,6 @@ const formData = ref({
   end: ''
 })
 
-const formError = ref('')
 
 // References state
 const selectedReferenceIds = ref([])
@@ -72,7 +79,7 @@ const submitForm = async (values) => {
       }
     })
 
-    const { status, errors } = await createTrial(cleanValues)
+    const { status, errors } = await createTrial(cleanValues, selectedControlTeamId.value)
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -169,6 +176,11 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
+          <ControlTeamSelector
+            v-model="selectedControlTeamId"
+            class="form-control"
+            @error="handleControlTeamError"
+          />
           <button type="submit" class="btn btn-primary" :disabled="createTrialLoading">
             {{ createTrialLoading ? 'Creating...' : 'Create Trial' }}
           </button>
@@ -180,7 +192,7 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <ReferencesModal
+    <EntityReferencesModal
       :visible="isReferencesModalOpen"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"

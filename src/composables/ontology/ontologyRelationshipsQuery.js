@@ -5,34 +5,51 @@ import {
 
 import ONTOLOGY_RELATIONSHIPS_QUERY from '@/graphql/ontology/relationships.graphql'
 
-export function useOntologyRelationshipsQuery({entryIds, labels, phases, versionId}) {
+import { useCurrentVersionQuery } from "@/composables/ontology/currentVersion";
 
-    const enabled = computed(() => (toValue(entryIds)?.length ?? 0) > 0)
 
-    const variables = computed( () => ({
-        entryIds: toValue(entryIds) || null,
-        labels: toValue(labels) || null,
-        phases: toValue(phases) || null,
-        versionId: toValue(versionId) || null
-    }))
+export function useOntologyRelationshipsQuery({entryIds, view}) {
 
+    // we need the current version to be able to read from cache
+    // this is also required for the custom read policy,
+    // not required in the graphql spec which does allow nullable version
+    const { version } = useCurrentVersionQuery()
+
+    const variables = computed(() => {
+      return {
+          entryIds: toValue(entryIds),
+          versionId: version.value?.id,
+          view: view
+      }
+    });
     const {
-        result,
+        result: relationshipsResult,
         loading: relationshipsLoading,
-        error: relationshipsError
+        error: relationshipsError,
+        onResult: onRelationshipsResult,
+        refetch
     } = useQuery(
         ONTOLOGY_RELATIONSHIPS_QUERY,
         variables,
-        {enabled: enabled}
+        {
+            enabled: computed(() => Boolean(toValue(entryIds)))
+        },
+        {
+            fetchPolicy: 'cache-and-network'
+        }
     )
 
     const relationships = computed(() => {
-        return result?.value?.ontologyRelationships?.result || []
+        if (!relationshipsResult.value?.ontologyRelationships?.result) {
+            return []
+        }
+        return relationshipsResult.value.ontologyRelationships.result
     })
 
     return {
-        relationships,
+        relationships, onRelationshipsResult,
         relationshipsLoading,
-        relationshipsError
+        relationshipsError,
+        refetch
     }
 }

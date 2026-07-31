@@ -1,5 +1,5 @@
 mutation blocksAddPosition($unitId: ID!, $position: PositionInput!) {
-  blocksAddPosition(unitId: $unitId, position: $position) {
+  blocksAddPosition(id: $unitId, position: $position) {
     status
     errors {
       message

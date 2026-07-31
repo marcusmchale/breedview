@@ -3,7 +3,7 @@ query locations (
     $locationIds: [ID!]!
 ){
     regionsLocations(
-        locationIds: $locationIds
+        ids: $locationIds
     ){
         status
         result {

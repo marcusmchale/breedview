@@ -107,22 +107,20 @@ const submitUpdate = async () => {
     updateError.value = ''
 
     const unitData = {
-      unitId: props.unit.id,
+      id: props.unit.id,
       subjectId: updateFormData.value.subjectId || undefined,
       germplasmId: updateFormData.value.germplasmId || undefined,
       name: updateFormData.value.name || undefined,
       description: updateFormData.value.description || undefined,
       parentIds: updateFormData.value.parentIds
     }
-    const oldCachedUnit = getCached( {itemId: props.unit.id} )
+    const oldCachedUnit = getCached( props.unit )
     const { status, errors } = await updateUnit(unitData)
     if (status === 'SUCCESS') {
       emit('success')
-      const newCachedUnit = getCached( {itemId: props.unit.id} )
-      if (
-          (newCachedUnit.parents?.length === 0 || oldCachedUnit.parents?.length === 0) &&
-          newCachedUnit.parents?.length !== oldCachedUnit.parents?.length
-      ) {
+      const newCachedUnit = getCached( props.unit )
+      // reload if either (not both) are zero
+      if ((newCachedUnit.parents?.length === 0) !== (oldCachedUnit.parents?.length === 0)) {
         emit('reload-blocks')
       }
       emit('close')

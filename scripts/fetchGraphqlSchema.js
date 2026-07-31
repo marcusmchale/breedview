@@ -1,5 +1,5 @@
 
-import { getIntrospectionQuery, buildClientSchema, printSchema } from 'graphql';
+import { getIntrospectionQuery, buildClientSchema, printSchema, isInterfaceType, isUnionType } from 'graphql';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -129,6 +129,35 @@ async function fetchSchema(csrfToken) {
   return result.data;
 }
 
+function generateAbstractTypes(schema) {
+  const interfaces = {}
+  const unions = {}
+
+  for (const type of Object.values(schema.getTypeMap())) {
+    if (isInterfaceType(type)) {
+      interfaces[type.name] = schema
+        .getPossibleTypes(type)
+        .map(t => t.name)
+    }
+
+    if (isUnionType(type)) {
+      unions[type.name] = schema
+        .getPossibleTypes(type)
+        .map(t => t.name)
+    }
+  }
+
+  return {
+    possibleTypes: {
+      ...interfaces,
+      ...unions
+    },
+    interfaces,
+    unions
+  }
+}
+
+
 async function main() {
   try {
     // Validate required parameters
@@ -171,6 +200,18 @@ async function main() {
     console.log(`✅ Schema successfully written to ${OUTPUT_PATH}`);
     console.log(`📊 Schema size: ${sdl.length} characters`);
     console.log(`🕒 Updated at: ${new Date().toLocaleString()}`);
+
+    console.log('Generate possible types')
+    const {possibleTypes, unions} = generateAbstractTypes(clientSchema);
+    fs.writeFileSync(
+      './src/graphql/possibleTypes.json',
+      JSON.stringify(possibleTypes, null, 2)
+    );
+    fs.writeFileSync(
+      './src/graphql/unionTypes.json',
+      JSON.stringify(unions, null, 2)
+    );
+    console.log(`🕒 Completed at: ${new Date().toLocaleString()}`);
 
   } catch (error) {
     console.error('❌ Error fetching schema:', error.message);

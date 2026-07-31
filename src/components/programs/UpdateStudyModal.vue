@@ -5,7 +5,7 @@ import { FormKit } from '@formkit/vue'
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
 
-import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
 import LicenceModal from '@/components/references/LicenceModal.vue'
 
 const props = defineProps({
@@ -80,7 +80,7 @@ const submitForm = async (values) => {
     formError.value = ''
 
     const cleanValues = {
-      studyId: props.study.id,
+      id: props.study.id,
       name: values.name?.trim() || undefined,
       fullname: values.fullname?.trim() || undefined,
       description: values.description?.trim() || undefined,
@@ -246,7 +246,7 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <ReferencesModal
+    <EntityReferencesModal
       :visible="isReferencesModalOpen"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"

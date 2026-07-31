@@ -1,143 +1,7 @@
-<template>
-  <div v-if="isVisible" class="modal-overlay" @click="closeModal">
-    <div class="modal controller-modal" @click.stop>
-      <div class="modal-header">
-        <h2>
-          <span class="controller-icon">🔒</span>
-          Controller Details
-        </h2>
-        <button @click="closeModal" class="modal-close">&times;</button>
-      </div>
-
-      <div class="modal-content">
-        <div v-if="loading" class="loading-state">
-          Loading controller information...
-        </div>
-
-        <div v-else-if="error" class="error-state">
-          <strong>Error:</strong> {{ error }}
-        </div>
-
-        <div v-else-if="controller" class="controller-details">
-          <div class="detail-row">
-            <strong>Created:</strong>
-            <span>{{ formatDate(controller.created) }}</span>
-          </div>
-
-          <div class="detail-row">
-            <strong>Updated:</strong>
-            <span>{{ formatDate(controller.updated) }}</span>
-          </div>
-
-          <div v-if="controller.release" class="detail-row">
-            <strong>Release:</strong>
-            <span
-              class="release-badge clickable"
-              :class="'release-' + controller.release.toLowerCase()"
-              @click="showReleaseForm = true"
-              title="Click to change release level"
-            >
-              {{ controller.release }}
-            </span>
-          </div>
-
-          <!-- Release Change Form -->
-          <div v-if="showReleaseForm" class="release-form">
-            <h3>Change Release Level</h3>
-            <div class="form-group">
-              <label for="release-select">Select Release Level:</label>
-              <select
-                id="release-select"
-                v-model="selectedRelease"
-                class="release-select"
-              >
-                <option value="PRIVATE">Private</option>
-                <option value="REGISTERED">Registered</option>
-                <option value="PUBLIC">Public</option>
-              </select>
-            </div>
-
-            <div v-if="releaseError" class="error-message">
-              {{ releaseError }}
-            </div>
-
-            <div v-if="releaseSuccess" class="success-message">
-              Release level updated successfully!
-            </div>
-
-            <div class="form-actions">
-              <button
-                @click="submitRelease"
-                class="btn btn-primary"
-                :disabled="releaseMutationLoading || !selectedRelease"
-              >
-                {{ releaseMutationLoading ? 'Updating...' : 'Update Release' }}
-              </button>
-              <button
-                @click="cancelReleaseForm"
-                class="btn btn-secondary"
-                :disabled="releaseMutationLoading"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-
-
-          <div v-if="controller.controls && controller.controls.length > 0" class="section">
-            <strong>Controls:</strong>
-            <ul class="list">
-              <li v-for="(control, index) in controller.controls" :key="index" class="list-item">
-                <div class="control-info">
-                  <span class="team-name">{{ control.team?.name || 'Unknown Team' }}</span>
-                  <span class="control-details">
-                    <span class="release-badge" :class="'release-' + control.release?.toLowerCase()">
-                      {{ control.release }}
-                    </span>
-                    <span class="control-time">{{ formatDate(control.time) }}</span>
-                  </span>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="controller.writes && controller.writes.length > 0" class="section">
-            <strong>Write History:</strong>
-            <ul class="list">
-              <li v-for="(write, index) in controller.writes" :key="index" class="list-item">
-                <div class="write-info">
-                  <span class="user-name">{{ write.user?.name || 'Unknown User' }}</span>
-                  <span class="write-time">{{ formatDate(write.time) }}</span>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="controller.teams && controller.teams.length > 0" class="section">
-            <strong>Teams:</strong>
-            <ul class="list">
-              <li v-for="team in controller.teams" :key="team.id" class="list-item">
-                <span class="team-name">{{ team.name }}</span>
-                <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="!hasAnyData" class="no-data">
-            No detailed controller information available
-          </div>
-        </div>
-
-        <div v-else class="no-controller">
-          No controller information available
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script setup>
-import { defineProps, defineEmits, computed, ref } from 'vue'
+
+import { computed, ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import SET_RELEASE_MUTATION from '../../graphql/controls/setRelease.graphql'
 
@@ -280,6 +144,145 @@ const formatDate = (dateString) => {
   }
 }
 </script>
+
+<template>
+  <div v-if="isVisible" class="modal-overlay" @click="closeModal">
+    <div class="modal controller-modal" @click.stop>
+      <div class="modal-header">
+        <h2>
+          <span class="controller-icon">🔒</span>
+          Controller Details
+        </h2>
+        <button @click="closeModal" class="modal-close">&times;</button>
+      </div>
+
+      <div class="modal-content">
+        <div v-if="loading" class="loading-state">
+          Loading controller information...
+        </div>
+
+        <div v-else-if="error" class="error-state">
+          <strong>Error:</strong> {{ error }}
+        </div>
+
+        <div v-else-if="controller" class="controller-details">
+          <div class="detail-row">
+            <strong>Created:</strong>
+            <span>{{ formatDate(controller.created) }}</span>
+          </div>
+
+          <div class="detail-row">
+            <strong>Updated:</strong>
+            <span>{{ formatDate(controller.updated) }}</span>
+          </div>
+
+          <div v-if="controller.release" class="detail-row">
+            <strong>Release:</strong>
+            <span
+              class="release-badge clickable"
+              :class="'release-' + controller.release.toLowerCase()"
+              @click="showReleaseForm = true"
+              title="Click to change release level"
+            >
+              {{ controller.release }}
+            </span>
+          </div>
+
+          <!-- Release Change Form -->
+          <div v-if="showReleaseForm" class="release-form">
+            <h3>Change Release Level</h3>
+            <div class="form-group">
+              <label for="release-select">Select Release Level:</label>
+              <select
+                id="release-select"
+                v-model="selectedRelease"
+                class="release-select"
+              >
+                <option value="PRIVATE">Private</option>
+                <option value="REGISTERED">Registered</option>
+                <option value="PUBLIC">Public</option>
+              </select>
+            </div>
+
+            <div v-if="releaseError" class="error-message">
+              {{ releaseError }}
+            </div>
+
+            <div v-if="releaseSuccess" class="success-message">
+              Release level updated successfully!
+            </div>
+
+            <div class="form-actions">
+              <button
+                @click="submitRelease"
+                class="btn btn-primary"
+                :disabled="releaseMutationLoading || !selectedRelease"
+              >
+                {{ releaseMutationLoading ? 'Updating...' : 'Update Release' }}
+              </button>
+              <button
+                @click="cancelReleaseForm"
+                class="btn btn-secondary"
+                :disabled="releaseMutationLoading"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+
+          <div v-if="controller.controls && controller.controls.length > 0" class="section">
+            <strong>Controls:</strong>
+            <ul class="list">
+              <li v-for="(control, index) in controller.controls" :key="index" class="list-item">
+                <div class="control-info">
+                  <span class="team-name">{{ control.team?.name || 'Unknown Team' }}</span>
+                  <span class="control-details">
+                    <span class="release-badge" :class="'release-' + control.release?.toLowerCase()">
+                      {{ control.release }}
+                    </span>
+                    <span class="control-time">{{ formatDate(control.time) }}</span>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="controller.writes && controller.writes.length > 0" class="section">
+            <strong>Write History:</strong>
+            <ul class="list">
+              <li v-for="(write, index) in controller.writes" :key="index" class="list-item">
+                <div class="write-info">
+                  <span class="user-name">{{ write.user?.name || 'Unknown User' }}</span>
+                  <span class="write-time">{{ formatDate(write.time) }}</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="controller.teams && controller.teams.length > 0" class="section">
+            <strong>Teams:</strong>
+            <ul class="list">
+              <li v-for="team in controller.teams" :key="team.id" class="list-item">
+                <span class="team-name">{{ team.name }}</span>
+                <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="!hasAnyData" class="no-data">
+            No detailed controller information available
+          </div>
+        </div>
+
+        <div v-else class="no-controller">
+          No controller information available
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 
 <style scoped>
 .modal-overlay {

@@ -1,5 +1,5 @@
 query {
-      __type(name: "OntologyEntryLabel") {
+      __type(name: "OntologyNodeLabel") {
         enumValues {
           name
           description

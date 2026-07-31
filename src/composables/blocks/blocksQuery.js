@@ -35,7 +35,6 @@ export function useBlocksQuery({locationIds}) {
         }
         const blocks = [...blocksResult.value.blocks.result]
         blocks.sort((a, b) => (a?.name || "").localeCompare(b?.name || "") || (a?.id - b?.id))
-
         return blocks
     })
 

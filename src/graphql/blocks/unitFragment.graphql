@@ -1,12 +1,12 @@
 fragment UnitFields on Unit {
     id
-    subject { name id }
-    germplasm { name id }
+    subject { id versionId view name }
+    germplasm { id name }
     name
     description
     positions {
-        location { name id }
-        layout { id name axes type { id name } }
+        location { id name }
+        layout { id name axes type { id versionId view name } }
         coordinates
         start
         end

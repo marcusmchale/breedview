@@ -7,6 +7,7 @@ import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
 import UpdateStudyModal from './UpdateStudyModal.vue'
 import DeleteStudyModal from './DeleteStudyModal.vue'
+import ReferenceItem from "@/components/references/ReferenceItem.vue";
 
 const props = defineProps({
   studyId: {
@@ -28,7 +29,6 @@ const {
   refetchStudy
 } = useStudyQuery(() => props.studyId)
 
-console.log('study', study.value)
 
 // Modal states
 const isUpdateModalOpen = ref(false)
@@ -95,9 +95,11 @@ const handleDeleteSuccess = () => {
         <!-- Licence Display -->
         <div v-if="study.licence" class="licence-display">
           <strong>Licence:</strong>
-          <span class="licence-info">
-            ⚖️ {{ study.licence.description || 'Legal Reference #' + study.licence.id }}
-          </span>
+          <ReferenceItem
+              :reference="study.licence"
+              :selectable="false"
+              :expanded="false"
+          />
         </div>
 
         <!-- References Display -->

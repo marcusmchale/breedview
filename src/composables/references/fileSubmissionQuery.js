@@ -34,9 +34,11 @@ export function pollFileSubmission({ client, fileId,  pollInterval = 1000, onUpd
         }
       }
     } catch (error) {
-      const errors = [error]
-      if (onUpdate) {
-        onUpdate({ errors });
+      console.error('File submission polling error:', error);
+      stopPolling();
+      const errors = [error.message || 'Polling failed'];
+      if (onComplete) {
+        onComplete({ referenceId: null, status: 'FAILED', errors });
       }
     }
   };

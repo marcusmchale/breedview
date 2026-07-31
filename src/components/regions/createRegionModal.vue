@@ -1,3 +1,72 @@
+<script setup>
+
+import { ref } from 'vue'
+import { useMutateLocations } from "@/composables/regions/mutateLocations";
+import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+
+defineProps({
+  countries: {
+    type: Object,
+    required: true
+  },
+  countriesLoading: {
+    type: Boolean,
+    required: true
+  },
+  countriesError: {
+    type: [Object, null],
+    required: true
+  }
+})
+
+const emit = defineEmits(['success', 'close'])
+
+const {
+  createLocation,
+  createLocationLoading
+} = useMutateLocations()
+
+const selectedCountry = ref(null)
+const errorMessage = ref('')
+const selectedControlTeamId = ref(null)
+
+const handleControlTeamError = (error) => {
+  errorMessage.value = error
+}
+
+const submitRegion = async () => {
+  if (!selectedCountry.value) {
+    errorMessage.value = 'Please select a country'
+    return
+  }
+  errorMessage.value = ''
+  try {
+    const locationData = {
+        name: selectedCountry.value.name,
+        code: selectedCountry.value.code,
+        typeId: selectedCountry.value.typeId
+    }
+    const { status, errors } = await createLocation(locationData, selectedControlTeamId.value)
+    console.log('status:', status)
+    if (status === 'SUCCESS') {
+      emit('success')
+      emit('close')
+    } else {
+      // Handle server errors
+      if (errors && errors.length > 0) {
+        errorMessage.value = errors.map(err => err.message).join(', ')
+      } else {
+        errorMessage.value = 'Failed to create region. Please try again.'
+      }
+    }
+  } catch (error) {
+    console.error('Submit region failed:', error)
+    errorMessage.value = error.message || 'An unexpected error occurred.'
+  }
+}
+
+</script>
+
 <template>
   <div class="modal" @click.stop>
       <div class="modal-header">
@@ -29,6 +98,11 @@
         </div>
 
         <div class="form-actions">
+          <ControlTeamSelector
+            v-model="selectedControlTeamId"
+            class="form-control"
+            @error="handleControlTeamError"
+          />
           <button type="submit" class="btn btn-primary" :disabled="createLocationLoading">
             {{ createLocationLoading ? 'Creating...' : 'Create Region' }}
           </button>
@@ -39,68 +113,6 @@
       </form>
     </div>
 </template>
-
-<script setup>
-
-import { ref } from 'vue'
-import { useMutateLocations } from "@/composables/regions/mutateLocations";
-
-defineProps({
-  countries: {
-    type: Object,
-    required: true
-  },
-  countriesLoading: {
-    type: Boolean,
-    required: true
-  },
-  countriesError: {
-    type: [Object, null],
-    required: true
-  }
-})
-
-const emit = defineEmits(['success', 'close'])
-
-const {
-  createLocation,
-  createLocationLoading
-} = useMutateLocations()
-
-const selectedCountry = ref(null)
-const errorMessage = ref('')
-
-const submitRegion = async () => {
-    if (!selectedCountry.value) {
-    errorMessage.value = 'Please select a country'
-    return
-  }
-  errorMessage.value = ''
-  try {
-    const locationData = {
-        name: selectedCountry.value.name,
-        code: selectedCountry.value.code,
-        typeId: selectedCountry.value.typeId
-    }
-    const { status, errors } = await createLocation(locationData)
-    if (status === 'SUCCESS') {
-      emit('success')
-      emit('close')
-    } else {
-      // Handle server errors
-      if (errors && errors.length > 0) {
-        errorMessage.value = errors.map(err => err.message).join(', ')
-      } else {
-        errorMessage.value = 'Failed to create region. Please try again.'
-      }
-    }
-  } catch (error) {
-    console.error('Submit region failed:', error)
-    errorMessage.value = error.message || 'An unexpected error occurred.'
-  }
-}
-
-</script>
 
 <style scoped>
 

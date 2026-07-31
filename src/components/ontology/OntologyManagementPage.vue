@@ -30,7 +30,6 @@ const isCopyrightModalOpen = ref(false)
 
 
 const canEdit = computed(() => {
-  console.log('user can edit:', ["ADMIN", "EDITOR"].includes( user.value?.ontologyRole ))
   return ["ADMIN", "EDITOR"].includes( user.value?.ontologyRole )
 })
 

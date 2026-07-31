@@ -1,5 +1,5 @@
 query AnalysisSubmission($analysisId: ID!) {
-  analysisSubmission(analysisId: $analysisId) {
+  analysisSubmission(id: $analysisId) {
     status
     result {
       status

@@ -2,9 +2,9 @@ import { computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import { toValue } from 'vue'
 
-import REFERENCES_DESCRIPTION from '@/graphql/references/referencesDescription.graphql'
+import REFERENCES_SEARCH from '@/graphql/references/referencesSearch.graphql'
 
-export function useReferencesSearchQuery(description) {
+export function useReferencesSearchQuery({description, referenceTypes}) {
 
     const queryEnabled = computed(() => {
         const desc = toValue(description)
@@ -17,20 +17,25 @@ export function useReferencesSearchQuery(description) {
         error: searchError,
         refetch: refetchSearch
     } = useQuery(
-        REFERENCES_DESCRIPTION,
-        () => ({ description: toValue(description) }),
+        REFERENCES_SEARCH,
+        () => (
+            {
+                description: toValue(description),
+                referenceTypes: toValue(referenceTypes)
+            }
+        ),
         { enabled: queryEnabled, debounce: 500 }
     )
 
     const searchResults = computed(() => {
-        if (searchResult.value?.referencesDescription?.status === 'SUCCESS') {
-            return searchResult.value.referencesDescription.result || []
+        if (searchResult.value?.referencesSearch?.status === 'SUCCESS') {
+            return searchResult.value.referencesSearch.result || []
         }
         return []
     })
 
     const queryErrors = computed(() => {
-        return searchResult.value?.referencesDescription?.errors || []
+        return searchResult.value?.referencesSearch?.errors || []
     })
 
     return {

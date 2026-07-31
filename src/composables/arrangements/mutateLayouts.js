@@ -1,6 +1,8 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
-import { useCacheUpdates } from "@/composables/system/cacheUpdates";
+
+import { useCurrentVersionQuery } from "@/composables/ontology/currentVersion";
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import LAYOUTS_QUERY from '@/graphql/arrangements/layouts.graphql'
 import LAYOUT_FRAGMENT from '@/graphql/arrangements/layoutFragment.graphql'
@@ -11,9 +13,14 @@ import DELETE_LAYOUT_MUTATION from '@/graphql/arrangements/deleteLayout.graphql'
 
 export function useMutateLayouts() {
 
-    const { updateItem, deleteItem } = useCacheUpdates({
+    const { version: ontologyVersion } = useCurrentVersionQuery()
+    const ontologyVersionId = computed(() => ontologyVersion.value?.id )
+
+    const { updateCache, deleteFromCache } = useCacheUpdates({
         typename: "Layout",
-        fragment: LAYOUT_FRAGMENT
+        fragment: LAYOUT_FRAGMENT,
+        ontologyVersionId: ontologyVersionId,
+        ontologyView: "PUBLISHED"
     })
    
     const loadLayoutIds = ref(null)
@@ -40,8 +47,11 @@ export function useMutateLayouts() {
         error: createLayoutError
     } = useMutation(CREATE_LAYOUT_MUTATION)
 
-    const createLayout = async (layoutData) => {
-        const response = await createLayoutMutation({layout: layoutData})
+    const createLayout = async (layoutData, controlTeamId) => {
+        const response = await createLayoutMutation({
+            layout: layoutData,
+            controlTeamId: controlTeamId
+        })
 
         if (response?.data?.arrangementsCreateLayout) {
             const result = response.data.arrangementsCreateLayout
@@ -66,10 +76,7 @@ export function useMutateLayouts() {
         if (response?.data?.arrangementsUpdateLayout) {
             const result = response.data.arrangementsUpdateLayout
             if (result.status === 'SUCCESS') {
-                updateItem({
-                    updateData: layoutData,
-                    idField: 'layoutId'
-                })
+                updateCache(layoutData)
             }
             const { status, errors} = result
             return { status, errors}
@@ -90,7 +97,7 @@ export function useMutateLayouts() {
         if (response?.data?.arrangementsDeleteLayout) {
             const result = response.data.arrangementsDeleteLayout
             if (result.status === 'SUCCESS') {
-                deleteItem({itemId: layoutId})
+                deleteFromCache({id: layoutId})
             }
             const {status, errors} = result
             return {status, errors}

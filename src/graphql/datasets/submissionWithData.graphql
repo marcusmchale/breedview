@@ -1,6 +1,6 @@
 #import "./recordFragment.graphql"
 query DatasetSubmissionWithData($submissionId: ID!) {
-  datasetsSubmission(submissionId: $submissionId) {
+  datasetsSubmission(id: $submissionId) {
     status
     result {
       data {
