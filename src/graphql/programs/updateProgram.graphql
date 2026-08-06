@@ -1,4 +1,4 @@
-mutation programsUpdateProgram($program: UpdateProgramInput!) {
+mutation programsUpdateProgram($program: ProgramUpdate!) {
   programsUpdateProgram(program: $program) {
     status
     errors {

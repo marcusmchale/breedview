@@ -14,13 +14,14 @@ export function useOntologyQuery({versionId, view}) {
         refetch: ontologyRefetch
     } = useQuery(
         ONTOLOGY_QUERY,
-        {
+        () => ({
             versionId: toValue(versionId) || null,
             view: toValue(view) || null
-        }
-    )
+        }),
+        { enabled: computed( () => toValue(versionId) !== null) } )
 
     const ontology = computed(() => {
+        console.log('recompute ontology')
         return result.value?.ontology?.result
     })
 

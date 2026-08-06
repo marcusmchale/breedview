@@ -1,4 +1,4 @@
-mutation programsUpdateTrial($trial: UpdateTrialInput!) {
+mutation programsUpdateTrial($trial: TrialUpdate!) {
   programsUpdateTrial(trial: $trial) {
     status
     errors {

@@ -18,7 +18,7 @@ import GERMPLASM_ENTRIES_QUERY from '@/graphql/germplasm/entries.graphql'
 const { result, loading, error } = useQuery(GERMPLASM_CROPS_QUERY, {fetchPolicy: 'cache-and-network'})
 
 // Query to get all entries - used for selection AND for expanding
-const { refetch: refetchAllEntries } = useQuery(GERMPLASM_ENTRIES_QUERY, {
+const { result: allEntriesResult, refetch: refetchAllEntries } = useQuery(GERMPLASM_ENTRIES_QUERY, {
   entryIds: null,
   names: null
 
@@ -48,6 +48,7 @@ const deleteError = ref('')
 // Computed property to get all unique entries (excluding hidden ones)
 // This is used for both the graph display AND the dropdown selections
 const allEntries = computed(() => {
+
   const crops = result.value?.germplasmCrops?.result || []
 
   // Start with crops
@@ -64,7 +65,6 @@ const allEntries = computed(() => {
       entriesMap.set(id, entry)
     }
   })
-
   return Array.from(entriesMap.values())
 })
 
@@ -226,6 +226,24 @@ const handleCollapseSinks = (entry) => {
 
   // Trigger reactivity
   hiddenEntryIds.value = new Set(hiddenEntryIds.value)
+}
+
+const handleToggleExpanded = (entry) => {
+  console.debug('handleToggleExpanded', entry)
+  const sinkIds = entry.data?.sinks?.map(sinkRel => sinkRel.sink.id).filter(Boolean) || []
+  if (sinkIds.length === 0) {
+    return
+  }
+  console.log('sinkIds', sinkIds)
+  const visibleSinkIds = sinkIds.filter(id => !hiddenEntryIds.value.has(id))
+  console.log('visibleSinkIds', visibleSinkIds)
+  const loadedEntryIds = sinkIds.filter(id => loadedEntries.value.has(id))
+  console.log('loadedEntryIds', loadedEntryIds)
+  if (loadedEntryIds.length > 0 && visibleSinkIds.length === loadedEntryIds.length) {
+    handleCollapseSinks(entry)
+  } else {
+    handleExpandSinks(entry)
+  }
 }
 
 const handleCreateSuccess = async ({ entryName, sourceIds, sinkIds }) => {
@@ -422,6 +440,7 @@ const handleControllerReleaseUpdated = async () => {
         @expand-sources="handleExpandSources"
         @expand-sinks="handleExpandSinks"
         @collapse-sources="handleCollapseSources"
+        @toggle-expanded="handleToggleExpanded"
         @collapse-sinks="handleCollapseSinks"
         @update-entry="handleUpdateEntry"
         @delete-entry="handleDeleteEntry"

@@ -1,8 +1,10 @@
 query ontologyCommitHistory(
     $limit: Int
+    $lastVersionId: ID
 ) {
     ontologyCommitHistory(
         limit: $limit
+        lastVersionId: $lastVersionId
     ){
         status
         result {

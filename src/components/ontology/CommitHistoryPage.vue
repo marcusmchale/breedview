@@ -1,20 +1,112 @@
+<script setup>
+
+import { ref, computed } from 'vue'
+import { useQuery } from '@vue/apollo-composable'
+import { useRouter } from 'vue-router'
+
+import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
+import OntologyNetworkGraph from "@/components/ontology/OntologyNetworkGraph.vue";
+
+import { useOntologyQuery } from "@/composables/ontology/ontologyQuery";
+
+// Pagination
+const lastVersionId = ref(null)
+const versionCursorHistory = ref([])
+const limit = ref(10)
+
+// Graph display
+const selectedVersion = ref(null)
+
+const { result, loading, error, refetch } = useQuery(
+  COMMIT_HISTORY,
+  () => ({
+    limit: limit.value,
+    lastVersionId: lastVersionId.value
+  })
+)
+
+const commits = computed(() =>
+  result.value?.ontologyCommitHistory?.result || []
+)
+
+const formatVersion = (version) => {
+  if (!version) return 'N/A'
+  return `${version.major}.${version.minor}.${version.patch}`
+}
+
+const formatDate = (timestamp) => {
+  return new Date(timestamp).toISOString()
+}
+
+const hasPrior = computed(() => {
+  console.log(versionCursorHistory.value.length > 0)
+  console.log(versionCursorHistory.value)
+  return versionCursorHistory.value.length > 0
+})
+const hasMore = computed( () =>
+    commits.value?.length < limit || true
+)
+
+const loadNext = () => {
+  versionCursorHistory.value.push(lastVersionId.value)
+  console.log('commits', commits.value.at(-1))
+  lastVersionId.value = commits.value.at(-1).version.id
+  selectedVersion.value = null
+  refetch()
+}
+
+const loadPrevious = () => {
+  lastVersionId.value = versionCursorHistory.value.pop()
+  selectedVersion.value = null
+  refetch()
+}
+
+const toggleSelectVersion = (versionId) => {
+  if (selectedVersion.value === versionId) {selectedVersion.value = null}
+  else selectedVersion.value = versionId
+  console.log('selectedVersion', selectedVersion.value)
+}
+
+
+const {
+    ontology,
+    ontologyLoading,
+    ontologyErrors,
+    ontologyRefetch,
+} = useOntologyQuery({ versionId: selectedVersion, view: "PUBLISHED" })
+
+</script>
+
 <template>
   <div class="commit-history-page">
     <h1>Commit History</h1>
-    
+
+    <div v-if="selectedVersion" class="graph-container">
+      <OntologyNetworkGraph
+        v-if="ontology"
+        :ontology="ontology"
+        :lifecycleFilters="false"
+      />
+    </div>
+
     <div v-if="loading">Loading commit history...</div>
     <div v-else-if="error">Error: {{ error.message }}</div>
-    
+
     <div v-else>
       <div class="commits-list">
-        <div 
-          v-for="commit in commits" 
+        <div
+          v-for="commit in commits"
           :key="commit.id"
           class="commit-card"
         >
           <div class="commit-header">
             <h3>Version {{ formatVersion(commit.version) }}</h3>
             <span class="commit-time">{{ formatDate(commit.time) }}</span>
+            <button
+              @click="toggleSelectVersion(commit.version.id)"
+              class="btn-display"
+              :class="{ active: selectedVersion === commit.version.id }"
+            >Display</button>
           </div>
           <div class="commit-body">
             <p><strong>Comment:</strong> {{ commit.comment || 'No comment' }}</p>
@@ -29,91 +121,38 @@
       </div>
 
       <div class="pagination-controls">
-        <button 
-          @click="loadPrevious" 
-          :disabled="offset === 0"
+        <button
+          @click="loadPrevious"
+          :disabled="!hasPrior"
           class="btn-pagination"
         >
           Previous
         </button>
-        <span class="pagination-info">
-          Showing {{ offset + 1 }} - {{ offset + commits.length }} of {{ totalCommits || '?' }}
-        </span>
-        <button 
-          @click="loadNext" 
+        <button
+          @click="loadNext"
           :disabled="!hasMore"
           class="btn-pagination"
         >
           Next
         </button>
       </div>
-
-      <div class="actions">
-        <button @click="goBack" class="btn-back">
-          Back to Ontology Management
-        </button>
-      </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
-import { useRouter } from 'vue-router'
-import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
-
-const router = useRouter()
-const offset = ref(0)
-const limit = ref(5)
-
-const { result, loading, error, refetch } = useQuery(
-  COMMIT_HISTORY,
-  () => ({
-    limit: limit.value,
-    offset: offset.value
-  }),
-  { fetchPolicy: 'network-only' }
-)
-
-const commits = computed(() =>
-  result.value?.ontologyCommitHistory?.result || []
-)
-
-const totalCommits = computed(() =>
-  result.value?.ontologyCommitHistory?.total || null
-)
-
-const hasMore = computed(() => {
-  if (!totalCommits.value) return commits.value.length === limit.value
-  return offset.value + commits.value.length < totalCommits.value
-})
-
-const formatVersion = (version) => {
-  if (!version) return 'N/A'
-  return `${version.major}.${version.minor}.${version.patch}`
-}
-
-const formatDate = (timestamp) => {
-  return new Date(timestamp).toLocaleString()
-}
-
-const loadNext = () => {
-  offset.value += limit.value
-  refetch()
-}
-
-const loadPrevious = () => {
-  offset.value = Math.max(0, offset.value - limit.value)
-  refetch()
-}
-
-const goBack = () => {
-  router.push({ name: 'Ontology' })
-}
-</script>
-
 <style scoped>
+.graph-container {
+  width: 100%;
+  height: 600px;
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
+
+
 .commit-history-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -166,9 +205,28 @@ const goBack = () => {
   margin: 2rem 0;
 }
 
-.pagination-info {
-  color: #666;
-  font-size: 0.9em;
+.btn-display {
+  background-color: #d0d0d0;
+  color: #333;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-weight: 500;
+}
+
+.btn-display:hover {
+  background-color: #b8b8b8;
+}
+
+.btn-display.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-display.active:hover {
+  background-color: #45a049;
 }
 
 .btn-pagination {

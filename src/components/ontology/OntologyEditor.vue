@@ -41,9 +41,6 @@ const {
 const { getCreateEntriesForLabels } = useOntologySchema()
 const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
 
-const availableLifeCyclePhases = ['DRAFT', 'ACTIVE', 'DEPRECATED', 'REMOVED']
-const selectedPhases = ref(['DRAFT', 'ACTIVE'])
-const selectedLabels = ref([])
 const showForm = ref(false)
 const formTitle = ref('')
 const formFields = ref([])
@@ -51,23 +48,6 @@ const currentMutation = ref(null)
 const currentEntryId = ref(null)
 const formData = ref({})
 const updateFormPhase = ref(null)
-
-// Toggle functions
-const togglePhaseSelection = (phase) => {
-  if (selectedPhases.value.includes(phase)) {
-    selectedPhases.value = selectedPhases.value.filter(p => p !== phase)
-  } else {
-    selectedPhases.value.push(phase)
-  }
-}
-
-const toggleLabelFilter = (label) => {
-  if (selectedLabels.value.includes(label)) {
-    selectedLabels.value = selectedLabels.value.filter(l => l !== label)
-  } else {
-    selectedLabels.value.push(label)
-  }
-}
 
 // Form management
 const openForm = (title, fields, mutation, entryPhase = null) => {
@@ -223,9 +203,7 @@ const handleSubmit = async (formDataValues) => {
           value
       ])
     )
-
     const result = await currentMutation.value(processedFormData)
-
     if (result?.data) {
       const mutationKey = Object.keys(result.data)[0]
       const response = result.data[mutationKey]
@@ -252,51 +230,12 @@ const handleSubmit = async (formDataValues) => {
 
 <template>
   <div ref="OntologyEditor"></div>
-
-  <div class="ontology-actions">
-      <section>
-        <h2>Filter by Life Cycle Phases</h2>
-        <div class="phase-selection">
-          <button
-            v-for="phase in availableLifeCyclePhases"
-            :key="phase"
-            @click="togglePhaseSelection(phase)"
-            :class="{ 'selected': selectedPhases.includes(phase) }"
-          >
-            {{ phase }}
-          </button>
-        </div>
-      </section>
-    </div>
-
-    <section>
-      <h2>Filter by Ontology Labels</h2>
-      <div class="label-filter">
-        <button
-          v-for="(entry, index) in createEntriesForLabels"
-          :key="index"
-          :title="`${entry.description} (${entry.code})`"
-          :style="{
-            backgroundColor: entry.color,
-            color: 'white',
-            opacity: selectedLabels.length === 0 || selectedLabels.includes(entry.enumLabel) ? 1 : 0.3
-          }"
-          @click="toggleLabelFilter(entry.enumLabel)"
-          class="ontology-button label-filter-button"
-        >
-          {{ entry.label }}
-        </button>
-      </div>
-    </section>
-
     <div v-if="ontologyErrors.length" class="error">Errors: {{ ontologyErrors }}</div>
     <div v-if="ontologyLoading">Loading ontology entries...</div>
-    <div v-else>
+    <div v-else class="graph-container">
       <OntologyNetworkGraph
         v-if="ontology"
         :ontology="ontology"
-        :selected-labels="selectedLabels"
-        :selected-phases="selectedPhases"
         @node-right-click="handleNodeRightClick"
       />
     </div>
@@ -411,6 +350,16 @@ const handleSubmit = async (formDataValues) => {
 </template>
 
 <style scoped>
+.graph-container {
+  width: 100%;
+  height: 600px;
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
 
 .form-modal {
   position: fixed;
@@ -468,35 +417,6 @@ const handleSubmit = async (formDataValues) => {
   background-color: #da190b;
 }
 
-/* Existing styles ... */
-.phase-selection {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.phase-selection button {
-  padding: 0.5rem 1rem;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.phase-selection button.selected {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.phase-selection button:hover {
-  background-color: #e0e0e0;
-}
-
-.phase-selection button.selected:hover {
-  background-color: #45a049;
-}
-
 .btn-secondary:hover {
   background-color: #da190b;
 }
@@ -528,15 +448,6 @@ const handleSubmit = async (formDataValues) => {
   cursor: pointer;
   transition: background-color 0.3s, opacity 0.3s;
 }
-
-.label-filter button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
 
 .ontology-button {
   padding: 0.5rem 1rem;

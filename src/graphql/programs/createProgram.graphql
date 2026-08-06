@@ -1,5 +1,5 @@
 mutation programsCreateProgram(
-  $program: CreateProgramInput!
+  $program: ProgramInput!
   $controlTeamId: ID!
 ) {
   programsCreateProgram(

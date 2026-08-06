@@ -1,4 +1,4 @@
-mutation updateStudy($study: UpdateStudyInput!) {
+mutation updateStudy($study: StudyUpdate!) {
   programsUpdateStudy(study: $study) {
     status
     errors {

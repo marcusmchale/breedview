@@ -35,20 +35,21 @@ export function useMutateOntology( { versionId, view } ) {
 
     const toRefetchEntryIds = ref(null)
     const { refetch: refetchEntries } = useOntologyEntriesQuery(
-        { entryIds: toRefetchEntryIds, labels:null, view:"EDITORIAL"}
+        { entryIds: toRefetchEntryIds, labels:null, view: view }
     )
 
     const toRefetchRelationshipsEntryIds = ref(null)
     const { refetch: refetchRelationships, relationships, onRelationshipsResult } = useOntologyRelationshipsQuery(
-        { entryIds:toRefetchRelationshipsEntryIds, view:"EDITORIAL"}
+        { entryIds:toRefetchRelationshipsEntryIds, view: view }
     )
 
     // whenever we get a new relationships result we need to:
     // insert any new relationships into the ontology relationships array (if versionId and view match)
     // and refetch nodes at either end of the retrieved relationships
     onRelationshipsResult(async () => {
+        console.log('Relationships retrieved', relationships.value)
         insertOntologyRelationships(relationships.value)
-        const idsSet = new Set();
+        const idsSet = new Set(toRefetchRelationshipsEntryIds.value);
 
         for (const { sourceId, targetId } of relationships.value) {
           idsSet.add(sourceId);
@@ -61,6 +62,7 @@ export function useMutateOntology( { versionId, view } ) {
     const refetchConnected = async (entryId) => {
         toRefetchRelationshipsEntryIds.value=[entryId]
         await refetchRelationships()
+
     }
 
     const {
@@ -77,7 +79,6 @@ export function useMutateOntology( { versionId, view } ) {
             const result = response.data.ontologyDeprecateEntries
             if (result.status === 'SUCCESS') {
                 entryIds.forEach((id) => {
-                    console.log('update cache for entry ID', id, versionId)
                     updateCache({
                         id: id, versionId: versionId, view: view,
                         phase: "DEPRECATED"

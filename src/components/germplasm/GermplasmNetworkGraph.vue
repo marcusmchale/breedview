@@ -1,51 +1,3 @@
-<template>
-  <div>
-    <div ref="graphContainer" class="germplasm-network-graph"></div>
-
-    <!-- Context Menu -->
-    <div
-      v-if="contextMenu.show"
-      :style="{
-        position: 'fixed',
-        left: contextMenu.x + 'px',
-        top: contextMenu.y + 'px',
-        zIndex: 1000
-      }"
-      class="context-menu"
-      @click.stop
-    >
-      <div class="menu-item" @click="expandSources">
-        Expand Sources
-      </div>
-      <div class="menu-item" @click="expandSinks">
-        Expand Sinks
-      </div>
-      <div class="menu-item" @click="collapseSources">
-        Collapse Sources
-      </div>
-      <div class="menu-item" @click="collapseSinks">
-        Collapse Sinks
-      </div>
-      <div class="menu-item" @click="updateEntry">
-        Update entry
-      </div>
-      <div class="menu-item" @click="manageControllers">
-        Manage Controllers
-      </div>
-      <div class="menu-item menu-item-danger" @click="deleteEntry">
-        Delete entry
-      </div>
-    </div>
-
-    <!-- Overlay to close context menu -->
-    <div
-      v-if="contextMenu.show"
-      class="context-menu-overlay"
-      @click="closeContextMenu"
-    ></div>
-  </div>
-</template>
-
 <script setup>
 import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import * as d3 from 'd3'
@@ -63,6 +15,7 @@ const emit = defineEmits([
   'expand-sinks',
   'collapse-sources',
   'collapse-sinks',
+  'toggle-expanded',
   'update-entry',
   'delete-entry',
   'manage-controllers'
@@ -95,6 +48,10 @@ const expandSinks = () => {
     emit('expand-sinks', contextMenu.value.entry)
   }
   closeContextMenu()
+}
+
+const toggleExpanded = (entry) => {
+  emit('toggle-expanded', entry)
 }
 
 const collapseSources = () => {
@@ -297,19 +254,20 @@ const renderGraph = async () => {
       }
     })
     .on("dblclick", (event, d) => {
+      toggleExpanded(d)
       // Double-click to release/lock the entry
-      if (d.fx !== null) {
-        d.fx = null
-        d.fy = null
-      } else {
-        d.fx = d.x
-        d.fy = d.y
-      }
-      // Update visual indicator
-      d3.select(event.currentTarget)
-        .attr("stroke", d.fx !== null ? "#333" : "#fff")
-
-      simulation.alpha(0.3).restart()
+      //if (d.fx !== null) {
+      //  d.fx = null
+      //  d.fy = null
+      //} else {
+      //  d.fx = d.x
+      //  d.fy = d.y
+      //}
+      //// Update visual indicator
+      //d3.select(event.currentTarget)
+      //  .attr("stroke", d.fx !== null ? "#333" : "#fff")
+      //
+      //simulation.alpha(0.3).restart()
     })
 
   // Add tooltip on hover
@@ -393,6 +351,54 @@ watch(() => props.entries, () => {
   renderGraph()
 }, { deep: true })
 </script>
+
+<template>
+  <div>
+    <div ref="graphContainer" class="germplasm-network-graph"></div>
+
+    <!-- Context Menu -->
+    <div
+      v-if="contextMenu.show"
+      :style="{
+        position: 'fixed',
+        left: contextMenu.x + 'px',
+        top: contextMenu.y + 'px',
+        zIndex: 1000
+      }"
+      class="context-menu"
+      @click.stop
+    >
+      <div class="menu-item" @click="expandSources">
+        Expand Sources
+      </div>
+      <div class="menu-item" @click="expandSinks">
+        Expand Sinks
+      </div>
+      <div class="menu-item" @click="collapseSources">
+        Collapse Sources
+      </div>
+      <div class="menu-item" @click="collapseSinks">
+        Collapse Sinks
+      </div>
+      <div class="menu-item" @click="updateEntry">
+        Update entry
+      </div>
+      <div class="menu-item" @click="manageControllers">
+        Manage Controllers
+      </div>
+      <div class="menu-item menu-item-danger" @click="deleteEntry">
+        Delete entry
+      </div>
+    </div>
+
+    <!-- Overlay to close context menu -->
+    <div
+      v-if="contextMenu.show"
+      class="context-menu-overlay"
+      @click="closeContextMenu"
+    ></div>
+  </div>
+</template>
 
 <style scoped>
 .germplasm-network-graph {

@@ -1,5 +1,5 @@
 mutation programsCreateStudy(
-  $study: CreateStudyInput!
+  $study: StudyInput!
   $controlTeamId: ID!
 ) {
   programsCreateStudy(

@@ -115,7 +115,8 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Location', 'children'),
     ...createReplaceOnMergePolicy('Layout', 'children'),
     ...createReplaceOnMergePolicy('Scale', 'categories'),
-    ...createReplaceOnMergePolicy('Category', 'scales')
+    ...createReplaceOnMergePolicy('Category', 'scales'),
+    ...createReplaceOnMergePolicy('Term', 'subjects'),
   }
 })
 

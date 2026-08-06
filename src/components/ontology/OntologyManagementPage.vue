@@ -109,6 +109,7 @@ const handleCommitVersionSubmit = async (formDataValues) => {
       alert('Ontology version committed!')
       closeCommitVersionForm()
       await latestCommitHistoryQuery.refetch()
+
     }
   } catch (error) {
     console.error('Commit version mutation error:', error)
@@ -137,7 +138,13 @@ const formatVersion = (version) => {
   <div class="ontology-management-page">
     <h1>Ontology</h1>
 
-    <OntologyEditor v-if="latestCommit" :versionId="latestCommit.version.id" :editor="canEdit" :creator="canCreate"/>
+    <OntologyEditor
+        v-if="latestCommit"
+        :versionId="latestCommit.version.id"
+        :editor="canEdit"
+        :creator="canCreate"
+        :key="latestCommit.version.id"
+    />
 
     <section>
         <h2>Latest Commit</h2>

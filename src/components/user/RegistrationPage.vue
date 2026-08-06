@@ -68,7 +68,7 @@ const submitHandler = async (formData) => {
       password: formData.password
     })
 
-    if (response.data.accountsCreateAccount.status === 'SUCCESS') {
+    if (response.data?.accountsCreateAccount.status === 'SUCCESS') {
       success.value = 'Registration successful! Redirecting to login...'
       setTimeout(() => {
         emit('registrationComplete')

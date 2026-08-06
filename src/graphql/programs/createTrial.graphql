@@ -1,5 +1,5 @@
 mutation programsCreateTrial(
-  $trial: CreateTrialInput!
+  $trial: TrialInput!
   $controlTeamId: ID!
 ) {
   programsCreateTrial(
