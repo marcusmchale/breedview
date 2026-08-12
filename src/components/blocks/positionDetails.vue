@@ -22,18 +22,46 @@ const {
   removePositionError
 } = useMutatePositions({unitId: props.unitId})
 
+const positionsSorted = computed(() => {
+  return [...props.positions].sort((a, b) => {
+    const aStart = a.start ? new Date(a.start).getTime() : null
+    const bStart = b.start ? new Date(b.start).getTime() : null
+
+    // Both have a start date
+    if (aStart !== null && bStart !== null) {
+      if (aStart !== bStart) {
+        return aStart - bStart
+      }
+
+      // Same start: sort by end date
+      const aEnd = a.end ? new Date(a.end).getTime() : null
+      const bEnd = b.end ? new Date(b.end).getTime() : null
+
+      if (aEnd === null && bEnd === null) return 0
+      if (aEnd === null) return 1
+      if (bEnd === null) return -1
+
+      return aEnd - bEnd
+    }
+
+    // Started positions come before positions without a start
+    if (aStart !== null) return -1
+    if (bStart !== null) return 1
+
+    // Neither has a start: fall back to end date
+    const aEnd = a.end ? new Date(a.end).getTime() : null
+    const bEnd = b.end ? new Date(b.end).getTime() : null
+
+    if (aEnd === null && bEnd === null) return 0
+    if (aEnd === null) return 1
+    if (bEnd === null) return -1
+
+    return aEnd - bEnd
+  })
+})
+
 const currentPosition = computed(() => {
-  if (!props.positions?.length) return null
-  // First try to find a position with no end date
-  const activePosition = props.positions.find(p => !p.end)
-  if (activePosition) return activePosition
-  // Otherwise return the position with the most recent start date
-  return props.positions.reduce((latest, current) => {
-    if (!latest) return current
-    const latestStart = latest.start ? new Date(latest.start) : new Date(0)
-    const currentStart = current.start ? new Date(current.start) : new Date(0)
-    return currentStart > latestStart ? current : latest
-  }, null)
+  return positionsSorted.value[positionsSorted.value?.length - 1] || null
 })
 
 const showHistory = ref(false)
@@ -89,7 +117,7 @@ const formatDate = (dateString) => {
       Layout: {{ currentPosition.layout.name || `${currentPosition.layout.type.name} ${currentPosition.layout.type.id}` }}
     </div>
     <div v-if="currentPosition.coordinates && currentPosition.coordinates.length > 0">
-      Coordinates: {{ currentPosition.coordinates.join(', ') }}
+      Coordinates: {{ currentPosition.coordinates.join(', ') }} ({{ currentPosition.coordinates.length }})
     </div>
     <div v-if="currentPosition.start">
       Start: {{ formatDate(currentPosition.start) }}

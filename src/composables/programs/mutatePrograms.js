@@ -1,3 +1,4 @@
+import { toValue } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 
 import CREATE_PROGRAM_MUTATION from '@/graphql/programs/createProgram.graphql'
@@ -12,10 +13,11 @@ export function useMutatePrograms() {
     error: createProgramError
   } = useMutation(CREATE_PROGRAM_MUTATION)
 
-  const createProgram = async (programData, controlTeamId) => {
+  const createProgram = async ({ programData, controlTeamId, release }) => {
     const response = await createProgramMutation({
       program: programData,
-      controlTeamId: controlTeamId
+      controlTeamId: toValue(controlTeamId),
+      release: toValue(release)
     })
     if (response?.data?.programsCreateProgram) {
       const { status, errors } = response.data.programsCreateProgram

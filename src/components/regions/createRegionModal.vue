@@ -2,7 +2,7 @@
 
 import { ref } from 'vue'
 import { useMutateLocations } from "@/composables/regions/mutateLocations";
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 defineProps({
   countries: {
@@ -29,6 +29,7 @@ const {
 const selectedCountry = ref(null)
 const errorMessage = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (error) => {
   errorMessage.value = error
@@ -46,8 +47,12 @@ const submitRegion = async () => {
         code: selectedCountry.value.code,
         typeId: selectedCountry.value.typeId
     }
-    const { status, errors } = await createLocation(locationData, selectedControlTeamId.value)
-    console.log('status:', status)
+    const { status, errors } = await createLocation({
+      locationData: locationData,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
+
     if (status === 'SUCCESS') {
       emit('success')
       emit('close')
@@ -98,8 +103,10 @@ const submitRegion = async () => {
         </div>
 
         <div class="form-actions">
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
+            fixedRelease="PUBLIC"
             class="form-control"
             @error="handleControlTeamError"
           />

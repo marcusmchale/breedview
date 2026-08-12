@@ -16,9 +16,9 @@ export function useOntologySchema() {
             console.warn(`No label config found for ${enumValue.name}`)
             return null
           }
-
           return {
             label: labelConfig.text,
+            typename: labelConfig.PascalCase,
             method: `create${labelConfig.PascalCase}`,
             description: enumValue.description || '',
             enumLabel: enumValue.name,

@@ -4,7 +4,8 @@ import { FormKit } from '@formkit/vue'
 
 import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
-import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
+import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
   trial: {
@@ -177,6 +178,7 @@ const submitForm = async (values) => {
     <!-- References Modal -->
     <EntityReferencesModal
       :visible="isReferencesModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"

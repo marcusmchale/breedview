@@ -4,7 +4,7 @@ import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { pollFileSubmission } from '@/composables/references/fileSubmissionQuery'
 
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import UploadStatus from '@/components/references/UploadStatus.vue'
 
@@ -41,6 +41,7 @@ const uploadProgress = ref(0)
 const uploadErrors = ref([])
 const createdReferenceId = ref(null)
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
   formError.value = errorMessage
@@ -148,9 +149,13 @@ const submitForm = async () => {
             uploadStatus.value = 'uploading'
 
             const { result: fileId, status, errors } = await createFileReference({
-                description: formData.value.description?.trim() || null,
-                file: formData.value.file
-            }, selectedControlTeamId.value)
+              reference: {
+                  description: formData.value.description?.trim() || null,
+                  file: formData.value.file
+              },
+              controlTeamId: selectedControlTeamId,
+              release: selectedRelease
+            })
 
             if (status === 'SUCCESS') {
                 startFilePolling(fileId)
@@ -233,8 +238,9 @@ const resetForm = () => {
         </div>
 
         <div class="form-actions">
-            <ControlTeamSelector
-              v-model="selectedControlTeamId"
+            <ControlSelector
+              v-model:controlTeamId="selectedControlTeamId"
+              v-model:readRelease="selectedRelease"
               class="form-control"
               @error="handleControlTeamError"
             />

@@ -16,7 +16,10 @@ import CurationTableCell from './CurationTableCell.vue'
 import CurationTableFooter from './CurationTableFooter.vue'
 import LoadingOverlay from '@/components/datasets/LoadingOverlay.vue'
 import ControllerModal from '@/components/controls/ControllerModal.vue'
-import DataReferenceModal from '@/components/references/DataReferenceModal.vue'
+
+import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
+
 
 const props = defineProps({
   datasetIds: { type: Array, required: true },
@@ -157,7 +160,6 @@ const getSelectedReferenceIds = () => {
 }
 
 const handleFileReferenceSave = (references) => {
-  console.log('handle file reference save with references', references)
   if (fileReferenceRowIndex.value !== null && fileReferenceConceptId.value !== null) {
     updateCellReferences(fileReferenceRowIndex.value, fileReferenceConceptId.value, references)
   }
@@ -328,9 +330,10 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       @close="showControllerModal = false"
     />
 
-    <DataReferenceModal
+    <ReferencesModal
       :visible="showFileReferenceModal"
-      :selected-reference-ids="getSelectedReferenceIds()"
+      :referenceTypes="DATA_REFERENCE_TYPE_CONFIGS"
+      :selectedReferenceIds="getSelectedReferenceIds()"
       @close="closeFileReferenceModal"
       @save="handleFileReferenceSave"
     />

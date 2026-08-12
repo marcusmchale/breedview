@@ -1,10 +1,12 @@
 mutation programsCreateTrial(
   $trial: TrialInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   programsCreateTrial(
     trial: $trial
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

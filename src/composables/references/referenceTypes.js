@@ -47,6 +47,18 @@ export const ENTITY_REFERENCE_TYPE_CONFIGS = [
     REFERENCE_TYPE_CONFIGS.FILE
 ]
 
+export const EXTERNAL_REFERENCE_TYPE_CONFIGS = [
+    REFERENCE_TYPE_CONFIGS.EXTERNAL
+]
+
+// Named groups
+export const REFERENCE_TYPE_GROUPS = {
+    ENTITY: ENTITY_REFERENCE_TYPE_CONFIGS,
+    DATA: DATA_REFERENCE_TYPE_CONFIGS,
+    LICENSE: [REFERENCE_TYPE_CONFIGS.LEGAL],
+    EXTERNAL: EXTERNAL_REFERENCE_TYPE_CONFIGS,
+}
+
 const REFERENCE_TYPE_BY_TYPENAME = Object.fromEntries(
   Object.values(REFERENCE_TYPE_CONFIGS).map(config => [
     config.typename,
@@ -85,4 +97,13 @@ export function isFileReference(reference) {
 export function isSelectableForEntity(reference) {
     // For Programs, Trials, Studies - exclude data references
     return !isDataReference(reference)
+}
+
+export function getReferenceTypesForGroup(groupName) {
+  return REFERENCE_TYPE_GROUPS[groupName] || []
+}
+
+export function isReferenceTypeInList(reference, typeConfigs) {
+  const refType = getReferenceTypeConfig(reference)
+  return typeConfigs.includes(refType)
 }

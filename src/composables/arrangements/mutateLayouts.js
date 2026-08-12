@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, toValue } from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
 
 import { useCurrentVersionQuery } from "@/composables/ontology/currentVersion";
@@ -47,10 +47,11 @@ export function useMutateLayouts() {
         error: createLayoutError
     } = useMutation(CREATE_LAYOUT_MUTATION)
 
-    const createLayout = async (layoutData, controlTeamId) => {
+    const createLayout = async ( { layoutData, controlTeamId, release } ) => {
         const response = await createLayoutMutation({
             layout: layoutData,
-            controlTeamId: controlTeamId
+            controlTeamId: toValue(controlTeamId),
+            release: toValue(release)
         })
 
         if (response?.data?.arrangementsCreateLayout) {

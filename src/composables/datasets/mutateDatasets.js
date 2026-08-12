@@ -1,3 +1,4 @@
+import { toValue } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 
 import CREATE_DATASET from "@/graphql/datasets/createDataset.graphql";
@@ -14,13 +15,13 @@ export function useMutateDatasets() {
   const { mutate: removeRecordsMutation, loading: removeLoading, error: removeError } =
     useMutation(REMOVE_RECORDS);
 
-  const createDataset = async (dataset, controlTeamId) => {
-    const result = await createDatasetMutation({ dataset: dataset, controlTeamId: controlTeamId });
+  const createDataset = async ({ dataset, controlTeamId, release }) => {
+    const result = await createDatasetMutation({ dataset: toValue(dataset), controlTeamId: toValue(controlTeamId), release:toValue(release)  });
     return result?.data?.datasetsCreate;
   };
 
   const updateDataset = async (dataset) => {
-    const result = await updateDatasetMutation({ dataset });
+    const result = await updateDatasetMutation({dataset: toValue(dataset)});
     return result?.data?.datasetsUpdate;
   };
 

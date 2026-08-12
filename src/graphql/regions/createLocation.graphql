@@ -1,10 +1,12 @@
 mutation regionsCreateLocation(
   $location: LocationInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   regionsCreateLocation(
     location: $location
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

@@ -19,10 +19,12 @@ export function useGermplasmLazyQuery() {
         result: germplasmResult,
         load: loadGermplasm,
         loading: germplasmLoading,
-        error: germplasmError
+        error: germplasmError,
+        refetch: refetchGermplasm
     } = useLazyQuery(ENTRIES_QUERY, variables)
 
     const germplasm = computed(() => {
+        console.log('germplasmResult', germplasmResult.value)
         const result = germplasmResult.value?.germplasmEntries?.result || []
         const germplasm = [...result]
         germplasm.sort((a, b) => (a?.name || "").localeCompare(b?.name || "") || (a?.id - b?.id))
@@ -45,6 +47,11 @@ export function useGermplasmLazyQuery() {
         loadGermplasm()
     }
 
+    const refetchGermplasmByIds = async (ids) => {
+        germplasmIds.value = ids
+        await refetchGermplasm()
+    }
+
     return {
         germplasm,
         germplasmLoading,
@@ -52,7 +59,8 @@ export function useGermplasmLazyQuery() {
 
         loadGermplasm,
         loadChildGermplasm,
-        loadGermplasmByIds
+        loadGermplasmByIds,
+        refetchGermplasmByIds
 
     }
 }

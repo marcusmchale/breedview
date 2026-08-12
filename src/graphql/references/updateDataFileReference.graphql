@@ -1,4 +1,4 @@
-mutation referencesUpdateDataFile($reference: UpdateDataFileReferenceInput!) {
+mutation referencesUpdateDataFile($reference: DataFileReferenceUpdate!) {
   referencesUpdateDataFile(reference: $reference) {
     status
     result

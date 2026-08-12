@@ -244,10 +244,10 @@ type Mutation {
 
   """Submit an analysis request"""
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
-  arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!): BooleanPayload!
+  arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
   arrangementsDeleteLayout(id: ID!): BooleanPayload!
-  blocksCreateUnit(unit: UnitInput!, controlTeamId: ID!, position: PositionInput): BooleanPayload!
+  blocksCreateUnit(unit: UnitInput!, controlTeamId: ID!, release: ReadRelease, position: PositionInput): BooleanPayload!
   blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
   blocksDeleteUnit(id: ID!): BooleanPayload!
   blocksAddPosition(id: ID!, position: PositionInput!): BooleanPayload!
@@ -258,13 +258,13 @@ type Mutation {
   Submission Payloads include a key, the data is processed asynchronously
   Poll the datasetsSubmission using the returned submission ID for status reports.
   """
-  datasetsCreate(dataset: DatasetInput!, controlTeamId: ID!): SubmissionIdPayload!
+  datasetsCreate(dataset: DatasetInput!, controlTeamId: ID!, release: ReadRelease): SubmissionIdPayload!
   datasetsUpdate(dataset: DatasetUpdate!): SubmissionIdPayload!
   datasetsAddRecords(id: ID!, records: [RecordInput!]): SubmissionIdPayload!
 
   """Delete records from a dataset"""
   datasetsRemoveRecords(id: ID!, recordIds: [ID!]!): BooleanPayload!
-  germplasmCreateEntry(entry: GermplasmInput!, controlTeamId: ID!): BooleanPayload
+  germplasmCreateEntry(entry: GermplasmInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
   germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
   germplasmDeleteEntry(id: ID!): BooleanPayload
   ontologyCreateTerm(term: TermInput!): BooleanPayload!
@@ -301,27 +301,27 @@ type Mutation {
   organisationsCreateTeam(team: TeamInput!): BooleanPayload!
   organisationsDeleteTeam(id: ID!): BooleanPayload!
   organisationsUpdateTeam(team: TeamUpdate!): BooleanPayload!
-  peopleCreatePerson(person: PersonInput!, controlTeamId: ID!): BooleanPayload!
+  peopleCreatePerson(person: PersonInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
   peopleDeletePerson(id: ID!): BooleanPayload!
-  programsCreateProgram(program: ProgramInput!, controlTeamId: ID!): BooleanPayload
+  programsCreateProgram(program: ProgramInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
   programsUpdateProgram(program: ProgramUpdate!): BooleanPayload
   programsDeleteProgram(id: ID!): BooleanPayload
-  programsCreateTrial(trial: TrialInput!, controlTeamId: ID!): BooleanPayload
+  programsCreateTrial(trial: TrialInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
   programsUpdateTrial(trial: TrialUpdate!): BooleanPayload
   programsDeleteTrial(id: ID!): BooleanPayload
-  programsCreateStudy(study: StudyInput!, controlTeamId: ID!): BooleanPayload
+  programsCreateStudy(study: StudyInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
   programsUpdateStudy(study: StudyUpdate!): BooleanPayload
   programsDeleteStudy(id: ID!): BooleanPayload
-  referencesCreateLegal(reference: LegalReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
-  referencesCreateExternal(reference: ExternalReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
-  referencesCreateExternalData(reference: ExternalDataReferenceInput!, controlTeamId: ID!): CreatedIdPayload!
+  referencesCreateLegal(reference: LegalReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
+  referencesCreateExternal(reference: ExternalReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
+  referencesCreateExternalData(reference: ExternalDataReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
 
   """
   As for dataset submissions, creating a file is asynchronous and we are returned a key 
   """
-  referencesCreateFile(reference: FileReferenceInput, controlTeamId: ID!): FileIdPayload!
-  referencesCreateDataFile(reference: DataFileReferenceInput, controlTeamId: ID!): FileIdPayload!
+  referencesCreateFile(reference: FileReferenceInput, controlTeamId: ID!, release: ReadRelease): FileIdPayload!
+  referencesCreateDataFile(reference: DataFileReferenceInput, controlTeamId: ID!, release: ReadRelease): FileIdPayload!
   referencesUpdateLegal(reference: LegalReferenceUpdate!): BooleanPayload!
   referencesUpdateExternal(reference: ExternalReferenceUpdate!): BooleanPayload!
   referencesUpdateExternalData(reference: ExternalDataReferenceUpdate!): BooleanPayload!
@@ -331,7 +331,7 @@ type Mutation {
 
   """ Request to make an archived file available for download """
   referencesRequestFileRetrieval(fileId: ID!): BooleanPayload!
-  regionsCreateLocation(location: LocationInput!, controlTeamId: ID!): BooleanPayload!
+  regionsCreateLocation(location: LocationInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
   regionsDeleteLocation(id: ID!): BooleanPayload!
 }
@@ -1572,6 +1572,9 @@ enum ControlMethodType {
 
   """ Management controls, e.g. cropping density, pruning """
   MANAGEMENT
+
+  """ Genetic controls, e.g. controlled crossing """
+  GENETIC
 }
 
 enum ScaleType {
@@ -1587,18 +1590,27 @@ enum ScaleType {
 """Controls how the ontology is materialized for a given version."""
 enum OntologyView {
   """
-  The ontology as seen by editors working on the specified version.
+  The ontology as seen by editors working on the latest version.
   
-  Includes draft changes that are part of the version under edit.
+  Includes draft changes that are part of the given version.
   """
   EDITORIAL
 
   """
-  The ontology as published to consumers.
+  The ontology as published for entity creation.
   
-  Includes only approved content.
+  Includes only approved content in the given version.
   """
   PUBLISHED
+
+  """
+  Ontology entries resolved for existing entity references.
+  
+  Includes referenced ontology entries even if they have been removed,
+  allowing existing references to remain resolvable.
+  Relationship attributes are resolved as for published.
+  """
+  REFERENTIAL
 }
 
 interface OntologyNodeInterface {
@@ -2125,7 +2137,6 @@ type OntologyRelationship {
   id: ID!
   versionId: ID!
   view: OntologyView!
-  
   phase: LifecyclePhase!
   sourceId: ID!
   targetId: ID!
@@ -2501,15 +2512,17 @@ type Query {
   """
   Get the complete ontology at a given version for editing.
   Defaults to latest version with view PUBLISHED.
+  Supports PUBLISHED and EDITORIAL views.
   """
   ontology(versionId: ID, view: OntologyView = PUBLISHED): OntologyPayload!
 
   """
   Get a list of ontology entries.
-  Defaults to latest version with view PUBLISHED
+  Supports all views.
+  Defaults to latest version with view PUBLISHED.
   """
   ontologyEntries(
-    """Snapshot"""
+    """Snapshot:"""
     versionId: ID
     view: OntologyView = PUBLISHED
 
@@ -2517,6 +2530,12 @@ type Query {
     ids: [ID!]
     labels: [OntologyNodeLabel!]
   ): OntologyEntriesPayload!
+
+  """
+  Get relationships for entries to update a retrieved ontology without refetching the whole ontology.
+  Supports PUBLISHED and EDITORIAL views.
+  Defaults to latest version with view PUBLISHED.
+  """
   ontologyRelationships(
     """Snapshot"""
     versionId: ID
@@ -2526,8 +2545,8 @@ type Query {
     entryIds: [ID!]!
   ): OntologyRelationshipsPayload!
 
-  """Get an ontology commit history"""
-  ontologyCommitHistory(limit: Int): OntologyCommitsPayload!
+  """Get ontology commit history, use lastVersionId to paginate"""
+  ontologyCommitHistory(limit: Int, lastVersionId: ID): OntologyCommitsPayload!
 
   """
   Get a list of users requesting new ontology roles.

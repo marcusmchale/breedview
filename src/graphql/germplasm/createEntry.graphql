@@ -1,10 +1,12 @@
 mutation germplasmCreateEntry(
     $entry: GermplasmInput!
     $controlTeamId: ID!
+    $release: ReadRelease
 ) {
     germplasmCreateEntry(
         entry: $entry
         controlTeamId: $controlTeamId
+        release: $release
     ) {
         status
         errors {

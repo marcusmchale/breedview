@@ -24,12 +24,18 @@ function arraysAreEqual(arr1, arr2) {
 
 export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontologyView }) {
 
+    if (!typename || !fragment) {
+        console.error('typename and fragment are required for cache updates')
+        return
+    }
+
     const { resolveClient} = useApolloClient()
     const client = resolveClient()
     const identityResolver = getIdentityResolver(typename)
 
 
     const getCached = (keyData) => {
+        console.debug('keyData for get', keyData)
         const identity = identityResolver(keyData)
         const itemCacheId = client.cache.identify(identity)
         return client.cache.readFragment({
@@ -66,6 +72,7 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
     // takes the data to update (object)
     // the field (key in the data) that provides the ID of the item
     const updateCache = (updateData) => {
+        console.debug('updateData', updateData)
         const identity = identityResolver(updateData)
         const itemCacheId = client.cache.identify(identity)
 

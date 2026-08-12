@@ -182,6 +182,11 @@ const submitUpdate = async () => {
       name="name"
       label="Unit Name (optional):"
     />
+    <FormKit
+      type="text"
+      name="Description"
+      label="Unit description (optional):"
+    />
     <div v-if="parentsLoading">Loading parents...</div>
     <div v-else-if="parentsError" class="error-message">{{ updateError }}</div>
     <div v-if="unit?.parents?.length === 0" class="parents-section">

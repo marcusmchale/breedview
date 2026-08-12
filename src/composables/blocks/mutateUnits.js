@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import {ref, toValue} from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
@@ -67,12 +67,13 @@ export function useMutateUnits() {
         error: createUnitError
     } = useMutation(CREATE_UNIT_MUTATION)
 
-    const createUnit = async (unitData, position, controlTeamId) => {
+    const createUnit = async ({ unitData, position, controlTeamId, release}) => {
         try {
             const response = await createUnitMutation({
                 unit: unitData,
                 position: position,
-                controlTeamId: controlTeamId
+                controlTeamId: toValue(controlTeamId),
+                release: toValue(release)
             })
 
             if (response?.data?.blocksCreateUnit) {
@@ -110,11 +111,7 @@ export function useMutateUnits() {
             if (response?.data?.blocksUpdateUnit) {
                 const result = response.data.blocksUpdateUnit
                 if (result.status === 'SUCCESS') {
-                    
-                    updateCache({
-                        updateData: unitData,
-                        idField: 'unitId'
-                    })
+                    updateCache(unitData)
                 }
                 const { status, errors} = result
                 return { status, errors }
@@ -146,7 +143,7 @@ export function useMutateUnits() {
             if (response?.data?.blocksDeleteUnit) {
                 const result = response.data.blocksDeleteUnit
                 if (result.status === 'SUCCESS') {
-                    deleteFromCache({itemId: unitId})
+                    deleteFromCache({id: unitId})
                 }
                 const {status, errors} = result
                 return {status, errors}

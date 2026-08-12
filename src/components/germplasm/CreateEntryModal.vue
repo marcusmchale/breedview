@@ -1,9 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import {computed, ref} from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutateEntries } from '@/composables/germplasm/mutateEntries'
-import ControlTeamSelector from '@/components/controls/ControlTeamSelector.vue'
+import ControlSelector from '@/components/controls/ControlSelector.vue'
+
+import { useOntologyEntriesQuery } from "@/composables/ontology/ontologyEntriesQuery";
 
 const props = defineProps({
   availableEntries: {
@@ -16,16 +18,31 @@ const emit = defineEmits(['close', 'success'])
 
 const { createEntry, createEntryLoading } = useMutateEntries()
 
+//todo use an enum for views rather than strings, put it somewhere convenient for import.
+
+const {
+    entries: controlMethods
+} = useOntologyEntriesQuery({labels: ['CONTROL_METHOD'], view: "PUBLISHED"})
+
+const controlMethodOptions = computed( () => {
+   return [
+       ...controlMethods.value?.map(method => ({ value: method.id, label: method.name }))
+   ] || []
+})
+
+
 const formData = ref({
   name: '',
   description: '',
-  synonyms: ''
+  synonyms: '',
+  controlMethodIds: []
 })
 
 const sources = ref([])
 const sinks = ref([])
 const formError = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 // Source types for dropdown
 const sourceTypes = [
@@ -72,13 +89,13 @@ const submitForm = async () => {
     const synonyms = formData.value.synonyms
       ? formData.value.synonyms.split(',').map(s => s.trim()).filter(s => s)
       : []
-
     const entry = {
       name: formData.value.name,
       description: formData.value.description || null,
-      synonyms: synonyms.length > 0 ? synonyms : null
+      synonyms: synonyms.length > 0 ? synonyms : null,
+      controlMethodIds: formData.value.controlMethods || null
     }
-
+    console.log('creating entry', entry)
     // Add sources if any are defined
     if (sources.value.length > 0) {
       const validSources = sources.value
@@ -107,7 +124,11 @@ const submitForm = async () => {
       }
     }
 
-    const { status, errors } = await createEntry(entry, selectedControlTeamId.value)
+    const { status, errors } = await createEntry({
+      entryData: entry,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
 
     if (status === 'SUCCESS') {
       emit('success', {
@@ -165,6 +186,15 @@ const submitForm = async () => {
           label="Synonyms (comma-separated)"
           placeholder="Enter synonyms"
           help="Separate multiple synonyms with commas"
+        />
+
+        <FormKit
+          type="select"
+          multiple
+          name="controlMethods"
+          label="Control Methods:"
+          placeholder="Select Control Methods"
+          :options="controlMethodOptions"
         />
 
         <!-- Sources Section -->
@@ -316,8 +346,9 @@ const submitForm = async () => {
         </div>
 
         <div class="form-actions">
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
             class="form-control"
             @error="handleControlTeamError"
           />

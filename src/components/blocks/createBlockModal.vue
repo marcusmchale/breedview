@@ -5,7 +5,7 @@ import { FormKit } from "@formkit/vue";
 
 import { useDefinePositionQueries } from "@/composables/blocks/definePositionQueries";
 import { useMutateUnits } from "@/composables/blocks/mutateUnits";
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 import { useSelectGermplasmQueries } from "@/composables/germplasm/selectGermplasmQueries";
 
@@ -54,6 +54,7 @@ const {
 
 const addUnitError = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
   addUnitError.value = errorMessage
@@ -112,7 +113,12 @@ const submitAddUnit = async () => {
         parentIds: [], // New block has no parents
         childrenIds: []
     }
-    const { status, errors } = await createUnit(unitData, position, selectedControlTeamId.value)
+    const { status, errors } = await createUnit({
+      unitData:unitData,
+      position: position,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
 
     if (status === 'SUCCESS') {
       emit('close')
@@ -261,8 +267,9 @@ const submitAddUnit = async () => {
     </div>
 
     <div class="form-actions">
-      <ControlTeamSelector
-        v-model="selectedControlTeamId"
+      <ControlSelector
+        v-model:controlTeamId="selectedControlTeamId"
+        v-model:readRelease="selectedRelease"
         class="form-control"
         @error="handleControlTeamError"
       />

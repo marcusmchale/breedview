@@ -1,3 +1,4 @@
+import { toValue } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 
 import GERMPLASM_CREATE_ENTRY from '@/graphql/germplasm/createEntry.graphql'
@@ -12,10 +13,12 @@ export function useMutateEntries() {
     error: createEntryError
   } = useMutation(GERMPLASM_CREATE_ENTRY)
 
-  const createEntry = async (entryData, controlTeamId) => {
+  const createEntry = async ({ entryData, controlTeamId, release }) => {
+    console.debug('Creating entry with controlTeamId:', toValue(controlTeamId), 'and release:', toValue(release))
     const response = await createEntryMutation({
       entry: entryData,
-      controlTeamId: controlTeamId
+      controlTeamId: toValue(controlTeamId),
+      release: toValue(release)
     })
     if (response?.data?.germplasmCreateEntry) {
       const { status, errors } = response.data.germplasmCreateEntry

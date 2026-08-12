@@ -1,10 +1,12 @@
 mutation arrangementsCreateLayout(
   $layout: LayoutInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   arrangementsCreateLayout(
     layout: $layout
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

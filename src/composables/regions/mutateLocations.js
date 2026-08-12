@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 import { useLazyQuery, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
@@ -38,11 +38,13 @@ export function useMutateLocations() {
         loading: createLocationLoading,
     } = useMutation(CREATE_LOCATION_MUTATION)
 
-    const createLocation = async (locationData, controlTeamId) => {
+    const createLocation = async ({locationData, controlTeamId, release}) => {
+        console.log('createLocation', locationData, controlTeamId, release)
         const response = await createLocationMutation(
             {
                 location: locationData,
-                controlTeamId: controlTeamId
+                controlTeamId: toValue(controlTeamId),
+                release: toValue(release)
             }
         )
 
@@ -88,7 +90,7 @@ export function useMutateLocations() {
             const result = response.data.regionsDeleteLocation
 
             if (result.status === 'SUCCESS') {
-                deleteFromCache({itemId: locationId })
+                deleteFromCache({id: locationId })
             }
             const {status, errors} = result
             return {status, errors}

@@ -1,8 +1,13 @@
 fragment GermplasmEntryFields on GermplasmEntry {
     id
     name
-    description
     synonyms
+    description
+    reproduction
+    time
+    origin { id name }
+    controlMethods { id name view versionId }
+    references { id description ... on ExternalReference { url externalId } }
     sources { sourceType, description, source { id, name } }
     sinks { sourceType, description, sink { id, name } }
 }

@@ -5,7 +5,7 @@ import { FormKit } from '@formkit/vue'
 import { useDefinePositionQueries } from '@/composables/blocks/definePositionQueries'
 import { useSelectGermplasmQueries } from '@/composables/germplasm/selectGermplasmQueries'
 import { useMutateUnits } from '@/composables/blocks/mutateUnits'
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 import BulkChildRow from '@/components/blocks/BulkChildRow.vue'
 
@@ -28,8 +28,9 @@ const emit = defineEmits(['close', 'success'])
 
 const { createUnit, createUnitLoading, createUnitError } = useMutateUnits()
 
-const selectedControlTeamId = ref(null)
 const addChildError = ref('')
+const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
   addChildError.value = errorMessage
@@ -218,9 +219,12 @@ const submitSingle = async () => {
     addChildError.value = ''
 
     const { status, errors } = await createUnit(
-      buildUnitData(singleFormData.value, singleFormData.value),
-      buildPosition(singleFormData.value, singleCoordinateKeys.value),
-      selectedControlTeamId.value
+        {
+          unitData: buildUnitData(singleFormData.value, singleFormData.value),
+          position: buildPosition(singleFormData.value, singleCoordinateKeys.value),
+          controlTeamId: selectedControlTeamId,
+          release: selectedRelease
+        }
     )
 
     if (status === 'SUCCESS') {
@@ -313,14 +317,15 @@ const submitBulk = async () => {
       row.status = 'submitting'
       row.errorMessage = ''
 
-      const { status, errors } = await createUnit(
-        buildUnitData(row),
-        buildPosition({
+      const { status, errors } = await createUnit({
+        unitData: buildUnitData(row),
+        position: buildPosition({
           ...bulkTemplate.value,
           ...row
         }, bulkCoordinateKeys.value),
-        selectedControlTeamId.value
-      )
+        controlTeamId: selectedControlTeamId,
+        release: selectedRelease
+      })
 
       if (status === 'SUCCESS') {
         successCount += 1
@@ -497,6 +502,12 @@ const setMode = (nextMode) => {
       <div v-if="addChildError" class="error-message">{{ addChildError }}</div>
 
       <div class="form-actions">
+        <ControlSelector
+          v-model:controlTeamId="selectedControlTeamId"
+          v-model:readRelease="selectedRelease"
+          class="form-control"
+          @error="handleControlTeamError"
+        />
         <button type="submit" class="btn btn-primary" :disabled="createUnitLoading">
           {{ createUnitLoading ? 'Adding...' : 'Add Child' }}
         </button>
@@ -651,8 +662,9 @@ const setMode = (nextMode) => {
       <div v-if="addChildError" class="error-message">{{ addChildError }}</div>
 
       <div class="form-actions">
-        <ControlTeamSelector
-          v-model="selectedControlTeamId"
+        <ControlSelector
+          v-model:controlTeamId="selectedControlTeamId"
+          v-model:readRelease="selectedRelease"
           class="form-control"
           @error="handleControlTeamError"
         />

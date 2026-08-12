@@ -1,10 +1,12 @@
 mutation referencesCreateExternal(
-  $reference: CreateExternalReferenceInput!
+  $reference: ExternalReferenceInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   referencesCreateExternal(
     reference: $reference
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     result

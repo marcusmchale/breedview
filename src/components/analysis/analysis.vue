@@ -45,9 +45,7 @@ const {
 
 // Watch study selection and fetch summaries
 watch(() => selectionData.value.studyIds, async (newStudyIds) => {
-  if (newStudyIds && newStudyIds.length > 0) {
-    await fetchSummaries(newStudyIds)
-  }
+  await fetchSummaries(newStudyIds)
 }, { immediate: true })
 
 // Datasets query (for model phase)
@@ -576,6 +574,16 @@ const chartScale = computed(() => {
 
 const anovaData = computed(() => {
   return analysisResults.value?.anova || []
+})
+
+const statisticType = computed(() => {
+    if (anovaData.value.some(row => row.fValue != null)) {
+      return 'F Value'
+    }
+    if (anovaData.value.some(row => row.wald != null)) {
+      return 'Wald'
+    }
+    return 'Statistic'
 })
 
 const tukeyData = computed(() => {
@@ -1198,7 +1206,7 @@ const formatGroupLabel = (group) => {
                   <th>Term</th>
                   <th>Sum Sq</th>
                   <th>df</th>
-                  <th>F Value</th>
+                  <th>{{ statisticType }}</th>
                   <th>p Value</th>
                 </tr>
               </thead>
@@ -1207,7 +1215,17 @@ const formatGroupLabel = (group) => {
                   <td><strong>{{ row.term }}</strong></td>
                   <td>{{ row.sumSq?.toFixed(4) || '-' }}</td>
                   <td>{{ row.df }}</td>
-                  <td>{{ row.fValue?.toFixed(4) || '-' }}</td>
+                  <td>
+                    <template v-if="row.fValue != null">
+                      {{ row.fValue.toFixed(4) }}
+                    </template>
+                    <template v-else-if="row.wald != null">
+                      {{ row.wald.toFixed(4) }}
+                    </template>
+                    <template v-else>
+                      -
+                    </template>
+                  </td>
                   <td :class="{ 'significant': row.pValue < 0.05 }">
                     {{ row.pValue?.toFixed(6) || '-' }}
                   </td>

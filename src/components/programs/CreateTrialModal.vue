@@ -5,8 +5,10 @@ import { FormKit } from '@formkit/vue'
 
 import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
-import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
+import ControlSelector from "@/components/controls/ControlSelector.vue";
+
+import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
   programId: {
@@ -25,6 +27,8 @@ const { createTrial, createTrialLoading } = useMutateTrials()
 
 const formError = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
+
 const handleControlTeamError = (errorMessage) => {
   formError.value = errorMessage
 }
@@ -79,7 +83,11 @@ const submitForm = async (values) => {
       }
     })
 
-    const { status, errors } = await createTrial(cleanValues, selectedControlTeamId.value)
+    const { status, errors } = await createTrial({
+      trialData: cleanValues,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -176,8 +184,9 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
             class="form-control"
             @error="handleControlTeamError"
           />
@@ -192,8 +201,9 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <EntityReferencesModal
+    <ReferencesModal
       :visible="isReferencesModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"

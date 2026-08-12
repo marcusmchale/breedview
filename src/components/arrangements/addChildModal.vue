@@ -4,7 +4,7 @@ import { ref, computed, watch } from "vue";
 import { useMutateLayouts } from "@/composables/arrangements/mutateLayouts";
 import { FormKit } from "@formkit/vue";
 
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 const props = defineProps({
   parentLayout: {
@@ -27,6 +27,7 @@ const {
 
 const addChildError = ref('' )
 const selectedControlTeamId = ref(null)
+const selectedReadRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
   addChildError.value = errorMessage
@@ -83,7 +84,11 @@ const submitAddChild = async () => {
         position: positions.length > 0 ? positions: undefined,
         axes: axes.length > 0 ? axes : undefined
     }
-    const { status, errors } = await createLayout(layoutData, selectedControlTeamId.value)
+    const { status, errors } = await createLayout({
+      layoutData: layoutData,
+      controlTeamId: selectedControlTeamId,
+      release: selectedReadRelease
+    })
     if (status === 'SUCCESS') {
       emit('close')
       emit('success')
@@ -190,8 +195,9 @@ watch(() => addChildFormData.value.typeId, (newTypeId, oldTypeId) => {
     </div>
 
     <div class="form-actions">
-      <ControlTeamSelector
-        v-model="selectedControlTeamId"
+      <ControlSelector
+        v-model:controlTeamId="selectedControlTeamId"
+        v-model:readRelease="selectedReadRelease"
         class="form-control"
         @error="handleControlTeamError"
       />

@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import { FormKit } from '@formkit/vue'
 
 import { useMutateLocations } from "@/composables/regions/mutateLocations";
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 const props = defineProps({
   locationTypes: {
@@ -25,6 +25,7 @@ const {
 
 const addChildError = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 
 const handleControlTeamError = (errorMessage) => {
@@ -53,7 +54,11 @@ const submitAddChild = async () => {
         parentId: props.parentLocation.id
     }
 
-    const { status, errors } = await createLocation(locationData, selectedControlTeamId.value)
+    const { status, errors } = await createLocation({
+      locationData: locationData,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
     if (status === 'SUCCESS') {
       emit('success')
       emit('close')
@@ -138,8 +143,9 @@ const submitAddChild = async () => {
         {{ addChildError }}
       </div>
       <div class="form-actions">
-        <ControlTeamSelector
-          v-model="selectedControlTeamId"
+        <ControlSelector
+          v-model:controlTeamId="selectedControlTeamId"
+          v-model:readRelease="selectedRelease"
           class="form-control"
           @error="handleControlTeamError"
         />

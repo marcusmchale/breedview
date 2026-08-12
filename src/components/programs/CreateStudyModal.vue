@@ -6,10 +6,11 @@ import { FormKit } from '@formkit/vue'
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
 
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
-import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
-import LicenceModal from '@/components/references/LicenceModal.vue'
+import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
+
 
 const props = defineProps({
   trialId: {
@@ -29,7 +30,7 @@ const { designTypes, designTypesLoading } = useDesignTypesQuery()
 
 const formError = ref('')
 const selectedControlTeamId = ref(null)
-
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
   formError.value = errorMessage
@@ -86,6 +87,8 @@ const closeLicenceModal = () => {
 }
 
 const handleLicenceSave = (licence) => {
+  console.log('Licence saved:', licence)
+
   selectedLicence.value = licence
 }
 
@@ -113,7 +116,11 @@ const submitForm = async (values) => {
       }
     })
 
-    const { status, errors } = await createStudy(cleanValues, selectedControlTeamId.value)
+    const { status, errors } = await createStudy({
+      studyData: cleanValues,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -249,8 +256,9 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
             class="form-control"
             @error="handleControlTeamError"
           />
@@ -263,23 +271,27 @@ const submitForm = async (values) => {
         </div>
       </FormKit>
     </div>
-
+    <!-- Licence Modal -->
+    <ReferencesModal
+      :visible="isLicenceModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.LICENSE"
+      :selected-reference-ids="selectedLicence ? [selectedLicence.id] : []"
+      :initial-references="selectedLicence ? [selectedLicence] : []"
+      :selection-mode="'single'"
+      title="Select Licence"
+      @close="closeLicenceModal"
+      @save="handleLicenceSave"
+    />
     <!-- References Modal -->
-    <EntityReferencesModal
+    <ReferencesModal
       :visible="isReferencesModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"
       @save="handleReferencesSave"
     />
 
-    <!-- Licence Modal -->
-    <LicenceModal
-      :visible="isLicenceModalOpen"
-      :currentLicence="selectedLicence"
-      @close="closeLicenceModal"
-      @save="handleLicenceSave"
-    />
   </div>
 </template>
 

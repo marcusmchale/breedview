@@ -1,10 +1,12 @@
 mutation CreateDataset(
   $dataset: DatasetInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   datasetsCreate(
     dataset: $dataset
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     result

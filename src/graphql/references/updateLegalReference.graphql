@@ -1,4 +1,4 @@
-mutation referencesUpdateLegal($reference: UpdateLegalReferenceInput!) {
+mutation referencesUpdateLegal($reference: LegalReferenceUpdate!) {
   referencesUpdateLegal(reference: $reference) {
     status
     result

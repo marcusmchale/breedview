@@ -518,19 +518,25 @@ export function useDatasetCurationTable() {
   const hasUnsavedChanges = computed(() => {
     // Check for deletions
     for (const datasetId in recordsToDelete.value) {
-      if (recordsToDelete.value[datasetId].size > 0) return true
+      if (recordsToDelete.value[datasetId].size > 0) {
+        return true
+      }
     }
 
     // Check for value changes
     for (let i = 0; i < tableData.value.length; i++) {
-      const row = tableData.value[i]
+      //const row = tableData.value[i]
 
       // Check time changes
-      if (hasRowTimesChanged(i)) return true
+      if (hasRowTimesChanged(i)) {
+        return true
+      }
 
       // Check concept value changes
       for (const conceptId in conceptData.value) {
-        if (hasValueChanged(i, conceptId)) return true
+        if (hasValueChanged(i, conceptId)) {
+          return true
+        }
       }
     }
 
@@ -565,7 +571,7 @@ export function useDatasetCurationTable() {
 
       if (valueChanged || timesChanged) {
         const update = {
-          recordId: metadata.recordId,
+          id: metadata.recordId,
           start: normalizePartialDatetime(row.startTime) || null,
           end: normalizePartialDatetime(row.endTime) || null
         }
@@ -707,13 +713,10 @@ export function useDatasetCurationTable() {
         if (updates && updates.length > 0) {
               updates.forEach(update => {
                 updateRecordInCache({
-                  updateData: {
-                    id: update.recordId,
+                    id: update.id,
                     value: update.value,
                     start: update.start,
                     end: update.end
-                  },
-                  idField: 'id'
                 })
               })
             }

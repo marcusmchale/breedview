@@ -92,9 +92,6 @@ onMounted(async () => {
         </div>
 
         <div class="nav-menu">
-          <router-link to="/home" class="nav-link" active-class="active">
-            Home
-          </router-link>
           <router-link to="/affiliations" class="nav-link" active-class="active">
             Affiliations
           </router-link>
@@ -138,7 +135,6 @@ onMounted(async () => {
 
 
 <style>
-/* Import organized CSS files */
 @import './assets/styles/global.css';
 @import './assets/styles/layout.css';
 @import './assets/styles/buttons.css';
@@ -147,7 +143,6 @@ onMounted(async () => {
 @import './assets/styles/badges.css';
 @import './assets/styles/navigation.css';
 
-/* App-specific layout */
 #app {
   min-height: 100vh;
   display: flex;

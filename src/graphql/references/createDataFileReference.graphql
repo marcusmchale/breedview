@@ -1,10 +1,12 @@
 mutation referencesCreateDataFile(
-  $reference: CreateDataFileReferenceInput!
+  $reference: DataFileReferenceInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   referencesCreateDataFile(
     reference: $reference
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     result

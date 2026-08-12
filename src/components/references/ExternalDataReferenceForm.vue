@@ -4,7 +4,7 @@ import { FormKit } from '@formkit/vue'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { useReferenceSchema } from '@/composables/references/useReferenceSchema'
 
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue"
+import ControlSelector from "@/components/controls/ControlSelector.vue"
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 
 const props = defineProps({
@@ -42,6 +42,7 @@ const formError = ref(null)
 const schemaError = ref(null)
 const createdReferenceId = ref(null)
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 
 const handleControlTeamError = (errorMessage) => {
     formError.value = errorMessage
@@ -119,7 +120,11 @@ const submitForm = async () => {
                 formError.value = errors?.[0]?.message || 'Failed to update reference'
             }
         } else {
-            const { result, status, errors } = await createExternalDataReference(referenceData, selectedControlTeamId.value)
+            const { result, status, errors } = await createExternalDataReference({
+              reference: referenceData,
+              controlTeamId: selectedControlTeamId,
+              release: selectedRelease
+            })
 
             if (status === 'SUCCESS') {
                 createdReferenceId.value = result
@@ -222,9 +227,10 @@ const resetForm = () => {
             </div>
 
             <div class="form-actions">
-                <ControlTeamSelector
+                <ControlSelector
                     v-if="!isEditing"
-                    v-model="selectedControlTeamId"
+                    v-model:controlTeamId="selectedControlTeamId"
+                    v-model:readRelease="selectedRelease"
                     class="form-control"
                     @error="handleControlTeamError"
                 />

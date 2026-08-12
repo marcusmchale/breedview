@@ -1,137 +1,25 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useQuery, useMutation } from '@vue/apollo-composable'
-import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/composables/user/useAuthStore'
+import { useCurrentVersionQuery } from '@/composables/ontology/currentVersion'
 
-import OntologyEditor from "@/components/ontology/OntologyEditor.vue";
-import LicenceModal from '@/components/references/LicenceModal.vue'
+import OntologyEditor from '@/components/ontology/OntologyEditor.vue'
+import LatestCommit from '@/components/ontology/LatestCommit.vue'
+import CommitVersion from '@/components/ontology/CommitVersion.vue'
 
-import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
-import COMMIT_VERSION from '../../graphql/ontology/commitVersion.graphql'
-
-const commitVersionMutation = useMutation(COMMIT_VERSION)
-
-const router = useRouter()
 const { user } = useAuthStore()
+const { version } = useCurrentVersionQuery()
 
 const showCommitVersionForm = ref(false)
-const commitVersionFormData = ref({})
 
+const canEdit = computed(() => ['ADMIN', 'EDITOR'].includes(user.value?.ontologyRole))
+const canCreate = computed(() => ['ADMIN', 'EDITOR', 'CONTRIBUTOR'].includes(user.value?.ontologyRole))
 
-// Licence state
-const selectedLicence = ref(null)
-const isLicenceModalOpen = ref(false)
-
-// Copyright state
-const selectedCopyright = ref(null)
-const isCopyrightModalOpen = ref(false)
-
-
-const canEdit = computed(() => {
-  return ["ADMIN", "EDITOR"].includes( user.value?.ontologyRole )
-})
-
-const canCreate = computed( () => {
-  return ["ADMIN", "EDITOR", "CONTRIBUTOR"].includes( user.value?.ontologyRole )
-})
-
-// Navigation functions
-const goToCommitHistory = () => {
-  router.push({ name: 'commit-history' })
-}
-
-const goToOntologyRoles = () => {
-  router.push({ name: 'ontology-roles' })
-}
-
-
-const openCommitVersionForm = () => {
-  commitVersionFormData.value = {}
-  selectedLicence.value = null
-  selectedCopyright.value = null
-  showCommitVersionForm.value = true
-}
-
-const closeCommitVersionForm = () => {
+const handleCommitSuccess = () => {
+  alert('Ontology version committed!')
   showCommitVersionForm.value = false
-  commitVersionFormData.value = {}
-  selectedLicence.value = null
-  selectedCopyright.value = null
 }
-
-
-// Licence handlers
-const openLicenceModal = () => {
-  isLicenceModalOpen.value = true
-}
-
-const closeLicenceModal = () => {
-  isLicenceModalOpen.value = false
-}
-
-const handleLicenceSave = (licence) => {
-  selectedLicence.value = licence
-}
-
-// Copyright handlers
-const openCopyrightModal = () => {
-  isCopyrightModalOpen.value = true
-}
-
-const closeCopyrightModal = () => {
-  isCopyrightModalOpen.value = false
-}
-
-const handleCopyrightSave = (copyright) => {
-  selectedCopyright.value = copyright
-}
-
-
-const handleCommitVersionSubmit = async (formDataValues) => {
-  try {
-    const result = await commitVersionMutation.mutate({
-      versionChange: formDataValues.versionChange,
-      comment: formDataValues.comment,
-      licenceId: selectedLicence.value?.id || null,
-      copyrightId: selectedCopyright.value?.id || null
-    })
-
-    const response = result.data?.ontologyCommitVersion
-
-    if (response?.errors?.length) {
-      alert('Error: ' + response.errors.map(e => e.message).join(', '))
-      return
-    }
-
-    if (response?.status === 'SUCCESS' || response?.status === 'success') {
-      alert('Ontology version committed!')
-      closeCommitVersionForm()
-      await latestCommitHistoryQuery.refetch()
-
-    }
-  } catch (error) {
-    console.error('Commit version mutation error:', error)
-    alert('An error occurred: ' + error.message)
-  }
-}
-
-const latestCommitHistoryQuery = useQuery(
-  COMMIT_HISTORY,
-  { limit: 1 }
-)
-
-const latestCommit = computed(() =>
-  latestCommitHistoryQuery.result.value?.ontologyCommitHistory?.result?.[0] || null
-)
-
-// Format helpers
-const formatVersion = (version) => {
-  if (!version) return 'N/A'
-  return `${version.major}.${version.minor}.${version.patch}`
-}
-
 </script>
 
 <template>
@@ -139,300 +27,19 @@ const formatVersion = (version) => {
     <h1>Ontology</h1>
 
     <OntologyEditor
-        v-if="latestCommit"
-        :versionId="latestCommit.version.id"
-        :editor="canEdit"
-        :creator="canCreate"
-        :key="latestCommit.version.id"
+      v-if="version"
+      :versionId="version.id"
+      :editor="canEdit"
+      :creator="canCreate"
+      :key="version.id"
     />
 
-    <section>
-        <h2>Latest Commit</h2>
-        <div v-if="latestCommit" class="latest-commit-info">
-          <p><strong>Version:</strong> {{ formatVersion(latestCommit.version) }}</p>
-          <p><strong>Time:</strong> {{ new Date(latestCommit.time).toLocaleString() }}</p>
-          <p><strong>Comment:</strong> {{ latestCommit.comment || 'No comment' }}</p>
-        </div>
-        <div v-else>
-          Loading commit history...
-        </div>
-        <div class="version-actions">
-          <button
-            title="View commit history"
-            class="btn-version btn-history"
-            @click="goToCommitHistory"
-          >
-            View History
-          </button>
-          <button
-            v-if='user && (user.ontologyRole === "ADMIN" || user.ontologyRole === "EDITOR")'
-            title="Commit drafted entries to active and deprecated entries to removed in a new version"
-            class="btn-version"
-            @click="openCommitVersionForm"
-          >
-            Commit Changes
-          </button>
-          <button
-            v-if='user && user.ontologyRole === "ADMIN"'
-            title="Manage Roles"
-            class="btn-version btn-history"
-            @click="goToOntologyRoles"
-          >
-            Manage Roles
-          </button>
-        </div>
-      </section>
+    <LatestCommit @commit="showCommitVersionForm = true" />
 
-      <div v-if="showCommitVersionForm" class="form-modal">
-          <div class="form-container">
-            <h2>Commit Ontology Version</h2>
-            <FormKit
-              type="form"
-              @submit="handleCommitVersionSubmit"
-              :actions="false"
-              v-model="commitVersionFormData"
-            >
-              <FormKit
-                type="select"
-                name="versionChange"
-                label="Version Change Type"
-                validation="required"
-                placeholder="Select version change type"
-                :options="['MAJOR', 'MINOR', 'PATCH']"
-              />
-
-              <FormKit
-                type="textarea"
-                name="comment"
-                label="Version Comment"
-                validation="required"
-                placeholder="Enter version comment"
-              />
-<!-- Licence Section -->
-              <div class="reference-section">
-                <label class="section-label">Licence (Optional)</label>
-                <div class="section-content">
-                  <div v-if="selectedLicence" class="selected-item">
-                    <span class="item-icon">⚖️</span>
-                    <span class="item-description">{{ selectedLicence.description || 'Legal Reference #' + selectedLicence.id }}</span>
-                    <button type="button" class="btn-link" @click="openLicenceModal">
-                      Change
-                    </button>
-                  </div>
-                  <button
-                    v-else
-                    type="button"
-                    class="btn-outline"
-                    @click="openLicenceModal"
-                  >
-                    + Select Licence
-                  </button>
-                </div>
-              </div>
-
-              <!-- Copyright Section -->
-              <div class="reference-section">
-                <label class="section-label">Copyright (Optional)</label>
-                <div class="section-content">
-                  <div v-if="selectedCopyright" class="selected-item">
-                    <span class="item-icon">©️</span>
-                    <span class="item-description">{{ selectedCopyright.description || 'Legal Reference #' + selectedCopyright.id }}</span>
-                    <button type="button" class="btn-link" @click="openCopyrightModal">
-                      Change
-                    </button>
-                  </div>
-                  <button
-                    v-else
-                    type="button"
-                    class="btn-outline"
-                    @click="openCopyrightModal"
-                  >
-                    + Select Copyright
-                  </button>
-                </div>
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn-version">Commit</button>
-                <button type="button" @click="closeCommitVersionForm" class="btn-cancel">Cancel</button>
-              </div>
-            </FormKit>
-          </div>
-        </div>
-     <!-- Licence Modal -->
-    <LicenceModal
-      :visible="isLicenceModalOpen"
-      :currentLicence="selectedLicence"
-      @close="closeLicenceModal"
-      @save="handleLicenceSave"
-    />
-
-    <!-- Copyright Modal (reusing LicenceModal for legal references) -->
-    <LicenceModal
-      :visible="isCopyrightModalOpen"
-      :currentLicence="selectedCopyright"
-      title="Select Copyright"
-      @close="closeCopyrightModal"
-      @save="handleCopyrightSave"
+    <CommitVersion
+      v-if="showCommitVersionForm"
+      @success="handleCommitSuccess"
+      @cancel="showCommitVersionForm = false"
     />
   </div>
 </template>
-
-<style scoped>
-
-.version-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.latest-commit-info p {
-  margin: 0.25rem 0;
-  font-size: 0.9em;
-}
-
-.form-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.form-container {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  min-width: 400px;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
-}
-
-.btn-cancel {
-  background-color: #f44336;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-cancel:hover {
-  background-color: #da190b;
-}
-
-.btn-version {
-  background-color: #4CAF50;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.btn-version:hover {
-  background-color: #45a049;
-}
-
-.btn-history {
-  background-color: #2196F3;
-}
-
-.btn-history:hover {
-  background-color: #0b7dda;
-}
-
-.latest-commit-info {
-  background-color: #f4f4f4;
-  border-radius: 4px;
-  padding: 1rem;
-  margin-top: 0.5rem;
-}
-
-.latest-commit-info p {
-  margin: 0.25rem 0;
-  font-size: 0.9em;
-}
-
-
-.reference-section {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.section-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.section-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.selected-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.item-icon {
-  font-size: 1.2em;
-}
-
-.item-description {
-  flex: 1;
-  color: #333;
-}
-
-.btn-outline {
-  background-color: transparent;
-  color: #4CAF50;
-  border: 1px solid #4CAF50;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.btn-outline:hover {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: #2196F3;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.btn-link:hover {
-  text-decoration: underline;
-}
-
-
-</style>

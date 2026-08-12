@@ -80,6 +80,7 @@ const handleTableSubmit = () => {
 // Track unsaved changes
 const handleUnsavedChanges = (hasChanges) => {
   tableHasUnsavedChanges.value = hasChanges
+
 }
 
 // Computed for modal title

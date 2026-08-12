@@ -5,8 +5,8 @@ import { FormKit } from '@formkit/vue'
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
 
-import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
-import LicenceModal from '@/components/references/LicenceModal.vue'
+import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
   study: {
@@ -246,8 +246,9 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <EntityReferencesModal
+    <ReferencesModal
       :visible="isReferencesModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"
@@ -255,9 +256,13 @@ const submitForm = async (values) => {
     />
 
     <!-- Licence Modal -->
-    <LicenceModal
+    <ReferencesModal
       :visible="isLicenceModalOpen"
-      :currentLicence="selectedLicence"
+      :reference-types="REFERENCE_TYPE_GROUPS.LICENSE"
+      :selected-reference-ids="selectedLicence.value ? [selectedLicence.value?.id] : []"
+      :initial-references="selectedLicence.value ? [selectedLicence.value] : []"
+      :selection-mode="'single'"
+      title="Select Licence"
       @close="closeLicenceModal"
       @save="handleLicenceSave"
     />

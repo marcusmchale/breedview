@@ -1,160 +1,3 @@
-<template>
-  <div class="hierarchical-multiselect" ref="dropdownRef">
-    <div
-      class="select-trigger"
-      :class="{ open: isOpen, disabled: disabled }"
-      @click.stop="toggleDropdown"
-      tabindex="0"
-    >
-      <div v-if="selectedNodes.length > 0" class="selected-values">
-        <span
-          v-for="node in displayedSelectedNodes"
-          :key="`selected-${node.id}`"
-          class="selected-chip"
-        >
-          {{ getNodeLabel(node) }}
-          <button
-            type="button"
-            class="remove-chip"
-            @click.stop="removeSelection(node.id)"
-            :disabled="disabled"
-          >
-            ×
-          </button>
-        </span>
-        <span v-if="remainingCount > 0" class="remaining-count">
-          +{{ remainingCount }} more
-        </span>
-      </div>
-      <span v-else class="placeholder">
-        {{ placeholder }}
-        <span v-if="showSelectionCount && internalSelectedIds.length > 0" class="selection-count">
-          ({{ internalSelectedIds.length }} selected)
-        </span>
-      </span>
-      <span class="dropdown-arrow" :class="{ open: isOpen }">▼</span>
-    </div>
-
-    <!-- Dropdown panel -->
-    <Teleport to="body">
-      <Transition name="dropdown">
-        <div
-          v-if="isOpen"
-          class="dropdown-panel"
-          :style="dropdownStyle"
-          ref="dropdownPanelRef"
-        >
-          <!-- Breadcrumb trail -->
-          <div v-if="navigationPath.length > 0" class="breadcrumb">
-            <button
-              v-for="(pathNode, index) in navigationPath"
-              :key="`breadcrumb-${pathNode.id}`"
-              @click.stop="navigateToLevel(index)"
-              class="breadcrumb-item"
-              type="button"
-            >
-              {{ getNodeLabel(pathNode) }}
-            </button>
-            <span class="breadcrumb-item current">
-              {{ currentLevelLabel }}
-            </span>
-          </div>
-
-          <!-- Selection summary -->
-          <div v-if="internalSelectedIds.length > 0" class="selection-summary">
-            {{ internalSelectedIds.length }} item{{ internalSelectedIds.length !== 1 ? 's' : '' }} selected
-            <div class="selection-actions">
-              <button
-                type="button"
-                class="select-all-button"
-                @click.stop="selectAllDisplayed"
-                :disabled="!canSelectMore"
-              >
-                Select All
-              </button>
-              <button
-                type="button"
-                class="clear-all-button"
-                @click.stop="clearAllSelections"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-
-          <!-- If no items selected, show select all button separately -->
-          <div v-else-if="currentOptions.length > 0" class="selection-summary">
-            <span>0 items selected</span>
-            <button
-              type="button"
-              class="select-all-button"
-              @click.stop="selectAllDisplayed"
-              :disabled="!canSelectMore"
-            >
-              Select All
-            </button>
-          </div>
-
-          <!-- Options list -->
-          <div class="options-list">
-            <div v-if="isLoading" class="loading-state">
-              <span class="spinner"></span> Loading...
-            </div>
-            <template v-else>
-              <div
-                v-for="node in currentOptions"
-                :key="`option-${node.id}`"
-                :class="{
-                  'option-item': true,
-                  'selected': isNodeSelected(node),
-                  'disabled': isNodeDisabled(node),
-                  'not-selectable': !isNodeSelectable(node),
-                  'has-children': hasChildren(node)
-                }"
-              >
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    :checked="isNodeSelected(node)"
-                    @change="toggleSelection(node)"
-                    :disabled="!isNodeSelectable(node)"
-                    class="option-checkbox"
-                  />
-                  <span class="option-label">{{ getNodeLabel(node) }}</span>
-                </label>
-                <button
-                  v-if="hasChildren(node)"
-                  @click.stop="navigateInto(node)"
-                  :disabled="isNodeDisabled(node)"
-                  class="expand-button"
-                  type="button"
-                  title="Show children"
-                >
-                  <span class="has-children-indicator">→</span>
-                </button>
-              </div>
-            </template>
-            <div v-if="currentOptions.length === 0" class="empty-state">
-              No options available
-            </div>
-          </div>
-
-          <!-- Action buttons -->
-          <div class="dropdown-actions">
-            <button
-              type="button"
-              class="btn-done"
-              @click.stop="closeDropdown"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
@@ -495,6 +338,163 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<template>
+  <div class="hierarchical-multiselect" ref="dropdownRef">
+    <div
+      class="select-trigger"
+      :class="{ open: isOpen, disabled: disabled }"
+      @click.stop="toggleDropdown"
+      tabindex="0"
+    >
+      <div v-if="selectedNodes.length > 0" class="selected-values">
+        <span
+          v-for="node in displayedSelectedNodes"
+          :key="`selected-${node.id}`"
+          class="selected-chip"
+        >
+          {{ getNodeLabel(node) }}
+          <button
+            type="button"
+            class="remove-chip"
+            @click.stop="removeSelection(node.id)"
+            :disabled="disabled"
+          >
+            ×
+          </button>
+        </span>
+        <span v-if="remainingCount > 0" class="remaining-count">
+          +{{ remainingCount }} more
+        </span>
+      </div>
+      <span v-else class="placeholder">
+        {{ placeholder }}
+        <span v-if="showSelectionCount && internalSelectedIds.length > 0" class="selection-count">
+          ({{ internalSelectedIds.length }} selected)
+        </span>
+      </span>
+      <span class="dropdown-arrow" :class="{ open: isOpen }">▼</span>
+    </div>
+
+    <!-- Dropdown panel -->
+    <Teleport to="body">
+      <Transition name="dropdown">
+        <div
+          v-if="isOpen"
+          class="dropdown-panel"
+          :style="dropdownStyle"
+          ref="dropdownPanelRef"
+        >
+          <!-- Breadcrumb trail -->
+          <div v-if="navigationPath.length > 0" class="breadcrumb">
+            <button
+              v-for="(pathNode, index) in navigationPath"
+              :key="`breadcrumb-${pathNode.id}`"
+              @click.stop="navigateToLevel(index)"
+              class="breadcrumb-item"
+              type="button"
+            >
+              {{ getNodeLabel(pathNode) }}
+            </button>
+            <span class="breadcrumb-item current">
+              {{ currentLevelLabel }}
+            </span>
+          </div>
+
+          <!-- Selection summary -->
+          <div v-if="internalSelectedIds.length > 0" class="selection-summary">
+            {{ internalSelectedIds.length }} item{{ internalSelectedIds.length !== 1 ? 's' : '' }} selected
+            <div class="selection-actions">
+              <button
+                type="button"
+                class="select-all-button"
+                @click.stop="selectAllDisplayed"
+                :disabled="!canSelectMore"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                class="clear-all-button"
+                @click.stop="clearAllSelections"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- If no items selected, show select all button separately -->
+          <div v-else-if="currentOptions.length > 0" class="selection-summary">
+            <span>0 items selected</span>
+            <button
+              type="button"
+              class="select-all-button"
+              @click.stop="selectAllDisplayed"
+              :disabled="!canSelectMore"
+            >
+              Select All
+            </button>
+          </div>
+
+          <!-- Options list -->
+          <div class="options-list">
+            <div v-if="isLoading" class="loading-state">
+              <span class="spinner"></span> Loading...
+            </div>
+            <template v-else>
+              <div
+                v-for="node in currentOptions"
+                :key="`option-${node.id}`"
+                :class="{
+                  'option-item': true,
+                  'selected': isNodeSelected(node),
+                  'disabled': isNodeDisabled(node),
+                  'not-selectable': !isNodeSelectable(node),
+                  'has-children': hasChildren(node)
+                }"
+              >
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="isNodeSelected(node)"
+                    @change="toggleSelection(node)"
+                    :disabled="!isNodeSelectable(node)"
+                    class="option-checkbox"
+                  />
+                  <span class="option-label">{{ getNodeLabel(node) }}</span>
+                </label>
+                <button
+                  v-if="hasChildren(node)"
+                  @click.stop="navigateInto(node)"
+                  :disabled="isNodeDisabled(node)"
+                  class="expand-button"
+                  type="button"
+                  title="Show children"
+                >
+                  <span class="has-children-indicator">→</span>
+                </button>
+              </div>
+            </template>
+            <div v-if="currentOptions.length === 0" class="empty-state">
+              No options available
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="dropdown-actions">
+            <button
+              type="button"
+              class="btn-done"
+              @click.stop="closeDropdown"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
+</template>
 
 <style scoped>
 .hierarchical-multiselect {

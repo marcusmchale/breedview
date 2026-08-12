@@ -1,4 +1,4 @@
-mutation referencesUpdateExternalData($reference: UpdateExternalDataReferenceInput!) {
+mutation referencesUpdateExternalData($reference: ExternalDataReferenceUpdate!) {
   referencesUpdateExternalData(reference: $reference) {
     status
     result

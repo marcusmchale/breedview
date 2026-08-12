@@ -2,11 +2,13 @@ mutation blocksCreateUnit(
   $unit: UnitInput!
   $position: PositionInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   blocksCreateUnit(
     unit: $unit
     position: $position
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

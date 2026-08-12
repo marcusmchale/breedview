@@ -1,4 +1,4 @@
-
+import { toValue } from "vue"
 import { useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
@@ -16,6 +16,7 @@ import DELETE_REFERENCES from "@/graphql/references/deleteReferences.graphql";
 import REFERENCE_FRAGMENT from "@/graphql/references/referenceFragment.graphql";
 
 
+
 export function useMutateReferences() {
     // Data File Reference mutations
     const { updateCache, deleteFromCache } = useCacheUpdates({
@@ -29,10 +30,11 @@ export function useMutateReferences() {
         error: createDataFileReferenceError
     } = useMutation(CREATE_DATA_FILE_REFERENCE);
 
-    const createDataFileReference = async (reference, controlTeamId) => {
+    const createDataFileReference = async ({ reference, controlTeamId, release }) => {
       const response = await createDataFileReferenceMutation({
           reference: reference,
-          controlTeamId: controlTeamId
+          controlTeamId: toValue(controlTeamId),
+          release: toValue(release)
       });
       const { result, status, errors } = response?.data?.referencesCreateDataFile
       return { result, status, errors }
@@ -66,10 +68,11 @@ export function useMutateReferences() {
         error: createExternalDataReferenceError
     } = useMutation(CREATE_EXTERNAL_DATA_REFERENCE);
 
-    const createExternalDataReference = async (reference, controlTeamId) => {
+    const createExternalDataReference = async ({ reference, controlTeamId, release }) => {
         const response = await createExternalDataReferenceMutation({
             reference: reference,
-            controlTeamId: controlTeamId
+            controlTeamId: toValue(controlTeamId),
+            release: toValue(release)
         });
         const { result, status, errors } = response?.data?.referencesCreateExternalData || {}
         return { result, status, errors }
@@ -103,11 +106,12 @@ export function useMutateReferences() {
         error: createLegalReferenceError
     } = useMutation(CREATE_LEGAL_REFERENCE);
 
-    const createLegalReference = async (reference, controlTeamId) => {
+    const createLegalReference = async ({ reference, controlTeamId, release }) => {
         const response = await createLegalReferenceMutation(
             {
                 reference: reference,
-                controlTeamId: controlTeamId
+                controlTeamId: toValue(controlTeamId),
+                release: toValue(release)
             });
         const { result, status, errors } = response?.data?.referencesCreateLegal || {}
         return { result, status, errors }
@@ -141,10 +145,11 @@ export function useMutateReferences() {
         error: createExternalReferenceError
     } = useMutation(CREATE_EXTERNAL_REFERENCE);
 
-    const createExternalReference = async (reference, controlTeamId) => {
+    const createExternalReference = async ({ reference, controlTeamId, release}) => {
         const response = await createExternalReferenceMutation({
             reference: reference,
-            controlTeamId:controlTeamId
+            controlTeamId: toValue(controlTeamId),
+            release: toValue(release)
         });
         const { result, status, errors } = response?.data?.referencesCreateExternal || {}
         return { result, status, errors }
@@ -178,10 +183,11 @@ export function useMutateReferences() {
         error: createFileReferenceError
     } = useMutation(CREATE_FILE_REFERENCE);
 
-    const createFileReference = async (reference, controlTeamId) => {
+    const createFileReference = async ({ reference, controlTeamId, release }) => {
         const response = await createFileReferenceMutation({
             reference: reference,
-            controlTeamId: controlTeamId
+            controlTeamId: toValue(controlTeamId),
+            release: toValue(release)
         });
         const { result, status, errors } = response?.data?.referencesCreateFile || {}
         return { result, status, errors }
@@ -217,7 +223,7 @@ export function useMutateReferences() {
             const result = response.data.referencesDelete
             if (result.status === 'SUCCESS') {
                 referenceIds.forEach((referenceId) => {
-                  deleteFromCache({itemId: referenceId})
+                  deleteFromCache({id: referenceId})
                 })
             }
             const { status, errors } = result

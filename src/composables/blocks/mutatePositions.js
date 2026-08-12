@@ -1,7 +1,7 @@
 import { toValue} from "vue";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates"
 
-
+import UNIT_FRAGMENT from '@/graphql/blocks/unitFragment.graphql'
 import ADD_POSITION_MUTATION from '@/graphql/blocks/addPosition.graphql'
 import REMOVE_POSITION_MUTATION from '@/graphql/blocks/removePosition.graphql'
 
@@ -12,7 +12,7 @@ export function useMutatePositions({unitId}) {
     const {
         addPosition: addPositionToCache,
         removePosition: removePositionFromCache
-    } = useCacheUpdates({})
+    } = useCacheUpdates({typename: "Unit", fragment: UNIT_FRAGMENT})
 
     const {
         mutate: addPositionMutation,

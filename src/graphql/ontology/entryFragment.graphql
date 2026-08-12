@@ -7,6 +7,11 @@ fragment OntologyEntryFields on OntologyNodeInterface {
 
     name
     description
+
+    references {
+        id description
+        ... on ExternalReference { url externalId }
+    }
     ... on Term {
         subjects { id versionId view name }
         scales { id versionId view name }

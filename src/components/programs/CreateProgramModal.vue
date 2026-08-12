@@ -3,9 +3,9 @@ import { ref, watch } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
-
-import EntityReferencesModal from '@/components/references/EntityReferencesModal.vue'
+import ControlSelector from "@/components/controls/ControlSelector.vue";
+import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const emit = defineEmits(['close', 'success'])
 
@@ -13,6 +13,7 @@ const { createProgram, createProgramLoading } = useMutatePrograms()
 
 const formError = ref('')
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 const handleControlTeamError = (errorMessage) => {
   formError.value = errorMessage
 }
@@ -63,7 +64,11 @@ const submitForm = async (values) => {
       cleanValues.referenceIds = selectedReferenceIds.value
     }
 
-    const { status, errors } = await createProgram(cleanValues, selectedControlTeamId.value)
+    const { status, errors } = await createProgram({
+      programData: cleanValues,
+      controlTeamId: selectedControlTeamId,
+      release: selectedRelease
+    })
 
     if (status === 'SUCCESS') {
       emit('success')
@@ -140,8 +145,9 @@ const submitForm = async (values) => {
         </div>
 
         <div class="form-actions">
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
             class="form-control"
             @error="handleControlTeamError"
           />
@@ -156,8 +162,9 @@ const submitForm = async (values) => {
     </div>
 
     <!-- References Modal -->
-    <EntityReferencesModal
+    <ReferencesModal
       :visible="isReferencesModalOpen"
+      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"

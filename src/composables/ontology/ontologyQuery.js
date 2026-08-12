@@ -21,7 +21,6 @@ export function useOntologyQuery({versionId, view}) {
         { enabled: computed( () => toValue(versionId) !== null) } )
 
     const ontology = computed(() => {
-        console.log('recompute ontology')
         return result.value?.ontology?.result
     })
 

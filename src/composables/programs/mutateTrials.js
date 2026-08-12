@@ -1,8 +1,10 @@
+import {toValue} from "vue"
 import { useMutation } from '@vue/apollo-composable'
 
 import CREATE_TRIAL_MUTATION from '@/graphql/programs/createTrial.graphql'
 import UPDATE_TRIAL_MUTATION from '@/graphql/programs/updateTrial.graphql'
 import DELETE_TRIAL_MUTATION from '@/graphql/programs/deleteTrial.graphql'
+
 
 export function useMutateTrials() {
   // Create trial
@@ -12,10 +14,11 @@ export function useMutateTrials() {
     error: createTrialError
   } = useMutation(CREATE_TRIAL_MUTATION)
 
-  const createTrial = async (trialData, controlTeamId) => {
+  const createTrial = async ({ trialData, controlTeamId, release }) => {
     const response = await createTrialMutation({
       trial: trialData,
-      controlTeamId: controlTeamId
+      controlTeamId: toValue(controlTeamId),
+      release: toValue(release)
     })
     if (response?.data?.programsCreateTrial) {
       const { status, errors } = response.data.programsCreateTrial

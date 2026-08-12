@@ -1,34 +1,23 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
+import { ref, computed} from 'vue'
+
 import ControllerModal from '../controls/ControllerModal.vue'
-import CreateEntryModal from './CreateEntryModal.vue'
-import UpdateEntryModal from './UpdateEntryModal.vue'
+import GermplasmEntryModal from './GemplasmEntryModal.vue'
+
+import GERMPLASM_FRAGMENT from '@/graphql/germplasm/entryFragment.graphql'
+
+import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import { useControllerData } from '@/composables/controls/useControllerData'
 import { useMutateEntries } from '@/composables/germplasm/mutateEntries'
 
+import { useAllGermplasmQuery } from "@/composables/germplasm/allGermplasmQuery";
+import { useGermplasmByIdsQuery } from "@/composables/germplasm/germplasmByIdsQuery";
+
 import GermplasmNetworkGraph from './GermplasmNetworkGraph.vue'
-
-import GERMPLASM_CROPS_QUERY from '@/graphql/germplasm/crops.graphql'
-import GERMPLASM_ENTRIES_QUERY from '@/graphql/germplasm/entries.graphql'
-
-
-// Initial query for crops
-const { result, loading, error } = useQuery(GERMPLASM_CROPS_QUERY, {fetchPolicy: 'cache-and-network'})
-
-// Query to get all entries - used for selection AND for expanding
-const { result: allEntriesResult, refetch: refetchAllEntries } = useQuery(GERMPLASM_ENTRIES_QUERY, {
-  entryIds: null,
-  names: null
-
-}, {fetchPolicy: 'cache-and-network'})
 
 // Mutations
 const { deleteEntry, deleteEntryLoading } = useMutateEntries()
-
-// Store all loaded entries
-const loadedEntries = ref(new Map())
 
 // Track which entries should be hidden
 const hiddenEntryIds = ref(new Set())
@@ -45,37 +34,35 @@ const showDeleteModal = ref(false)
 const entryToDelete = ref(null)
 const deleteError = ref('')
 
-// Computed property to get all unique entries (excluding hidden ones)
-// This is used for both the graph display AND the dropdown selections
-const allEntries = computed(() => {
 
-  const crops = result.value?.germplasmCrops?.result || []
+const {
+  germplasm: allGermplasm,
+  germplasmLoading: allGermplasmLoading,
+  germplasmError: allGermplasmError,
+  refetchGermplasm: refetchAllGermplasm
+} = useAllGermplasmQuery()
 
-  // Start with crops
-  const entriesMap = new Map()
-  crops.forEach(crop => {
-    if (!hiddenEntryIds.value.has(crop.id)) {
-      entriesMap.set(crop.id, crop)
+const toLoadGermplasmIds = ref([])
+const { refetchGermplasm } = useGermplasmByIdsQuery(toLoadGermplasmIds)
+
+const loadedEntries = computed(() => {
+      return new Map((allGermplasm.value ?? []).map(entry => [entry.id, entry]))
     }
-  })
+)
 
-  // Add any additionally loaded entries (excluding hidden ones)
-  loadedEntries.value.forEach((entry, id) => {
-    if (!hiddenEntryIds.value.has(id)) {
-      entriesMap.set(id, entry)
-    }
-  })
-  return Array.from(entriesMap.values())
+const visibleEntries = computed(() => {
+  return Array.from(loadedEntries.value.values()).filter(
+    entry => !hiddenEntryIds.value.has(entry.id)
+  )
 })
 
-// Computed property for available entries - same as allEntries (no hidden ones)
-const availableEntries = computed(() => {
-  return allEntries.value
+const { deleteFromCache } = useCacheUpdates({
+  typename: "GermplasmEntry",
+  fragment: GERMPLASM_FRAGMENT
 })
 
 // Event handlers
 const handleExpandSources = async (entry) => {
-  console.debug('Expand sources for:', entry)
 
   try {
     // Get source IDs directly from the entry
@@ -91,27 +78,6 @@ const handleExpandSources = async (entry) => {
       }
     })
 
-    // Collect IDs of sources that aren't loaded yet
-    const sourcesToFetch = sourceIds.filter(sourceId => !loadedEntries.value.has(sourceId))
-
-    // Fetch complete data for sources that aren't loaded
-    if (sourcesToFetch.length > 0) {
-      const { data } = await refetchAllEntries({
-        entryIds: sourcesToFetch,
-        names: null
-      })
-
-      if (data?.germplasmEntries?.result) {
-        data.germplasmEntries.result.forEach(sourceEntry => {
-          loadedEntries.value.set(sourceEntry.id, sourceEntry)
-          hiddenEntryIds.value.delete(sourceEntry.id)
-        })
-      }
-    }
-
-    // Trigger reactivity
-    loadedEntries.value = new Map(loadedEntries.value)
-    hiddenEntryIds.value = new Set(hiddenEntryIds.value)
   } catch (err) {
     console.error('Error expanding sources:', err)
   }
@@ -136,27 +102,6 @@ const handleExpandSinks = async (entry) => {
       }
     })
 
-    // Collect IDs of sinks that aren't loaded yet
-    const sinksToFetch = sinkIds.filter(sinkId => !loadedEntries.value.has(sinkId))
-
-    // Fetch complete data for sinks that aren't loaded
-    if (sinksToFetch.length > 0) {
-      const { data } = await refetchAllEntries({
-        entryIds: sinksToFetch,
-        names: null
-      })
-
-      if (data?.germplasmEntries?.result) {
-        data.germplasmEntries.result.forEach(sinkEntry => {
-          loadedEntries.value.set(sinkEntry.id, sinkEntry)
-          hiddenEntryIds.value.delete(sinkEntry.id)
-        })
-      }
-    }
-
-    // Trigger reactivity
-    loadedEntries.value = new Map(loadedEntries.value)
-    hiddenEntryIds.value = new Set(hiddenEntryIds.value)
   } catch (err) {
     console.error('Error expanding sinks:', err)
   }
@@ -192,8 +137,6 @@ const handleCollapseSources = (entry) => {
     hiddenEntryIds.value.add(id)
   })
 
-  // Trigger reactivity
-  hiddenEntryIds.value = new Set(hiddenEntryIds.value)
 }
 
 const handleCollapseSinks = (entry) => {
@@ -223,9 +166,8 @@ const handleCollapseSinks = (entry) => {
   entriesToHide.forEach(id => {
     hiddenEntryIds.value.add(id)
   })
+  console.log('entries to hide', entriesToHide)
 
-  // Trigger reactivity
-  hiddenEntryIds.value = new Set(hiddenEntryIds.value)
 }
 
 const handleToggleExpanded = (entry) => {
@@ -247,58 +189,27 @@ const handleToggleExpanded = (entry) => {
 }
 
 const handleCreateSuccess = async ({ entryName, sourceIds, sinkIds }) => {
-  // Collect all IDs to fetch: the new entry by name, plus all source and sink IDs
-  const idsToFetch = [...sourceIds, ...sinkIds]
-
-  // Fetch the newly created entry by name AND the defined sources/sinks by ID
-  const [byName, byIds] = await Promise.all([
-    refetchAllEntries({ entryIds: null, names: [entryName] }),
-    idsToFetch.length > 0 ? refetchAllEntries({ entryIds: idsToFetch, names: null }) : null
-  ])
-
-  // Merge results from both queries
-  const allResults = [
-    ...(byName.data?.germplasmEntries?.result || []),
-    ...(byIds?.data?.germplasmEntries?.result || [])
-  ]
-
-  allResults.forEach(newEntry => {
-    loadedEntries.value.set(newEntry.id, newEntry)
-  })
-
-  // Trigger reactivity
-  loadedEntries.value = new Map(loadedEntries.value)
-
+  //todo consider refetching only the newly created entry and related using the event data
+  // for now just refetch all
   showCreateModal.value = false
+  await refetchAllGermplasm()
 }
 
 const handleUpdateEntry = (entry) => {
-  console.debug('Update entry:', entry)
   entryToUpdate.value = entry
   showUpdateModal.value = true
 }
 
 const handleUpdateSuccess = async ({ entryId, sourceIds, sinkIds }) => {
+
   // Fetch the updated entry by ID AND the defined sources/sinks by ID
-  const idsToFetch = [...sourceIds, ...sinkIds].filter(id => id !== entryId)
-
-  const [byId, byIds] = await Promise.all([
-    refetchAllEntries({ entryIds: [entryId], names: null }),
-    idsToFetch.length > 0 ? refetchAllEntries({ entryIds: idsToFetch, names: null }) : null
-  ])
-
-  // Merge results from both queries
-  const allResults = [
-    ...(byId.data?.germplasmEntries?.result || []),
-    ...(byIds?.data?.germplasmEntries?.result || [])
-  ]
-
-  allResults.forEach(updatedEntry => {
-    loadedEntries.value.set(updatedEntry.id, updatedEntry)
-  })
-
-  // Trigger reactivity
-  loadedEntries.value = new Map(loadedEntries.value)
+  const idsToFetch = [entryId, ...sourceIds, ...sinkIds] //.filter(id => id !== entryId)
+  const sameIds = toLoadGermplasmIds.value?.length === idsToFetch.length && toLoadGermplasmIds.value.every((id, i) => id === idsToFetch[i])
+  if (sameIds) {
+    await refetchGermplasm()
+  } else {
+    toLoadGermplasmIds.value = idsToFetch
+  }
 
   showUpdateModal.value = false
   entryToUpdate.value = null
@@ -334,6 +245,7 @@ const confirmDelete = async () => {
     const { status, errors } = await deleteEntry(entryToDelete.value.id)
 
     if (status === 'SUCCESS') {
+      console.log('deleting entry', entryToDelete.value)
       const entryId = entryToDelete.value.id
       const entryData = entryToDelete.value.data
 
@@ -356,26 +268,19 @@ const confirmDelete = async () => {
         })
       }
 
-      // Remove the deleted entry
-      loadedEntries.value.delete(entryId)
+      // Remove the deleted entry from the cache
+      deleteFromCache({id: entryId})
 
       // Reload the referenced entries to update their relationships
       if (referencedEntryIds.size > 0) {
-        const { data } = await refetchAllEntries({
-          entryIds: Array.from(referencedEntryIds),
-          names: null
-        })
-
-        if (data?.germplasmEntries?.result) {
-          data.germplasmEntries.result.forEach(entry => {
-            loadedEntries.value.set(entry.id, entry)
-          })
+        const idsToFetch = Array.from(referencedEntryIds)
+        const sameIds = toLoadGermplasmIds.value?.length === idsToFetch.length && toLoadGermplasmIds.value.every((id, i) => id === idsToFetch[i])
+        if (sameIds) {
+          await refetchGermplasm()
+        } else {
+          toLoadGermplasmIds.value = idsToFetch
         }
       }
-
-      // Trigger reactivity
-      loadedEntries.value = new Map(loadedEntries.value)
-
       // Close modal
       showDeleteModal.value = false
       entryToDelete.value = null
@@ -422,21 +327,21 @@ const handleControllerReleaseUpdated = async () => {
     </div>
 
     <div class="germplasm-content">
-      <div v-if="loading" class="loading-message">
+      <div v-if="allGermplasmLoading" class="loading-message">
         Loading germplasm data...
       </div>
 
-      <div v-else-if="error" class="error-message">
-        Error loading germplasm: {{ error.message }}
+      <div v-else-if="allGermplasmError" class="error-message">
+        Error loading germplasm: {{ allGermplasmError.message }}
       </div>
 
-      <div v-else-if="allEntries.length === 0" class="empty-message">
-        <p>No germplasm crops found.</p>
+      <div v-else-if="allGermplasm.length === 0" class="empty-message">
+        <p>No germplasm found.</p>
       </div>
 
       <GermplasmNetworkGraph
         v-else
-        :entries="allEntries"
+        :entries="visibleEntries"
         @expand-sources="handleExpandSources"
         @expand-sinks="handleExpandSinks"
         @collapse-sources="handleCollapseSources"
@@ -450,8 +355,8 @@ const handleControllerReleaseUpdated = async () => {
 
     <!-- Create Entry Modal -->
     <div v-if="showCreateModal" class="modal-overlay">
-      <CreateEntryModal
-        :availableEntries="availableEntries"
+      <GermplasmEntryModal
+        :availableEntries="allGermplasm"
         @close="showCreateModal = false"
         @success="handleCreateSuccess"
       />
@@ -459,9 +364,9 @@ const handleControllerReleaseUpdated = async () => {
 
     <!-- Update Entry Modal -->
     <div v-if="showUpdateModal && entryToUpdate" class="modal-overlay">
-      <UpdateEntryModal
+      <GermplasmEntryModal
         :entry="entryToUpdate"
-        :availableEntries="availableEntries"
+        :availableEntries="allGermplasm"
         @close="cancelUpdate"
         @success="handleUpdateSuccess"
       />
@@ -511,8 +416,8 @@ const handleControllerReleaseUpdated = async () => {
     <ControllerModal
       :isVisible="showControllerModal"
       :controller="controller"
-      :loading="loading"
-      :error="error"
+      :loading="allGermplasmLoading"
+      :error="allGermplasmError"
       entityLabel="GERMPLASM"
       :entityId="selectedEntryForController?.data?.id"
       @close="closeControllerModal"

@@ -10,8 +10,10 @@ import {
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
 
-import DataReferenceModal from '@/components/references/DataReferenceModal.vue';
-import ControlTeamSelector from "@/components/controls/ControlTeamSelector.vue";
+import ReferencesModal from '@/components/references/ReferencesModal.vue'
+import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
+
+import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 const props = defineProps({
   visible: {
@@ -39,6 +41,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submitted']);
 
 const selectedControlTeamId = ref(null)
+const selectedRelease = ref(null)
 const errorMessage = ref('')
 
 const handleControlTeamError = (error) => {
@@ -387,7 +390,7 @@ const confirmClose = () => {
 
 // Submit handler
 const handleSubmit = async () => {
-  await submitAllColumns(selectedControlTeamId.value);
+  await submitAllColumns(selectedControlTeamId, selectedRelease);
   if (allSubmitted.value) {
     emit('submitted');
   }
@@ -670,8 +673,9 @@ const getFileReferenceDisplay = (value) => {
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
           </div>
-          <ControlTeamSelector
-            v-model="selectedControlTeamId"
+          <ControlSelector
+            v-model:controlTeamId="selectedControlTeamId"
+            v-model:readRelease="selectedRelease"
             class="form-control"
             @error="handleControlTeamError"
           />
@@ -739,9 +743,10 @@ const getFileReferenceDisplay = (value) => {
       </div>
     </div>
 
-    <DataReferenceModal
+    <ReferencesModal
       :visible="showFileReferenceModal"
-      :selected-reference-ids="editingFileReferenceCell?.referenceIds || []"
+      :referenceTypes="DATA_REFERENCE_TYPE_CONFIGS"
+      :selectedReferenceIds="editingFileReferenceCell?.referenceIds || []"
       @close="showFileReferenceModal = false"
       @save="handleFileReferenceUpdate"
 

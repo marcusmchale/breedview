@@ -90,8 +90,8 @@ const manageControllers = () => {
 }
 
 const renderGraph = async () => {
+  console.debug('Rendering graph')
   await nextTick()
-
   // Clear previous graph
   d3.select(graphContainer.value).selectAll("*").remove()
 

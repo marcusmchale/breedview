@@ -1,3 +1,4 @@
+import { toValue } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 
 import CREATE_STUDY_MUTATION from '@/graphql/programs/createStudy.graphql'
@@ -12,10 +13,11 @@ export function useMutateStudies() {
     error: createStudyError
   } = useMutation(CREATE_STUDY_MUTATION)
 
-  const createStudy = async (studyData, controlTeamId) => {
+  const createStudy = async ({ studyData, controlTeamId, release }) => {
     const response = await createStudyMutation({
       study: studyData,
-      controlTeamId: controlTeamId
+      controlTeamId: toValue(controlTeamId),
+      release: toValue(release)
     })
     if (response?.data?.programsCreateStudy) {
       const { status, errors } = response.data.programsCreateStudy

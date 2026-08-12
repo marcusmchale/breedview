@@ -1,10 +1,12 @@
 mutation programsCreateProgram(
   $program: ProgramInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   programsCreateProgram(
     program: $program
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

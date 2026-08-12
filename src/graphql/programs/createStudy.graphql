@@ -1,10 +1,12 @@
 mutation programsCreateStudy(
   $study: StudyInput!
   $controlTeamId: ID!
+  $release: ReadRelease
 ) {
   programsCreateStudy(
     study: $study
     controlTeamId: $controlTeamId
+    release: $release
   ) {
     status
     errors {

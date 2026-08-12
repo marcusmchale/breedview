@@ -14,6 +14,7 @@ query AnalysisSubmission($analysisId: ID!) {
           sumSq
           df
           fValue
+          wald
           pValue
         }
         group {

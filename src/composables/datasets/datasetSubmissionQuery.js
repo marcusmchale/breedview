@@ -14,7 +14,6 @@ export function pollDatasetSubmission({ client, submissionId,  pollInterval = 20
         },
         fetchPolicy: 'network-only',
       });
-      console.log('Dataset submission query result:', data);
 
       const result = data?.datasetsSubmission?.result;
 

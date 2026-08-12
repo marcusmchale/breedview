@@ -1,11 +1,12 @@
 <script setup>
+import { computed, ref } from 'vue'
 
-import { computed, ref } from "vue";
-
-import OntologyNetworkGraph from "@/components/ontology/OntologyNetworkGraph.vue";
-import { useOntologyQuery } from "@/composables/ontology/ontologyQuery";
-import { useOntologySchema } from "@/composables/ontology/useOntologySchema";
-import { useMutateOntology } from "@/composables/ontology/mutateOntology";
+import OntologyNetworkGraph from '@/components/ontology/OntologyNetworkGraph.vue'
+import OntologyEntryModal from '@/components/ontology/OntologyEntryModal.vue'
+import { useOntologyQuery } from '@/composables/ontology/ontologyQuery'
+import { useOntologySchema } from '@/composables/ontology/useOntologySchema'
+import { useMutateOntology } from '@/composables/ontology/mutateOntology'
+import { ONTOLOGY_ENTRY_CONFIGS } from '@/composables/ontology/ontologyEntryConfig'
 
 const props = defineProps({
   versionId: {
@@ -19,219 +20,137 @@ const props = defineProps({
   creator: {
     type: Boolean,
     default: false
-  },
-
+  }
 })
 
 const {
-    ontology,
-    ontologyLoading,
-    ontologyErrors,
-    ontologyRefetch,
-} = useOntologyQuery({ versionId: props.versionId, view: "EDITORIAL" })
+  ontology,
+  ontologyLoading,
+  ontologyErrors,
+  ontologyRefetch
+} = useOntologyQuery({ versionId: props.versionId, view: 'EDITORIAL' })
 
-const {
-    createMutations, creatorHandlers,
-    updateMutations, updateHandlers,
-    deprecateEntries,
-    cancelDeprecateEntries,
-    refetchConnected,
-} = useMutateOntology({versionId: props.versionId, view: "EDITORIAL"})
+const mutations = useMutateOntology({ versionId: props.versionId, view: 'EDITORIAL' })
+const { refetchConnected, deprecateEntries, cancelDeprecateEntries } = mutations
 
 const { getCreateEntriesForLabels } = useOntologySchema()
 const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
 
-const showForm = ref(false)
-const formTitle = ref('')
-const formFields = ref([])
-const currentMutation = ref(null)
-const currentEntryId = ref(null)
-const formData = ref({})
-const updateFormPhase = ref(null)
+// ── Modal state ───────────────────────────────────────────────────────────────
+const showModal = ref(false)
+const activeConfig = ref(null)
+const activeEntry = ref(null)
+const mutationLoading = ref(false)
+const mutationError = ref(null)
 
-// Form management
-const openForm = (title, fields, mutation, entryPhase = null) => {
-  formTitle.value = title
-  formFields.value = fields
-  currentMutation.value = mutation
-  showForm.value = true
-  updateFormPhase.value = entryPhase
+const openCreateForm = (typename) => {
+  console.log('typename', typename)
+  activeConfig.value = ONTOLOGY_ENTRY_CONFIGS[typename]
+  activeEntry.value = null
+  mutationError.value = null
+  showModal.value = true
 }
 
-const closeForm = () => {
-  showForm.value = false
-  formTitle.value = ''
-  formFields.value = []
-  currentMutation.value = null
-  currentEntryId.value = null
-  formData.value = {}
+const openUpdateForm = (entry) => {
+  activeConfig.value = ONTOLOGY_ENTRY_CONFIGS[entry.__typename]
+  activeEntry.value = entry
+  mutationError.value = null
+  showModal.value = true
 }
 
-// Axes management
-const addAxis = (fieldName, value) => {
-  if (!formData.value[fieldName]) {
-    formData.value[fieldName] = []
-  }
-  formData.value[fieldName].push(value)
+const closeModal = () => {
+  showModal.value = false
+  activeConfig.value = null
+  activeEntry.value = null
+  mutationError.value = null
 }
 
-const removeAxis = (fieldName, index) => {
-  if (formData.value[fieldName]) {
-    formData.value[fieldName].splice(index, 1)
-  }
-}
+// ── Submit handler ────────────────────────────────────────────────────────────
+const handleSubmit = async ({ formData, referenceIds, controlTeamId }) => {
+  const typename = activeConfig.value.typename
+  mutationLoading.value = true
+  mutationError.value = null
 
-const getAxisLabel = (options, value) => {
-  const option = options.find(opt => opt.value === value)
-  return option ? option.label : value
-}
-
-// Main entry creation
-const createEntry = async (methodName) => {
-  const handler = creatorHandlers[methodName]
-
-  if (handler) {
-    const context = {
-      ontologyEntries: ontology.value.entries,
-      openForm,
-      createTermMutation: createMutations.createTermMutation,
-      createSubjectMutation: createMutations.createSubjectMutation,
-      createTraitMutation: createMutations.createTraitMutation,
-      createConditionMutation: createMutations.createConditionMutation,
-      createScaleMutation: createMutations.createScaleMutation,
-      createCategoryMutation: createMutations.createCategoryMutation,
-      createObservationMethodMutation: createMutations.createObservationMethodMutation,
-      createVariableMutation: createMutations.createVariableMutation,
-      createControlMethodMutation: createMutations.createControlMethodMutation,
-      createFactorMutation: createMutations.createFactorMutation,
-      createEventMutation: createMutations.createEventMutation,
-      createLocationTypeMutation: createMutations.createLocationTypeMutation,
-      createDesignMutation: createMutations.createDesignMutation,
-      createLayoutTypeMutation: createMutations.createLayoutTypeMutation
+  try {
+    if (activeEntry.value) {
+      const variables = activeConfig.value.processUpdate(activeEntry.value, formData, referenceIds)
+      const { status, errors } = await mutations[`update${typename}`](variables)
+      if (status === 'SUCCESS') {
+        await refetchConnected(activeEntry.value.id)
+        closeModal()
+      } else {
+        mutationError.value = errors?.map(e => e.message).join(', ') ?? 'Update failed'
+      }
+    } else {
+      const variables = activeConfig.value.processCreate(formData, referenceIds)
+      const { status, errors } = await mutations[`create${typename}`](variables, controlTeamId)
+      if (status === 'SUCCESS') {
+        await ontologyRefetch()
+        closeModal()
+      } else {
+        mutationError.value = errors?.map(e => e.message).join(', ') ?? 'Create failed'
+      }
     }
-    handler(context)
-  } else {
-    console.warn(`Handler ${methodName} not implemented yet`)
+  } catch (err) {
+    console.error('Ontology mutation error:', err)
+    mutationError.value = err.message ?? 'An unexpected error occurred'
+  } finally {
+    mutationLoading.value = false
   }
 }
 
-// Handle node right-click for editing
+// ── Deprecate / Cancel Deprecate ──────────────────────────────────────────────
+const handleDeprecate = async (entryId) => {
+  mutationLoading.value = true
+  try {
+    const { status, errors } = await deprecateEntries([entryId])
+    if (status === 'SUCCESS') {
+      closeModal()
+    } else {
+      mutationError.value = errors?.map(e => e.message).join(', ') ?? 'Deprecation failed'
+    }
+  } catch (err) {
+    mutationError.value = err.message
+  } finally {
+    mutationLoading.value = false
+  }
+}
+
+const handleCancelDeprecate = async (entryId) => {
+  mutationLoading.value = true
+  try {
+    const { status, errors } = await cancelDeprecateEntries([entryId])
+    if (status === 'SUCCESS') {
+      closeModal()
+    } else {
+      mutationError.value = errors?.map(e => e.message).join(', ') ?? 'Cancel deprecation failed'
+    }
+  } catch (err) {
+    mutationError.value = err.message
+  } finally {
+    mutationLoading.value = false
+  }
+}
+
+// ── Graph interaction ─────────────────────────────────────────────────────────
 const handleNodeRightClick = (node) => {
-  const entry = ontology.value.entries.find(e => e.id === node.id)
+  const entry = ontology.value?.entries.find(e => e.id === node.id)
   if (!entry) {
     console.warn('Entry not found for node:', node)
     return
   }
-
-  const typename = entry.__typename
-
-  const handlerMap = {
-    'Term': 'updateTerm',
-    'Subject': 'updateSubject',
-    'Trait': 'updateTrait',
-    'Condition': 'updateCondition',
-    'Scale': 'updateScale',
-    'Category': 'updateCategory',
-    'ObservationMethod': 'updateObservationMethod',
-    'Variable': 'updateVariable',
-    'ControlMethod': 'updateControlMethod',
-    'Factor': 'updateFactor',
-    'Event': 'updateEvent',
-    'LocationType': 'updateLocationType',
-    'Design': 'updateDesign',
-    'LayoutType': 'updateLayoutType'
+  if (!ONTOLOGY_ENTRY_CONFIGS[entry.__typename]) {
+    console.warn('No config for type:', entry.__typename)
+    return
   }
-
-  const handlerMethodName = handlerMap[typename]
-  if (handlerMethodName && updateHandlers[handlerMethodName]) {
-    const handler = updateHandlers[handlerMethodName]
-    currentEntryId.value = entry.id
-
-    const context = {
-      entry,
-      relationships: ontology.value.relationships,
-      ontologyEntries: ontology.value.entries,
-      openForm,
-      [`update${typename}Mutation`]: updateMutations[`update${typename}Mutation`]
-    }
-    handler(context)
-  } else {
-    console.warn(`No update handler found for type: ${typename}`)
-  }
+  openUpdateForm(entry)
 }
-
-// Deprecate entry
-const deprecateEntry = async (entryId) => {
-  try {
-    const { status, errors } = await deprecateEntries([entryId])
-
-    if (status === 'SUCCESS') {
-      closeForm()
-    } else {
-      alert('Error: ' + errors.map(e => e.message).join(', '))
-    }
-  } catch (error) {
-    console.error('Error deprecating entry:', error)
-    alert('An error occurred: ' + error.message)
-  }
-}
-
-// Deprecate entry
-const cancelDeprecateEntry = async (entryId) => {
-  try {
-    const { status, errors } = await cancelDeprecateEntries([entryId])
-
-    if (status === 'SUCCESS') {
-      closeForm()
-    } else {
-      alert('Error: ' + errors.map(e => e.message).join(', '))
-    }
-  } catch (error) {
-    console.error('Error cancelling deprecate entry:', error)
-    alert('An error occurred: ' + error.message)
-  }
-}
-
-// Handle form submission
-const handleSubmit = async (formDataValues) => {
-  try {
-    const processedFormData = Object.fromEntries(
-      Object.entries(formDataValues).map(([key, value]) => [
-        key,
-        Array.isArray(value) ?
-          (value.length === 0 ? [] : value) :
-          value
-      ])
-    )
-    const result = await currentMutation.value(processedFormData)
-    if (result?.data) {
-      const mutationKey = Object.keys(result.data)[0]
-      const response = result.data[mutationKey]
-
-      if (response.errors && response.errors.length > 0) {
-        alert('Error: ' + response.errors.map(e => e.message).join(', '))
-      } else if (response.status === 'success' || response.status === 'SUCCESS') {
-        if (mutationKey.includes("Create")) {
-          closeForm()
-          await ontologyRefetch()
-        } else {
-          await refetchConnected(currentEntryId.value)
-          closeForm()
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error submitting form:', error)
-    alert('An error occurred: ' + error.message)
-  }
-}
-
 </script>
 
 <template>
-  <div ref="OntologyEditor"></div>
-    <div v-if="ontologyErrors.length" class="error">Errors: {{ ontologyErrors }}</div>
-    <div v-if="ontologyLoading">Loading ontology entries...</div>
+  <div>
+    <div v-if="ontologyErrors?.length" class="error">Errors: {{ ontologyErrors }}</div>
+    <div v-if="ontologyLoading">Loading ontology entries…</div>
     <div v-else class="graph-container">
       <OntologyNetworkGraph
         v-if="ontology"
@@ -242,111 +161,38 @@ const handleSubmit = async (formDataValues) => {
 
     <section>
       <h2>Add to ontology</h2>
-              <div class="entry-management">
+      <div class="entry-management">
         <button
           v-for="(entry, index) in createEntriesForLabels"
           :key="index"
           :title="`${entry.description} (${entry.code})`"
-          :style="{
-            backgroundColor: entry.color,
-            color: 'white'
-          }"
-          @click="createEntry(entry.method)"
+          :style="{ backgroundColor: entry.color, color: 'white' }"
           class="ontology-button"
+          @click="openCreateForm(entry.typename)"
         >
           {{ entry.label }}
         </button>
       </div>
     </section>
 
-
-    <!-- Form Modal -->
-    <div v-if="showForm" class="form-modal">
-      <div class="form-container">
-        <h2>{{ formTitle }}</h2>
-        <FormKit
-          type="form"
-          @submit="handleSubmit"
-          :actions="false"
-          v-model="formData"
-        >
-          <template v-for="field in formFields" :key="field.name">
-            <!-- Custom Axes Builder -->
-            <div v-if="field._axesBuilder" class="axes-builder-field">
-              <label class="axes-label">Axes (order matters)</label>
-              <div class="add-buttons">
-                <button
-                  v-for="option in field._axesBuilder.options"
-                  :key="option.value"
-                  type="button"
-                  class="add-axis-btn"
-                  @click="addAxis(field.name, option.value)"
-                >
-                  + {{ option.label }}
-                </button>
-              </div>
-
-              <div v-if="formData[field.name] && formData[field.name].length > 0" class="axes-list">
-                <div
-                  v-for="(axis, index) in formData[field.name]"
-                  :key="`${axis}-${index}`"
-                  class="axis-item"
-                  @click="removeAxis(field.name, index)"
-                  :title="`Click to remove`"
-                >
-                  <span class="axis-index">{{ index + 1 }}.</span>
-                  <span class="axis-label">{{ getAxisLabel(field._axesBuilder.options, axis) }}</span>
-                  <span class="axis-remove">×</span>
-                </div>
-              </div>
-
-              <div v-else class="empty-axes">
-                Click buttons above to add axes in order
-              </div>
-
-              <FormKit :type="field.type" :name="field.name" :value="field.value" />
-            </div>
-
-            <!-- Regular FormKit fields -->
-            <FormKit
-              v-else
-              :type="field.type"
-              :name="field.name"
-              :label="field.label"
-              :validation="field.validation"
-              :placeholder="field.placeholder"
-              :options="field.options"
-              :multiple="field.multiple"
-              :value="field.value"
-            />
-          </template>
-
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">Submit</button>
-            <button type="button" @click="closeForm" class="btn-secondary">Cancel</button>
-            <button
-              v-if="currentEntryId && ['DRAFT', 'ACTIVE'].includes(updateFormPhase)"
-              type="button"
-              @click="deprecateEntry(currentEntryId)"
-              class="btn-danger"
-              title="Deprecate this entry"
-            >
-              Deprecate
-            </button>
-             <button
-              v-if="currentEntryId && updateFormPhase === 'DEPRECATED'"
-              type="button"
-              @click="cancelDeprecateEntry(currentEntryId)"
-              class="btn-primary"
-              title="Cancel deprecation of this entry"
-            >
-              Cancel Deprecation
-            </button>
-          </div>
-        </FormKit>
-      </div>
+    <!-- Error display outside modal (if modal is closed) -->
+    <div v-if="mutationError && !showModal" class="error-message">
+      {{ mutationError }}
     </div>
 
+    <!-- Shared modal -->
+    <OntologyEntryModal
+      v-if="showModal && activeConfig"
+      :config="activeConfig"
+      :ontology-entries="ontology?.entries ?? []"
+      :entry="activeEntry"
+      :loading="mutationLoading"
+      @submit="handleSubmit"
+      @deprecate="handleDeprecate"
+      @cancel-deprecate="handleCancelDeprecate"
+      @close="closeModal"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -361,92 +207,11 @@ const handleSubmit = async (formDataValues) => {
   background: white;
 }
 
-.form-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.form-container {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  min-width: 400px;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
-}
-
-.btn-primary {
-  background-color: #4CAF50;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background-color: #45a049;
-}
-
-.btn-secondary {
-  background-color: #f44336;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background-color: #da190b;
-}
-
-.btn-secondary:hover {
-  background-color: #da190b;
-}
-
-.btn-danger {
-  background-color: #ff6b6b;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-danger:hover {
-  background-color: #ee5252;
-}
-
-.entry-management, .label-filter {
+.entry-management {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
-}
-
-.label-filter button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s, opacity 0.3s;
 }
 
 .ontology-button {
@@ -454,7 +219,7 @@ const handleSubmit = async (formDataValues) => {
   border: 1px solid #ccc;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s, opacity 0.3s;
+  transition: opacity 0.2s;
   color: white;
 }
 
@@ -466,104 +231,12 @@ const handleSubmit = async (formDataValues) => {
   opacity: 0.7;
 }
 
-.entry-management button {
-  background-color: transparent; /* Will be overridden by inline style */
-  color: white;
-}
-
-
-.axes-builder-field {
-  margin-bottom: 1.5rem;
-}
-
-.axes-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.add-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.add-axis-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid #4CAF50;
-  background: white;
-  color: #4CAF50;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.add-axis-btn:hover {
-  background: #4CAF50;
-  color: white;
-}
-
-.axes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: #f5f5f5;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-}
-
-.axis-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.error-message {
+  color: #dc2626;
   padding: 0.75rem;
-  background: white;
-  border: 1px solid #ddd;
+  border: 1px solid #fca5a5;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.axis-item:hover {
-  background: #fee;
-  border-color: #f44336;
-}
-
-.axis-index {
-  font-weight: bold;
-  color: #666;
-  min-width: 2rem;
-}
-
-.axis-label {
-  flex: 1;
-  font-weight: 500;
-}
-
-.axis-remove {
-  font-size: 1.5rem;
-  color: #f44336;
-  font-weight: bold;
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-
-.axis-item:hover .axis-remove {
-  opacity: 1;
-}
-
-.empty-axes {
-  padding: 2rem;
-  text-align: center;
-  color: #999;
-  font-style: italic;
-  background: #f9f9f9;
-  border: 2px dashed #ddd;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
+  background: #fef2f2;
+  margin-top: 1rem;
 }
 </style>

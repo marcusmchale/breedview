@@ -74,7 +74,7 @@ const toggleExpand = () => {
                 </span>
                 <span class="type-icon">{{ typeIcon }}</span>
                 <span class="type-label">{{ typeLabel }}</span>
-                <span class="reference-description">
+                <span class="reference-externalId">
                     {{ reference.description || 'No description' }}
                 </span>
             </div>
@@ -230,7 +230,7 @@ const toggleExpand = () => {
     white-space: nowrap;
 }
 
-.reference-description {
+.reference-externalId {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
