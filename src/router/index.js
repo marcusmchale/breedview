@@ -72,7 +72,10 @@ const routes = [
     path: '/ontology',
     name: 'Ontology',
     component: OntologyManagementPage,
-    meta: { requiresAuth: true }
+    meta: {
+      requiresAuth: true,
+      title: 'Ontology'
+    }
   },
   {
     path: '/ontology/commits',

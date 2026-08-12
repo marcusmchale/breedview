@@ -3,6 +3,7 @@ import { ref, computed} from 'vue'
 
 import ControllerModal from '../controls/ControllerModal.vue'
 import GermplasmEntryModal from './GemplasmEntryModal.vue'
+import GermplasmCard from './GermplasmCard.vue'
 
 import GERMPLASM_FRAGMENT from '@/graphql/germplasm/entryFragment.graphql'
 
@@ -34,6 +35,8 @@ const showDeleteModal = ref(false)
 const entryToDelete = ref(null)
 const deleteError = ref('')
 
+// Selected entry state
+const selectedEntryId = ref(null)
 
 const {
   germplasm: allGermplasm,
@@ -61,7 +64,14 @@ const { deleteFromCache } = useCacheUpdates({
   fragment: GERMPLASM_FRAGMENT
 })
 
+
 // Event handlers
+const handleSelectEntry = async (entryId) => {
+  console.log('Select entry:', entryId)
+  selectedEntryId.value = entryId
+}
+
+
 const handleExpandSources = async (entry) => {
 
   try {
@@ -196,6 +206,7 @@ const handleCreateSuccess = async ({ entryName, sourceIds, sinkIds }) => {
 }
 
 const handleUpdateEntry = (entry) => {
+  console.log('handleUpdateEntry', entry)
   entryToUpdate.value = entry
   showUpdateModal.value = true
 }
@@ -247,7 +258,7 @@ const confirmDelete = async () => {
     if (status === 'SUCCESS') {
       console.log('deleting entry', entryToDelete.value)
       const entryId = entryToDelete.value.id
-      const entryData = entryToDelete.value.data
+      const entryData = entryToDelete.value
 
       // Collect IDs of sources and sinks from the entry being deleted
       const referencedEntryIds = new Set()
@@ -316,7 +327,6 @@ const handleControllerReleaseUpdated = async () => {
 
 </script>
 
-
 <template>
   <div class="page-container">
     <div class="germplasm-header">
@@ -342,14 +352,12 @@ const handleControllerReleaseUpdated = async () => {
       <GermplasmNetworkGraph
         v-else
         :entries="visibleEntries"
+        @select-entry="handleSelectEntry"
         @expand-sources="handleExpandSources"
         @expand-sinks="handleExpandSinks"
         @collapse-sources="handleCollapseSources"
         @toggle-expanded="handleToggleExpanded"
         @collapse-sinks="handleCollapseSinks"
-        @update-entry="handleUpdateEntry"
-        @delete-entry="handleDeleteEntry"
-        @manage-controllers="handleManageControllers"
       />
     </div>
 
@@ -423,6 +431,15 @@ const handleControllerReleaseUpdated = async () => {
       @close="closeControllerModal"
       @releaseUpdated="handleControllerReleaseUpdated"
     />
+
+            <!-- Germplasm Details Card -->
+    <div v-if="selectedEntryId" class="details-card-container">
+      <GermplasmCard
+        :entry="loadedEntries.get(selectedEntryId)"
+        @edit-entry="handleUpdateEntry(loadedEntries.get(selectedEntryId))"
+        @delete-entry="handleDeleteEntry(loadedEntries.get(selectedEntryId))"
+      />
+    </div>
 
   </div>
 </template>
@@ -575,4 +592,27 @@ const handleControllerReleaseUpdated = async () => {
 .form-actions button {
   flex: 1;
 }
+
+.modal-close:hover {
+  color: #333;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+.details-card-container {
+  margin-top: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 </style>

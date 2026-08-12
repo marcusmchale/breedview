@@ -1,9 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
-  ontology: {
-    type: Object,
+  entries: {
+    type: Array,
     required: true
   }
 })
@@ -21,23 +21,24 @@ const performSearch = () => {
     return
   }
 
-  const results = props.ontology.entries
+  const results = props.entries
     .map(entry => {
       const name = entry.name?.toLowerCase() || ''
       const description = entry.description?.toLowerCase() || ''
-
       const nameMatch = name.includes(query)
+      const synonymMatch = entry.synonyms.some((s) => s.toLowerCase().includes(query))
       const descriptionMatch = description.includes(query)
 
       let score = 0
 
       if (nameMatch) score += 2
+      if (synonymMatch) score += 1
       if (descriptionMatch) score += 1
 
       return {
         ...entry,
         score,
-        matched: nameMatch || descriptionMatch
+        matched: nameMatch || descriptionMatch || synonymMatch
       }
     })
     .filter(entry => entry.matched)

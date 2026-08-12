@@ -785,7 +785,7 @@ const formatVersion = (version) => {
     <div class="graph-content">
       <div ref="graphContainer" class="ontology-network-graph"></div>
       <SearchBox
-        :ontology="ontology"
+        :entries="ontology.entries"
         @recenter-on-node="recenterOnNode"
       />
     </div>

@@ -2,6 +2,8 @@
 import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import * as d3 from 'd3'
 
+import SearchBox from "@/components/ontology/searchBox.vue"
+
 const props = defineProps({
   entries: {
     type: Array,
@@ -11,14 +13,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
+  'select-entry',
   'expand-sources',
   'expand-sinks',
   'collapse-sources',
   'collapse-sinks',
-  'toggle-expanded',
-  'update-entry',
-  'delete-entry',
-  'manage-controllers'
+  'toggle-expanded'
 ])
 
 const graphContainer = ref(null)
@@ -30,6 +30,11 @@ const contextMenu = ref({
 })
 
 let simulation = null
+let svgElement = null
+let gElement = null
+let zoomBehavior = null
+const nodeMap = new Map()
+
 
 const closeContextMenu = () => {
   contextMenu.value.show = false
@@ -68,25 +73,34 @@ const collapseSinks = () => {
   closeContextMenu()
 }
 
-const updateEntry = () => {
-  if (contextMenu.value.entry) {
-    emit('update-entry', contextMenu.value.entry)
-  }
-  closeContextMenu()
-}
 
-const deleteEntry = () => {
-  if (contextMenu.value.entry) {
-    emit('delete-entry', contextMenu.value.entry)
+const recenterOnNode = (result) => {
+  if (!svgElement || !zoomBehavior || !graphContainer.value) {
+    return
   }
-  closeContextMenu()
-}
 
-const manageControllers = () => {
-  if (contextMenu.value.entry) {
-    emit('manage-controllers', contextMenu.value.entry)
+  const node = nodeMap.get(result.id)
+
+  if (!node || node.x == null || node.y == null) {
+    console.warn('Node position unavailable', result.id)
+    return
   }
-  closeContextMenu()
+
+  const width = graphContainer.value.clientWidth
+  const height = graphContainer.value.clientHeight
+
+  const transform = d3.zoomIdentity
+    .translate(width / 2, height / 2)
+    .scale(2)
+    .translate(-node.x, -node.y)
+
+  d3.select(svgElement)
+    .transition()
+    .duration(750)
+    .call(
+      zoomBehavior.transform,
+      transform
+    )
 }
 
 const renderGraph = async () => {
@@ -175,8 +189,12 @@ const renderGraph = async () => {
     .attr("width", containerWidth)
     .attr("height", containerHeight)
 
+  svgElement = svg.node()
+
   // Add a group to apply zoom transformation
   const g = svg.append("g")
+
+  gElement = g.node()
 
   // Define arrowhead marker
   svg.append("defs").append("marker")
@@ -244,6 +262,9 @@ const renderGraph = async () => {
     .attr("fill", "#4CAF50")
     .attr("stroke", d => (d.fx !== undefined && d.fx !== null) ? "#333" : "#fff")
     .attr("stroke-width", 2)
+    .on("click", (event, d) => {
+      emit('select-entry', d.id)
+    })
     .on("contextmenu", (event, d) => {
       event.preventDefault()
       contextMenu.value = {
@@ -255,19 +276,6 @@ const renderGraph = async () => {
     })
     .on("dblclick", (event, d) => {
       toggleExpanded(d)
-      // Double-click to release/lock the entry
-      //if (d.fx !== null) {
-      //  d.fx = null
-      //  d.fy = null
-      //} else {
-      //  d.fx = d.x
-      //  d.fy = d.y
-      //}
-      //// Update visual indicator
-      //d3.select(event.currentTarget)
-      //  .attr("stroke", d.fx !== null ? "#333" : "#fff")
-      //
-      //simulation.alpha(0.3).restart()
     })
 
   // Add tooltip on hover
@@ -304,6 +312,11 @@ const renderGraph = async () => {
     label
       .attr("x", d => d.x)
       .attr("y", d => d.y)
+
+      // Update node map with current positions
+    entrys.forEach(node => {
+      nodeMap.set(node.id, node)
+    })
   })
 
   // Drag functions
@@ -324,6 +337,8 @@ const renderGraph = async () => {
     .on('zoom', (event) => {
       g.attr('transform', event.transform)
     })
+
+  zoomBehavior = zoom
 
   svg.call(zoom)
     .call(zoom.translateTo, containerWidth / 2, containerHeight / 2)
@@ -350,11 +365,16 @@ onUnmounted(() => {
 watch(() => props.entries, () => {
   renderGraph()
 }, { deep: true })
+
 </script>
 
 <template>
-  <div>
+  <div class="graph-wrapper">
     <div ref="graphContainer" class="germplasm-network-graph"></div>
+    <SearchBox
+      :entries="entries"
+      @recenter-on-node="recenterOnNode"
+    />
 
     <!-- Context Menu -->
     <div
@@ -380,15 +400,6 @@ watch(() => props.entries, () => {
       <div class="menu-item" @click="collapseSinks">
         Collapse Sinks
       </div>
-      <div class="menu-item" @click="updateEntry">
-        Update entry
-      </div>
-      <div class="menu-item" @click="manageControllers">
-        Manage Controllers
-      </div>
-      <div class="menu-item menu-item-danger" @click="deleteEntry">
-        Delete entry
-      </div>
     </div>
 
     <!-- Overlay to close context menu -->
@@ -401,6 +412,12 @@ watch(() => props.entries, () => {
 </template>
 
 <style scoped>
+.graph-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .germplasm-network-graph {
   width: 100%;
   height: 600px;

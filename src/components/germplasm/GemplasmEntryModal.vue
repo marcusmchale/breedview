@@ -41,7 +41,7 @@ const { entries: publishedControlMethods } = useOntologyEntriesQuery({ labels: [
 // then deduplicate by id so methods available in PUBLISHED only appear once.
 const controlMethodOptions = computed(() => {
   const existingMethods = isUpdateMode.value
-    ? (props.entry?.data?.controlMethods ?? [])
+    ? (props.entry?.controlMethods ?? [])
     : []
   const publishedIds = new Set(publishedControlMethods.value?.map(m => m.id) ?? [])
   // Existing entries that are NOT already in the published list (i.e. referential-only)
@@ -111,28 +111,26 @@ const reproductionOptions = [
 watch(() => props.entry, (entry) => {
   if (!entry) return
 
-  const data = entry.data
-
-  selectedReferenceIds.value = data.references?.map(r => r.id) ?? []
-  selectedReferences.value = data.references ?? []
+  selectedReferenceIds.value = entry.references?.map(r => r.id) ?? []
+  selectedReferences.value = entry.references ?? []
 
   formData.value = {
-    name: data.name ?? '',
-    description: data.description ?? '',
-    synonyms: data.synonyms ? data.synonyms.join(', ') : '',
-    time: data.time ?? '',
-    reproduction: data.reproduction ?? '',
-    controlMethodIds: data.controlMethods?.map(m => m.id) ?? [],
-    originId: data.origin?.id ?? null
+    name: entry.name ?? '',
+    description: entry.description ?? '',
+    synonyms: entry.synonyms ? entry.synonyms.join(', ') : '',
+    time: entry.time ?? '',
+    reproduction: entry.reproduction ?? '',
+    controlMethodIds: entry.controlMethods?.map(m => m.id) ?? [],
+    originId: entry.origin?.id ?? null
   }
 
-  sources.value = (data.sources ?? []).map(rel => ({
+  sources.value = (entry.sources ?? []).map(rel => ({
     sourceId: rel.source.id,
     sourceType: rel.sourceType ?? 'UNKNOWN',
     description: rel.description ?? ''
   }))
 
-  sinks.value = (data.sinks ?? []).map(rel => ({
+  sinks.value = (entry.sinks ?? []).map(rel => ({
     sinkId: rel.sink.id,
     sourceType: rel.sourceType ?? 'UNKNOWN',
     description: rel.description ?? ''
@@ -166,7 +164,7 @@ const submitForm = async () => {
 
     if (isUpdateMode.value) {
       const entry = {
-        id: props.entry.data.id,
+        id: props.entry.id,
         name: formData.value.name || null,
         description: formData.value.description || null,
         synonyms: synonyms.length > 0 ? synonyms : null,
