@@ -11,6 +11,6 @@ fragment UnitFields on Unit {
         start
         end
     }
-    parents { id }
-    children { id }
+    parents { id name }
+    children { id name }
 }

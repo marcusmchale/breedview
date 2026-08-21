@@ -26,7 +26,7 @@ const performSearch = () => {
       const name = entry.name?.toLowerCase() || ''
       const description = entry.description?.toLowerCase() || ''
       const nameMatch = name.includes(query)
-      const synonymMatch = entry.synonyms.some((s) => s.toLowerCase().includes(query))
+      const synonymMatch = entry.synonyms?.some((s) => s.toLowerCase().includes(query))
       const descriptionMatch = description.includes(query)
 
       let score = 0

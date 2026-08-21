@@ -2,10 +2,10 @@
 
 import { ref, computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
-import { useRouter } from 'vue-router'
 
 import COMMIT_HISTORY from '../../graphql/ontology/commitHistory.graphql'
-import OntologyNetworkGraph from "@/components/ontology/OntologyNetworkGraph.vue";
+import OntologyGraphTools from "@/components/ontology/OntologyGraphTools.vue";
+import ReferencesDisplay from "@/components/references/ReferencesDisplay.vue";
 
 import { useOntologyQuery } from "@/composables/ontology/ontologyQuery";
 
@@ -16,6 +16,7 @@ const limit = ref(10)
 
 // Graph display
 const selectedVersion = ref(null)
+const selectedVersionLabel = ref(null)
 
 const { result, loading, error, refetch } = useQuery(
   COMMIT_HISTORY,
@@ -38,41 +39,39 @@ const formatDate = (timestamp) => {
   return new Date(timestamp).toISOString()
 }
 
-const hasPrior = computed(() => {
-  console.log(versionCursorHistory.value.length > 0)
-  console.log(versionCursorHistory.value)
-  return versionCursorHistory.value.length > 0
-})
-const hasMore = computed( () =>
-    commits.value?.length < limit || true
-)
+const hasPrior = computed(() => versionCursorHistory.value.length > 0)
+const hasMore = computed( () => commits.value?.length < limit || true)
 
 const loadNext = () => {
   versionCursorHistory.value.push(lastVersionId.value)
-  console.log('commits', commits.value.at(-1))
   lastVersionId.value = commits.value.at(-1).version.id
   selectedVersion.value = null
+  selectedVersionLabel.value = null
   refetch()
 }
 
 const loadPrevious = () => {
   lastVersionId.value = versionCursorHistory.value.pop()
   selectedVersion.value = null
+  selectedVersionLabel.value = null
   refetch()
 }
 
-const toggleSelectVersion = (versionId) => {
-  if (selectedVersion.value === versionId) {selectedVersion.value = null}
-  else selectedVersion.value = versionId
-  console.log('selectedVersion', selectedVersion.value)
+const openGraph = (commit) => {
+  selectedVersion.value = commit.version.id
+  selectedVersionLabel.value = formatVersion(commit.version)
+}
+
+const closeGraph = () => {
+  selectedVersion.value = null
+  selectedVersionLabel.value = null
 }
 
 
 const {
     ontology,
     ontologyLoading,
-    ontologyErrors,
-    ontologyRefetch,
+    ontologyErrors
 } = useOntologyQuery({ versionId: selectedVersion, view: "PUBLISHED" })
 
 </script>
@@ -80,14 +79,6 @@ const {
 <template>
   <div class="commit-history-page">
     <h1>Commit History</h1>
-
-    <div v-if="selectedVersion" class="graph-container">
-      <OntologyNetworkGraph
-        v-if="ontology"
-        :ontology="ontology"
-        :lifecycleFilters="false"
-      />
-    </div>
 
     <div v-if="loading">Loading commit history...</div>
     <div v-else-if="error">Error: {{ error.message }}</div>
@@ -103,18 +94,17 @@ const {
             <h3>Version {{ formatVersion(commit.version) }}</h3>
             <span class="commit-time">{{ formatDate(commit.time) }}</span>
             <button
-              @click="toggleSelectVersion(commit.version.id)"
+              @click="openGraph(commit)"
               class="btn-display"
-              :class="{ active: selectedVersion === commit.version.id }"
             >Display</button>
           </div>
           <div class="commit-body">
             <p><strong>Comment:</strong> {{ commit.comment || 'No comment' }}</p>
             <div v-if="commit.licence">
-              <p><strong>Licence:</strong> {{ commit.licence }}</p>
+              <ReferencesDisplay :references="[commit.licence]" title="Licence"/>
             </div>
             <div v-if="commit.copyright">
-              <p><strong>Copyright:</strong> {{ commit.copyright }}</p>
+              <ReferencesDisplay :references="[commit.copyright]" title="Copyright"/>
             </div>
           </div>
         </div>
@@ -137,21 +127,38 @@ const {
         </button>
       </div>
     </div>
+
+    <!-- Graph modal -->
+    <Teleport to="body">
+      <div
+        v-if="selectedVersion"
+        class="graph-modal-overlay"
+        @click.self="closeGraph"
+      >
+        <div class="graph-modal">
+          <div class="graph-modal-header">
+            <h2>Ontology — Version {{ selectedVersionLabel }}</h2>
+            <button class="close-btn" @click="closeGraph">&times;</button>
+          </div>
+          <div class="graph-modal-body">
+            <OntologyGraphTools
+              v-if="ontology || ontologyLoading || ontologyErrors?.length"
+              :ontology="ontology"
+              :ontology-loading="ontologyLoading"
+              :ontology-errors="ontologyErrors"
+              :lifecycle-filters="false"
+              :show-create-buttons="false"
+              :show-edit-buttons="false"
+            />
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
 <style scoped>
-.graph-container {
-  width: 100%;
-  height: 600px;
-  margin: 2rem 0;
-  display: flex;
-  flex-direction: row;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-}
-
 
 .commit-history-page {
   max-width: 1200px;
@@ -248,23 +255,67 @@ const {
   cursor: not-allowed;
 }
 
-.actions {
+
+/* ── Graph modal ─────────────────────────────────────────────────────────── */
+
+.graph-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 2rem;
+  z-index: 1000;
 }
 
-.btn-back {
-  background-color: #2196F3;
-  color: white;
-  padding: 0.75rem 1.5rem;
+.graph-modal {
+  background: white;
+  border-radius: 8px;
+  width: 92vw;
+  height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.graph-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.graph-modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
   border: none;
-  border-radius: 4px;
+  font-size: 1.6rem;
+  line-height: 1;
   cursor: pointer;
-  transition: background-color 0.3s;
+  color: #666;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
-.btn-back:hover {
-  background-color: #0b7dda;
+.close-btn:hover {
+  background: #f0f0f0;
+  color: #333;
 }
+
+.graph-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
 </style>

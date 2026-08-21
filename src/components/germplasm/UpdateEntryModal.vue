@@ -27,7 +27,6 @@ const formData = ref({
 })
 
 const sources = ref([])
-const sinks = ref([])
 const formError = ref('')
 
 // Source types for dropdown
@@ -56,12 +55,6 @@ watch(() => props.entry, (entry) => {
       description: sourceRel.description || ''
     }))
 
-    // Populate sinks
-    sinks.value = (entry.data.sinks || []).map(sinkRel => ({
-      sinkId: sinkRel.sink.id,
-      sourceType: sinkRel.sourceType || 'UNKNOWN',
-      description: sinkRel.description || ''
-    }))
   }
 }, { immediate: true })
 
@@ -75,18 +68,6 @@ const addSource = () => {
 
 const removeSource = (index) => {
   sources.value.splice(index, 1)
-}
-
-const addSink = () => {
-  sinks.value.push({
-    sinkId: null,
-    sourceType: 'UNKNOWN',
-    description: ''
-  })
-}
-
-const removeSink = (index) => {
-  sinks.value.splice(index, 1)
 }
 
 const submitForm = async () => {
@@ -105,9 +86,8 @@ const submitForm = async () => {
       synonyms: synonyms.length > 0 ? synonyms : null
     }
 
-    // Collect source and sink IDs that were defined
+    // Collect source IDs that were defined
     const sourceIds = []
-    const sinkIds = []
 
     // Add sources if any are defined
     if (sources.value.length > 0) {
@@ -124,28 +104,12 @@ const submitForm = async () => {
       }
     }
 
-    // Add sinks if any are defined
-    if (sinks.value.length > 0) {
-      const validSinks = sinks.value
-        .filter(s => s.sinkId !== null)
-        .map(s => ({
-          sinkId: s.sinkId,
-          sourceType: s.sourceType,
-          description: s.description || null
-        }))
-      if (validSinks.length > 0) {
-        entry.sinks = validSinks
-        sinkIds.push(...validSinks.map(s => s.sinkId))
-      }
-    }
-
     const { status, errors } = await updateEntry(entry)
 
     if (status === 'SUCCESS') {
       emit('success', {
         entryId: formData.value.id,
-        sourceIds,
-        sinkIds
+        sourceIds
       })
     } else {
       formError.value = errors?.[0]?.message || 'Failed to update entry'
@@ -270,80 +234,6 @@ const submitForm = async () => {
 
           <div v-if="sources.length === 0" class="empty-state">
             No sources added yet.
-          </div>
-        </div>
-
-        <!-- Sinks Section -->
-        <div class="relationships-section">
-          <div class="section-header">
-            <h3>Sinks</h3>
-            <button
-              type="button"
-              @click="addSink"
-              class="btn btn-small btn-primary"
-            >
-              + Add Sink
-            </button>
-          </div>
-
-          <div
-            v-for="(sink, index) in sinks"
-            :key="'sink-' + index"
-            class="relationship-item"
-          >
-            <div class="relationship-header">
-              <h4>Sink {{ index + 1 }}</h4>
-              <button
-                type="button"
-                @click="removeSink(index)"
-                class="btn btn-small btn-danger"
-              >
-                Remove
-              </button>
-            </div>
-
-            <div class="relationship-fields">
-              <div class="form-group">
-                <label>Sink Entry *</label>
-                <select v-model="sink.sinkId" class="form-select">
-                  <option :value="null">Select a germplasm entry...</option>
-                  <option
-                    v-for="entry in availableEntries"
-                    :key="entry.id"
-                    :value="entry.id"
-                  >
-                    {{ entry.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>Source Type *</label>
-                <select v-model="sink.sourceType" class="form-select">
-                  <option
-                    v-for="type in sourceTypes"
-                    :key="type"
-                    :value="type"
-                  >
-                    {{ type }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>Description</label>
-                <input
-                  v-model="sink.description"
-                  type="text"
-                  class="form-input"
-                  placeholder="Optional description"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div v-if="sinks.length === 0" class="empty-state">
-            No sinks added yet.
           </div>
         </div>
 

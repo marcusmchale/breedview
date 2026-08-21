@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
@@ -7,13 +7,11 @@ import { isReferenceTypeInList } from '@/composables/references/referenceTypes'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
 
 import ReferenceItem from './ReferenceItem.vue'
-
-// Dynamically import form components
-const LegalReferenceForm = defineAsyncComponent(() => import('./LegalReferenceForm.vue'))
-const ExternalReferenceForm = defineAsyncComponent(() => import('./ExternalReferenceForm.vue'))
-const FileReferenceForm = defineAsyncComponent(() => import('./FileReferenceForm.vue'))
-const ExternalDataReferenceForm = defineAsyncComponent(() => import('./ExternalDataReferenceForm.vue'))
-const DataFileReferenceForm = defineAsyncComponent(() => import('./DataFileReferenceForm.vue'))
+import LegalReferenceForm from './LegalReferenceForm.vue'
+import ExternalReferenceForm from './ExternalReferenceForm.vue'
+import FileReferenceForm from './FileReferenceForm.vue'
+import ExternalDataReferenceForm from './ExternalDataReferenceForm.vue'
+import DataFileReferenceForm from './DataFileReferenceForm.vue'
 
 const FORM_COMPONENTS = {
   LEGAL: LegalReferenceForm,
@@ -145,7 +143,6 @@ const handleSearchInput = (value) => {
 const handleReferenceCreated = (reference) => {
   selectedIds.value.push(reference.id)
   selectedReferencesData.value.push(reference)
-
   if (isSingleMode.value) {
     // Auto-save in single mode
     handleSave()
@@ -386,7 +383,7 @@ const getFormComponent = (typeKey) => {
           <button class="btn btn-secondary" @click="handleClose">
             Cancel
           </button>
-          <button class="btn btn-primary" @click="handleSave">
+          <button v-if="!isSingleMode" class="btn btn-primary" @click="handleSave">
             {{ isSingleMode ? 'Select' : `Save (${selectedIds.length})` }}
           </button>
         </div>

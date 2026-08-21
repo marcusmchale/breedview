@@ -1,118 +1,9 @@
-<template>
-  <div v-if="displayedLocation" class="location-node">
-    <div class="location-header" :class="{ selected: isSelected }">
-      <button
-        v-if="children && children.length > 0"
-        @click="$emit('toggle-expand', props.locationId)"
-        class="expand-btn"
-        :class="{ expanded: isExpandedFn(props.locationId) }"
-      >
-        ▶
-      </button>
-      <div v-else class="expand-placeholder"></div>
-
-      <div class="location-info">
-        <h4
-            class="location-name"
-            @click="$emit('select-location', props.locationId)"
-        >{{ displayedLocation.name }}</h4>
-        <p v-if="displayedLocation.description" class="location-description">{{ displayedLocation.description }}</p>
-        <div class="location-meta">
-          <span v-if="displayedLocation.id" class="address">{{ displayedLocation.id }}</span>
-          <span v-if="displayedLocation.type" class="type-badge">{{ displayedLocation.type.name }}</span>
-          <span v-if="displayedLocation.address" class="address">{{ displayedLocation.address }}</span>
-        </div>
-      </div>
-        <!-- Actions column placed to the right of the node -->
-        <div v-if="showEdit" class="actions" role="toolbar" aria-label="location actions">
-          <button
-            @click="openEditModal"
-            class="btn btn-sm btn-edit"
-            title="Update location details"
-          >
-            ✎ Edit
-          </button>
-
-          <button
-            @click="openDeleteModal"
-            class="btn btn-sm btn-danger"
-            title="Delete location"
-          >
-            Delete
-          </button>
-
-          <button
-            @click="openAddChildModal"
-            class="btn btn-sm btn-add-child"
-            title="Add child location"
-          >
-            + Add Child
-          </button>
-
-          <ControllerBadge
-            entity-label="LOCATION"
-            :entity-id="displayedLocation.id"
-          />
-      </div>
-    </div>
-
-    <div v-if="isExpandedFn(props.locationId) && children.length > 0" class="children">
-      <div v-for="child in children" :key="`locationNode_${child.id}`" class="child-item">
-        <LocationNode
-          :regionId="props.regionId"
-          :locationId="child.id"
-          :isExpandedFn="isExpandedFn"
-          :locationTypes="locationTypes"
-          :selectedLocationId="selectedLocationId"
-          :showEdit="showEdit"
-          @toggle-expand="$emit('toggle-expand', $event)"
-          @select-location="$emit('select-location', $event)"
-        />
-
-      </div>
-    </div>
-
-    <div v-if="isAddChildModalOpen" class="modal-overlay" @click="closeAddChildModal">
-      <AddChildModal
-          :locationTypes="locationTypes"
-          :parentLocation="displayedLocation"
-          @close="closeAddChildModal"
-          @success="handleAddChildSuccess"
-      />
-    </div>
-
-    <div v-if="isEditModalOpen" class="modal-overlay" @click="closeEditModal">
-      <UpdateModal
-        :locationTypes="locationTypes"
-        :location="displayedLocation"
-        :regionId="regionId"
-        @close="closeEditModal"
-        @success="handleUpdateSuccess"
-      />
-    </div>
-
-    <div v-if="isDeleteModalOpen" class="modal-overlay" @click="closeDeleteModal">
-      <DeleteModal
-          :locationTypes="locationTypes"
-          :location="displayedLocation"
-          @close="closeDeleteModal"
-      />
-    </div>
-
-  </div>
-</template>
-
 <script setup>
 
-import { ref, computed } from 'vue'
-
-import ControllerBadge from '../controls/ControllerBadge.vue'
+import { computed } from 'vue'
 
 import { useLocationNodeQueries } from "@/composables/regions/locationNodeQueries";
 
-import AddChildModal from "@/components/regions/addChildModal.vue";
-import DeleteModal from "@/components/regions/deleteModal.vue";
-import UpdateModal from "@/components/regions/updateLocationModal.vue";
 
 const props = defineProps({
   regionId: {
@@ -135,10 +26,6 @@ const props = defineProps({
   selectedLocationId: {
     type: String,
     default: null
-  },
-  showEdit: {
-    type: Boolean,
-    default: false
   }
 })
 
@@ -152,8 +39,7 @@ const isSelected = computed(() => {
 })
 
 const {
-  displayedLocation,
-  refetchLocation
+  location: displayedLocation
 }  = useLocationNodeQueries({
   locationId: props.locationId
 })
@@ -164,87 +50,59 @@ const children = computed( () => {
 })
 
 
-// Add Child Modal state and events
-const isAddChildModalOpen = ref(false)
-const openAddChildModal = () => {
-  isAddChildModalOpen.value = true
-}
-const closeAddChildModal = () => {
-  isAddChildModalOpen.value = false
-}
-const handleAddChildSuccess = async () => {
-  await refetchLocation()
-}
-
-//Delete modal state and events
-const isDeleteModalOpen = ref(false)
-const openDeleteModal = () => {
-  isDeleteModalOpen.value = true
-}
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false
-}
-
-// Edit Modal state and events
-const isEditModalOpen = ref(false)
-const openEditModal = () => {
-  isEditModalOpen.value = true
-}
-const closeEditModal = () => {
-  isEditModalOpen.value = false
-}
-const handleUpdateSuccess = () => {
-  closeEditModal()
-}
-
 </script>
 
+<template>
+  <div v-if="displayedLocation" class="location-node">
+    <div class="location-header" :class="{ selected: isSelected }">
+      <button
+        v-if="children && children.length > 0"
+        @click="$emit('toggle-expand', props.locationId)"
+        class="expand-btn"
+        :class="{ expanded: isExpandedFn(props.locationId) }"
+      >
+        ▶
+      </button>
+      <div v-else class="expand-placeholder"></div>
+
+      <div class="location-info">
+        <h4
+            class="location-name"
+            @click="$emit('select-location', props.locationId)"
+        >{{ displayedLocation.name }}</h4>
+        <div class="location-meta">
+          <span v-if="displayedLocation.id" class="address">{{ displayedLocation.id }}</span>
+          <span v-if="displayedLocation.type" class="type-badge">{{ displayedLocation.type.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isExpandedFn(props.locationId) && children.length > 0" class="children">
+      <div v-for="child in children" :key="`locationNode_${child.id}`" class="child-item">
+        <LocationNode
+          :regionId="props.regionId"
+          :locationId="child.id"
+          :isExpandedFn="isExpandedFn"
+          :locationTypes="locationTypes"
+          :selectedLocationId="selectedLocationId"
+          @toggle-expand="$emit('toggle-expand', $event)"
+          @select-location="$emit('select-location', $event)"
+        />
+
+      </div>
+    </div>
+
+
+
+
+  </div>
+</template>
+
 <style scoped>
-.btn-edit {
-  white-space: nowrap;
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-edit:hover:not(:disabled) {
-  background-color: #138496;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1001;
-}
-
 .modal-header h4 {
   margin: 0;
   color: #333;
   font-size: 18px;
-}
-
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-
-.btn-add-child,
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 12px;
 }
 
 .location-node {

@@ -47,8 +47,9 @@ const nameField = { type: 'text', name: 'name', label: 'Name', validation: 'requ
 const descriptionField = { type: 'textarea', name: 'description', label: 'Description', placeholder: 'Enter description (optional)' }
 
 // Multiselect field helpers
-const multi = (name, label, sourceType, excludeSelf = true) => ({
-  type: 'multiselect', name, label, sourceType, excludeSelf
+const multi = (name, label, sourceType, excludeSelf = true, entryKey = null) => ({
+  type: 'multiselect', name, label, sourceType, excludeSelf,
+  entryKey: entryKey ?? name.replace(/Ids$/, 's')
 })
 
 // Singleselect field helpers
@@ -65,10 +66,10 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Terms', 'Term'),
-      multi('childIds', 'Child Terms', 'Term'),
+      multi('childIds', 'Child Terms', 'Term', true, 'children'),
       multi('subjectIds', 'Subjects', 'Subject'),
       multi('scaleIds', 'Scales', 'Scale', false),
-      multi('categoryIds', 'Categories', 'Category', false),
+      multi('categoryIds', 'Categories', 'Category', false, 'categories'),
       multi('observationMethodIds', 'Observation Methods', 'ObservationMethod', false),
       multi('traitIds', 'Traits', 'Trait', false),
       multi('variableIds', 'Variables', 'Variable', false),
@@ -135,7 +136,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Subjects', 'Subject'),
-      multi('childIds', 'Child Subjects', 'Subject'),
+      multi('childIds', 'Child Subjects', 'Subject', true, 'children'),
       multi('traitIds', 'Traits', 'Trait', false),
       multi('conditionIds', 'Conditions', 'Condition', false),
       multi('termIds', 'Terms', 'Term', false),
@@ -172,7 +173,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       multi('subjectIds', 'Subjects', 'Subject', false),
       multi('parentIds', 'Parent Traits', 'Trait'),
-      multi('childIds', 'Child Traits', 'Trait'),
+      multi('childIds', 'Child Traits', 'Trait', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -209,7 +210,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       multi('subjectIds', 'Subjects', 'Subject', false),
       multi('parentIds', 'Parent Conditions', 'Condition'),
-      multi('childIds', 'Child Conditions', 'Condition'),
+      multi('childIds', 'Child Conditions', 'Condition', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -245,9 +246,13 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       { type: 'enumselect', name: 'scaleType', label: 'Scale Type', validation: 'required', options: SCALE_TYPE_OPTIONS },
       multi('parentIds', 'Parent Scales', 'Scale'),
-      multi('childIds', 'Child Scales', 'Scale'),
+      multi('childIds', 'Child Scales', 'Scale', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
-      multi('categoryIds', 'Categories (rank order)', 'Category', false),
+      {
+        ...multi('categoryIds', 'Categories', 'Category', false, 'categories'),
+        labelFn: (formData) => formData.scaleType === 'ORDINAL' ? 'Categories (rank order)' : 'Categories',
+        ordered: true,
+      },
     ],
     processCreate: (formData, referenceIds) => ({
       scale: {
@@ -284,7 +289,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Categories', 'Category'),
-      multi('childIds', 'Child Categories', 'Category'),
+      multi('childIds', 'Child Categories', 'Category', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -319,7 +324,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       { type: 'enumselect', name: 'observationType', label: 'Observation Type', validation: 'required', options: OBSERVATION_TYPE_OPTIONS },
       multi('parentIds', 'Parent Observation Methods', 'ObservationMethod'),
-      multi('childIds', 'Child Observation Methods', 'ObservationMethod'),
+      multi('childIds', 'Child Observation Methods', 'ObservationMethod', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -358,7 +363,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       single('observationMethodId', 'Observation Method', 'ObservationMethod'),
       single('scaleId', 'Scale', 'Scale'),
       multi('parentIds', 'Parent Variables', 'Variable'),
-      multi('childIds', 'Child Variables', 'Variable'),
+      multi('childIds', 'Child Variables', 'Variable', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -399,7 +404,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       { type: 'enumselect', name: 'controlType', label: 'Control Type', validation: 'required', options: CONTROL_TYPE_OPTIONS },
       multi('parentIds', 'Parent Control Methods', 'ControlMethod'),
-      multi('childIds', 'Child Control Methods', 'ControlMethod'),
+      multi('childIds', 'Child Control Methods', 'ControlMethod', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -438,7 +443,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       single('controlMethodId', 'Control Method', 'ControlMethod'),
       single('scaleId', 'Scale', 'Scale'),
       multi('parentIds', 'Parent Factors', 'Factor'),
-      multi('childIds', 'Child Factors', 'Factor'),
+      multi('childIds', 'Child Factors', 'Factor', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -478,7 +483,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Events', 'Event'),
-      multi('childIds', 'Child Events', 'Event'),
+      multi('childIds', 'Child Events', 'Event', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
       multi('variableIds', 'Variables', 'Variable', false),
       multi('factorIds', 'Factors', 'Factor', false),
@@ -518,7 +523,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Location Types', 'LocationType'),
-      multi('childIds', 'Child Location Types', 'LocationType'),
+      multi('childIds', 'Child Location Types', 'LocationType', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -552,7 +557,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       multi('parentIds', 'Parent Designs', 'Design'),
-      multi('childIds', 'Child Designs', 'Design'),
+      multi('childIds', 'Child Designs', 'Design', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({
@@ -587,7 +592,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       descriptionField,
       { type: 'axesBuilder', name: 'axes', label: 'Axes (order matters)', options: AXES_OPTIONS },
       multi('parentIds', 'Parent Layout Types', 'LayoutType'),
-      multi('childIds', 'Child Layout Types', 'LayoutType'),
+      multi('childIds', 'Child Layout Types', 'LayoutType', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
     ],
     processCreate: (formData, referenceIds) => ({

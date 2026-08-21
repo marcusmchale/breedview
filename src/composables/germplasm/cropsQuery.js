@@ -27,9 +27,11 @@ export function useCropsQuery(){
     })
 
     onCropsResult((result) => {
+        console.log('cropsResult', result)
         updateCachedGermplasmCrops(result)
     })
 
+    //todo is this really needed? we are fetching less detail here anyway, just for navigation
     const updateCachedGermplasmCrops = (result) => {
         if (result?.data?.germplasmCrops?.status !== "SUCCESS") return
         if (result?.data?.germplasmCrops?.result) {

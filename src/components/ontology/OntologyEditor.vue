@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch} from 'vue'
 
-import OntologyNetworkGraph from '@/components/ontology/OntologyNetworkGraph.vue'
+import OntologyGraphTools from '@/components/ontology/OntologyGraphTools.vue'
 import OntologyEntryModal from '@/components/ontology/OntologyEntryModal.vue'
+
 import { useOntologyQuery } from '@/composables/ontology/ontologyQuery'
 import { useOntologySchema } from '@/composables/ontology/useOntologySchema'
 import { useMutateOntology } from '@/composables/ontology/mutateOntology'
@@ -23,6 +24,11 @@ const props = defineProps({
   }
 })
 
+watch(() => props.versionId, () => {
+  console.log('versionId changed', props.versionId)
+  ontologyRefetch()
+})
+
 const {
   ontology,
   ontologyLoading,
@@ -33,8 +39,6 @@ const {
 const mutations = useMutateOntology({ versionId: props.versionId, view: 'EDITORIAL' })
 const { refetchConnected, deprecateEntries, cancelDeprecateEntries } = mutations
 
-const { getCreateEntriesForLabels } = useOntologySchema()
-const createEntriesForLabels = computed(() => getCreateEntriesForLabels().value)
 
 // ── Modal state ───────────────────────────────────────────────────────────────
 const showModal = ref(false)
@@ -44,7 +48,6 @@ const mutationLoading = ref(false)
 const mutationError = ref(null)
 
 const openCreateForm = (typename) => {
-  console.log('typename', typename)
   activeConfig.value = ONTOLOGY_ENTRY_CONFIGS[typename]
   activeEntry.value = null
   mutationError.value = null
@@ -149,37 +152,18 @@ const handleNodeRightClick = (node) => {
 
 <template>
   <div>
-    <div v-if="ontologyErrors?.length" class="error">Errors: {{ ontologyErrors }}</div>
-    <div v-if="ontologyLoading">Loading ontology entries…</div>
-    <div v-else class="graph-container">
-      <OntologyNetworkGraph
-        v-if="ontology"
-        :ontology="ontology"
-        @node-right-click="handleNodeRightClick"
-      />
-    </div>
-
-    <section>
-      <h2>Add to ontology</h2>
-      <div class="entry-management">
-        <button
-          v-for="(entry, index) in createEntriesForLabels"
-          :key="index"
-          :title="`${entry.description} (${entry.code})`"
-          :style="{ backgroundColor: entry.color, color: 'white' }"
-          class="ontology-button"
-          @click="openCreateForm(entry.typename)"
-        >
-          {{ entry.label }}
-        </button>
-      </div>
-    </section>
-
-    <!-- Error display outside modal (if modal is closed) -->
-    <div v-if="mutationError && !showModal" class="error-message">
-      {{ mutationError }}
-    </div>
-
+    <OntologyGraphTools
+      v-if="ontology || ontologyLoading || ontologyErrors?.length"
+      :ontology="ontology"
+      :ontology-loading="ontologyLoading"
+      :ontology-errors="ontologyErrors"
+      :lifecycle-filters="true"
+      :show-create-buttons="creator"
+      :mutation-loading="mutationLoading"
+      :mutation-error="mutationError"
+      @create-entry="openCreateForm"
+      @update-entry="openUpdateForm"
+    />
     <!-- Shared modal -->
     <OntologyEntryModal
       v-if="showModal && activeConfig"
@@ -196,7 +180,8 @@ const handleNodeRightClick = (node) => {
 </template>
 
 <style scoped>
-.graph-container {
+
+.page-layout {
   width: 100%;
   height: 600px;
   margin: 2rem 0;
@@ -207,28 +192,12 @@ const handleNodeRightClick = (node) => {
   background: white;
 }
 
-.entry-management {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
 
-.ontology-button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  color: white;
-}
-
-.ontology-button:hover {
-  opacity: 0.85;
-}
-
-.ontology-button:active {
-  opacity: 0.7;
+/* Make the graph flex and shrinkable, keep the buttons panel fixed width */
+.page-layout > :first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .error-message {
@@ -239,4 +208,6 @@ const handleNodeRightClick = (node) => {
   background: #fef2f2;
   margin-top: 1rem;
 }
+
+
 </style>

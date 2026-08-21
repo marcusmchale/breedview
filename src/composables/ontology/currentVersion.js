@@ -10,10 +10,11 @@ export function useCurrentVersionQuery() {
     const {
         result,
         loading: versionLoading,
-        error: versionError
+        error: versionError,
+        refetch: refetchVersion
     } = useQuery(
         ONTOLOGY_CURRENT_VERSION,
-        undefined,
+        {},
         {
             fetchPolicy: "cache-and-network"
         }
@@ -26,6 +27,7 @@ export function useCurrentVersionQuery() {
     return {
         version,
         versionLoading,
-        versionError
+        versionError,
+        refetchVersion
     }
 }

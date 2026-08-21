@@ -4,7 +4,7 @@ import { toValue } from 'vue'
 
 import REFERENCES_SEARCH from '@/graphql/references/referencesSearch.graphql'
 
-export function useReferencesSearchQuery({description, referenceTypes}) {
+export function useReferencesSearchQuery({ description, referenceTypes }) {
 
     const queryEnabled = computed(() => {
         const desc = toValue(description)
@@ -29,6 +29,7 @@ export function useReferencesSearchQuery({description, referenceTypes}) {
 
     const searchResults = computed(() => {
         if (searchResult.value?.referencesSearch?.status === 'SUCCESS') {
+            console.log('searchResults', searchResult.value.referencesSearch.result)
             return searchResult.value.referencesSearch.result || []
         }
         return []

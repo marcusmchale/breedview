@@ -1,15 +1,12 @@
 <script setup>
 import { ref, computed} from 'vue'
 
-import ControllerModal from '../controls/ControllerModal.vue'
 import GermplasmEntryModal from './GemplasmEntryModal.vue'
 import GermplasmCard from './GermplasmCard.vue'
 
 import GERMPLASM_FRAGMENT from '@/graphql/germplasm/entryFragment.graphql'
 
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
-
-import { useControllerData } from '@/composables/controls/useControllerData'
 import { useMutateEntries } from '@/composables/germplasm/mutateEntries'
 
 import { useAllGermplasmQuery } from "@/composables/germplasm/allGermplasmQuery";
@@ -67,7 +64,6 @@ const { deleteFromCache } = useCacheUpdates({
 
 // Event handlers
 const handleSelectEntry = async (entryId) => {
-  console.log('Select entry:', entryId)
   selectedEntryId.value = entryId
 }
 
@@ -95,21 +91,16 @@ const handleExpandSources = async (entry) => {
 
 
 const handleExpandSinks = async (entry) => {
-  console.log('Expand sinks for:', entry)
-
   try {
-    // Get sink IDs directly from the entry
-    const sinkIds = entry.data?.sinks?.map(sinkRel => sinkRel.sink.id).filter(Boolean) || []
+    // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
+    const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === entry.id)).map(e => e.id) || []
 
     if (sinkIds.length === 0) {
       return
     }
-
-    // First, unhide any already-loaded sinks
+    // Unhide sinks
     sinkIds.forEach(sinkId => {
-      if (loadedEntries.value.has(sinkId)) {
         hiddenEntryIds.value.delete(sinkId)
-      }
     })
 
   } catch (err) {
@@ -156,8 +147,9 @@ const handleCollapseSinks = (entry) => {
 
   // Recursive function to find all sinks down the tree
   const findSinksRecursively = (currentEntry) => {
-    // Get sink IDs directly from the current entry
-    const sinkIds = currentEntry.data?.sinks?.map(sinkRel => sinkRel.sink.id).filter(Boolean) || []
+
+    // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
+    const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === currentEntry.id)).map(e => e.id) || []
 
     sinkIds.forEach(sinkId => {
       entriesToHide.add(sinkId)
@@ -176,21 +168,18 @@ const handleCollapseSinks = (entry) => {
   entriesToHide.forEach(id => {
     hiddenEntryIds.value.add(id)
   })
-  console.log('entries to hide', entriesToHide)
 
 }
 
 const handleToggleExpanded = (entry) => {
   console.debug('handleToggleExpanded', entry)
-  const sinkIds = entry.data?.sinks?.map(sinkRel => sinkRel.sink.id).filter(Boolean) || []
+  // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
+  const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === entry.id)).map(e => e.id) || []
   if (sinkIds.length === 0) {
     return
   }
-  console.log('sinkIds', sinkIds)
   const visibleSinkIds = sinkIds.filter(id => !hiddenEntryIds.value.has(id))
-  console.log('visibleSinkIds', visibleSinkIds)
   const loadedEntryIds = sinkIds.filter(id => loadedEntries.value.has(id))
-  console.log('loadedEntryIds', loadedEntryIds)
   if (loadedEntryIds.length > 0 && visibleSinkIds.length === loadedEntryIds.length) {
     handleCollapseSinks(entry)
   } else {
@@ -199,14 +188,11 @@ const handleToggleExpanded = (entry) => {
 }
 
 const handleCreateSuccess = async ({ entryName, sourceIds, sinkIds }) => {
-  //todo consider refetching only the newly created entry and related using the event data
-  // for now just refetch all
   showCreateModal.value = false
   await refetchAllGermplasm()
 }
 
 const handleUpdateEntry = (entry) => {
-  console.log('handleUpdateEntry', entry)
   entryToUpdate.value = entry
   showUpdateModal.value = true
 }
@@ -256,25 +242,16 @@ const confirmDelete = async () => {
     const { status, errors } = await deleteEntry(entryToDelete.value.id)
 
     if (status === 'SUCCESS') {
-      console.log('deleting entry', entryToDelete.value)
       const entryId = entryToDelete.value.id
       const entryData = entryToDelete.value
 
-      // Collect IDs of sources and sinks from the entry being deleted
-      const referencedEntryIds = new Set()
+      // Collect IDs of sources from the entry being deleted
+      const sourceEntryIds = new Set()
 
       if (entryData.sources && entryData.sources.length > 0) {
         entryData.sources.forEach(sourceRel => {
           if (sourceRel.source?.id) {
-            referencedEntryIds.add(sourceRel.source.id)
-          }
-        })
-      }
-
-      if (entryData.sinks && entryData.sinks.length > 0) {
-        entryData.sinks.forEach(sinkRel => {
-          if (sinkRel.sink?.id) {
-            referencedEntryIds.add(sinkRel.sink.id)
+            sourceEntryIds.add(sourceRel.source.id)
           }
         })
       }
@@ -283,8 +260,8 @@ const confirmDelete = async () => {
       deleteFromCache({id: entryId})
 
       // Reload the referenced entries to update their relationships
-      if (referencedEntryIds.size > 0) {
-        const idsToFetch = Array.from(referencedEntryIds)
+      if (sourceEntryIds.size > 0) {
+        const idsToFetch = Array.from(sourceEntryIds)
         const sameIds = toLoadGermplasmIds.value?.length === idsToFetch.length && toLoadGermplasmIds.value.every((id, i) => id === idsToFetch[i])
         if (sameIds) {
           await refetchGermplasm()
@@ -305,32 +282,12 @@ const confirmDelete = async () => {
   }
 }
 
-// Controller modal state
-const showControllerModal = ref(false)
-const selectedEntryForController = ref(null)
-const { controller, fetchController, refetchController } = useControllerData()
-
-const handleManageControllers = async (entry) => {
-  selectedEntryForController.value = entry
-  showControllerModal.value = true
-  await fetchController('GERMPLASM', entry.data.id)
-}
-
-const closeControllerModal = () => {
-  showControllerModal.value = false
-  selectedEntryForController.value = null
-}
-
-const handleControllerReleaseUpdated = async () => {
-  await refetchController()
-}
 
 </script>
 
 <template>
   <div class="page-container">
     <div class="germplasm-header">
-      <h1>Germplasm</h1>
       <button @click="showCreateModal = true" class="btn btn-primary">
         Create New Entry
       </button>
@@ -420,19 +377,7 @@ const handleControllerReleaseUpdated = async () => {
       </div>
     </div>
 
-    <!-- Controller Modal -->
-    <ControllerModal
-      :isVisible="showControllerModal"
-      :controller="controller"
-      :loading="allGermplasmLoading"
-      :error="allGermplasmError"
-      entityLabel="GERMPLASM"
-      :entityId="selectedEntryForController?.data?.id"
-      @close="closeControllerModal"
-      @releaseUpdated="handleControllerReleaseUpdated"
-    />
-
-            <!-- Germplasm Details Card -->
+    <!-- Germplasm Details Card -->
     <div v-if="selectedEntryId" class="details-card-container">
       <GermplasmCard
         :entry="loadedEntries.get(selectedEntryId)"

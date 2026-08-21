@@ -5,7 +5,7 @@ import {FormKit} from "@formkit/vue";
 import { ref } from "vue";
 
 const props = defineProps({
-  unitId: Number,
+  unitId: String,
   currentPosition: {
     type: Object,
     required: false
@@ -45,6 +45,7 @@ const {
 const emit = defineEmits(['close'])
 
 const submitAddPosition = async () => {
+
   try {
     addPositionError.value = ''
 

@@ -3,16 +3,11 @@
 import { ref } from "vue";
 
 import LocationNode from "@/components/regions/LocationNode.vue";
-import CreateRegionModal from "@/components/regions/createRegionModal.vue";
 
 import { useLocationTreeNavigation } from "@/composables/regions/locationTreeNavigation";
 import { useLocationTreeQueries} from "@/composables/regions/locationTreeQueries";
 
 const props = defineProps({
-  showEdit: {
-    type: Boolean,
-    default: false
-  },
   onLocationSelected: {
     type: Function,
     required: false
@@ -28,14 +23,9 @@ const {
   locationTypesLoading,
   locationTypesError,
 
-  countries,
-  countriesLoading,
-  countriesError,
-
   regions,
   regionsLoading,
   regionsError,
-  refetchRegions,
 
   loadChildLocations
 } = useLocationTreeQueries(enableCountries, props.onLocationSelected)
@@ -54,27 +44,10 @@ const handleSelectLocationAndEmit = (event) => {
   emit('location-selected', event)
 }
 
-
-const handleSuccess = async () => {
-  await refetchRegions()
-}
-
-const openModal = () => {
-  enableCountries.value = true
-  isModalOpen.value = true
-}
-
-const closeModal = () => {
-    isModalOpen.value = false
-}
-const isModalOpen = ref(false)
-
 </script>
 
 <template>
-  <button v-if="showEdit" @click="openModal" class="btn btn-primary">
-    Register New Region
-  </button>
+
   <div v-if="locationTypesLoading" class="loading">
     Loading location types...
   </div>
@@ -98,24 +71,13 @@ const isModalOpen = ref(false)
           :isExpandedFn="isExpanded"
           :locationTypes="locationTypes"
           :selectedLocationId="selectedLocationId"
-          :showEdit="showEdit"
           @toggle-expand="handleToggleExpanded"
           @select-location="handleSelectLocationAndEmit"
       />
     </div>
   </div>
 
-  <!-- Create Region Modal -->
-  <div v-if="isModalOpen" class="modal-overlay" @click="closeModal">
-    <CreateRegionModal
-        :countries="countries"
-        :countriesLoading="countriesLoading"
-        :countriesError="countriesError"
-        :enableCountries="enableCountries"
-        @success="handleSuccess"
-        @close="closeModal"
-    />
-  </div>
+
 </template>
 
 

@@ -95,6 +95,8 @@ const onMapReady = () => {
     map.pm.addControls({
       position: 'topleft',
       drawMarker: true,
+      drawText: false,
+      editControls: false,
       drawCircleMarker: false,
       drawPolyline: false,
       drawRectangle: false,

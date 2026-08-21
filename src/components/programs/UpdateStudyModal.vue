@@ -44,6 +44,7 @@ const selectedReferenceIds = ref(props.study.references?.map(r => r.id) || [])
 const selectedReferences = ref(props.study.references || [])
 const isReferencesModalOpen = ref(false)
 
+console.log('study', props.study)
 // Licence state - initialize from study data
 const selectedLicence = ref(props.study.licence || null)
 const isLicenceModalOpen = ref(false)
@@ -71,8 +72,8 @@ const closeLicenceModal = () => {
   isLicenceModalOpen.value = false
 }
 
-const handleLicenceSave = (licence) => {
-  selectedLicence.value = licence
+const handleLicenceSave = ({ references }) => {
+  selectedLicence.value = references[0]
 }
 
 const submitForm = async (values) => {
@@ -259,8 +260,8 @@ const submitForm = async (values) => {
     <ReferencesModal
       :visible="isLicenceModalOpen"
       :reference-types="REFERENCE_TYPE_GROUPS.LICENSE"
-      :selected-reference-ids="selectedLicence.value ? [selectedLicence.value?.id] : []"
-      :initial-references="selectedLicence.value ? [selectedLicence.value] : []"
+      :selected-reference-ids="selectedLicence?.value ? [selectedLicence.value?.id] : []"
+      :initial-references="selectedLicence?.value ? [selectedLicence.value] : []"
       :selection-mode="'single'"
       title="Select Licence"
       @close="closeLicenceModal"

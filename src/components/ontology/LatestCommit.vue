@@ -1,22 +1,20 @@
 <script setup>
-import { computed } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/composables/user/useAuthStore'
 
-import COMMIT_HISTORY from '@/graphql/ontology/commitHistory.graphql'
+const props = defineProps({
+  latestCommit: {
+    type: Object,
+    default: null
+  }
+})
 
 const emit = defineEmits(['commit'])
 
 const router = useRouter()
 const { user } = useAuthStore()
 
-const { result, refetch } = useQuery(COMMIT_HISTORY, { limit: 1 })
-
-const latestCommit = computed(
-  () => result.value?.ontologyCommitHistory?.result?.[0] || null
-)
 
 const formatVersion = (version) => {
   if (!version) return 'N/A'
@@ -49,14 +47,6 @@ const formatVersion = (version) => {
         @click="emit('commit')"
       >
         Commit Changes
-      </button>
-      <button
-        v-if='user && user.ontologyRole === "ADMIN"'
-        title="Manage Roles"
-        class="btn-version btn-history"
-        @click="router.push({ name: 'ontology-roles' })"
-      >
-        Manage Roles
       </button>
     </div>
   </section>

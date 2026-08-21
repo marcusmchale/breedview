@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
+import { FormKit } from "@formkit/vue";
+
 
 import ReferencesModal from '@/components/references/ReferencesModal.vue'
 import { REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'

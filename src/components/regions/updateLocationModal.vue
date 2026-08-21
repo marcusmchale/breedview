@@ -14,10 +14,6 @@ const props = defineProps({
   location: {
     type: Object,
     required: true
-  },
-  regionId: {
-    type: String,
-    required: true
   }
 })
 
@@ -41,7 +37,7 @@ const {
   locations: currentChildren
 } = useLocationUpdateQueries(
     {
-      regionId: props.regionId,
+      regionId: props.location.region.id,
       parentId: () => updateFormData.value.parentId
     }
 )

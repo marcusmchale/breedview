@@ -33,15 +33,12 @@ const handleControlTeamError = (errorMessage) => {
   addChildError.value = errorMessage
 }
 
-
 const addChildFormData = ref({
   parentName: props.parentLayout?.name || `${props.parentLayout?.subject?.name} ${props.parentLayout?.id}`,
   name: '',
   typeId: null,
   position: null
 })
-
-
 
 // Get the selected layout type for form axis name fields
 const selectedAddChildLayoutType = computed(() => {
@@ -77,7 +74,6 @@ const submitAddChild = async () => {
       }
     }
     const layoutData = {
-        locationId: props.parentLayout.location.id,
         name: addChildFormData.value.name,
         typeId: addChildFormData.value.typeId,
         parentId: props.parentLayout.id,

@@ -94,7 +94,6 @@ const {
 })()
 
 const sources = ref([])
-const sinks = ref([])
 const formError = ref('')
 const selectedControlTeamId = ref(null)
 const selectedRelease = ref(null)
@@ -130,18 +129,11 @@ watch(() => props.entry, (entry) => {
     description: rel.description ?? ''
   }))
 
-  sinks.value = (entry.sinks ?? []).map(rel => ({
-    sinkId: rel.sink.id,
-    sourceType: rel.sourceType ?? 'UNKNOWN',
-    description: rel.description ?? ''
-  }))
 }, { immediate: true })
 
-// ── Sources / sinks helpers ────────────────────────────────────────────────────
+// ── Sources  helpers ────────────────────────────────────────────────────
 const addSource = () => sources.value.push({ sourceId: null, sourceType: 'UNKNOWN', description: '' })
 const removeSource = (index) => sources.value.splice(index, 1)
-const addSink = () => sinks.value.push({ sinkId: null, sourceType: 'UNKNOWN', description: '' })
-const removeSink = (index) => sinks.value.splice(index, 1)
 
 const handleControlTeamError = (errorMessage) => { formError.value = errorMessage }
 
@@ -158,10 +150,6 @@ const submitForm = async () => {
       .filter(s => s.sourceId !== null)
       .map(s => ({ sourceId: s.sourceId, sourceType: s.sourceType, description: s.description || null }))
 
-    const validSinks = sinks.value
-      .filter(s => s.sinkId !== null)
-      .map(s => ({ sinkId: s.sinkId, sourceType: s.sourceType, description: s.description || null }))
-
     if (isUpdateMode.value) {
       const entry = {
         id: props.entry.id,
@@ -173,8 +161,7 @@ const submitForm = async () => {
         reproduction: formData.value.reproduction || null,
         controlMethodIds: formData.value.controlMethodIds || null,
         referenceIds: selectedReferenceIds.value || null,
-        sources: validSources.length > 0 ? validSources : null,
-        sinks: validSinks.length > 0 ? validSinks : null
+        sources: validSources.length > 0 ? validSources : null
       }
 
       const { status, errors } = await updateEntry(entry)
@@ -183,8 +170,7 @@ const submitForm = async () => {
         console.log('update success', entry)
         emit('success', {
           entryId: entry.id,
-          sourceIds: validSources.map(s => s.sourceId),
-          sinkIds: validSinks.map(s => s.sinkId)
+          sourceIds: validSources.map(s => s.sourceId)
         })
       } else {
         formError.value = errors?.[0]?.message || 'Failed to update entry'
@@ -199,8 +185,7 @@ const submitForm = async () => {
         reproduction: formData.value.reproduction || null,
         controlMethodIds: formData.value.controlMethodIds?.length > 0 ? formData.value.controlMethodIds : null,
         referenceIds: selectedReferenceIds.value.length > 0 ? selectedReferenceIds.value : [],
-        sources: validSources.length > 0 ? validSources : null,
-        sinks: validSinks.length > 0 ? validSinks : null
+        sources: validSources.length > 0 ? validSources : null
       }
 
       const { status, errors } = await createEntry({
@@ -212,8 +197,7 @@ const submitForm = async () => {
       if (status === 'SUCCESS') {
         emit('success', {
           entryName: formData.value.name,
-          sourceIds: validSources.map(s => s.sourceId),
-          sinkIds: validSinks.map(s => s.sinkId)
+          sourceIds: validSources.map(s => s.sourceId)
         })
       } else {
         formError.value = errors?.[0]?.message || 'Failed to create entry'
@@ -379,52 +363,6 @@ const submitForm = async () => {
           </div>
 
           <div v-if="sources.length === 0" class="empty-state">No sources added yet.</div>
-        </div>
-
-        <!-- Sinks Section -->
-        <div class="relationships-section">
-          <div class="section-header">
-            <h3>Sinks</h3>
-            <button type="button" @click="addSink" class="btn btn-small btn-primary">
-              + Add Sink
-            </button>
-          </div>
-
-          <div
-            v-for="(sink, index) in sinks"
-            :key="'sink-' + index"
-            class="relationship-item"
-          >
-            <div class="relationship-header">
-              <h4>Sink {{ index + 1 }}</h4>
-              <button type="button" @click="removeSink(index)" class="btn btn-small btn-danger">
-                Remove
-              </button>
-            </div>
-            <div class="relationship-fields">
-              <div class="form-group">
-                <label>Sink Entry *</label>
-                <select v-model="sink.sinkId" class="form-select">
-                  <option :value="null">Select a germplasm entry...</option>
-                  <option v-for="e in availableEntries" :key="e.id" :value="e.id">
-                    {{ e.name }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Source Type *</label>
-                <select v-model="sink.sourceType" class="form-select">
-                  <option v-for="type in sourceTypes" :key="type" :value="type">{{ type }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Description</label>
-                <input v-model="sink.description" type="text" class="form-input" placeholder="Optional description" />
-              </div>
-            </div>
-          </div>
-
-          <div v-if="sinks.length === 0" class="empty-state">No sinks added yet.</div>
         </div>
 
         <div class="form-actions">

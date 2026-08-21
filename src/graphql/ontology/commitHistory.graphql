@@ -11,6 +11,12 @@ query ontologyCommitHistory(
             version { major minor patch id }
             time
             comment
+            licence {
+                id, description, text
+            }
+            copyright {
+                id, description, text
+            }
         }
         errors {
             message

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import ControllerModal from './ControllerModal.vue'
-import { useControllerData } from '@/composables/controls/useControllerData'
+import { useControllerQuery } from '@/composables/controls/useControllerQuery'
 
 const props = defineProps({
   entityLabel: {
@@ -19,18 +19,16 @@ const props = defineProps({
 })
 
 const showModal = ref(false)
-const { controller, loading, error, fetchController, refetchController } = useControllerData()
+const { controller, loading, error, refetch } = useControllerQuery(
+    {
+      entityLabel: () => props.entityLabel,
+      entityId: () => props.entityId
+    }
+)
 
-const fetchAndShowModal = async () => {
+const openModal = async () => {
+
   showModal.value = true
-
-  // If we already have data, just show the modal
-  if (controller.value) {
-    return
-  }
-
-  // Otherwise, load the data
-  await fetchController(props.entityLabel, props.entityId)
 }
 
 const closeModal = () => {
@@ -38,20 +36,35 @@ const closeModal = () => {
 }
 
 const handleReleaseUpdated = async () => {
-  await refetchController()
+  await refetch()
 }
+
 </script>
 
 <template>
-  <div class="controller-badge-container">
+  <div class="controller-badge-container" >
     <button
-      @click="fetchAndShowModal"
+      @click="openModal"
       class="controller-badge"
       :title="'Click to view controller details'"
       :disabled="loading"
+
+      :class="{
+        'release-private': controller?.release === 'PRIVATE',
+        'release-registered': controller?.release === 'REGISTERED',
+        'release-public': controller?.release === 'PUBLIC'
+      }"
+
     >
       🔒
-      <span class="badge-text">{{ loading ? 'Loading...' : 'Security' }}</span>
+      <span
+          class="badge-text"
+          :class="{
+            'release-private': controller?.release === 'PRIVATE',
+            'release-registered': controller?.release === 'REGISTERED',
+            'release-public': controller?.release === 'PUBLIC'
+          }"
+      >{{ loading ? 'Loading...' : controller?.release }}</span>
     </button>
 
     <ControllerModal
@@ -77,8 +90,6 @@ const handleReleaseUpdated = async () => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background-color: #dc3545;
-  color: white;
   border: none;
   border-radius: 12px;
   font-size: 0.75em;
@@ -88,7 +99,6 @@ const handleReleaseUpdated = async () => {
 }
 
 .controller-badge:hover:not(:disabled) {
-  background-color: #c82333;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
@@ -106,4 +116,20 @@ const handleReleaseUpdated = async () => {
   font-weight: 500;
   white-space: nowrap;
 }
+
+.release-private {
+  background-color: #dc3545;
+  color: white;
+}
+
+.release-registered {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.release-public {
+  background-color: #28a745;
+  color: white;
+}
+
 </style>

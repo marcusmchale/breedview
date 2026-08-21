@@ -80,13 +80,15 @@ const submitForm = async () => {
             })
 
             if (status === 'SUCCESS') {
-                createdReferenceId.value = result
-                emit('created', {
+              const createdReference = {
                     id: result,
                     __typename: 'LegalReference',
                     description: formData.value.description?.trim() || null,
                     text: formData.value.text.trim()
-                })
+                }
+              console.log('createdReference', createdReference)
+                createdReferenceId.value = result
+                emit('created', createdReference )
                 // Reset form for next entry
                 formData.value = { description: '', text: '' }
             } else {

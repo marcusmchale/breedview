@@ -1,8 +1,8 @@
 import {ref, computed, toValue} from 'vue'
 import { useLazyQuery, useApolloClient } from "@vue/apollo-composable";
 
-import ENTRIES_QUERY from '@/graphql/germplasm/entries.graphql'
-import ENTRY_FRAGMENT from '@/graphql/germplasm/entryFragment.graphql'
+import ENTRIES_NAVIGATION_QUERY from '@/graphql/germplasm/entriesNavigation.graphql'
+import ENTRY_NAVIGATION_FRAGMENT from '@/graphql/germplasm/entryFragmentNavigation.graphql'
 
 export function useGermplasmLazyQuery() {
 
@@ -21,7 +21,7 @@ export function useGermplasmLazyQuery() {
         loading: germplasmLoading,
         error: germplasmError,
         refetch: refetchGermplasm
-    } = useLazyQuery(ENTRIES_QUERY, variables)
+    } = useLazyQuery(ENTRIES_NAVIGATION_QUERY, variables)
 
     const germplasm = computed(() => {
         console.log('germplasmResult', germplasmResult.value)
@@ -34,7 +34,7 @@ export function useGermplasmLazyQuery() {
     const loadChildGermplasm = (germplasmId) => {
         const cachedGermplasm = client.cache.readFragment({
             id: `GermplasmEntry:${germplasmId}`,
-            fragment: ENTRY_FRAGMENT
+            fragment: ENTRY_NAVIGATION_FRAGMENT
         })
         if (cachedGermplasm?.sinks && cachedGermplasm?.sinks?.length > 0) {
             germplasmIds.value = cachedGermplasm.sinks.map(rel => rel.sink.id)

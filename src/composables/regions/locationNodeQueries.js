@@ -1,27 +1,32 @@
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 import {
     useQuery
 } from '@vue/apollo-composable'
 
 import LOCATIONS_QUERY from "@/graphql/regions/locations.graphql";
 
-export function useLocationNodeQueries({locationId}) {
+export function useLocationNodeQueries({ locationId }) {
 
     //Fetch location
     const {
         result: locationResult,
+        loading: locationLoading,
+        error: locationError,
         refetch: refetchLocation
     } = useQuery(
       LOCATIONS_QUERY,
-      { locationIds: [locationId] }
+        ()=>({ locationIds: [toValue(locationId)] }),
+        { enabled: () => !!toValue(locationId) }
     )
 
-    const displayedLocation = computed( () => {
-        return locationResult?.value?.regionsLocations?.result?.find(location => location.id === locationId)
+    const location = computed( () => {
+        return locationResult?.value?.regionsLocations?.result?.find(loc => loc.id === toValue(locationId))
     })
 
     return {
-        displayedLocation,
+        location,
+        locationLoading,
+        locationError,
         refetchLocation
     }
 }

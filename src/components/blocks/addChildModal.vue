@@ -434,7 +434,7 @@ const setMode = (nextMode) => {
           :currentChildren="singleCurrentChildLocations"
           :exclude-node-id="null"
           :get-node-label-fn="(unit) => unit.name || `${unit.type?.name} ${unit.id}`"
-          validation="required"
+          :validation="required"
         />
 
         <FormKit
@@ -540,7 +540,6 @@ const setMode = (nextMode) => {
           :currentChildren="bulkCurrentChildLocations"
           :exclude-node-id="null"
           :get-node-label-fn="(unit) => unit.name || `${unit.type?.name} ${unit.id}`"
-          validation="required"
           v-model="bulkTemplate.positionLocationId"
         />
 
@@ -568,7 +567,6 @@ const setMode = (nextMode) => {
               type="text"
               :name="key"
               :label="bulkLayout?.axes?.[index]"
-              :validation="`required`"
               :help="`Enter ${bulkLayout?.axes?.[index]}`"
               v-model="bulkTemplate[key]"
             />

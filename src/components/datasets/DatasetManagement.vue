@@ -3,7 +3,6 @@
 <template>
   <div class="dataset-management">
     <div class="management-header">
-      <h2>Dataset Management</h2>
       <button class="btn btn-secondary" @click="openCurationModal">
         📊 View & Curate Datasets
       </button>

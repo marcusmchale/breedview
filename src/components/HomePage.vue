@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../composables/user/useAuthStore'
 import InviteUserModal from './user/InviteUserModal.vue'
-import RequestOntologyRoleModal from "@/components/user/RequestOntologyRoleModal.vue";
+
 import EditProfileModal from "@/components/user/EditProfileModal.vue";
 
 const router = useRouter()
@@ -16,18 +16,10 @@ const loading = computed(() => isLoading.value)
 const error = computed(() => storeError.value)
 
 const showInviteModal = ref(false)
-const showRequestOntologyRoleModal = ref(false)
 const showEditProfileModal = ref(false)
 
 const redirectToLogin = () => {
   router.push('/login')
-}
-
-const handleUserInvited = (email) => {
-  console.debug('User invited:', email)
-}
-const handleRequestOntologyRoleRequest = (ontologyRole) => {
-  console.debug('User requested ontology role:', ontologyRole)
 }
 
 </script>
@@ -52,15 +44,11 @@ const handleRequestOntologyRoleRequest = (ontologyRole) => {
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>User ID:</strong> {{ user.id }}</p>
         <p><strong>Fullname:</strong> {{ user.fullname }}</p>
-        <p><strong>Ontology Role:</strong> {{ user.ontologyRole }}</p>
       </div>
 
       <div class="user-actions">
         <button @click="showInviteModal = true" class="btn btn-primary">
           Invite User
-        </button>
-        <button @click="showRequestOntologyRoleModal = true" class="btn btn-primary">
-          Request Ontology Role
         </button>
         <button @click="showEditProfileModal = true" class="btn btn-primary">
           Edit Profile
@@ -72,21 +60,12 @@ const handleRequestOntologyRoleRequest = (ontologyRole) => {
     <InviteUserModal
       :is-open="showInviteModal"
       @close="showInviteModal = false"
-      @invited="handleUserInvited"
-    />
-
-    <!-- Request Ontology Role Modal -->
-    <RequestOntologyRoleModal
-      :is-open="showRequestOntologyRoleModal"
-      @close="showRequestOntologyRoleModal = false"
-      @requested="handleRequestOntologyRoleRequest"
     />
 
     <EditProfileModal
         :is-open="showEditProfileModal"
         @close="showEditProfileModal = false"
     />
-
 
   </div>
 </template>

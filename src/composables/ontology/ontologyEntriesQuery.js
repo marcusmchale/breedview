@@ -36,12 +36,9 @@ export function useOntologyEntriesQuery({entryIds, labels, view}) {
         }
     )
 
-    const entries = computed(() => {
-        if (!result.value?.ontologyEntries?.result) {
-            return []
-        }
-        return result.value.ontologyEntries.result
-    })
+    const entries = computed(() =>
+        result.value?.ontologyEntries?.result ?? []
+    )
 
     return {
         entries,

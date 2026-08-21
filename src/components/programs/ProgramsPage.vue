@@ -38,7 +38,6 @@ const handleProgramDeleted = () => {
 <template>
   <div class="page-container">
     <div class="programs-header">
-      <h1>Programs</h1>
       <button @click="openCreateModal" class="btn btn-primary">
         Create New Program
       </button>

@@ -1,11 +1,9 @@
 #import "./entryFragment.graphql"
 query germplasmEntries(
     $entryIds: [ID!]
-    $names: [String!]
 ) {
     germplasmEntries(
         ids: $entryIds
-        names: $names
     ){
         status
         result {

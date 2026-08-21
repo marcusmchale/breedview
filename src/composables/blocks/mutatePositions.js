@@ -1,4 +1,4 @@
-import { toValue} from "vue";
+import { toValue } from "vue";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates"
 
 import UNIT_FRAGMENT from '@/graphql/blocks/unitFragment.graphql'
@@ -7,7 +7,7 @@ import REMOVE_POSITION_MUTATION from '@/graphql/blocks/removePosition.graphql'
 
 import { useMutation } from '@vue/apollo-composable'
 
-export function useMutatePositions({unitId}) {
+export function useMutatePositions({ unitId }) {
 
     const {
         addPosition: addPositionToCache,
@@ -50,6 +50,7 @@ export function useMutatePositions({unitId}) {
     } = useMutation(REMOVE_POSITION_MUTATION)
 
     const removePosition = async (position) => {
+
         const {location, layout, coordinates, start, end } = position
 
         const positionData = {
@@ -65,7 +66,7 @@ export function useMutatePositions({unitId}) {
             const result = response.data.blocksRemovePosition
             if (result.status === "SUCCESS") {
                 removePositionFromCache({
-                    unitId: unitId,
+                    unitId: toValue(unitId),
                     position: position
                 })
             }

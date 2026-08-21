@@ -35,7 +35,6 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
 
 
     const getCached = (keyData) => {
-        console.debug('keyData for get', keyData)
         const identity = identityResolver(keyData)
         const itemCacheId = client.cache.identify(identity)
         return client.cache.readFragment({
@@ -72,7 +71,6 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
     // takes the data to update (object)
     // the field (key in the data) that provides the ID of the item
     const updateCache = (updateData) => {
-        console.debug('updateData', updateData)
         const identity = identityResolver(updateData)
         const itemCacheId = client.cache.identify(identity)
 
@@ -324,6 +322,21 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
         }
     }
 
+    const comparePositions = (a, b) => {
+        const aDate = a.start ?? a.end;
+        const bDate = b.start ?? b.end;
+
+        const aHasDate = aDate != null;
+        const bHasDate = bDate != null;
+
+        // Undated positions first
+        if (!aHasDate && !bHasDate) return 0;
+        if (!aHasDate) return -1;
+        if (!bHasDate) return 1;
+
+        return aDate.localeCompare(bDate);
+    };
+
     const addPosition = ({unitId, position}) => {
         const unitCacheId = client.cache.identify({
             __typename: "Unit",
@@ -334,7 +347,7 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
             id: unitCacheId,
             fields: {
                 positions: (existing = []) => {
-                    return [...existing, positionWithRefs]
+                    return [...existing, positionWithRefs].sort(comparePositions)
                 }
             }
         })

@@ -445,7 +445,6 @@ const formatDate = (dateString) => {
   text-transform: uppercase;
 }
 
-
 .release-badge.clickable {
   cursor: pointer;
   transition: all 0.2s ease;

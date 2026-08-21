@@ -12,7 +12,7 @@ export function useArrangementsQuery(locationId) {
     const client = resolveClient()
 
     const arrangementsEnabled = computed( () => {
-        return toValue(locationId) !== null
+        return toValue(locationId) != null
     })
 
     // Fetch root layouts (arrangements) for location
@@ -32,7 +32,7 @@ export function useArrangementsQuery(locationId) {
         if (!arrangementsResult.value) {
             return []
         }
-        const arrangements = [...arrangementsResult.value.arrangements.result]
+        const arrangements = [...arrangementsResult.value.arrangements.result ?? []]
         arrangements.sort((a,b) => a?.name.localeCompare(b?.name))
         return arrangements
     })

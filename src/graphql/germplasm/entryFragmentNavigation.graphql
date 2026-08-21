@@ -1,0 +1,6 @@
+fragment GermplasmNavigationFields on GermplasmEntry {
+    id
+    name
+    sources { source { id } }
+    sinks { sink { id } }
+}

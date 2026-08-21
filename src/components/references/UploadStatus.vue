@@ -3,7 +3,7 @@
 const props = defineProps({
   uploadStatus: String,
   uploadProgress: Number,
-  uploadedReferenceId: Number,
+  uploadedReferenceId: String,
   uploadErrors: Array[String]
 })
 

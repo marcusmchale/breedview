@@ -29,7 +29,7 @@ const updateFormData = ref({
   typeId: props.layout.type.id,
   parentId: props.layout.parent?.id,
   position: props.layout.position,
-  locationId: props.layout.location.id
+  locationId: props.layout.location?.id
 })
 
 const {
@@ -195,6 +195,7 @@ watch(selectedEditLayoutType, (newLayoutType) => {
 
 
     <FormKit
+        v-if="props.layout.location"
       type="hierarchical-select"
       name="locationId"
       label="Location:"

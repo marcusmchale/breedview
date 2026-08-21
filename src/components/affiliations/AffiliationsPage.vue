@@ -1,12 +1,5 @@
 <template>
   <div class="affiliations-page">
-    <div class="page-header">
-      <h2>Manage Affiliations</h2>
-      <button @click="$emit('back-to-home')" class="btn btn-secondary">
-        Back to Home
-      </button>
-    </div>
-
     <div v-if="loading" class="loading">
       Loading organisations...
     </div>

@@ -9,7 +9,6 @@ export function useRecentFileReferencesQuery(referenceTypes) {
   );
 
   const recentFileReferences = computed(() => {
-    console.log('recent file refs result:', result.value)
     return result.value?.referencesRecentFiles?.result ?? []
   });
 

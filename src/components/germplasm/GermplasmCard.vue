@@ -349,6 +349,7 @@ const sinksList = computed(() => {
 .rel-description {
   font-size: 0.85rem;
   color: #999;
+  flex: 0;
   display: block;
   width: 100%;
 }

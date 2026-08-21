@@ -1,6 +1,10 @@
 #import "./entryFragmentNavigation.graphql"
-query germplasmCrops {
-    germplasmCrops {
+query germplasmEntriesNavigation(
+    $entryIds: [ID!]
+) {
+    germplasmEntries(
+        ids: $entryIds
+    ){
         status
         result {
             ...GermplasmNavigationFields

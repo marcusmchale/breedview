@@ -1,11 +1,9 @@
 <script setup>
-
 import { ref, toRef } from 'vue'
 
-import { useArrangementsBoxQueries } from "@/composables/arrangements/arrangementsBoxQueries";
+import { useArrangementsBoxQueries } from "@/composables/arrangements/arrangementsBoxQueries"
 
-import LayoutNode from './LayoutNode.vue'
-import CreateArrangementModal from "@/components/arrangements/createArrangementModal.vue";
+import CreateArrangementModal from "@/components/arrangements/createArrangementModal.vue"
 
 const props = defineProps({
   locationId: {
@@ -13,6 +11,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const emit = defineEmits(['arrangement-selected'])
 
 const locationId = toRef(props, "locationId")
 const {
@@ -35,16 +35,12 @@ const handleAddLayoutSuccess = () => {
   refetchArrangements()
 }
 
-// Layout details modal state
-const selectedLayout = ref(null)
-const openLayoutDetailsModal = (layout) => {
-  selectedLayout.value = layout
+// Selected arrangement
+const selectedArrangementId = ref(null)
+const handleArrangementClick = (arrangement) => {
+  selectedArrangementId.value = arrangement.id
+  emit('arrangement-selected', arrangement.id, layoutTypes.value)
 }
-
-const closeLayoutDetailsModal = () => {
-  selectedLayout.value = null
-}
-
 </script>
 
 <template>
@@ -54,7 +50,7 @@ const closeLayoutDetailsModal = () => {
       <button
         @click="openAddLayoutModal"
         class="btn btn-sm btn-add-layout"
-        title="Create new arrangements"
+        title="Create new arrangement"
       >
         + New Layout
       </button>
@@ -74,7 +70,8 @@ const closeLayoutDetailsModal = () => {
         v-for="layout in arrangements"
         :key="`layoutNode_${layout?.id}`"
         class="layout-item"
-        @click.prevent="openLayoutDetailsModal(layout)"
+        :class="{ selected: selectedArrangementId === layout.id }"
+        @click="handleArrangementClick(layout)"
       >
         <span class="layout-name">{{ layout.name || `${layout.type?.name} ${layout.id}` }}</span>
         <span class="layout-subject">{{ layout.type?.name }}</span>
@@ -83,43 +80,22 @@ const closeLayoutDetailsModal = () => {
 
     <div v-if="isAddLayoutModalOpen" class="modal-overlay" @click="closeAddLayoutModal">
       <CreateArrangementModal
-          :layoutTypes="layoutTypes"
-          :locationId="locationId"
-          @close="closeAddLayoutModal"
-          @success="handleAddLayoutSuccess"
+        :layoutTypes="layoutTypes"
+        :locationId="locationId"
+        @close="closeAddLayoutModal"
+        @success="handleAddLayoutSuccess"
       />
-    </div>
-
-    <!-- Layout details modal -->
-    <div v-if="selectedLayout" class="modal-overlay" @click="closeLayoutDetailsModal">
-      <div class="modal modal-large" @click.stop>
-        <div class="modal-header">
-         <h4>{{ selectedLayout.name || `${selectedLayout.type.name} ${selectedLayout.id}` }}</h4>
-         <button @click="closeLayoutDetailsModal" class="modal-close">&times;</button>
-        </div>
-
-        <div class="layout-details">
-          <LayoutNode
-            :key="selectedLayout.id"
-            :layoutId="selectedLayout.id"
-            :arrangementId="selectedLayout.id"
-            :layoutTypes="layoutTypes"
-            @close="closeLayoutDetailsModal"
-          />
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
-
 <style scoped>
 .arrangements-box {
-  margin-top: 16px;
   padding: 12px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background: #f9f9f9;
+  height: 100%;
 }
 
 .arrangements-header {
@@ -135,7 +111,6 @@ const closeLayoutDetailsModal = () => {
   font-weight: 600;
   color: #333;
 }
-
 
 .layout-name {
   font-weight: 500;
@@ -184,39 +159,20 @@ const closeLayoutDetailsModal = () => {
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .layout-item:hover {
+  background-color: #f5f5f5;
+  border-color: #bbb;
+}
+
+.layout-item.selected {
   background-color: #e3f2fd;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
-.layout-details {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-
-/* Axes section styling */
-.axes-section {
-  padding: 12px;
-  background-color: #f0f8ff;
-  border: 1px solid #d0e8ff;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.axes-section h5 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-
-
-/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -228,68 +184,6 @@ const closeLayoutDetailsModal = () => {
   justify-content: center;
   align-items: center;
   z-index: 1001;
-}
-
-.modal {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  max-width: 450px;
-  width: 90%;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
-}
-
-.modal-header h4 {
-  margin: 0;
-  color: #333;
-  font-size: 18px;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-close:hover:not(:disabled) {
-  background-color: #e9ecef;
-  border-radius: 50%;
-}
-
-.modal-close:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.modal-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 10px;
 }
 
 .btn {

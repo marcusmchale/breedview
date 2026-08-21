@@ -59,14 +59,14 @@ const toggleCollapse = () => {
         class="collapse-btn"
         :title="localIsCollapsed ? 'Expand filters' : 'Collapse filters'"
       >
-        <span class="collapse-icon">{{ localIsCollapsed ? '▶' : '▼' }}</span>
+        <span class="collapse-icon">{{ localIsCollapsed ? '▶' : '◀' }}</span>
       </button>
     </div>
 
     <div v-if="!localIsCollapsed" class="panel-content">
       <!-- Life Cycle Phases Filter -->
       <section v-if="lifecycleFilters" class="filter-section">
-        <h4 class="section-title">Life Cycle Phases</h4>
+        <h4 class="section-title">Filter Phases</h4>
         <div class="filter-buttons">
           <button
             v-for="phase in availablePhases"
@@ -83,7 +83,7 @@ const toggleCollapse = () => {
 
       <!-- Ontology Labels Filter -->
       <section class="filter-section">
-        <h4 class="section-title">Ontology Labels</h4>
+        <h4 class="section-title">Filter Labels</h4>
         <div class="filter-buttons">
           <button
             v-for="(entry, index) in createEntriesForLabels"

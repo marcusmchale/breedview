@@ -175,10 +175,9 @@ const submitForm = async (values) => {
       </FormKit>
     </div>
 
-    <!-- References Modal -->
-    <EntityReferencesModal
+    <ReferencesModal
       :visible="isReferencesModalOpen"
-      :reference-types="REFERENCE_TYPE_GROUPS.ENTITY"
+      :referenceTypes="REFERENCE_TYPE_GROUPS.ENTITY"
       :selectedReferenceIds="selectedReferenceIds"
       :initialReferences="selectedReferences"
       @close="closeReferencesModal"

@@ -1,3 +1,129 @@
+<script setup>
+import {ref, computed, watch} from 'vue'
+import {useMutation} from '@vue/apollo-composable'
+
+import APPROVE_AFFILIATION_MUTATION from '../../graphql/account/approveAffiliation.graphql'
+import REVOKE_AFFILIATION_MUTATION from '../../graphql/account/revokeAffiliation.graphql'
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    default: false
+  },
+  teamInfo: {
+    type: Object,
+    required: true
+  },
+  currentUserId: {
+    type: [String, Number],
+    required: true
+  }
+})
+
+const emit = defineEmits(['close', 'affiliation-updated'])
+
+// Reactive data
+const approveError = ref('')
+const revokeError = ref('')
+
+
+const allAffiliations = computed(() => ({
+  read: [],
+  write: [],
+  admin: [],
+  curate: [],
+  ...props.teamInfo?.affiliations
+}))
+
+// Apollo mutations
+const {
+  mutate: approveAffiliationMutation,
+  loading: approveAffiliationLoading
+} = useMutation(APPROVE_AFFILIATION_MUTATION)
+const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = useMutation(REVOKE_AFFILIATION_MUTATION)
+  // Computed property to check if there are any affiliations
+  const hasAnyAffiliations = computed(() => {
+  return (
+  (allAffiliations.value.read && allAffiliations.value.read.length > 0) ||
+  (allAffiliations.value.write && allAffiliations.value.write.length > 0) ||
+  (allAffiliations.value.admin && allAffiliations.value.admin.length > 0) ||
+  (allAffiliations.value.curate && allAffiliations.value.curate.length > 0)
+  )
+})
+
+// Helper functions
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'AUTHORISED': return 'status-authorised'
+    case 'REQUESTED': return 'status-pending'
+    default: return 'status-unknown'
+  }
+}
+
+const getStatusText = (status) => {
+  switch (status) {
+  case 'AUTHORISED': return 'Authorised'
+  case 'REQUESTED': return 'Requested'
+  case 'REVOKED': return 'Revoked'
+  default: return 'Unknown'
+}
+}
+
+// Event handlers
+const handleApproveAffiliation = async (userId, accessType, heritable) => {
+  try {
+    approveError.value = ''
+    const response = await approveAffiliationMutation({
+    user: userId,
+    team: props.teamInfo.id,
+    access: accessType,
+    heritable: heritable
+  })
+  if (response?.data?.accountsApproveAffiliation?.status === 'SUCCESS') {
+  //await refetchInherited()  TODO reload team affiliation data
+  emit('affiliation-updated')
+} else {
+  approveError.value = response?.data?.accountsApproveAffiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
+}
+} catch (error) {
+  console.error('Approve affiliation error:', error)
+  approveError.value = error.message || 'An unexpected error occurred'
+}
+}
+
+  const handleRevokeAffiliation = async (userId, accessType) => {
+  try {
+  revokeError.value = ''
+  const response = await revokeAffiliationMutation({
+  user: userId,
+  team: props.teamInfo.id,
+  access: accessType
+})
+
+  if (response?.data?.accountsRevokeAffiliation?.status === 'SUCCESS') {
+  //await refetchInherited()  TODO reload team affiliation data
+  emit('affiliation-updated')
+} else {
+  revokeError.value = response?.data?.accountsRevokeAffiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
+}
+} catch (error) {
+  console.error('Revoke affiliation error:', error)
+  revokeError.value = error.message || 'An unexpected error occurred'
+}
+}
+
+  // Watch for modal open/close to refetch data
+  watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+  approveError.value = ''
+  revokeError.value = ''
+  if (props.teamInfo?.id) {
+  //refetchInherited()  TODO reload team affiliation data?
+}
+}
+})
+</script>
+
 
 <template>
   <div v-if="isOpen" class="modal-overlay">
@@ -307,147 +433,6 @@
   </div>
 </template>
 
-<script setup>
-import {ref, computed, watch} from 'vue'
-import {useMutation} from '@vue/apollo-composable'
-import APPROVE_AFFILIATION_MUTATION from '../../graphql/account/approveAffiliation.graphql'
-import REVOKE_AFFILIATION_MUTATION from '../../graphql/account/revokeAffiliation.graphql'
-
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false
-  },
-  teamInfo: {
-    type: Object,
-    required: true
-  },
-  currentUserId: {
-    type: [String, Number],
-    required: true
-  }
-})
-
-const emit = defineEmits(['close', 'affiliation-updated'])
-
-// Reactive data
-const approveError = ref('')
-const revokeError = ref('')
-
-
-//const inheritedAffiliations = computed(() => ({
-//  read: [],
-//  write: [],
-//  admin: [],
-//  curate: [],
-//  ...props.teamInfo?.inheritedAffiliations
-//}))
-//
-//const directAffiliations = computed(() => ({
-//  read: [],
-//  write: [],
-//  admin: [],
-//  curate: [],
-//  ...props.teamInfo?.directAffiliations
-//}))
-//
-
-const allAffiliations = computed(() => ({
-  read: [],
-  write: [],
-  admin: [],
-  curate: [],
-  ...props.teamInfo?.affiliations
-}))
-
-// Apollo mutations
-const {
-  mutate: approveAffiliationMutation,
-  loading: approveAffiliationLoading
-} = useMutation(APPROVE_AFFILIATION_MUTATION)
-const {mutate: revokeAffiliationMutation, loading: revokeAffiliationLoading} = useMutation(REVOKE_AFFILIATION_MUTATION)
-  // Computed property to check if there are any affiliations
-  const hasAnyAffiliations = computed(() => {
-  return (
-  (allAffiliations.value.read && allAffiliations.value.read.length > 0) ||
-  (allAffiliations.value.write && allAffiliations.value.write.length > 0) ||
-  (allAffiliations.value.admin && allAffiliations.value.admin.length > 0) ||
-  (allAffiliations.value.curate && allAffiliations.value.curate.length > 0)
-  )
-})
-
-// Helper functions
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'AUTHORISED': return 'status-authorised'
-    case 'REQUESTED': return 'status-pending'
-    default: return 'status-unknown'
-  }
-}
-
-const getStatusText = (status) => {
-  switch (status) {
-  case 'AUTHORISED': return 'Authorised'
-  case 'REQUESTED': return 'Requested'
-  case 'REVOKED': return 'Revoked'
-  default: return 'Unknown'
-}
-}
-
-// Event handlers
-const handleApproveAffiliation = async (userId, accessType, heritable) => {
-  try {
-    approveError.value = ''
-    const response = await approveAffiliationMutation({
-    user: userId,
-    team: props.teamInfo.id,
-    access: accessType,
-    heritable: heritable
-  })
-  if (response?.data?.accountsApproveAffiliation?.status === 'SUCCESS') {
-  //await refetchInherited()  TODO reload team affiliation data
-  emit('affiliation-updated')
-} else {
-  approveError.value = response?.data?.accountsApproveAffiliation?.errors?.[0]?.message || 'Failed to approve affiliation'
-}
-} catch (error) {
-  console.error('Approve affiliation error:', error)
-  approveError.value = error.message || 'An unexpected error occurred'
-}
-}
-
-  const handleRevokeAffiliation = async (userId, accessType) => {
-  try {
-  revokeError.value = ''
-  const response = await revokeAffiliationMutation({
-  user: userId,
-  team: props.teamInfo.id,
-  access: accessType
-})
-
-  if (response?.data?.accountsRevokeAffiliation?.status === 'SUCCESS') {
-  //await refetchInherited()  TODO reload team affiliation data
-  emit('affiliation-updated')
-} else {
-  revokeError.value = response?.data?.accountsRevokeAffiliation?.errors?.[0]?.message || 'Failed to revoke affiliation'
-}
-} catch (error) {
-  console.error('Revoke affiliation error:', error)
-  revokeError.value = error.message || 'An unexpected error occurred'
-}
-}
-
-  // Watch for modal open/close to refetch data
-  watch(() => props.isOpen, (isOpen) => {
-  if (isOpen) {
-  approveError.value = ''
-  revokeError.value = ''
-  if (props.teamInfo?.id) {
-  //refetchInherited()  TODO reload team affiliation data?
-}
-}
-})
-</script>
 
 <style scoped>
 /* Only component-specific styles that aren't reusable */

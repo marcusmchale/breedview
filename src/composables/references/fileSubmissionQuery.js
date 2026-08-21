@@ -14,7 +14,6 @@ export function pollFileSubmission({ client, fileId,  pollInterval = 1000, onUpd
         },
         fetchPolicy: 'network-only',
       });
-      console.log('File submission query result:', data);
 
       const result = data?.referencesFileSubmission?.result;
 

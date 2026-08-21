@@ -39,8 +39,12 @@ const formData = ref({})
 const controlTeamId = ref(props.controlTeamId)
 const controlTeamError = ref(null)
 
+// Tracks selection order for `ordered` multiselect fields: { [fieldName]: string[] }
+const selectionOrders = ref({})
+
 const initFormData = () => {
   const data = {}
+  const orders = {}
   for (const field of props.config.fields) {
     if (field.type === 'axesBuilder') {
       data[field.name] = isUpdateMode.value
@@ -50,17 +54,18 @@ const initFormData = () => {
     }
     if (isUpdateMode.value && props.entry) {
       const entry = props.entry
-      // Multiselect: pull ids from related arrays
       if (field.type === 'multiselect') {
         const rel = entry[field.name]
+        let ids
         if (Array.isArray(rel)) {
-          // already ids
-          data[field.name] = [...rel]
+          ids = [...rel]
         } else {
-          // resolve from relationship arrays on the entry
-          const relKey = field.name.replace(/Ids$/, 's')
-          const relArr = entry[relKey] ?? entry[field.name.replace(/Ids$/, '')] ?? []
-          data[field.name] = Array.isArray(relArr) ? relArr.map(r => r.id) : []
+          const relArr = entry[field.entryKey] ?? []
+          ids = Array.isArray(relArr) ? relArr.map(r => r.id) : []
+        }
+        data[field.name] = ids
+        if (field.ordered) {
+          orders[field.name] = [...ids]
         }
       } else if (field.type === 'singleselect') {
         const relKey = field.name.replace(/Id$/, '')
@@ -70,12 +75,31 @@ const initFormData = () => {
       }
     } else {
       data[field.name] = field.type === 'multiselect' ? [] : ''
+      if (field.ordered) {
+        orders[field.name] = []
+      }
     }
   }
   formData.value = data
+  selectionOrders.value = orders
 }
 
 watch(() => [props.config, props.entry], initFormData, { immediate: true })
+
+// ── Ordered multiselect change handler ───────────────────────────────────────
+const handleMultiselectChange = (field, newSelectedIds) => {
+  const ids = Array.isArray(newSelectedIds) ? newSelectedIds : []
+  const prev = selectionOrders.value[field.name] ?? []
+  // Keep existing order, remove deselected
+  const filtered = prev.filter(id => ids.includes(id))
+  // Append newly selected in the order they appear
+  for (const id of ids) {
+    if (!filtered.includes(id)) filtered.push(id)
+  }
+  selectionOrders.value[field.name] = filtered
+  // Rewrite formData to match the preserved order
+  formData.value[field.name] = [...filtered]
+}
 
 // ── Axes builder ──────────────────────────────────────────────────────────────
 const addAxis = (fieldName, value) => {
@@ -123,19 +147,31 @@ const removeReference = (id) => {
 // ── Select options ────────────────────────────────────────────────────────────
 const getMultiselectOptions = (field) => {
   const currentEntryId = props.entry?.id
-  return props.ontologyEntries
+  const options = props.ontologyEntries
     .filter(e => {
       if (e.__typename !== field.sourceType) return false
       if (field.excludeSelf && e.id === currentEntryId) return false
       return true
     })
     .map(e => ({ label: e.name, value: e.id }))
-    .sort((a, b) => {
-      // pre-existing first
-      const aSelected = formData.value[field.name]?.includes(a.value) ? -1 : 1
-      const bSelected = formData.value[field.name]?.includes(b.value) ? -1 : 1
-      return aSelected - bSelected
+
+  if (field.ordered) {
+    const order = selectionOrders.value[field.name] ?? []
+    return options.sort((a, b) => {
+      const aIdx = order.indexOf(a.value)
+      const bIdx = order.indexOf(b.value)
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx   // both selected: by selection order
+      if (aIdx !== -1) return -1                            // only a selected: a first
+      if (bIdx !== -1) return 1                             // only b selected: b first
+      return a.label.localeCompare(b.label)                 // neither: alphabetical
     })
+  }
+
+  return options.sort((a, b) => {
+    const aSelected = formData.value[field.name]?.includes(a.value) ? -1 : 1
+    const bSelected = formData.value[field.name]?.includes(b.value) ? -1 : 1
+    return aSelected - bSelected
+  })
 }
 
 const getSingleselectOptions = (field) => {
@@ -145,10 +181,27 @@ const getSingleselectOptions = (field) => {
   return [{label:"", value: null}, ...options]
 }
 
+// ── Dynamic field label ───────────────────────────────────────────────────────
+const getFieldLabel = (field) => {
+  if (typeof field.labelFn === 'function') {
+    return field.labelFn(formData.value)
+  }
+  return field.label
+}
+
 // ── Submit ────────────────────────────────────────────────────────────────────
 const handleSubmit = () => {
+  // For ordered fields, ensure submitted array respects selection order
+  const data = { ...formData.value }
+  for (const field of props.config.fields) {
+    if (field.type === 'multiselect' && field.ordered) {
+      const order = selectionOrders.value[field.name] ?? []
+      const selected = new Set(data[field.name] ?? [])
+      data[field.name] = order.filter(id => selected.has(id))
+    }
+  }
   emit('submit', {
-    formData: { ...formData.value },
+    formData: data,
     referenceIds: selectedReferenceIds.value,
     controlTeamId: controlTeamId.value
   })
@@ -226,7 +279,18 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
                 :options="field.options"
               />
 
-              <!-- Multiselect -->
+              <!-- Ordered multiselect (selection-order preserved) -->
+              <FormKit
+                v-else-if="field.type === 'multiselect' && field.ordered"
+                type="select"
+                :name="field.name"
+                :label="getFieldLabel(field)"
+                multiple
+                :options="getMultiselectOptions(field)"
+                @input="(val) => handleMultiselectChange(field, val)"
+              />
+
+              <!-- Standard multiselect -->
               <FormKit
                 v-else-if="field.type === 'multiselect'"
                 type="select"

@@ -24,7 +24,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['node-right-click'])
+const emit = defineEmits(['node-right-click', 'node-left-click'])
 
 const graphContainer = ref(null)
 
@@ -263,6 +263,10 @@ const createNode = (selection) => {
   .on("contextmenu", (event, d) => {
     event.preventDefault()
     emit("node-right-click", d)
+  })
+
+  .on("click", (event, d) => {
+    emit("node-left-click", d)
   })
 
   nodeGroup.append("circle")
@@ -752,25 +756,16 @@ onUnmounted(() => {
 watch(selectedLabels, updateGraph, { deep: true })
 watch(selectedPhases, updateGraph,{ deep: true })
 
-
 watch(
   () => props.ontology,
   () => {
-    console.log('ontology updated')
     renderGraph()
   },
   { deep: true }
 )
 
 
-const formatVersion = (version) => {
-  if (!version) return 'N/A'
-  return `${version.major}.${version.minor}.${version.patch}`
-}
-
 </script>
-
-
 
 <template>
   <div class="graph-wrapper">
@@ -789,7 +784,6 @@ const formatVersion = (version) => {
         @recenter-on-node="recenterOnNode"
       />
     </div>
-    <h3 class="version-label" >V{{ formatVersion(ontology.version) }}</h3>
   </div>
 </template>
 
