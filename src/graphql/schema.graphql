@@ -235,6 +235,11 @@ type Mutation {
   accountsRevokeAffiliation(userId: ID!, teamId: ID!, access: Access!): BooleanPayload!
   accountsRequestOntologyRole(ontologyRole: OntologyRole!): BooleanPayload!
   accountsSetOntologyRole(userId: ID!, ontologyRole: OntologyRole!): BooleanPayload!
+  accountsSetWriteTeam(
+    """ Set the default write team to ensure this team comes first in the write teams list 
+    """
+    teamId: ID!
+  ): BooleanPayload!
 
   """Submit an analysis request"""
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
@@ -1137,10 +1142,10 @@ type AnalysisSubmission {
 
 type Layout {
   id: ID!
-  type: LayoutType!
+  type: LayoutType
   name: String
   axes: [String!]
-  arrangement: Layout!
+  arrangement: Layout
   parent: Layout
 
   """Position within parent layout"""
@@ -2759,7 +2764,7 @@ type Location {
   """Stored Locations"""
   id: ID!
   name: String!
-  type: LocationType!
+  type: LocationType
   code: String
   synonyms: [String]
   description: String

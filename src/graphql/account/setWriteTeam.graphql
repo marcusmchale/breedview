@@ -1,0 +1,8 @@
+mutation accountsSetWriteTeam($teamId: ID!) {
+  accountsSetWriteTeam(teamId: $teamId) {
+    status
+    errors {
+      message
+    }
+  }
+}

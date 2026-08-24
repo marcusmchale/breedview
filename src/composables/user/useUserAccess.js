@@ -3,7 +3,7 @@ import { useQuery } from '@vue/apollo-composable'
 import USER_ACCESS_QUERY from '@/graphql/account/userAccess.graphql'
 
 export function useUserAccess(options= {} ) {
-  const { result, loading, error , onResult, onError} = useQuery(
+  const { result, loading, error , onResult, onError, refetch } = useQuery(
       USER_ACCESS_QUERY,
       {},
       {
@@ -30,6 +30,7 @@ export function useUserAccess(options= {} ) {
     error,
     onResult,
     onError,
+    refetch,
     readTeams,
     writeTeams,
     adminTeams,

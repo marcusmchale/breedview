@@ -2,7 +2,7 @@ import { computed} from "vue";
 import {useApolloClient, useQuery} from "@vue/apollo-composable"
 
 import CROPS_QUERY from '@/graphql/germplasm/crops.graphql'
-import ENTRIES_QUERY from '@/graphql/germplasm/entries.graphql'
+import ENTRIES_NAVIGATION_QUERY from '@/graphql/germplasm/entriesNavigation.graphql'
 
 export function useCropsQuery(){
 
@@ -27,7 +27,6 @@ export function useCropsQuery(){
     })
 
     onCropsResult((result) => {
-        console.log('cropsResult', result)
         updateCachedGermplasmCrops(result)
     })
 
@@ -36,7 +35,7 @@ export function useCropsQuery(){
         if (result?.data?.germplasmCrops?.status !== "SUCCESS") return
         if (result?.data?.germplasmCrops?.result) {
             client.cache.writeQuery( {
-                query: ENTRIES_QUERY,
+                query: ENTRIES_NAVIGATION_QUERY,
                 variables: {entryIds: result.data.germplasmCrops.result.map(entry => entry.id), names: null},
                 data: {
                     germplasmEntries: {

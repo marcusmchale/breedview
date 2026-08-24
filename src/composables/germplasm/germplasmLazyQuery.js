@@ -24,7 +24,6 @@ export function useGermplasmLazyQuery() {
     } = useLazyQuery(ENTRIES_NAVIGATION_QUERY, variables)
 
     const germplasm = computed(() => {
-        console.log('germplasmResult', germplasmResult.value)
         const result = germplasmResult.value?.germplasmEntries?.result || []
         const germplasm = [...result]
         germplasm.sort((a, b) => (a?.name || "").localeCompare(b?.name || "") || (a?.id - b?.id))

@@ -1,87 +1,3 @@
-<template>
-  <div class="team-node" :style="{ marginLeft: depth * 20 + 'px' }">
-    <div class="team-header">
-      <div class="team-title-row">
-        <div class="team-title">
-          <button
-            v-if="hasChildren"
-            @click="toggleExpanded"
-            class="btn-clickable expand-button"
-            :class="{ expanded: isExpanded }"
-          >
-            {{ isExpanded ? '▼' : '▶' }}
-          </button>
-          <div v-else class="expand-spacer"></div>
-          <h3>{{ teamInfo.fullname || teamInfo.name }}</h3>
-        </div>
-
-        <AffiliationBadges
-          :team-affiliations="teamInfo.affiliations"
-          :current-user-id="currentUserId"
-          @badge-click="showAffiliationDialog"
-        />
-      </div>
-
-      <div class="team-meta">
-        <p><strong>ID:</strong> {{ teamInfo.id }}</p>
-        <p><strong>Name:</strong> {{ teamInfo.name }}</p>
-        <p v-if="teamInfo.fullname"><strong>Full Name:</strong> {{ teamInfo.fullname }}</p>
-        <p><strong>Children:</strong> {{ teamInfo.children?.length || 0 }}</p>
-      </div>
-    </div>
-
-    <TeamActions
-      :user-is-admin="userIsAdminForTeam"
-      :has-children="hasChildren"
-      :delete-team-loading="deleteTeamLoading"
-      :delete-team-error="deleteTeamError"
-      @request-affiliation="emit('request-affiliation', teamInfo)"
-      @manage-affiliations="showManageAffiliationsModal"
-      @create-team="emit('create-team', teamInfo)"
-      @delete-team="handleDeleteTeam"
-    />
-
-    <div v-if="isExpanded" class="children-section">
-      <div v-if="childrenLoading" class="loading">Loading...</div>
-      <div v-else-if="childrenError" class="error">{{ childrenError }}</div>
-      <div v-else-if="childrenData.length > 0" class="teams-list">
-        <TeamNode
-          v-for="child in childrenData"
-          :key="child.id"
-          :team-data="child"
-          :depth="depth + 1"
-          :current-user-id="currentUserId"
-          @create-team="emit('create-team', $event)"
-          @request-affiliation="emit('request-affiliation', $event)"
-          @team-deleted="handleChildTeamDeleted"
-          @team-created="handleTeamCreated"
-        />
-      </div>
-      <div v-else class="no-teams">
-        <p>No teams found.</p>
-      </div>
-    </div>
-
-    <!-- Modals remain the same -->
-    <AffiliationDetailsModal
-      :is-open="showAffiliationModal"
-      :selected-affiliation="selectedAffiliation"
-      :team-name="teamInfo.fullname || teamInfo.name"
-      :remove-affiliation-loading="removeAffiliationLoading"
-      :remove-affiliation-error="removeAffiliationError"
-      @close="closeAffiliationDialog"
-      @remove-affiliation="handleRemoveAffiliation"
-    />
-
-    <ManageAffiliationsModal
-      :is-open="showManageAffiliationsDialog"
-      :team-info="teamInfo"
-      :current-user-id="currentUserId"
-      @close="closeManageAffiliationsModal"
-      @affiliation-updated="handleAffiliationUpdated"
-    />
-  </div>
-</template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
@@ -219,6 +135,92 @@ onUnmounted(() => {
   window.removeEventListener('affiliation-requested', handleGlobalAffiliationRequested)
 })
 </script>
+
+<template>
+  <div class="team-node" :style="{ marginLeft: depth * 20 + 'px' }">
+    <div class="team-header">
+      <div class="team-title-row">
+        <div class="team-title">
+          <button
+            v-if="hasChildren"
+            @click="toggleExpanded"
+            class="btn-clickable expand-button"
+            :class="{ expanded: isExpanded }"
+          >
+            {{ isExpanded ? '▼' : '▶' }}
+          </button>
+          <div v-else class="expand-spacer"></div>
+          <h3>{{ teamInfo.fullname || teamInfo.name }}</h3>
+        </div>
+
+        <AffiliationBadges
+          :team-affiliations="teamInfo.affiliations"
+          :current-user-id="currentUserId"
+          @badge-click="showAffiliationDialog"
+        />
+      </div>
+
+      <div class="team-meta">
+        <p><strong>ID:</strong> {{ teamInfo.id }}</p>
+        <p><strong>Name:</strong> {{ teamInfo.name }}</p>
+        <p v-if="teamInfo.fullname"><strong>Full Name:</strong> {{ teamInfo.fullname }}</p>
+        <p><strong>Children:</strong> {{ teamInfo.children?.length || 0 }}</p>
+      </div>
+    </div>
+
+    <TeamActions
+      :user-is-admin="userIsAdminForTeam"
+      :has-children="hasChildren"
+      :delete-team-loading="deleteTeamLoading"
+      :delete-team-error="deleteTeamError"
+      @request-affiliation="emit('request-affiliation', teamInfo)"
+      @manage-affiliations="showManageAffiliationsModal"
+      @create-team="emit('create-team', teamInfo)"
+      @delete-team="handleDeleteTeam"
+    />
+
+    <div v-if="isExpanded" class="children-section">
+      <div v-if="childrenLoading" class="loading">Loading...</div>
+      <div v-else-if="childrenError" class="error">{{ childrenError }}</div>
+      <div v-else-if="childrenData.length > 0" class="teams-list">
+        <TeamNode
+          v-for="child in childrenData"
+          :key="child.id"
+          :team-data="child"
+          :depth="depth + 1"
+          :current-user-id="currentUserId"
+          @create-team="emit('create-team', $event)"
+          @request-affiliation="emit('request-affiliation', $event)"
+          @team-deleted="handleChildTeamDeleted"
+          @team-created="handleTeamCreated"
+        />
+      </div>
+      <div v-else class="no-teams">
+        <p>No teams found.</p>
+      </div>
+    </div>
+
+    <!-- Modals remain the same -->
+    <AffiliationDetailsModal
+      :is-open="showAffiliationModal"
+      :selected-affiliation="selectedAffiliation"
+      :team="teamInfo"
+      :remove-affiliation-loading="removeAffiliationLoading"
+      :remove-affiliation-error="removeAffiliationError"
+      @close="closeAffiliationDialog"
+      @remove-affiliation="handleRemoveAffiliation"
+    />
+
+    <ManageAffiliationsModal
+      :is-open="showManageAffiliationsDialog"
+      :team-info="teamInfo"
+      :current-user-id="currentUserId"
+      @close="closeManageAffiliationsModal"
+      @affiliation-updated="handleAffiliationUpdated"
+    />
+  </div>
+</template>
+
 
 <style scoped>
 .team-node {
