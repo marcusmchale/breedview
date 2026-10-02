@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import {
   useVueTable,
   getCoreRowModel,
@@ -10,6 +10,7 @@ import {
 
 import { useDatasetsQuery } from '@/composables/datasets/datasetsQuery'
 import { useDatasetCurationTable } from '@/composables/datasets/useDatasetCurationTable'
+import { useStudiesGroupings } from '@/composables/programs/studiesGroupingsQuery'
 
 import CurationTableToolbar from './CurationTableToolbar.vue'
 import CurationTableCell from './CurationTableCell.vue'
@@ -23,6 +24,8 @@ import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceT
 
 const props = defineProps({
   datasetIds: { type: Array, required: true },
+  // { [datasetId]: studyId }
+  datasetStudyIds: { type: Object, default: () => ({}) },
   curateTeamIds: { type: Array, default: () => [] }
 })
 
@@ -37,19 +40,32 @@ const { datasets, datasetsLoading, datasetsError } = useDatasetsQuery({
 
 // Curation table composable
 const {
-  tableData, conceptData, isLoading: tableLoading, isSubmitting,
+  tableData, conceptData, columnStatus, isLoading: tableLoading, isSubmitting,
   hasUnsavedChanges, hasValueChanged, allSubmitted, getConcepts,
   initializeFromDatasets, isCellEditable, cellHasRecord, getCellInfo,
   updateCell, getCellError, markRecordForDeletion, unmarkRecordForDeletion,
   isMarkedForDeletion, getCellReferences, updateCellReferences,
   submitAllChanges, exportToCSV, getDatasetStatus, cleanup,
-  getCategories, isComplexScale, isCategoricalScale, isNumericScale
+  getCategories, isComplexScale, isCategoricalScale, isNumericScale,
+  groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
+  getGroupValueOptions, getRowSectionKey, getRowSectionLabel
 } = useDatasetCurationTable()
 
-// Initialize table when datasets are loaded
+// Study groupings (studies derived from the selected datasets)
+const { fetchGroupings, loading: groupingsLoading } = useStudiesGroupings()
+
+const studyIds = computed(() =>
+  [...new Set(Object.values(props.datasetStudyIds).filter((id) => id != null))]
+)
+
+// Initialize table when datasets are loaded (groupings first, so rows split correctly)
 watch(datasets, async (newDatasets) => {
   if (newDatasets?.length > 0) {
-    await initializeFromDatasets(newDatasets, props.curateTeamIds)
+    const groupingsByStudy = await fetchGroupings(studyIds.value)
+    await initializeFromDatasets(newDatasets, props.curateTeamIds, {
+      groupingsByStudy,
+      datasetStudyIds: props.datasetStudyIds
+    })
   }
 }, { immediate: true })
 
@@ -91,6 +107,15 @@ const columns = computed(() => {
     id: 'endTime', header: 'End', meta: { editable: true, type: 'datetime', width: '160px' }
   }))
 
+  // Record grouping columns (shared value per row)
+  groupingColumns.value.forEach(g => {
+    cols.push(columnHelper.accessor(g.key, {
+      id: g.key,
+      header: () => g.name,
+      meta: { editable: true, type: 'grouping', grouping: g, width: '140px' }
+    }))
+  })
+
   getConcepts.value.forEach(concept => {
     const columnKey = `concept_${concept.id}`
     cols.push(columnHelper.accessor(columnKey, {
@@ -127,6 +152,65 @@ const table = computed(() => {
 })
 
 const rows = computed(() => table.value?.getRowModel().rows ?? [])
+
+// ---- Grouping cell editing ----
+const editingGroupCell = ref(null) // { rowIndex, columnId }
+const editingGroupValue = ref('')
+
+const isGroupingColumn = (cell) => cell.column.columnDef.meta?.type === 'grouping'
+
+const isEditingGroupCell = (rowIndex, columnId) =>
+  editingGroupCell.value?.rowIndex === rowIndex && editingGroupCell.value?.columnId === columnId
+
+const startGroupEdit = (rowIndex, columnId, value) => {
+  if (!isGroupCellEditable(rowIndex, columnId)) return
+  editingGroupCell.value = { rowIndex, columnId }
+  editingGroupValue.value = value ?? ''
+  nextTick(() => document.querySelector('.group-cell-input')?.focus())
+}
+
+const commitGroupEdit = () => {
+  if (!editingGroupCell.value) return
+  const { rowIndex, columnId } = editingGroupCell.value
+  updateCell(rowIndex, columnId, editingGroupValue.value.trim())
+  editingGroupCell.value = null
+  editingGroupValue.value = ''
+}
+
+const cancelGroupEdit = () => {
+  editingGroupCell.value = null
+  editingGroupValue.value = ''
+}
+
+// ---- DATASET_SCOPED row sections ----
+const isSectionStart = (rIdx) => {
+  if (rowSections.value.length === 0) return false
+  if (rIdx === 0) return true
+  return getRowSectionKey(rows.value[rIdx - 1]?.original) !== getRowSectionKey(rows.value[rIdx]?.original)
+}
+
+const sectionCount = (row) =>
+  rowSections.value.find((s) => s.key === getRowSectionKey(row))?.rowIndices.length ?? 0
+
+// ---- Cell classes ----
+const getCellClasses = (row, cell) => {
+  const meta = cell.column.columnDef.meta
+  const conceptId = meta?.conceptId
+  const error = getCellError(row.index, cell.column.id)
+  return {
+    'sticky-col': meta?.frozen,
+    'editable-cell': meta?.editable,
+    'grouping-cell': meta?.type === 'grouping',
+    'locked-cell':
+      (conceptId && !isCellEditable(row.index, conceptId))
+      || (meta?.type === 'grouping' && !isGroupCellEditable(row.index, cell.column.id)),
+    'empty-cell': conceptId && !cellHasRecord(row.index, conceptId),
+    'deleted-cell': conceptId && isMarkedForDeletion(row.index, conceptId),
+    'error-cell': error,
+    'warning-cell': error?.isWarning,
+    'marked-for-deletion': conceptId && isMarkedForDeletion(row.index, conceptId)
+  }
+}
 
 // Controller modal state
 const showControllerModal = ref(false)
@@ -182,13 +266,34 @@ const getConceptStatus = (conceptId) => {
   return null
 }
 
-// Event handlers
-const handleBack = () => emit('back')
+// ---- Submission ----
+const hasAttemptedSubmit = ref(false)
+
+// Settled: nothing still polling, nothing failed, at least one dataset saved
+const submissionSucceeded = computed(() => {
+  const statuses = Object.values(columnStatus.value).map(s => s.status)
+  return statuses.length > 0
+    && !statuses.includes('submitting')
+    && !statuses.includes('error')
+    && statuses.includes('success')
+})
 
 const handleSubmit = async () => {
+  cancelGroupEdit()
+  hasAttemptedSubmit.value = true
   await submitAllChanges()
-  if (allSubmitted.value) emit('submit')
 }
+
+// Updates complete asynchronously via polling
+watch(submissionSucceeded, (done) => {
+  if (done && hasAttemptedSubmit.value) {
+    hasAttemptedSubmit.value = false
+    emit('submit')
+  }
+})
+
+// Event handlers
+const handleBack = () => emit('back')
 
 const handleExport = () => {
   const visibleCols = table.value?.getVisibleFlatColumns() || []
@@ -203,7 +308,11 @@ const handleExport = () => {
   exportToCSV(colDefs)
 }
 
-const performCleanup = () => cleanup()
+const performCleanup = () => {
+  cancelGroupEdit()
+  hasAttemptedSubmit.value = false
+  cleanup()
+}
 
 defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubmitted })
 </script>
@@ -217,7 +326,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       @update:column-visibility="columnVisibility = $event"
     />
 
-    <div v-if="tableLoading || datasetsLoading" class="loading-state">
+    <div v-if="tableLoading || datasetsLoading || groupingsLoading" class="loading-state">
       Loading datasets...
     </div>
 
@@ -253,58 +362,97 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                 >
                   {{ getConceptStatus(header.column.columnDef.meta.conceptId).icon }}
                 </span>
+                <span
+                  v-if="header.column.columnDef.meta?.type === 'grouping' && header.column.columnDef.meta.grouping.scope"
+                  class="grouping-badge"
+                  :class="header.column.columnDef.meta.grouping.scope"
+                  :title="header.column.columnDef.meta.grouping.scope"
+                >
+                  {{ header.column.columnDef.meta.grouping.scope === 'DATASET_SCOPED' ? 'DS' : 'SW' }}
+                </span>
               </div>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td
-              v-for="cell in row.getVisibleCells()"
-              :key="cell.id"
-              :class="{
-                'sticky-col': cell.column.columnDef.meta?.frozen,
-                'editable-cell': cell.column.columnDef.meta?.editable,
-                'locked-cell': cell.column.columnDef.meta?.conceptId && !isCellEditable(row.index, cell.column.columnDef.meta.conceptId),
-                'empty-cell': cell.column.columnDef.meta?.conceptId && !cellHasRecord(row.index, cell.column.columnDef.meta.conceptId),
-                'deleted-cell': cell.column.columnDef.meta?.conceptId && isMarkedForDeletion(row.index, cell.column.columnDef.meta.conceptId),
-                'error-cell': getCellError(row.index, cell.column.id),
-                'warning-cell': getCellError(row.index, cell.column.id)?.isWarning,
-                'marked-for-deletion': isMarkedForDeletion(row.index, cell.column.columnDef.meta?.conceptId)
-              }"
-              :title="getCellError(row.index, cell.column.id)?.message"
-              :style="{ width: cell.column.columnDef.meta?.width }"
-            >
-              <template v-if="cell.column.columnDef.meta?.isActions">
-                <div class="cell-actions"></div>
-              </template>
+          <template v-for="(row, rIdx) in rows" :key="row.id">
+            <!-- Section header for DATASET_SCOPED grouping values -->
+            <tr v-if="isSectionStart(rIdx)" class="section-header">
+              <td :colspan="row.getVisibleCells().length">
+                {{ getRowSectionLabel(row.original) }} ({{ sectionCount(row.original) }} rows)
+              </td>
+            </tr>
 
-              <CurationTableCell
-                v-else-if="cell.column.columnDef.meta?.conceptId"
-                :row-index="row.index"
-                :column-id="cell.column.id"
-                :value="cell.getValue()"
-                :concept="cell.column.columnDef.meta.concept"
-                :concept-id="cell.column.columnDef.meta.conceptId"
-                :input-type="cell.column.columnDef.meta.type"
-                :categories="getCategories(cell.column.columnDef.meta.concept)"
-                :is-editable="isCellEditable(row.index, cell.column.columnDef.meta.conceptId)"
-                :has-record="cellHasRecord(row.index, cell.column.columnDef.meta.conceptId)"
-                :is-marked-for-deletion="isMarkedForDeletion(row.index, cell.column.columnDef.meta.conceptId)"
-                :has-value-changed="hasValueChanged(row.index, cell.column.columnDef.meta.conceptId)"
-                :is-complex-scale="isComplexScale(cell.column.columnDef.meta.concept)"
-                :reference-count="getCellReferences(row.index, cell.column.columnDef.meta.conceptId).length"
-                :error="getCellError(row.index, cell.column.id)"
-                @update="updateCell"
-                @open-controller="openControllerModal"
-                @open-file-reference="openFileReferenceModal"
-                @mark-for-deletion="markRecordForDeletion"
-                @unmark-for-deletion="unmarkRecordForDeletion"
-              />
+            <tr :class="{ 'row-groups-changed': hasRowGroupsChanged(row.index) }">
+              <td
+                v-for="cell in row.getVisibleCells()"
+                :key="cell.id"
+                :class="getCellClasses(row, cell)"
+                :title="getCellError(row.index, cell.column.id)?.message"
+                :style="{ width: cell.column.columnDef.meta?.width }"
+              >
+                <template v-if="cell.column.columnDef.meta?.isActions">
+                  <div class="cell-actions"></div>
+                </template>
 
-              <template v-else>{{ cell.getValue() }}</template>
-            </td>
-          </tr>
+                <!-- Grouping cell -->
+                <template v-else-if="isGroupingColumn(cell)">
+                  <template v-if="isEditingGroupCell(row.index, cell.column.id)">
+                    <input
+                      v-model="editingGroupValue"
+                      type="text"
+                      class="group-cell-input"
+                      placeholder="e.g. R1, Batch A"
+                      :list="`group-options-${cell.column.id}`"
+                      @blur="commitGroupEdit"
+                      @keydown.enter="commitGroupEdit"
+                      @keydown.esc="cancelGroupEdit"
+                    />
+                    <datalist :id="`group-options-${cell.column.id}`">
+                      <option
+                        v-for="opt in getGroupValueOptions(cell.column.id)"
+                        :key="opt"
+                        :value="opt"
+                      />
+                    </datalist>
+                  </template>
+                  <div
+                    v-else
+                    class="group-cell-display"
+                    @click="startGroupEdit(row.index, cell.column.id, cell.getValue())"
+                  >
+                    {{ cell.getValue() }}
+                  </div>
+                </template>
+
+                <!-- Concept cell -->
+                <CurationTableCell
+                  v-else-if="cell.column.columnDef.meta?.conceptId"
+                  :row-index="row.index"
+                  :column-id="cell.column.id"
+                  :value="cell.getValue()"
+                  :concept="cell.column.columnDef.meta.concept"
+                  :concept-id="cell.column.columnDef.meta.conceptId"
+                  :input-type="cell.column.columnDef.meta.type"
+                  :categories="getCategories(cell.column.columnDef.meta.concept)"
+                  :is-editable="isCellEditable(row.index, cell.column.columnDef.meta.conceptId)"
+                  :has-record="cellHasRecord(row.index, cell.column.columnDef.meta.conceptId)"
+                  :is-marked-for-deletion="isMarkedForDeletion(row.index, cell.column.columnDef.meta.conceptId)"
+                  :has-value-changed="hasValueChanged(row.index, cell.column.columnDef.meta.conceptId)"
+                  :is-complex-scale="isComplexScale(cell.column.columnDef.meta.concept)"
+                  :reference-count="getCellReferences(row.index, cell.column.columnDef.meta.conceptId).length"
+                  :error="getCellError(row.index, cell.column.id)"
+                  @update="updateCell"
+                  @open-controller="openControllerModal"
+                  @open-file-reference="openFileReferenceModal"
+                  @mark-for-deletion="markRecordForDeletion"
+                  @unmark-for-deletion="unmarkRecordForDeletion"
+                />
+
+                <template v-else>{{ cell.getValue() }}</template>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -407,6 +555,37 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 .error-cell { background: #ffebee !important; border-color: #f44336 !important; }
 .warning-cell { background: #fff3e0 !important; border-color: #ff9800 !important; }
 .marked-for-deletion { background: #ffebee !important; text-decoration: line-through; color: #999; }
+
+/* Grouping cells */
+.grouping-cell { background: #fcfcf5; }
+.group-cell-display { min-height: 18px; cursor: text; }
+.locked-cell .group-cell-display { cursor: not-allowed; color: #888; }
+.group-cell-input {
+  width: 100%;
+  padding: 3px;
+  border: 1px solid #2196f3;
+  border-radius: 2px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.row-groups-changed td.grouping-cell { background: #e3f2fd; }
+
+.grouping-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.grouping-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
+
+/* DATASET_SCOPED section headers */
+.section-header td {
+  background: #fff3e0;
+  color: #e65100;
+  font-weight: 600;
+  border-top: 2px solid #ff9800;
+}
 
 .loading-state, .error-state, .empty-state {
   display: flex;

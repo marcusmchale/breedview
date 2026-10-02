@@ -1,4 +1,5 @@
 #import "../references/referenceFragment.graphql"
+#import "../ontology/entryFragment.graphql"
 query programsStudy($studyId: ID!) {
   programsStudy(id: $studyId) {
     status
@@ -10,7 +11,14 @@ query programsStudy($studyId: ID!) {
       practices
       start
       end
-      design { id versionId view name }
+      design { ...OntologyEntryFields }
+      groupings {
+        id
+        name
+        scope
+        type { ...OntologyEntryFields }
+        dataset_scopes { datasetIds }
+      }
       licence { id description text }
       references { ...ReferenceFields }
     }

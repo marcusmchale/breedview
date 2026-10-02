@@ -5,8 +5,12 @@ import { useSelectStudyQueries } from "@/composables/datasets/selectStudyQueries
 import { useSelectLocationsQuery } from "@/composables/datasets/selectLocationsQueries";
 import { useSelectUnitsQuery } from "@/composables/datasets/selectUnitsQueries";
 import { useSelectConceptsQuery } from "@/composables/datasets/selectConceptsQueries";
+import { useStudyQuery } from "@/composables/programs/studyQuery";
+import { useDatasetSummariesQuery } from "@/composables/datasets/datasetSummariesQuery";
+import { useDatasetGroupingConfig } from "@/composables/datasets/useDatasetGroupingConfig";
 
 import DatasetTableModal from "./DatasetTableModal.vue";
+import GroupingSelectionSection from "./GroupingSelectionSection.vue";
 
 const props = defineProps({
   visible: {
@@ -128,9 +132,35 @@ const selectedConcepts = computed(() => {
   return concepts;
 });
 
+
+// ---- Record groupings ----
+const effectiveStudyId = computed(() =>
+  props.preselectedStudy?.id || selectionData.value?.studyId || null
+)
+
+const { study: groupingStudy } = useStudyQuery(effectiveStudyId)
+const studyGroupings = computed(() => groupingStudy.value?.groupings || [])
+
+const { datasetSummaries, summariesLoading } = useDatasetSummariesQuery(effectiveStudyId)
+
+const {
+  selectedGroupingIds,
+  mergeTargets,
+  selectedGroupings,
+  mergeConfig,
+  isConfigValid: isGroupingConfigValid,
+  resetConfig: resetGroupingConfig
+} = useDatasetGroupingConfig(studyGroupings)
+
+// Groupings belong to a study, so reset when the study changes
+watch(effectiveStudyId, () => resetGroupingConfig())
+
+
 // Check if "Create Data Table" button should be enabled
 const canCreateTable = computed(() => {
-  return selectedUnits.value?.length > 0 && selectedConcepts.value?.length > 0;
+  return selectedUnits.value?.length > 0
+    && selectedConcepts.value?.length > 0
+    && isGroupingConfigValid.value;
 });
 
 // Use preselected study or fetched study
@@ -149,8 +179,8 @@ const closeTableModal = () => {
 };
 
 // Handle successful submission
-const handleSubmitted = () => {
-  emit('submitted')
+const handleSubmitted = (payload) => {
+  emit('submitted', payload)
 };
 
 const loadChildren = (nodeId, node) => {
@@ -292,6 +322,15 @@ const closeModal = () => {
           />
         </FormKit>
 
+        <!-- Record Grouping Selection -->
+        <GroupingSelectionSection
+          :groupings="studyGroupings"
+          :dataset-summaries="datasetSummaries"
+          :summaries-loading="summariesLoading"
+          v-model:selected-ids="selectedGroupingIds"
+          v-model:merge-targets="mergeTargets"
+        />
+
         <!-- Create Data Table Section -->
         <div class="table-section">
           <div class="table-controls">
@@ -316,7 +355,12 @@ const closeModal = () => {
           </div>
 
           <p v-if="!canCreateTable" class="help-text">
+            <template v-if="!isGroupingConfigValid">
+              Select a merge target dataset for each dataset-scoped grouping, or choose "Create new scope".
+            </template>
+            <template v-else>
             Select at least one unit and one concept (factor or variable) to create a data table.
+            </template>
           </p>
         </div>
       </div>
@@ -329,6 +373,8 @@ const closeModal = () => {
         :selected-units="selectedUnits"
         :selected-concepts="selectedConcepts"
         :rows-per-unit="rowsPerUnit"
+        :selected-groupings="selectedGroupings"
+        :merge-config="mergeConfig"
         @close="closeTableModal"
         @submitted="handleSubmitted"
       />

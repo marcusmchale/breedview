@@ -1,0 +1,12 @@
+mutation ontologyUpdateRecordGroupType(
+    $recordGroupType: RecordGroupTypeUpdate!
+) {
+    ontologyUpdateRecordGroupType(
+        recordGroupType: $recordGroupType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

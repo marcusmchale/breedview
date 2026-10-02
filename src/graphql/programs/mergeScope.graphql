@@ -1,0 +1,6 @@
+mutation programsMergeScope($groupingId: ID!, $datasetIds: [ID!]) {
+  programsMergeScope(groupingId: $groupingId, datasetIds: $datasetIds) {
+    status
+    errors { message }
+  }
+}

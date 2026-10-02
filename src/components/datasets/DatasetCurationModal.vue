@@ -19,6 +19,7 @@ const phase = ref('selection')
 
 // Selected data from selection form
 const selectedDatasetIds = ref([])
+const datasetStudyIds = ref({})
 
 // User access for determining curate permissions
 const { curateTeamIds } = useUserAccess()
@@ -55,8 +56,9 @@ const confirmClose = () => {
 }
 
 // Handle load table from selection form
-const handleLoadTable = ({ datasetIds }) => {
+const handleLoadTable = ({ datasetIds, datasetStudyIds: studyMap }) => {
   selectedDatasetIds.value = datasetIds
+  datasetStudyIds.value = studyMap || {}
   phase.value = 'table'
 }
 
@@ -117,6 +119,7 @@ const isSubmitting = computed(() => {
           <DatasetCurationTable
             ref="curationTableRef"
             :dataset-ids="selectedDatasetIds"
+            :dataset-study-ids="datasetStudyIds"
             :curate-team-ids="curateTeamIds"
             @back="handleBackToSelection"
             @submit="handleTableSubmit"

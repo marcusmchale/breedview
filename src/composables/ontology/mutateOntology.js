@@ -36,6 +36,8 @@ import CREATE_LOCATION_TYPE from '@/graphql/ontology/createLocationType.graphql'
 import UPDATE_LOCATION_TYPE from '@/graphql/ontology/updateLocationType.graphql'
 import CREATE_DESIGN from '@/graphql/ontology/createDesign.graphql'
 import UPDATE_DESIGN from '@/graphql/ontology/updateDesign.graphql'
+import CREATE_RECORD_GROUP_TYPE from '@/graphql/ontology/createRecordGroupType.graphql'
+import UPDATE_RECORD_GROUP_TYPE from '@/graphql/ontology/updateRecordGroupType.graphql'
 import CREATE_LAYOUT_TYPE from '@/graphql/ontology/createLayoutType.graphql'
 import UPDATE_LAYOUT_TYPE from '@/graphql/ontology/updateLayoutType.graphql'
 
@@ -283,6 +285,20 @@ export function useMutateOntology({ versionId, view }) {
     return extractResult(response, 'ontologyUpdateDesign')
   }
 
+
+  const { mutate: createRecordGroupTypeMutation } = useMutation(CREATE_RECORD_GROUP_TYPE)
+  const { mutate: updateRecordGroupTypeMutation } = useMutation(UPDATE_RECORD_GROUP_TYPE)
+  const createRecordGroupType = async (variables, controlTeamId) => {
+    const response = await createRecordGroupTypeMutation({ ...variables, controlTeamId })
+    return extractResult(response, 'ontologyCreateRecordGroupType')
+  }
+  const updateRecordGroupType = async (variables) => {
+    const response = await updateRecordGroupTypeMutation(variables)
+    return extractResult(response, 'ontologyUpdateRecordGroupType')
+  }
+
+
+
   const { mutate: createLayoutTypeMutation } = useMutation(CREATE_LAYOUT_TYPE)
   const { mutate: updateLayoutTypeMutation } = useMutation(UPDATE_LAYOUT_TYPE)
   const createLayoutType = async (variables, controlTeamId) => {
@@ -308,6 +324,7 @@ export function useMutateOntology({ versionId, view }) {
     createEvent, updateEvent,
     createLocationType, updateLocationType,
     createDesign, updateDesign,
+    createRecordGroupType, updateRecordGroupType,
     createLayoutType, updateLayoutType,
     deprecateEntries, deprecateLoading, deprecateError,
     cancelDeprecateEntries, cancelDeprecateLoading, cancelDeprecateError,

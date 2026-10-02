@@ -1,0 +1,6 @@
+mutation programsCreateGrouping($grouping: GroupingInput!) {
+  programsCreateGrouping(grouping: $grouping) {
+    status
+    errors { message }
+  }
+}

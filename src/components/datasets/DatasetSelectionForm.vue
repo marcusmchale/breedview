@@ -38,6 +38,7 @@ const {
 
 // Multi-study summaries
 const {
+  summaries,
   loading: summariesLoading,
   fetchSummaries,
   availableConcepts,
@@ -105,10 +106,14 @@ const isSelectable = (node) => {
 const handleLoadTable = () => {
   if (canLoadTable.value) {
     const datasetIds = getDatasetIdsForConcepts(selectionData.value.conceptIds)
+    const datasetStudyIds = Object.fromEntries(
+      summaries.value
+        .filter((s) => datasetIds.includes(s.id))
+        .map((s) => [s.id, s._studyId])
+    )
     emit('load-table', {
-      studyIds: selectionData.value.studyIds,
-      conceptIds: selectionData.value.conceptIds,
-      datasetIds
+      datasetIds,
+      datasetStudyIds
     })
   }
 }

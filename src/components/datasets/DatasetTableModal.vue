@@ -9,6 +9,7 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
+import { useDatasetSubmissionWithGroupings } from '@/composables/datasets/useDatasetSubmissionWithGroupings';
 
 import ReferencesModal from '@/components/references/ReferencesModal.vue'
 import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
@@ -36,6 +37,14 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  selectedGroupings: {
+    type: Array,
+    default: () => [],
+  },
+  mergeConfig: {
+    type: Array,
+    default: () => [],
+  }
 });
 
 const emit = defineEmits(['close', 'submitted']);
@@ -69,13 +78,74 @@ const {
   isSubmitting,
   allSubmitted,
   hasUnsavedChanges,
-  cleanupSubmissions
+  cleanupSubmissions,
+  groupingKey,
+  isGroupingLocked,
+  getGroupingValueOptions,
+  rowSplitGroups
 } = useDatasetTable({
   selectedStudy: () => props.selectedStudy,
   selectedUnits: () => props.selectedUnits,
   selectedConcepts: () => props.selectedConcepts,
   rowsPerUnit: () => props.rowsPerUnit,
+  selectedGroupings: () => props.selectedGroupings
 });
+
+
+const {
+  submittedDatasetIds,
+  pendingMergeCalls,
+  executePendingMerges,
+  mergeStatus,
+  mergeErrors,
+  failedMerges,
+  isMerging,
+  resetMerges,
+} = useDatasetSubmissionWithGroupings({
+  columnStatus,
+  mergeConfig: () => props.mergeConfig,
+});
+
+const hasAttemptedSubmit = ref(false);
+
+// Grouping cells lock once data is submitted; concept cells lock per column
+const isCellLocked = (meta) => {
+  if (meta?.groupingId !== undefined) return isGroupingLocked.value;
+  return isColumnDisabled(meta?.conceptId);
+};
+
+// Visual row splitting: mark rows where DATASET_SCOPED values change
+const datasetScopedKeys = computed(() =>
+  props.selectedGroupings
+    .filter((g) => g.scope === 'DATASET_SCOPED')
+    .map((g) => groupingKey(g.id))
+);
+
+const isGroupBoundary = (rowIdx) => {
+  if (rowIdx === 0 || datasetScopedKeys.value.length === 0) return false;
+  const prev = rows.value[rowIdx - 1]?.original;
+  const cur = rows.value[rowIdx]?.original;
+  if (!prev || !cur) return false;
+  return datasetScopedKeys.value.some((k) => (prev[k] || '').trim() !== (cur[k] || '').trim());
+};
+
+const mergeStatusLabel = (status) => ({
+  merging: '⏳ merging',
+  success: '✅ merged',
+  failed: '❌ failed',
+}[status] || 'pending');
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      initializeTable();
+      resetMerges();
+      hasAttemptedSubmit.value = false;
+    }
+  },
+  { immediate: true }
+);
 
 // Sorting state
 const sorting = ref([]);
@@ -91,17 +161,6 @@ const showDeleteConfirm = ref(false);
 
 // Close confirmation state
 const showCloseConfirm = ref(false);
-
-// Initialize table when modal becomes visible
-watch(
-  () => props.visible,
-  (visible) => {
-    if (visible) {
-      initializeTable();
-    }
-  },
-  { immediate: true }
-);
 
 // Build table columns
 const columns = computed(() => {
@@ -154,6 +213,27 @@ const columns = computed(() => {
       meta: { editable: true, type: 'datetime', width: '180px' },
     })
   );
+
+
+  // Record grouping columns (shared value per row, like start/end)
+  props.selectedGroupings.forEach((grouping) => {
+    const key = groupingKey(grouping.id);
+    cols.push(
+      columnHelper.accessor(key, {
+        id: key,
+        header: () => grouping.name,
+        cell: (info) => info.getValue(),
+        enableSorting: true,
+        meta: {
+          editable: true,
+          type: 'grouping',
+          grouping,
+          groupingId: grouping.id,
+          width: '140px',
+        },
+      })
+    );
+  });
 
   // Concept columns
   props.selectedConcepts.forEach((concept) => {
@@ -390,10 +470,26 @@ const confirmClose = () => {
 
 // Submit handler
 const handleSubmit = async () => {
-  await submitAllColumns(selectedControlTeamId, selectedRelease);
-  if (allSubmitted.value) {
-    emit('submitted');
+  hasAttemptedSubmit.value = true;
+  await submitAllColumns(selectedControlTeamId, selectedRelease)
+};
+
+// Submission completes asynchronously via polling - react when all columns succeed
+watch(allSubmitted, async (done) => {
+  if (done && hasAttemptedSubmit.value) {
+    await runMerges();
   }
+});
+
+
+const runMerges = async () => {
+  if (pendingMergeCalls.value.length > 0) {
+    await executePendingMerges();
+  }
+  emit('submitted', {
+    datasetIds: submittedDatasetIds.value,
+    failedMerges: failedMerges.value,
+  });
 };
 
 // Get column status indicator
@@ -498,6 +594,20 @@ const getFileReferenceDisplay = (value) => {
           <div v-if="!table" class="loading-state">
               Initializing table...
           </div>
+
+          <!-- Row split summary for DATASET_SCOPED groupings -->
+          <div v-if="rowSplitGroups.length" class="split-summary">
+            <strong>Dataset-scoped groups:</strong>
+            <span
+              v-for="grp in rowSplitGroups"
+              :key="grp.key"
+              class="split-chip"
+              :class="{ unassigned: grp.unassigned }"
+            >
+              {{ grp.label }} ({{ grp.rowIndices.length }} rows)
+            </span>
+          </div>
+
           <div class="table-wrapper">
             <table class="dataset-table">
               <thead>
@@ -534,6 +644,17 @@ const getFileReferenceDisplay = (value) => {
                         {{ getStatusIcon(header.column.columnDef.meta.conceptId) }}
                       </span>
 
+                      <!-- Scope badge for grouping columns -->
+                      <span
+                        v-if="header.column.columnDef.meta?.type === 'grouping'"
+                        class="grouping-badge"
+                        :class="header.column.columnDef.meta.grouping.scope"
+                        :title="isGroupingLocked ? 'Locked after submission' : header.column.columnDef.meta.grouping.scope"
+                      >
+                        {{ header.column.columnDef.meta.grouping.scope === 'DATASET_SCOPED' ? 'DS' : 'SW' }}
+                        <template v-if="isGroupingLocked">🔒</template>
+                      </span>
+
                       <!-- Dataset ID display -->
                       <span
                         v-if="columnStatus[header.column.columnDef.meta?.conceptId]?.datasetId"
@@ -544,7 +665,7 @@ const getFileReferenceDisplay = (value) => {
 
                       <!-- Bulk fill button -->
                       <button
-                        v-if="header.column.columnDef.meta?.editable && !header.column.columnDef.meta?.isActions"
+                        v-if="header.column.columnDef.meta?.editable && !header.column.columnDef.meta?.isActions && !isCellLocked(header.column.columnDef.meta)"
                         class="bulk-fill-btn"
                         @click.stop="openBulkFill(header.column.id)"
                         title="Bulk fill column"
@@ -556,7 +677,11 @@ const getFileReferenceDisplay = (value) => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in rows" :key="row.id">
+                <tr
+                  v-for="(row, rIdx) in rows"
+                  :key="row.id"
+                  :class="{ 'group-boundary': isGroupBoundary(rIdx) }"
+                >
                   <td
                     v-for="cell in row.getVisibleCells()"
                     :key="cell.id"
@@ -565,7 +690,8 @@ const getFileReferenceDisplay = (value) => {
                       'editable-cell': cell.column.columnDef.meta?.editable,
                       'error-cell': getCellError(row.index, cell.column.id),
                       'warning-cell': getCellError(row.index, cell.column.id)?.isWarning,
-                      'disabled-cell': isColumnDisabled(cell.column.columnDef.meta?.conceptId),
+                      'disabled-cell': isCellLocked(cell.column.columnDef.meta),
+                      'grouping-cell': cell.column.columnDef.meta?.type === 'grouping',
                     }"
                     :title="getCellError(row.index, cell.column.id)?.message"
                     :style="{ width: cell.column.columnDef.meta?.width }"
@@ -610,7 +736,7 @@ const getFileReferenceDisplay = (value) => {
                     </template>
 
                     <!-- Editable cells -->
-                    <template v-else-if="cell.column.columnDef.meta?.editable && !isColumnDisabled(cell.column.columnDef.meta?.conceptId)">
+                    <template v-else-if="cell.column.columnDef.meta?.editable && !isCellLocked(cell.column.columnDef.meta)">
                       <!-- Editing mode -->
                       <template v-if="editingCell?.rowIndex === row.index && editingCell?.columnId === cell.column.id">
                         <!-- Categorical input -->
@@ -630,6 +756,28 @@ const getFileReferenceDisplay = (value) => {
                             {{ cat.name || cat.abbreviation }}
                           </option>
                         </select>
+
+                        <!-- Grouping input: free text with suggestions from existing values -->
+                        <template v-else-if="cell.column.columnDef.meta?.type === 'grouping'">
+                          <input
+                            v-model="editingValue"
+                            type="text"
+                            class="cell-input"
+                            :list="`grouping-options-${cell.column.id}`"
+                            placeholder="e.g. R1, Batch A"
+                            @blur="finishEditing"
+                            @keydown="handleKeyDown"
+                            @paste="handlePaste($event, row.index, cell.column.id)"
+                          />
+                          <datalist :id="`grouping-options-${cell.column.id}`">
+                            <option
+                              v-for="opt in getGroupingValueOptions(cell.column.columnDef.meta.groupingId)"
+                              :key="opt"
+                              :value="opt"
+                            />
+                          </datalist>
+                        </template>
+
 
                         <!-- Text/numeric/datetime input -->
                         <input
@@ -670,6 +818,30 @@ const getFileReferenceDisplay = (value) => {
 
         <!-- Footer -->
         <div class="modal-footer">
+          <div v-if="hasAttemptedSubmit && mergeConfig.length" class="merge-status">
+            <span class="merge-status-title">Scope merge:</span>
+            <span
+              v-for="c in mergeConfig"
+              :key="c.groupingId"
+              class="merge-chip"
+              :class="`merge-${mergeStatus[c.groupingId] || 'pending'}`"
+              :title="mergeErrors[c.groupingId] || ''"
+            >
+              {{ c.groupingName }}: {{ mergeStatusLabel(mergeStatus[c.groupingId]) }}
+            </span>
+            <button
+              v-if="failedMerges.length && !isMerging"
+              class="btn btn-secondary btn-small"
+              @click="runMerges"
+            >
+              Retry merge
+            </button>
+            <div v-if="failedMerges.length" class="merge-warning">
+              ⚠ Datasets submitted but scope merge failed for:
+              {{ failedMerges.map((f) => f.groupingName).join(', ') }}.
+              Retry, or resolve the scope configuration on the Study Panel.
+            </div>
+          </div>
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
           </div>
@@ -1159,5 +1331,80 @@ tr:hover .row-actions {
   text-decoration: underline;
 }
 
+
+.split-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.split-chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.split-chip.unassigned {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.grouping-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.grouping-badge.DATASET_SCOPED {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.grouping-cell {
+  background: #fcfcf5;
+}
+
+tr.group-boundary td {
+  border-top: 2px solid #ff9800;
+}
+
+.merge-status {
+  margin-right: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.merge-status-title {
+  font-weight: 600;
+}
+
+.merge-chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f5f5f5;
+}
+
+.merge-success { background: #e8f5e9; color: #2e7d32; }
+.merge-failed { background: #ffebee; color: #c62828; }
+.merge-merging { background: #e3f2fd; color: #1565c0; }
+
+.merge-warning {
+  flex-basis: 100%;
+  color: #e65100;
+}
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
 
 </style>

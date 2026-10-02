@@ -56,6 +56,67 @@ export function useDatasetCurationTable() {
   // Active polling for submissions
   const activeSubmissions = ref({})
 
+  // ---- Record groupings ----
+  // [{ key, id, name, scope, studyId }] - one column per grouping (groupings belong to one study)
+  const groupingColumns = ref([])
+  // { [datasetId]: studyId }
+  const datasetStudyIds = ref({})
+
+  const groupingKey = (groupingId) => `group_${groupingId}`
+  const isGroupingKey = (columnKey) => typeof columnKey === 'string' && columnKey.startsWith('group_')
+  const normalizeCode = (value) => String(value ?? '').trim()
+  const getGroupingColumn = (columnKey) => groupingColumns.value.find((c) => c.key === columnKey)
+
+  // { [groupingId]: code }
+  const recordGroupCodes = (record) => {
+    const codes = {}
+    ;(record.groups || []).forEach((g) => {
+      if (g?.id != null) codes[g.id] = normalizeCode(g.code)
+    })
+    return codes
+  }
+
+  const buildGroupingColumns = (groupingsByStudy, datasets) => {
+    const columns = new Map()
+    Object.entries(groupingsByStudy || {}).forEach(([studyId, groupings]) => {
+      (groupings || []).forEach((g) => {
+        columns.set(String(g.id), { key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, studyId })
+      })
+    })
+    // Records may reference groupings not returned for the loaded studies: show read-only
+    datasets.forEach((d) => (d.records || []).forEach((r) => (r.groups || []).forEach((g) => {
+      if (g?.id != null && !columns.has(String(g.id))) {
+        columns.set(String(g.id), { key: groupingKey(g.id), id: g.id, name: `Grouping ${g.id}`, scope: null, studyId: null })
+      }
+    })))
+    return [...columns.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  // Row sections, split by DATASET_SCOPED grouping values
+  const datasetScopedColumns = computed(() =>
+    groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED')
+  )
+
+  const getRowSectionKey = (row) =>
+    datasetScopedColumns.value.map((c) => normalizeCode(row?.[c.key])).join('\u0000')
+
+  const getRowSectionLabel = (row) =>
+    datasetScopedColumns.value
+      .map((c) => `${c.name}: ${normalizeCode(row?.[c.key]) || '(none)'}`)
+      .join(' · ')
+
+  const rowSections = computed(() => {
+    if (datasetScopedColumns.value.length === 0) return []
+    const sections = new Map()
+    tableData.value.forEach((row, index) => {
+      const key = getRowSectionKey(row)
+      if (!sections.has(key)) {
+        sections.set(key, { key, label: getRowSectionLabel(row), rowIndices: [] })
+      }
+      sections.get(key).rowIndices.push(index)
+    })
+    return [...sections.values()]
+  })
 
   // Scale helper functions
   const getScaleType = (concept) => concept?.scale?.scaleType || 'TEXT'
@@ -77,8 +138,9 @@ export function useDatasetCurationTable() {
 
   /**
    * Initialize the curation table from datasets
+   * groupingContext: { groupingsByStudy: { [studyId]: [Grouping] }, datasetStudyIds: { [datasetId]: studyId } }
    */
-  const initializeFromDatasets = async (datasets, userCurateTeamIds) => {
+  const initializeFromDatasets = async (datasets, userCurateTeamIds, groupingContext) => {
     isLoading.value = true
 
     try {
@@ -92,10 +154,19 @@ export function useDatasetCurationTable() {
       columnStatus.value = {}
       cellErrors.value = {}
       cellReferences.value = {}
+      groupingColumns.value = []
+      datasetStudyIds.value = { ...(groupingContext.datasetStudyIds || {}) }
 
       if (!datasets || datasets.length === 0) {
         return
       }
+      // Fallback if the datasets query returns the study
+      datasets.forEach((d) => {
+        if (datasetStudyIds.value[d.id] == null && d.study?.id != null) {
+          datasetStudyIds.value[d.id] = d.study.id
+        }
+      })
+      groupingColumns.value = buildGroupingColumns(groupingContext.groupingsByStudy, datasets)
 
       // Extract all dataset IDs and fetch controllers
       const datasetIds = datasets.map(d => d.id)
@@ -131,7 +202,11 @@ export function useDatasetCurationTable() {
 
           const start = record.start || null
           const end = record.end || null
+          const codes = recordGroupCodes(record)
+          const groupSig = groupingColumns.value.map((c) => codes[c.id] ?? '').join('|')
+          // Records with different group codes must not share a row
           const rowKey = `${unitId}-${start || 'null'}-${end || 'null'}`
+            + (groupingColumns.value.length ? `-${groupSig}` : '')
 
           // Get or create the array of rows for this key
           if (!rowsByKey.has(rowKey)) {
@@ -158,18 +233,26 @@ export function useDatasetCurationTable() {
               },
               conceptIds: new Set()
             }
+            groupingColumns.value.forEach((c) => {
+              targetRow.rowData[c.key] = codes[c.id] ?? ''
+            })
             rowsForKey.push(targetRow)
 
             // Store row metadata
             rowMetadata.value[rowId] = {
               originalStart: start,
               originalEnd: end,
-              unitId: unitId
+              unitId: unitId,
+              originalGroups: Object.fromEntries(
+                groupingColumns.value.map((c) => [c.key, codes[c.id] ?? ''])
+              ),
+              datasetIds: new Set()
             }
           }
 
           // Track that this concept is now in this row
           targetRow.conceptIds.add(conceptId)
+          rowMetadata.value[targetRow.rowId].datasetIds.add(datasetId)
 
           // Add cell metadata
           const cellKey = `${targetRow.rowId}-${conceptId}`
@@ -206,6 +289,10 @@ export function useDatasetCurationTable() {
       }
 
       tableData.value = allRows.sort((a, b) => {
+        // Keep DATASET_SCOPED sections contiguous
+        const sa = getRowSectionKey(a)
+        const sb = getRowSectionKey(b)
+        if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
         if (a.unitId !== b.unitId) return String(a.unitId).localeCompare(String(b.unitId))
         return (a.startTime || '').localeCompare(b.startTime || '')
       })
@@ -349,6 +436,53 @@ export function useDatasetCurationTable() {
   }
 
   /**
+   * Grouping cells are shared by every record in the row: the user must be able to edit
+   * all datasets in the row, and all of them must belong to the grouping's study.
+   */
+  const isGroupCellEditable = (rowIndex, columnKey) => {
+    const row = tableData.value[rowIndex]
+    if (!row || isSubmitting.value) return false
+
+    const column = getGroupingColumn(columnKey)
+    const datasetIds = [...(rowMetadata.value[row._rowId]?.datasetIds || [])]
+    if (!column?.studyId || datasetIds.length === 0) return false
+
+    return datasetIds.every((datasetId) =>
+      !activeSubmissions.value[datasetId]
+      && datasetControllers.value[datasetId]?.canEdit
+      && String(datasetStudyIds.value[datasetId]) === String(column.studyId)
+    )
+  }
+
+  /**
+   * Check if row group codes have changed
+   */
+  const hasRowGroupsChanged = (rowIndex) => {
+    const row = tableData.value[rowIndex]
+    const meta = row && rowMetadata.value[row._rowId]
+    if (!meta?.originalGroups) return false
+    return groupingColumns.value.some(
+      (c) => normalizeCode(row[c.key]) !== (meta.originalGroups[c.key] ?? '')
+    )
+  }
+
+  /**
+   * Full RecordGroupInput list for a row, limited to groupings of the dataset's study
+   */
+  const buildGroupsInput = (row, datasetId) => {
+    const studyId = datasetStudyIds.value[datasetId]
+    return groupingColumns.value
+      .filter((c) => c.studyId != null && String(c.studyId) === String(studyId))
+      .map((c) => ({ id: c.id, code: normalizeCode(row[c.key]) }))
+      .filter((g) => g.code)
+  }
+
+  // Distinct codes already present for a grouping column (input suggestions)
+  const getGroupValueOptions = (columnKey) =>
+    [...new Set(tableData.value.map((row) => normalizeCode(row[columnKey])).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+
+  /**
    * Update a cell value
    */
   const updateCell = (rowIndex, columnKey, value) => {
@@ -367,6 +501,19 @@ export function useDatasetCurationTable() {
   const validateCell = (rowIndex, columnKey, value) => {
     const errorKey = `${rowIndex}-${columnKey}`
     delete cellErrors.value[errorKey]
+
+    // Grouping columns: free-text codes; warn when clearing an existing assignment
+    if (isGroupingKey(columnKey)) {
+      const row = tableData.value[rowIndex]
+      const original = rowMetadata.value[row?._rowId]?.originalGroups?.[columnKey]
+      if (original && !normalizeCode(value)) {
+        cellErrors.value[errorKey] = {
+          message: 'Clearing this value removes the records in this row from the group',
+          isWarning: true
+        }
+      }
+      return true
+    }
 
     if (value == null || value === '') return true
 
@@ -527,8 +674,8 @@ export function useDatasetCurationTable() {
     for (let i = 0; i < tableData.value.length; i++) {
       //const row = tableData.value[i]
 
-      // Check time changes
-      if (hasRowTimesChanged(i)) {
+      // Check time and group changes
+      if (hasRowTimesChanged(i) || hasRowGroupsChanged(i)) {
         return true
       }
 
@@ -568,14 +715,18 @@ export function useDatasetCurationTable() {
 
       const valueChanged = hasValueChanged(i, conceptId)
       const timesChanged = hasRowTimesChanged(i)
+      const groupsChanged = hasRowGroupsChanged(i)
 
-      if (valueChanged || timesChanged) {
+      if (valueChanged || timesChanged || groupsChanged) {
         const update = {
           id: metadata.recordId,
           start: normalizePartialDatetime(row.startTime) || null,
           end: normalizePartialDatetime(row.endTime) || null
         }
-
+        // Only send groups when changed (full set for the record)
+        if (groupsChanged) {
+          update.groups = buildGroupsInput(row, datasetId)
+        }
         // For complex scales, include referenceIds instead of value
         if (concept && isComplexScale(concept)) {
           update.referenceIds = cellReferences.value[cellKey].map(reference => reference.id) || []
@@ -712,12 +863,16 @@ export function useDatasetCurationTable() {
       if (status === 'COMPLETED') {
         if (updates && updates.length > 0) {
               updates.forEach(update => {
-                updateRecordInCache({
-                    id: update.id,
-                    value: update.value,
-                    start: update.start,
-                    end: update.end
-                })
+                const cacheUpdate = {
+                  id: update.id,
+                  value: update.value,
+                  start: update.start,
+                  end: update.end
+                }
+                if (update.groups) {
+                  cacheUpdate.groups = update.groups.map((g) => ({ __typename: 'RecordGroup', ...g }))
+                }
+                updateRecordInCache(cacheUpdate)
               })
             }
 
@@ -844,6 +999,8 @@ export function useDatasetCurationTable() {
     cellErrors.value = {}
     cellReferences.value = {}
     pendingSubmissions.value = {}
+    groupingColumns.value = []
+    datasetStudyIds.value = {}
 
     // Stop any active polling
     Object.values(activeSubmissions.value).forEach(sub => {
@@ -883,6 +1040,7 @@ export function useDatasetCurationTable() {
     isMarkedForDeletion,
     hasValueChanged,
     hasRowTimesChanged,
+    hasRowGroupsChanged,
     getCellReferences,
     updateCellReferences,
     submitAllChanges,
@@ -896,5 +1054,13 @@ export function useDatasetCurationTable() {
     isComplexScale,
     isCategoricalScale,
     isNumericScale,
+    // Groupings
+    groupingColumns,
+    rowSections,
+    isGroupingKey,
+    isGroupCellEditable,
+    getGroupValueOptions,
+    getRowSectionKey,
+    getRowSectionLabel,
   }
 }

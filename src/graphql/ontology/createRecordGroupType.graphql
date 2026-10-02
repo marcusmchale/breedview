@@ -1,0 +1,12 @@
+mutation ontologyCreateRecordGroupType(
+    $recordGroupType: RecordGroupTypeInput!
+) {
+    ontologyCreateRecordGroupType(
+        recordGroupType: $recordGroupType,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

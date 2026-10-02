@@ -1,0 +1,6 @@
+mutation programsDeleteGrouping($id: ID!) {
+  programsDeleteGrouping(id: $id) {
+    status
+    errors { message }
+  }
+}

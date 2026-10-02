@@ -85,6 +85,12 @@ export const ontologyLabelsMap = {
     code: 'Var',
     color: '#06D6A0'  // Aqua green
   },
+  RECORD_GROUP_TYPE: {
+    text: 'Record Group Type',
+    PascalCase: 'RecordGroupType',
+    code: 'RGT',
+    color: '#118AB2'  // Cerulean blue
+  },
   ROLE: {
     text: 'Role',
     PascalCase: 'Role',

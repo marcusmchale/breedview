@@ -117,6 +117,8 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Scale', 'categories'),
     ...createReplaceOnMergePolicy('Category', 'scales'),
     ...createReplaceOnMergePolicy('Term', 'subjects'),
+     // disable cache for RecordGroup as id is not unique per RecordGroup, it is the id of the grouping
+    RecordGroup: { keyFields: false }
   }
 })
 

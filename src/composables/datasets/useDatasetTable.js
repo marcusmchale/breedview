@@ -1,19 +1,27 @@
 import { ref, computed, toValue } from 'vue';
 import { useMutateDatasets } from '@/composables/datasets/mutateDatasets';
+import { useDatasetSummariesQuery } from "@/composables/datasets/datasetSummariesQuery";
 import { useDatetimeUtils } from '@/composables/parsers/partialDatetime';
-import { useValueParser} from "@/composables/parsers/valueParser";
+import { useValueParser } from "@/composables/parsers/valueParser";
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useApolloClient } from '@vue/apollo-composable';
 
-export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts, rowsPerUnit }) {
+export function useDatasetTable({
+  selectedStudy,
+  selectedUnits,
+  selectedConcepts,
+  rowsPerUnit,
+  selectedGroupings = () => [],
+}) {
 
   const { resolveClient } = useApolloClient();
 
   const { createDataset } = useMutateDatasets();
+  const { refetchSummaries } = useDatasetSummariesQuery(() => toValue(selectedStudy)?.id);
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils();
   const { parseValue } = useValueParser();
 
-  // Table data - each row has: unitId, unitLabel, startTime, endTime, and concept values
+  // Table data - each row has: unitId, unitLabel, startTime, endTime, grouping values and concept values
   const tableData = ref([]);
 
   // Column submission status tracking
@@ -24,9 +32,80 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
   // { [rowIndex-columnKey]: { message: string } }
   const cellErrors = ref({});
 
-  // Active submission queries - keyed by conceptId
-  // { [conceptId]: { submissionId, indexMapping, stopPolling } }
+  // Active submission polling - keyed by conceptId
+  // { [conceptId]: { submissionId, stopPolling } }
   const activeSubmissions = ref({});
+
+// Set when a submission completes; cleared once summaries are refreshed
+  let completedSinceRefresh = false;
+
+  const refreshStudySummaries = async () => {
+    try {
+      await refetchSummaries();
+    } catch (error) {
+      console.error('Failed to refresh dataset summaries:', error);
+    }
+  };
+
+  // ---- Concept helpers ----
+  const getConcepts = () => toValue(selectedConcepts) || [];
+
+  // Compare as strings so numeric and string IDs both work
+  const findConcept = (conceptId) =>
+    getConcepts().find((c) => String(c.id) === String(conceptId));
+
+  const conceptIdFromKey = (columnKey) => columnKey.replace('concept_', '');
+
+
+  // ---- Record grouping helpers ----
+  const groupingKey = (groupingId) => `group_${groupingId}`;
+  const isGroupingKey = (columnKey) => typeof columnKey === 'string' && columnKey.startsWith('group_');
+  const getGroupings = () => toValue(selectedGroupings) || [];
+  const normalizeCode = (value) => String(value ?? '').trim();
+
+  // Once any column is submitted (or submitting), grouping values must not change,
+  // otherwise datasets from the same table would carry inconsistent group codes.
+  const isGroupingLocked = computed(() =>
+    Object.values(columnStatus.value).some(
+      (s) => s.status === 'submitting' || (s.status === 'success' && s.datasetId)
+    )
+  );
+
+  // Build RecordGroupInput list for a row: [{ id: groupingId, code }]
+  const buildRecordGroups = (row) =>
+    getGroupings()
+      .map((grouping) => ({ id: grouping.id, code: normalizeCode(row[groupingKey(grouping.id)]) }))
+      .filter((group) => group.code);
+
+  // Distinct values already entered for a grouping (used for dropdown suggestions)
+  const getGroupingValueOptions = (groupingId) => {
+    const key = groupingKey(groupingId);
+    return [...new Set(tableData.value.map((row) => normalizeCode(row[key])).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  };
+
+  // Rows split by the combination of DATASET_SCOPED grouping values
+  const rowSplitGroups = computed(() => {
+    const scoped = getGroupings().filter((g) => g.scope === 'DATASET_SCOPED');
+    if (scoped.length === 0) return [];
+
+    const groups = new Map();
+    tableData.value.forEach((row, index) => {
+      const values = scoped.map((g) => normalizeCode(row[groupingKey(g.id)]));
+      const unassigned = values.some((v) => !v);
+      const key = unassigned ? '__unassigned__' : values.join('\u0000');
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          unassigned,
+          label: unassigned ? '(unassigned)' : values.join(' / '),
+          rowIndices: [],
+        });
+      }
+      groups.get(key).rowIndices.push(index);
+    });
+    return [...groups.values()];
+  });
 
 
   // Helper to determine coordinate columns from all selected units
@@ -51,6 +130,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
         axisNamesMap.get(index).add(axisName);
       });
     });
+
     // Generate column definitions from the collected axis names
     const columns = [];
     for (let i = 0; i < maxAxisCount; i++) {
@@ -69,9 +149,12 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Initialize table data based on units and rowsPerUnit
   const initializeTable = () => {
+    cleanupSubmissions();
 
     const units = toValue(selectedUnits) || [];
     const rows = toValue(rowsPerUnit) || 1;
+    const concepts = getConcepts();
+    const groupings = getGroupings();
 
     // Determine coordinate columns once for ALL units
     const coordColumns = determineCoordinateColumns();
@@ -100,10 +183,16 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
           row[col.key] = pos?.coordinates?.[col.axisIndex] || '';
         });
 
+        // Initialize grouping columns (shared per row, like start/end)
+        groupings.forEach((grouping) => {
+          row[groupingKey(grouping.id)] = '';
+        });
+
         // Initialize concept columns with empty values
-        (toValue(selectedConcepts) || []).forEach((concept) => {
+        concepts.forEach((concept) => {
           row[`concept_${concept.id}`] = '';
         });
+
         newData.push(row);
       }
     });
@@ -111,7 +200,6 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     tableData.value = newData;
 
     // Initialize column status
-    const concepts = toValue(selectedConcepts) || [];
     const status = {};
     concepts.forEach((concept) => {
       status[concept.id] = { status: 'pending' };
@@ -120,11 +208,11 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     cellErrors.value = {};
   };
 
-    // Duplicate an existing row
+  // Duplicate an existing row (also the way to split a unit across grouping values)
   const addRow = (afterIndex, sourceIndex) => {
     if (!tableData.value[sourceIndex]) return;
 
-    // Duplicate the source row with all its data including coordinate columns
+    // Duplicate the source row with all its data including coordinate and grouping columns
     const newRow = { ...tableData.value[sourceIndex], _id: `new-${Date.now()}` };
 
     const insertAt = afterIndex + 1;
@@ -150,8 +238,9 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
     if (row.startTime || row.endTime) return true;
 
-    const concepts = toValue(selectedConcepts) || [];
-    return concepts.some((concept) => row[`concept_${concept.id}`]);
+    if (getGroupings().some((g) => normalizeCode(row[groupingKey(g.id)]))) return true;
+
+    return getConcepts().some((concept) => row[`concept_${concept.id}`]);
   };
 
   // Get scale type for a concept
@@ -199,10 +288,14 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
       return true;
     }
 
+    // Grouping columns: free-text codes, only presence is validated (in validateColumn)
+    if (isGroupingKey(columnKey)) {
+      return true;
+    }
+
     // Validate concept columns
     if (columnKey.startsWith('concept_')) {
-      const conceptId = parseInt(columnKey.replace('concept_', ''));
-      const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
+      const concept = findConcept(conceptIdFromKey(columnKey));
       if (!concept) return true;
 
       const categories = getCategories(concept);
@@ -211,8 +304,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
       if (result && typeof result === 'object' && result.error) {
         cellErrors.value[errorKey] = {
           message: result.error,
-          // If it's a categorical mismatch, we might want it as a warning
-          // instead of a hard error depending on UI preference
+          // Categorical mismatches are shown as warnings rather than hard errors
           isWarning: isCategoricalScale(concept)
         };
         return isCategoricalScale(concept); // Warnings return true for validation
@@ -223,6 +315,8 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Update cell value with validation
   const updateCell = (rowIndex, columnKey, value) => {
+    if (isGroupingKey(columnKey) && isGroupingLocked.value) return;
+
     if (tableData.value[rowIndex]) {
       // Create a new array with the updated row to trigger reactivity
       tableData.value = tableData.value.map((row, idx) =>
@@ -237,6 +331,10 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Bulk fill a column
   const bulkFillColumn = (columnKey, value) => {
+    if (isGroupingKey(columnKey) && isGroupingLocked.value) {
+      return { success: false, message: 'Grouping values are locked after submission' };
+    }
+
     // Validate value first for datetime columns
     if ((columnKey === 'startTime' || columnKey === 'endTime') && value) {
       if (!validatePartialDatetime(value)) {
@@ -246,12 +344,12 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
     // Create a new array to ensure Vue reactivity detects the change
     tableData.value = tableData.value.map((row, index) => {
-      // Skip if column is already submitted successfully
       if (columnKey.startsWith('concept_')) {
-        const conceptId = parseInt(columnKey.replace('concept_', ''));
+        const conceptId = conceptIdFromKey(columnKey);
+        // Skip if column is already submitted successfully
         if (columnStatus.value[conceptId]?.status === 'success') return row;
 
-        const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
+        const concept = findConcept(conceptId);
         if (concept && isComplexScale(concept)) return row;
       }
 
@@ -262,11 +360,12 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     });
 
     return { success: true };
-  }
+  };
 
   // Validate entire column before submission
   const validateColumn = (conceptId) => {
     const columnKey = `concept_${conceptId}`;
+    const groupings = getGroupings();
     let isValid = true;
 
     tableData.value.forEach((row, index) => {
@@ -274,6 +373,20 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
       if (!validateCell(index, 'startTime', row.startTime)) isValid = false;
       if (!validateCell(index, 'endTime', row.endTime)) isValid = false;
       if (!validateCell(index, columnKey, row[columnKey])) isValid = false;
+
+      // Every row producing a record needs a value for each included grouping
+      const value = row[columnKey];
+      if (value !== '' && value !== null && value !== undefined) {
+        groupings.forEach((grouping) => {
+          const key = groupingKey(grouping.id);
+          if (!normalizeCode(row[key])) {
+            cellErrors.value[`${index}-${key}`] = {
+              message: `${grouping.name} is required for rows with values`
+            };
+            isValid = false;
+          }
+        });
+      }
     });
 
     return isValid;
@@ -282,7 +395,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
   // Prepare records for submission (excludes empty values)
   const prepareRecords = (conceptId) => {
     const columnKey = `concept_${conceptId}`;
-    const concept = (toValue(selectedConcepts) || []).find(c => c.id === conceptId);
+    const concept = findConcept(conceptId);
     const records = [];
     const indexMapping = []; // Track original indices for error mapping
 
@@ -296,6 +409,11 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
         start: normalizePartialDatetime(row.startTime) || null,
         end: normalizePartialDatetime(row.endTime) || null,
       };
+
+      const groups = buildRecordGroups(row);
+      if (groups.length > 0) {
+        record.groups = groups;
+      }
 
       // For complex scales, extract referenceIds from the JSON array
       if (isComplexScale(concept)) {
@@ -345,21 +463,20 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     });
   };
 
-
   // Start polling for a submission
   const startSubmissionPolling = (conceptId, submissionId, indexMapping) => {
-    console.debug('start submission polling', conceptId, submissionId)
+    console.debug('start submission polling', conceptId, submissionId);
     const client = resolveClient();
 
-    const onSubmissionComplete = ({ datasetId, status, errors, itemErrors}) => {
+    const onSubmissionComplete = ({ datasetId, status, errors, itemErrors }) => {
       if (status === 'COMPLETED') {
-
+        completedSinceRefresh = true;
         columnStatus.value[conceptId] = {
           status: 'success',
           datasetId: datasetId,
           submissionId,
         };
-      } else if (errors || itemErrors) {
+      } else if (status === 'FAILED' || errors || itemErrors) {
         const mappedItemErrors = mapItemErrors(itemErrors, indexMapping);
 
         const columnKey = `concept_${conceptId}`;
@@ -371,18 +488,27 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
           submissionId,
         };
       }
-      stopPolling()
-    }
+      stopPolling();
+      delete activeSubmissions.value[conceptId];
+
+
+      // Refresh once all in-flight submissions are done (avoids one refetch per column)
+      if (Object.keys(activeSubmissions.value).length === 0 && completedSinceRefresh) {
+        completedSinceRefresh = false;
+        refreshStudySummaries();
+      }
+
+    };
 
     const { startPolling, stopPolling } = pollDatasetSubmission({
       client,
       submissionId: submissionId,
       onComplete: onSubmissionComplete
-    })
+    });
 
-    startPolling()
+    activeSubmissions.value[conceptId] = { submissionId, stopPolling };
+    startPolling();
   };
-
 
   // Submit a single concept column
   const submitColumn = async (conceptId, controlTeamId, release) => {
@@ -413,7 +539,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     columnStatus.value[conceptId] = { status: 'submitting' };
 
     try {
-      console.log('submitting dataset', toValue(selectedStudy), conceptId)
+      console.debug('submitting dataset', toValue(selectedStudy), conceptId);
       const result = await createDataset({
         dataset: {
           studyId: toValue(selectedStudy).id,
@@ -424,12 +550,15 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
         release: release
       });
 
-
       if (!result) {
         throw new Error('No response from server');
       }
+      if (result.status && result.status !== 'SUCCESS' && !result.result) {
+        throw new Error(result.errors?.map((e) => e.message).join('; ') || 'Submission failed');
+      }
+
       const submissionId = result.result;
-      columnStatus.value[conceptId].submissionId = submissionId;
+      columnStatus.value[conceptId] = { status: 'submitting', submissionId };
 
       // Start polling using the query
       startSubmissionPolling(conceptId, submissionId, indexMapping);
@@ -444,8 +573,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Submit all columns in parallel
   const submitAllColumns = async (controlTeamId, release) => {
-    const concepts = toValue(selectedConcepts) || [];
-    const pendingConcepts = concepts.filter(
+    const pendingConcepts = getConcepts().filter(
       (c) => columnStatus.value[c.id]?.status !== 'success'
     );
 
@@ -453,10 +581,10 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     await Promise.allSettled(submissions);
   };
 
-    // Cleanup all active submissions (call when modal closes)
+  // Cleanup all active submissions (call when modal closes)
   const cleanupSubmissions = () => {
-    Object.values(activeSubmissions.value).forEach(({ cleanup }) => {
-      if (cleanup) cleanup();
+    Object.values(activeSubmissions.value).forEach(({ stopPolling }) => {
+      if (stopPolling) stopPolling();
     });
     activeSubmissions.value = {};
   };
@@ -468,7 +596,8 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
 
   // Check if all columns are submitted successfully
   const allSubmitted = computed(() => {
-    const concepts = toValue(selectedConcepts) || [];
+    const concepts = getConcepts();
+    if (concepts.length === 0) return false;
     return concepts.every(
       (c) => columnStatus.value[c.id]?.status === 'success'
     );
@@ -477,7 +606,7 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
   // Check if there are any unsaved changes
   const hasUnsavedChanges = computed(() => {
     if (allSubmitted.value) return false;
-    return tableData.value.some((row) => rowHasData(tableData.value.indexOf(row)));
+    return tableData.value.some((_, index) => rowHasData(index));
   });
 
   // Get cell error for display
@@ -485,9 +614,9 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     return cellErrors.value[`${rowIndex}-${columnKey}`];
   };
 
-  // Check if column is disabled (submitted successfully or complex)
+  // Check if column is disabled (submitted successfully)
   const isColumnDisabled = (conceptId) => {
-    return columnStatus.value[conceptId]?.status === 'success'
+    return columnStatus.value[conceptId]?.status === 'success';
   };
 
   return {
@@ -518,6 +647,13 @@ export function useDatasetTable({ selectedStudy, selectedUnits, selectedConcepts
     isNumericScale,
     getCellError,
     isColumnDisabled,
+
+    // Grouping
+    groupingKey,
+    isGroupingLocked,
+    getGroupingValueOptions,
+    rowSplitGroups,
+    buildRecordGroups,
 
     // Computed
     isSubmitting,

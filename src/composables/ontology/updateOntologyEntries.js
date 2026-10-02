@@ -47,7 +47,8 @@ export function useOntologyUpdateMutations() {
     updateEventMutation: useMutation(UPDATE_EVENT).mutate,
     updateLocationTypeMutation: useMutation(UPDATE_LOCATION_TYPE).mutate,
     updateDesignMutation: useMutation(UPDATE_DESIGN).mutate,
-    updateLayoutTypeMutation: useMutation(UPDATE_LAYOUT_TYPE).mutate
+    updateLayoutTypeMutation: useMutation(UPDATE_LAYOUT_TYPE).mutate,
+    updateRecordGroupTypeMutation: useMutation(UPDATE_RECORD_GROUP_TYPE).mutate
   }
 }
 
@@ -75,6 +76,7 @@ const getCurrentValues = (entry) => {
     designIds: entry.designs ? entry.designs.map(d => d.id) : [],
     roleIds: entry.roles ? entry.roles.map(r => r.id) : [],
     titleIds: entry.titles ? entry.titles.map(t => t.id) : [],
+    recordGroupTypeIds: entry.recordGroupTypes ? entry.recordGroupTypes.map(r => r.id) : [],
     // For Variable - single objects, not arrays
     traitId: entry.trait ? entry.trait.id : undefined,
     observationMethodId: entry.observationMethod ? entry.observationMethod.id : undefined,
@@ -167,7 +169,7 @@ export function updateTermHandler(context) {
   const designs = getEntriesByType(ontologyEntries, 'Design')
   const roles = getEntriesByType(ontologyEntries, 'Role')
   const titles = getEntriesByType(ontologyEntries, 'Title')
-
+  const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
   openForm(
     'Update Term',
     [
@@ -399,6 +401,22 @@ export function updateTermHandler(context) {
         value: currentValues.designIds
       },
       {
+        name: 'recordGroupTypeIds',
+        type: 'select',
+        label: 'Record Group Types',
+        validation: '',
+        multiple: true,
+        options: prepareMultiselectOptions(
+          'recordGroupTypeIds',
+          recordGroupTypes,
+          currentValues.recordGroupTypeIds || [],
+          entry.id
+        ),
+        placeholder: 'Select record group types (optional)',
+        value: currentValues.recordGroupTypeIds
+      },
+
+      {
         name: 'roleIds',
         type: 'select',
         label: 'Roles',
@@ -449,6 +467,7 @@ export function updateTermHandler(context) {
         locationTypeIds: processIdArray(formData.locationTypeIds),
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
+        recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds),
         roleIds: processIdArray(formData.roleIds),
         titleIds: processIdArray(formData.titleIds)
       }
@@ -1477,6 +1496,76 @@ export function updateDesignHandler(context) {
   )
 }
 
+
+
+export function updateRecordGroupTypeHandler(context) {
+  const { entry, ontologyEntries, updateDesignMutation, openForm } = context
+  const currentValues = getCurrentValues(entry, ontologyEntries)
+  const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
+  const terms = getEntriesByType(ontologyEntries, 'Term')
+
+  openForm('Update Record Group Type', [
+    { name: 'name', type: 'text', label: 'Name', validation: 'required', value: currentValues.name },
+    { name: 'description', type: 'textarea', label: 'Description', value: currentValues.description },
+    {
+      name: 'parentIds',
+      type: 'select',
+      label: 'Parent Record Group Types',
+      validation: '',
+      multiple: true,
+      options: prepareMultiselectOptions(
+        'parentIds',
+        recordGroupTypes,
+        currentValues.parentIds || [],
+        entry.id
+      ),
+      placeholder: 'Select parent record group types (optional)',
+      value: currentValues.parentIds
+    },
+    {
+      name: 'childIds',
+      type: 'select',
+      label: 'Child Record Group Types',
+      validation: '',
+      multiple: true,
+      options: prepareMultiselectOptions(
+        'childIds',
+        recordGroupTypes,
+        currentValues.childIds || [],
+        entry.id
+      ),
+      placeholder: 'Select child record group types (optional)',
+      value: currentValues.childIds
+    },
+    {
+      name: 'termIds',
+      type: 'select',
+      label: 'Terms',
+      validation: '',
+      multiple: true,
+      options: prepareMultiselectOptions(
+        'termIds',
+        terms,
+        currentValues.termIds || [],
+        entry.id
+      ),
+      placeholder: 'Select terms (optional)',
+      value: currentValues.termIds
+    },
+  ], (formData) => updateDesignMutation(
+      { design: {
+          id: entry.id,
+          name: formData.name,
+          description: formData.description || undefined,
+          parentIds: processIdArray(formData.parentIds),
+          childIds: processIdArray(formData.childIds),
+          termIds: processIdArray(formData.termIds) }
+      }),
+      entry.phase
+  )
+}
+
+
 export function updateLayoutTypeHandler(context) {
   const { entry, ontologyEntries, updateLayoutTypeMutation, openForm } = context
   const currentValues = getCurrentValues(entry, ontologyEntries)
@@ -1575,6 +1664,7 @@ export function useOntologyUpdateHandlers() {
     updateEvent: updateEventHandler,
     updateLocationType: updateLocationTypeHandler,
     updateDesign: updateDesignHandler,
-    updateLayoutType: updateLayoutTypeHandler
+    updateLayoutType: updateLayoutTypeHandler,
+    updateRecordGroupType: updateRecordGroupTypeHandler
   }
 }

@@ -6,5 +6,6 @@ fragment RecordFields on Record {
         value
         start
         end
+        groups { id code }
         references { id }
 }

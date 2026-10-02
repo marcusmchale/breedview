@@ -1,0 +1,6 @@
+mutation programsUpdateGrouping($grouping: GroupingUpdate!) {
+  programsUpdateGrouping(grouping: $grouping) {
+    status
+    errors { message }
+  }
+}

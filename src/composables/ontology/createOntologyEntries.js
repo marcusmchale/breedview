@@ -47,6 +47,7 @@ export function useOntologyCreateMutations() {
     createEventMutation: useMutation(CREATE_EVENT).mutate,
     createLocationTypeMutation: useMutation(CREATE_LOCATION_TYPE).mutate,
     createDesignMutation: useMutation(CREATE_DESIGN).mutate,
+    createRecordGroupTypeMutation: useMutation(CREATE_RECORD_GROUP_TYPE).mutate,
     createLayoutTypeMutation: useMutation(CREATE_LAYOUT_TYPE).mutate
   }
 }
@@ -71,6 +72,7 @@ export function createTermHandler(context) {
   const designs = getEntriesByType(ontologyEntries, 'Design')
   const roles = getEntriesByType(ontologyEntries, 'Role')
   const titles = getEntriesByType(ontologyEntries, 'Title')
+  const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
 
   openForm(
     'Create Term',
@@ -213,6 +215,15 @@ export function createTermHandler(context) {
         placeholder: 'Select designs (optional)'
       },
       {
+        name: 'recordGroupTypeIds',
+        type: 'select',
+        label: 'Record Group Types',
+        validation: '',
+        multiple: true,
+        options: mapToSelectOptions(recordGroupTypes),
+        placeholder: 'Select record group types (optional)'
+      },
+      {
         name: 'roleIds',
         type: 'select',
         label: 'Roles',
@@ -251,7 +262,8 @@ export function createTermHandler(context) {
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
         roleIds: processIdArray(formData.roleIds),
-        titleIds: processIdArray(formData.titleIds)
+        titleIds: processIdArray(formData.titleIds),
+        recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds)
       }
 
       return createTermMutation({ term: processedData })
@@ -1137,6 +1149,61 @@ export function createLayoutTypeHandler(context) {
   )
 }
 
+
+export function createRecordGroupTypeHandler(context) {
+  const { ontologyEntries, createRecordGroupTypeMutation, openForm } = context
+
+  const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
+  const terms = getEntriesByType(ontologyEntries, 'Term')
+
+  openForm(
+    'Create Record Group Type',
+    [
+      { name: 'name', type: 'text', label: 'Name', validation: 'required', placeholder: 'Enter record group type name' },
+      { name: 'description', type: 'textarea', label: 'Description', validation: '', placeholder: 'Enter description (optional)' },
+      {
+        name: 'parentIds',
+        type: 'select',
+        label: 'Parent Record Group Types',
+        validation: '',
+        multiple: true,
+        options: mapToSelectOptions(recordGroupTypes),
+        placeholder: 'Select parent record group types (optional)'
+      },
+      {
+        name: 'childIds',
+        type: 'select',
+        label: 'Child Record Group Types',
+        validation: '',
+        multiple: true,
+        options: mapToSelectOptions(recordGroupTypes),
+        placeholder: 'Select child record group types (optional)'
+      },
+      {
+        name: 'termIds',
+        type: 'select',
+        label: 'Terms',
+        validation: '',
+        multiple: true,
+        options: mapToSelectOptions(terms),
+        placeholder: 'Select terms (optional)'
+      }
+    ],
+    (formData) => {
+      const processedData = {
+        name: formData.name,
+        description: formData.description || undefined,
+        parentIds: processIdArray(formData.parentIds),
+        childIds: processIdArray(formData.childIds),
+        termIds: processIdArray(formData.termIds)
+      }
+
+      return createRecordGroupTypeMutation({ recordGroupType: processedData })
+    }
+  )
+}
+
+
 // Export all handlers
 export function useOntologyCreatorHandlers() {
   return {
@@ -1153,6 +1220,7 @@ export function useOntologyCreatorHandlers() {
     createEvent: createEventHandler,
     createLocationType: createLocationTypeHandler,
     createDesign: createDesignHandler,
-    createLayoutType: createLayoutTypeHandler
+    createLayoutType: createLayoutTypeHandler,
+    createRecordGroupType: createRecordGroupTypeHandler
   }
 }

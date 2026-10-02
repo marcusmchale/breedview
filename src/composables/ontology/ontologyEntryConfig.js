@@ -80,6 +80,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       multi('locationTypeIds', 'Location Types', 'LocationType', false),
       multi('layoutTypeIds', 'Layout Types', 'LayoutType', false),
       multi('designIds', 'Designs', 'Design', false),
+      multi('recordGroupTypeIds', 'Record Group Types', 'RecordGroupType', false)
     ],
     processCreate: (formData, referenceIds) => ({
       term: {
@@ -101,6 +102,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         locationTypeIds: processIdArray(formData.locationTypeIds),
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
+        recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds)
       }
     }),
     processUpdate: (entry, formData, referenceIds) => ({
@@ -124,6 +126,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         locationTypeIds: formData.locationTypeIds ?? [],
         layoutTypeIds: formData.layoutTypeIds ?? [],
         designIds: formData.designIds ?? [],
+        recordGroupTypeIds: formData.recordGroupTypeIds ?? []
       }
     }),
   },
@@ -582,6 +585,43 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       }
     }),
   },
+
+
+  RecordGroupType: {
+    typename: 'RecordGroupType',
+    createTitle: 'Create Record Group Type',
+    updateTitle: 'Update Record Group Type',
+    fields: [
+      nameField,
+      descriptionField,
+      multi('parentIds', 'Parent Record Group Types', 'RecordGroupType'),
+      multi('childIds', 'Child Record Group Types', 'RecordGroupType', true, 'children'),
+      multi('termIds', 'Terms', 'Term', false),
+    ],
+    processCreate: (formData, referenceIds) => ({
+      recordGroupType: {
+        name: formData.name,
+        description: formData.description || undefined,
+        referenceIds: referenceIds?.length ? referenceIds : undefined,
+        parentIds: processIdArray(formData.parentIds),
+        childIds: processIdArray(formData.childIds),
+        termIds: processIdArray(formData.termIds),
+      }
+    }),
+    processUpdate: (entry, formData, referenceIds) => ({
+      recordGroupType: {
+        id: entry.id,
+        name: formData.name,
+        description: formData.description || undefined,
+        referenceIds: referenceIds?.length ? referenceIds : [],
+        parentIds: formData.parentIds ?? [],
+        childIds: formData.childIds ?? [],
+        termIds: formData.termIds ?? [],
+      }
+    }),
+  },
+
+
 
   LayoutType: {
     typename: 'LayoutType',

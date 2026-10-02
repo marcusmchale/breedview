@@ -117,11 +117,17 @@ input UnitUpdate {
   childrenIds: [ID!]
 }
 
+input RecordGroupInput {
+  id: ID!
+  code: String!
+}
+
 input RecordInput {
   unitId: ID!
   value: String
   start: DateTime
   end: DateTime
+  groups: [RecordGroupInput!]
   referenceIds: [ID]
 }
 
@@ -131,6 +137,7 @@ input RecordUpdate {
   value: String
   start: DateTime
   end: DateTime
+  groups: [RecordGroupInput!]
   referenceIds: [ID]
 }
 
@@ -279,6 +286,7 @@ type Mutation {
   ontologyCreateEvent(event: EventInput!): BooleanPayload!
   ontologyCreateLocationType(locationType: LocationTypeInput!): BooleanPayload!
   ontologyCreateDesign(design: DesignInput!): BooleanPayload!
+  ontologyCreateRecordGroupType(recordGroupType: RecordGroupTypeInput!): BooleanPayload!
   ontologyCreateLayoutType(layoutType: LayoutTypeInput!): BooleanPayload!
   ontologyUpdateTerm(term: TermUpdate!): BooleanPayload!
   ontologyUpdateSubject(subject: SubjectUpdate!): BooleanPayload!
@@ -293,6 +301,7 @@ type Mutation {
   ontologyUpdateEvent(event: EventUpdate!): BooleanPayload!
   ontologyUpdateLocationType(locationType: LocationTypeUpdate!): BooleanPayload!
   ontologyUpdateDesign(design: DesignUpdate!): BooleanPayload!
+  ontologyUpdateRecordGroupType(recordGroupType: RecordGroupTypeUpdate!): BooleanPayload!
   ontologyUpdateLayoutType(layoutType: LayoutTypeUpdate!): BooleanPayload!
   ontologyDeprecateEntries(ids: [ID!]!): BooleanPayload!
   ontologyCancelDeprecateEntries(ids: [ID!]!): BooleanPayload!
@@ -303,15 +312,26 @@ type Mutation {
   peopleCreatePerson(person: PersonInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
   peopleDeletePerson(id: ID!): BooleanPayload!
-  programsCreateProgram(program: ProgramInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
-  programsUpdateProgram(program: ProgramUpdate!): BooleanPayload
-  programsDeleteProgram(id: ID!): BooleanPayload
-  programsCreateTrial(trial: TrialInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
-  programsUpdateTrial(trial: TrialUpdate!): BooleanPayload
-  programsDeleteTrial(id: ID!): BooleanPayload
-  programsCreateStudy(study: StudyInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
-  programsUpdateStudy(study: StudyUpdate!): BooleanPayload
-  programsDeleteStudy(id: ID!): BooleanPayload
+  programsCreateProgram(program: ProgramInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+  programsUpdateProgram(program: ProgramUpdate!): BooleanPayload!
+  programsDeleteProgram(id: ID!): BooleanPayload!
+  programsCreateTrial(trial: TrialInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+  programsUpdateTrial(trial: TrialUpdate!): BooleanPayload!
+  programsDeleteTrial(id: ID!): BooleanPayload!
+  programsCreateStudy(study: StudyInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+  programsUpdateStudy(study: StudyUpdate!): BooleanPayload!
+  programsDeleteStudy(id: ID!): BooleanPayload!
+  programsCreateGrouping(grouping: GroupingInput!): BooleanPayload!
+  programsUpdateGrouping(grouping: GroupingUpdate!): BooleanPayload!
+  programsDeleteGrouping(id: ID!): BooleanPayload!
+
+  """
+  Merging scopes
+  If any of the datasetIds provided are in an existing scope,
+  all datasetIds will be added to that scope.
+  Otherwise, a new scope will be created.
+  """
+  programsMergeScope(groupingId: ID!, datasetIds: [ID!]): BooleanPayload!
   referencesCreateLegal(reference: LegalReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
   referencesCreateExternal(reference: ExternalReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
   referencesCreateExternalData(reference: ExternalDataReferenceInput!, controlTeamId: ID!, release: ReadRelease): CreatedIdPayload!
@@ -376,6 +396,7 @@ input TermInput {
   designIds: [ID!]
   roleIds: [ID!]
   titleIds: [ID!]
+  recordGroupTypeIds: [ID!]
 }
 
 input SubjectInput {
@@ -535,6 +556,18 @@ input LocationTypeInput {
 }
 
 input DesignInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+}
+
+input RecordGroupTypeInput {
   name: String!
   description: String
   abbreviation: String
@@ -757,6 +790,19 @@ input DesignUpdate {
   termIds: [ID!]
 }
 
+input RecordGroupTypeUpdate {
+  id: ID!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  authorIds: [ID!]
+  referenceIds: [ID!]
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+}
+
 input LayoutTypeUpdate {
   id: ID!
   name: String
@@ -864,6 +910,31 @@ input StudyUpdate {
   designId: ID
   licenceId: ID
   referenceIds: [ID!]
+}
+
+enum GroupingScope {
+  STUDY_WIDE
+  DATASET_SCOPED
+}
+
+input DatasetScopeInput {
+  datasetIds: [ID!]!
+}
+
+input GroupingInput {
+  studyId: ID!
+  typeId: ID!
+  name: String!
+  scope: GroupingScope!
+  dataset_scopes: [DatasetScopeInput!]
+}
+
+input GroupingUpdate {
+  id: ID!
+  typeId: ID!
+  name: String!
+  scope: GroupingScope!
+  dataset_scopes: [DatasetScopeInput!]
 }
 
 enum DataFormat {
@@ -1224,12 +1295,18 @@ type Controller {
   updated: DateTime!
 }
 
+type RecordGroup {
+  name: String!
+  code: String!
+}
+
 type Record {
   id: ID!
   unit: Unit
   value: String
   start: DateTime
   end: DateTime
+  groups: [RecordGroup!]
   references: [ReferenceInterface]
   submitted: DateTime
 }
@@ -1248,6 +1325,7 @@ type SubmittedRecord {
   value: String
   start: DateTime
   end: DateTime
+  groups: [RecordGroup!]
   referenceIds: [Int]
 }
 
@@ -1465,6 +1543,20 @@ enum OntologyNodeLabel {
   Examples: "Split-plot", "Randomized block"
   """
   DESIGN
+
+  """
+  A record group is a set of records associated by a common criterion arising from
+  the execution, observation, processing, or organization of a study.
+  These entries describe reusable types of record groups.
+  Examples include "Biological Replicate", "Technical Replicate", "Batch", and "Plate".
+  
+  Note: Record groups are intended for grouping records according to study-specific or
+  process-specific contexts, such as replication or laboratory processing.
+  Long-term shared entities and their relationships should instead be represented as
+  Units within Blocks. Likewise, factors in a study should be represented as records
+  in a dataset rather than as record groups.
+  """
+  RECORD_GROUP_TYPE
 
   """
   Role entries describe roles for people.
@@ -2092,6 +2184,26 @@ type Design implements OntologyNodeInterface & OntologyRelationships & RelatedTo
 }
 
 """
+Record Group Type entries describe transient identifiers like replicate, batch
+to complement the more permanent identifiers in the block/unit structure
+"""
+type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
+  id: ID!
+  versionId: ID!
+  view: OntologyView!
+  phase: LifecyclePhase!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  authors: [Person!]
+  references: [ReferenceInterface!]
+  parents: [Design!]
+  children: [Design!]
+  terms: [Term!]
+}
+
+"""
 Role entries describe roles for people.
 These are linked to Person (see People).
 Examples: "Post-doctoral researcher", "Principal Investigator"
@@ -2133,7 +2245,7 @@ type Title implements OntologyNodeInterface & OntologyRelationships & RelatedToT
   terms: [Term!]
 }
 
-union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | Role | Title
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType | Role | Title
 
 type OntologyRelationship {
   id: ID!
@@ -2449,6 +2561,18 @@ type Person {
   fullname: String
 }
 
+type DatasetScope {
+  datasetIds: [ID!]!
+}
+
+type RecordGrouping {
+  id: ID!
+  type: RecordGroupType!
+  name: String!
+  scope: GroupingScope!
+  dataset_scopes: [DatasetScope!]
+}
+
 type Program {
   id: ID!
   name: String!
@@ -2479,6 +2603,7 @@ type Study {
   practices: String
   start: DateTime
   end: DateTime
+  groupings: [RecordGrouping!]
   design: Design
   licence: LegalReference
   references: [ReferenceInterface]

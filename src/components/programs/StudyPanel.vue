@@ -8,6 +8,7 @@ import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
 import UpdateStudyModal from './UpdateStudyModal.vue'
 import DeleteStudyModal from './DeleteStudyModal.vue'
 import ReferenceItem from "@/components/references/ReferenceItem.vue";
+import RecordGroupingPanel from '@/components/programs/RecordGroupingPanel.vue'
 
 const props = defineProps({
   studyId: {
@@ -108,6 +109,11 @@ const handleDeleteSuccess = () => {
           title="References"
         />
       </div>
+
+      <RecordGroupingPanel
+        :study-id="study.id"
+      />
+
     </div>
 
     <!-- Update Study Modal -->

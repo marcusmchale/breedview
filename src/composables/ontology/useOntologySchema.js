@@ -42,6 +42,6 @@ export function useOntologySchema() {
 
   const getCreateEntriesForLabels = () => labelEntries
   return {
-    getCreateEntriesForLabels
+      getCreateEntriesForLabels
   }
 }
