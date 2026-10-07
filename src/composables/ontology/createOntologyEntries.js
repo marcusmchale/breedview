@@ -13,6 +13,7 @@ import CREATE_FACTOR from '../../graphql/ontology/createFactor.graphql'
 import CREATE_EVENT from '../../graphql/ontology/createEvent.graphql'
 import CREATE_LOCATION_TYPE from '../../graphql/ontology/createLocationType.graphql'
 import CREATE_DESIGN from '../../graphql/ontology/createDesign.graphql'
+import CREATE_RECORD_GROUP_TYPE from '../../graphql/ontology/createRecordGroupType.graphql'
 import CREATE_LAYOUT_TYPE from '../../graphql/ontology/createLayoutType.graphql'
 
 // Helper functions

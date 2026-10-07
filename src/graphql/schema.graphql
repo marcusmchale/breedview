@@ -1,46 +1,819 @@
-enum VariableType {
-  CONCEPT
-  GERMPLASM
-  TIMEPOINT
+"""
+Defines how values are divided into bins.
+
+The same binning configuration can be applied to supported numeric,
+temporal, and duration values.
+"""
+input BinningInput {
+  """
+  Boundary values separating the bins.
+  
+  With N boundaries, N + 1 bins are created.
+  
+  Boundary values are interpreted according to the type of the
+  value being binned.
+  """
+  boundaries: [String!]!
+
+  """
+  Labels assigned to the resulting bins.
+  
+  There must be exactly one more label than there are boundaries.
+  """
+  labels: [String!]!
+
+  """Determines which bin receives a value exactly equal to a boundary."""
+  boundary: BinningBoundary!
 }
 
-input AnalysisVariableInput {
-  """Type of variable: concept from dataset, germplasm, or timepoint"""
-  type: VariableType!
+"""
+Defines how record start/end time is used to construct a time
+grouping dimension.
 
-  """Human-readable label for the variable"""
+This configuration concerns the temporal metadata associated
+with records. It does not describe concepts whose values happen
+to represent dates, times or durations.
+"""
+input TimeSpecificationInput {
+  """
+  Determines how records are assigned to time bins.
+  
+  If time assignment is provided and a record has no applicable
+  time information, the record is excluded from the analysis.
+  """
+  assignment: TimeAssignment!
+
+  """Defines the time bins used to construct the grouping dimension."""
+  binning: BinningInput!
+}
+
+"""
+Defines how germplasm is resolved into analytical groups.
+
+The server navigates the germplasm hierarchy from the germplasm
+assigned to each unit to find the applicable selected ancestor.
+"""
+input GermplasmGroupingInput {
+  """
+  Germplasm IDs defining the grouping level.
+  
+  Descendant germplasm is assigned to the corresponding selected
+  ancestor while preserving the hierarchy of the grouping.
+  """
+  germplasmIds: [ID!]!
+}
+
+"""
+Defines how units are resolved into analytical groups.
+
+The server navigates the unit hierarchy from each record's unit
+to find the applicable selected parent unit.
+"""
+input UnitGroupingInput {
+  """
+  Parent unit IDs defining the grouping level.
+  
+  Descendant units are assigned to the corresponding selected
+  parent unit.
+  """
+  unitIds: [ID!]!
+}
+
+"""
+Defines how positions are resolved into analytical groups.
+
+Positions may represent geographic locations, layout coordinates,
+or both.
+"""
+input PositionGroupingInput {
+  """ID of the Location in the Region hierarchy."""
+  locationId: ID!
+
+  """Optional ID of the Layout in the Arrangement hierarchy."""
+  layoutId: ID
+
+  """
+  Layout axes used to define position groups.
+  
+  Positions having equal values for all selected axes belong
+  to the same group.
+  """
+  axisIndexes: [Int!]
+
+  """
+  Optional explicit positions defining groups. This overrides axisIndexes where the position match is found.
+  """
+  positions: [PositionInput!]
+
+  """
+  Time at which the position is evaluated.
+  
+  When null, a unit is considered to match the defined position
+  if it occupied that position at any time.
+  """
+  time: DateTime
+}
+
+"""A code of a record grouping."""
+input RecordGroupMemberInput {
+  """ID of the record grouping."""
+  groupingId: ID!
+
+  """Record group code within the grouping."""
+  code: String!
+
+  """
+  A selected dataset in the scope the code belongs to.
+  
+  Required for dataset-scoped groupings, where equal codes in
+  different scopes are distinct levels. Must not be provided for
+  study-wide groupings.
+  """
+  datasetId: ID
+}
+
+"""
+Defines a level shared by codes from one or more record groupings.
+
+Use this when codes from different groupings or scopes represent
+the same thing, e.g. a processing batch that included samples
+from several studies.
+"""
+input RecordGroupLevelInput {
+  """
+  Label of the level in analysis results.
+  
+  Unique within the dimension. Must not contain "|".
+  """
   label: String!
 
-  """Concept ID (required when type is CONCEPT)"""
-  conceptId: ID
+  """
+  Codes that belong to this level. Each code may belong to only one level.
+  """
+  members: [RecordGroupMemberInput!]!
 }
 
-input InteractionTermInput {
-  """Index of first variable in independentVariables array"""
-  var1Index: Int!
+"""
+Defines a record group dimension, which may span studies.
 
-  """Index of second variable in independentVariables array"""
-  var2Index: Int!
+Levels are nested by default: each code is a distinct level within
+its grouping and scope, so equal codes from different studies or
+scopes are never pooled. Level definitions explicitly combine codes
+into shared levels; codes not included in a level definition keep
+their nested identity.
+
+Records with no code for any of the dimension's groupings, including
+all records from studies without such a grouping, are excluded from
+the analysis and reported in a warning.
+"""
+input RecordGroupDimensionInput {
+  """
+  Name of the dimension, unique within the analysis.
+  
+  Referenced by AnalysisTermReferenceInput.recordGroupDimension
+  and used as the label of the dimension in results.
+  """
+  name: String!
+
+  """
+  Record groupings contributing to the dimension.
+  
+  Each grouping must belong to the study of a selected dataset.
+  At most one grouping per study, and each grouping may contribute
+  to only one dimension in the analysis.
+  """
+  groupingIds: [ID!]!
+
+  """Optional shared levels combining codes across groupings or scopes."""
+  levels: [RecordGroupLevelInput!]
 }
 
+"""
+Defines the dimensions used to construct analytical observations.
+
+The observation unit is always part of observation identity: the
+base unit of each record, or its parent unit when a unit grouping
+is configured. Each configured dimension also contributes to
+observation identity. Study contributes only when a STUDY term
+is used.
+
+Records that cannot be assigned to a configured dimension are
+excluded from the analysis and reported in a warning.
+"""
+input AnalysisGroupingInput {
+  """Groups records according to their record start/end time."""
+  time: TimeSpecificationInput
+
+  """Groups units according to germplasm hierarchy."""
+  germplasm: GermplasmGroupingInput
+
+  """Replaces the base unit with a selected parent unit."""
+  unit: UnitGroupingInput
+
+  """Groups records according to geographic or layout position."""
+  position: PositionGroupingInput
+
+  """
+  Groups records according to study record groupings, e.g. batch or replicate.
+  """
+  recordGroups: [RecordGroupDimensionInput!]
+}
+
+"""Type of analysis to perform."""
+enum AnalysisType {
+  """Analysis of variance using a statistical model."""
+  ANOVA
+
+  """Multidimensional scaling."""
+  MDS
+
+  """Pairwise correlation analysis."""
+  CORRELATION
+
+  """Descriptive statistics."""
+  DESCRIPTIVE_STATISTICS
+
+  """Detection of observations that may be statistical outliers."""
+  OUTLIER_DETECTION
+}
+
+"""Defines how a term is represented for an analysis."""
+enum TermRepresentationType {
+  """Treat values as continuous numeric measurements."""
+  CONTINUOUS
+
+  """Treat values as nominal categorical values."""
+  CATEGORICAL
+
+  """Treat values as ordered categorical values."""
+  ORDINAL
+}
+
+"""
+Defines whether a model term is estimated as a fixed or random
+effect.
+"""
+enum TermEffect {
+  """Estimate the effect directly as a fixed effect."""
+  FIXED
+
+  """Estimate the effect as a random effect."""
+  RANDOM
+}
+
+"""
+Transformations that may be applied to term values before analysis.
+
+Transformations are applied in the order in which they are provided.
+"""
+enum TermTransformation {
+  """Centre values by subtracting their mean."""
+  CENTER
+
+  """Standardise values using their mean and standard deviation."""
+  STANDARDIZE
+
+  """Apply the natural logarithm."""
+  LOG
+
+  """Apply log(1 + x)."""
+  LOG1P
+
+  """Apply the square-root transformation."""
+  SQRT
+
+  """Apply the reciprocal transformation."""
+  RECIPROCAL
+}
+
+"""
+Defines how multiple records contributing to an analytical
+observation are aggregated.
+"""
+enum TermAggregation {
+  """
+  Do not aggregate values.
+  
+  The analysis requires at most one applicable value for
+  each analytical observation.
+  """
+  NONE
+
+  """Arithmetic mean."""
+  MEAN
+
+  """Median."""
+  MEDIAN
+
+  """Minimum value."""
+  MIN
+
+  """Maximum value."""
+  MAX
+
+  """Sum of values."""
+  SUM
+
+  """Number of applicable values."""
+  COUNT
+
+  """Most frequently occurring value."""
+  MODE
+}
+
+"""
+Type of term used by an analysis.
+
+Each domain term type corresponds to a dimension of analytical
+observation identity.
+"""
+enum AnalysisTermType {
+  """A dataset concept."""
+  CONCEPT
+
+  """The time dimension. Requires grouping.time."""
+  TIME
+
+  """The germplasm dimension. Requires grouping.germplasm."""
+  GERMPLASM
+
+  """
+  The observation unit: the base unit of each record, or the
+  parent unit when grouping.unit is configured.
+  """
+  UNIT
+
+  """The position dimension. Requires grouping.position."""
+  POSITION
+
+  """
+  A record group dimension, identified by recordGroupDimension.
+  Requires a matching dimension in grouping.recordGroups.
+  """
+  RECORD_GROUP
+
+  """
+  The study each record belongs to.
+  
+  Requires no configuration. When used, study becomes part of
+  observation identity, so records of a unit in different studies
+  form distinct observations.
+  """
+  STUDY
+}
+
+"""Determines how records are assigned to time bins."""
+enum TimeAssignment {
+  """
+  Assign a record according to its start time.
+  
+  If no start is found for the record, use its end time.
+  """
+  START
+
+  """
+  Assign a record according to its end time.
+  
+  If no end is found for the record, use its start time.
+  """
+  END
+
+  """
+  Assign the observation to the bin containing the midpoint
+  between its start and end times.
+  
+  If both start and end are not provided, use whichever is
+  provided.
+  """
+  MIDPOINT
+}
+
+"""
+Determines which side of a bin boundary receives a value equal
+to the boundary.
+"""
+enum BinningBoundary {
+  """
+  A value equal to the boundary is assigned to the bin on the
+  lower-value side of the boundary.
+  """
+  LEFT
+
+  """
+  A value equal to the boundary is assigned to the bin on the
+  higher-value side of the boundary.
+  """
+  RIGHT
+}
+
+"""Distance metric used to calculate dissimilarities for MDS."""
+enum DistanceMetric {
+  EUCLIDEAN
+  MANHATTAN
+  MINKOWSKI
+}
+
+"""Correlation method used to calculate a correlation matrix."""
+enum CorrelationMethod {
+  PEARSON
+  SPEARMAN
+  KENDALL
+}
+
+"""Method used to detect potential outliers."""
+enum OutlierDetectionMethod {
+  Z_SCORE
+  IQR
+  MAHALANOBIS
+}
+
+"""Clustering methods supported for MDS observations."""
+enum ClusteringMethod {
+  KMEANS
+  HIERARCHICAL
+}
+
+"""Type of sums of squares used for ANOVA tables."""
+enum SumOfSquaresType {
+  TYPE_II
+
+  """Uses sum-to-zero contrasts."""
+  TYPE_III
+}
+
+"""Method for denominator degrees of freedom in mixed models."""
+enum DdfMethod {
+  SATTERTHWAITE
+  KENWARD_ROGER
+}
+
+"""Contrasts between estimated marginal means."""
+enum EstimatedMeansContrast {
+  """All pairwise comparisons."""
+  PAIRWISE
+
+  """Comparisons of each level against a control level."""
+  TRT_VS_CTRL
+
+  """Means only."""
+  NONE
+}
+
+"""Adjustment of p values for multiple comparisons."""
+enum PValueAdjustment {
+  TUKEY
+  BONFERRONI
+  HOLM
+  SIDAK
+  NONE
+}
+
+"""
+Defines estimated marginal means (least-squares means) and their contrasts.
+"""
+input EstimatedMeansInput {
+  """Model terms for which means are estimated."""
+  terms: [AnalysisTermReferenceInput!]!
+
+  """Model terms conditioning the estimates, for simple effects."""
+  by: [AnalysisTermReferenceInput!]
+
+  """Contrasts between the estimated means. NONE returns means only."""
+  contrast: EstimatedMeansContrast = PAIRWISE
+
+  """Level of the control, required for TRT_VS_CTRL."""
+  control: String
+
+  """Adjustment of p values for multiple comparisons."""
+  adjustment: PValueAdjustment = TUKEY
+}
+
+"""
+Defines an analysis to be submitted for execution.
+
+Analysis configurations are validated by the server according
+to analysisType.
+"""
 input AnalysisInput {
-  """Optional name for this analysis"""
+  """Type of analysis to perform."""
+  analysisType: AnalysisType!
+
+  """Optional name for the analysis."""
   name: String
 
-  """Dataset IDs to include in analysis"""
+  """Datasets whose records are included in the analysis."""
   datasetIds: [ID!]!
 
-  """The dependent (response) variable"""
-  dependentVariable: AnalysisVariableInput!
+  """
+  Rules for excluding records from the analysis.
+  
+  A record is excluded if it matches any rule.
+  """
+  exclusions: [AnalysisExclusionInput!]
 
-  """Independent (predictor) variables"""
-  independentVariables: [AnalysisVariableInput!]!
+  """ANOVA configuration."""
+  anova: AnovaInput
 
-  """Interaction terms between independent variables"""
-  interactionTerms: [InteractionTermInput!]
+  """MDS configuration."""
+  mds: MDSInput
 
-  """Timepoint boundaries for binning (partial datetime strings)"""
-  timepointBoundaries: [DateTime!]
+  """Correlation configuration."""
+  correlation: CorrelationInput
+
+  """Descriptive statistics configuration."""
+  descriptiveStatistics: DescriptiveStatisticsInput
+
+  """Outlier detection configuration."""
+  outlierDetection: OutlierDetectionInput
+}
+
+"""
+A rule for excluding records from an analysis.
+
+A record matches the rule when it matches ALL provided criteria.
+Within a list criterion, a record matches when ANY element matches.
+At least one criterion is required.
+
+Matching is exact: excluding a germplasm does not exclude its
+descendants, and excluding a unit does not exclude its children.
+"""
+input AnalysisExclusionInput {
+  """IDs of records to exclude."""
+  recordIds: [ID!]
+
+  """IDs of the base units of records to exclude."""
+  unitIds: [ID!]
+
+  """IDs of the germplasm of the base units of records to exclude."""
+  germplasmIds: [ID!]
+
+  """IDs of the studies of records to exclude."""
+  studyIds: [ID!]
+
+  """
+  Positions of the base units of records to exclude.
+  
+  Evaluated against the unit position history only: a record matches
+  when any position interval of its unit matching a criterion overlaps
+  [start, end], regardless of the record time.
+  """
+  positions: [PositionExclusionInput!]
+
+  """Record group codes of records to exclude."""
+  recordGroups: [RecordGroupMemberInput!]
+
+  """
+  Inclusive start of the rule (ISO 8601). Null means unbounded.
+  
+  For record criteria, a record matches when its start/end overlaps
+  [start, end]. A record with no time never matches a time-bounded rule.
+  """
+  start: DateTime
+
+  """Exclusive end of the rule (ISO 8601). Null means unbounded."""
+  end: DateTime
+}
+
+"""A position criterion of an exclusion rule."""
+input PositionExclusionInput {
+  """ID of the Location in the Region hierarchy."""
+  locationId: ID!
+
+  """
+  ID of the Layout in the Arrangement hierarchy.
+  
+  When null, any position at the location matches.
+  """
+  layoutId: ID
+
+  """
+  Axis values to match.
+  
+  When null, any position in the layout matches.
+  Otherwise only the given axes are matched.
+  """
+  axes: [AxisValueInput!]
+}
+
+"""The value of a layout axis."""
+input AxisValueInput {
+  """Index of the axis in the layout."""
+  index: Int!
+
+  """Value of the coordinate on the axis."""
+  value: String!
+}
+
+"""
+Configuration for analysis of variance.
+
+The supplied terms define the variables available to the analysis.
+Grouping defines the analytical observations on which the model operates.
+
+Models with only fixed effects are fitted as linear models. Models with
+any RANDOM term are fitted as linear mixed models; crossed random effects
+are supported.
+"""
+input AnovaInput {
+  """
+  Terms used by the analysis.
+  
+  Includes the response term.
+  """
+  terms: [AnalysisTermInput!]!
+
+  """
+  The response term.
+  
+  Must reference a CONCEPT term in terms, represented as CONTINUOUS,
+  with no effect.
+  """
+  response: AnalysisTermReferenceInput!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGroupingInput
+
+  """Interactions between analysis terms."""
+  interactions: [InteractionTermInput!]
+
+  """Significance level used for hypothesis testing."""
+  alpha: Float = 0.05
+
+  """Type of sums of squares. Type III uses sum-to-zero contrasts."""
+  sumOfSquares: SumOfSquaresType = TYPE_III
+
+  """Denominator degrees of freedom method for mixed models."""
+  ddf: DdfMethod = SATTERTHWAITE
+
+  """Optional estimated marginal means and contrasts."""
+  estimatedMeans: [EstimatedMeansInput!]
+}
+
+"""
+Configuration for correlation analysis.
+
+A correlation matrix is calculated for the supplied terms across
+the analytical observations defined by grouping.
+"""
+input CorrelationInput {
+  """Terms included in the correlation matrix."""
+  terms: [AnalysisTermInput!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGroupingInput
+
+  """Correlation method."""
+  method: CorrelationMethod!
+}
+
+"""Configuration for descriptive statistics."""
+input DescriptiveStatisticsInput {
+  """Terms for which descriptive statistics are calculated."""
+  terms: [AnalysisTermInput!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGroupingInput
+
+  """
+  Optional interactions between analysis terms when model-dependent
+  statistics are requested.
+  """
+  interactions: [InteractionTermInput!]
+
+  """Optional estimated marginal means (least-squares means)."""
+  estimatedMeans: [EstimatedMeansInput!]
+}
+
+"""Configuration for multidimensional scaling."""
+input MDSInput {
+  """Data used to construct analytical observations."""
+  terms: [AnalysisTermInput!]!
+
+  """ Dimensions used to construct analytical observations. """
+  grouping: AnalysisGroupingInput
+
+  """Distance metric used to calculate dissimilarity."""
+  distance: DistanceMetric!
+
+  """Number of dimensions to produce."""
+  dimensions: Int = 2
+
+  """
+  Optional clustering performed using the same analytical
+  observations represented by the MDS analysis.
+  """
+  clustering: MDSClusteringInput
+}
+
+"""
+Optional clustering of the analytical observations represented
+by an MDS analysis.
+
+Clustering operates on the same analytical observations used
+to calculate the MDS representation.
+"""
+input MDSClusteringInput {
+  """Clustering method."""
+  method: ClusteringMethod!
+
+  """Number of clusters when required by the selected method."""
+  clusters: Int
+}
+
+"""
+Configuration for outlier detection.
+
+Outlier detection identifies observations that may be excluded from
+subsequent analyses.
+"""
+input OutlierDetectionInput {
+  """Terms used to identify potential outliers."""
+  terms: [AnalysisTermInput!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGroupingInput
+
+  """Method used to identify potential outliers."""
+  method: OutlierDetectionMethod!
+}
+
+"""Identifies a term used by an analysis."""
+input AnalysisTermReferenceInput {
+  """Type of term."""
+  type: AnalysisTermType!
+
+  """Stable concept ID when type is CONCEPT."""
+  conceptId: ID
+
+  """
+  Name of a dimension in grouping.recordGroups when type is RECORD_GROUP.
+  """
+  recordGroupDimension: String
+}
+
+"""
+Defines a term used by an analysis.
+
+A term may represent a concept or a domain dimension such as
+time, germplasm, unit, position, record group or study.
+"""
+input AnalysisTermInput {
+  """Identifies the type and identity of the term."""
+  reference: AnalysisTermReferenceInput!
+
+  """
+  Defines how concept values are represented.
+  
+  Not applicable to domain dimensions.
+  """
+  representation: TermRepresentationType
+
+  """
+  Optional binning applied to the term.
+  
+  Supported for numeric, temporal and duration values where
+  applicable.
+  """
+  binning: BinningInput
+
+  """
+  Explicit ordering of categorical levels.
+  
+  Used when a categorical concept is represented as ORDINAL.
+  """
+  levelOrder: [String!]
+
+  """Transformations applied to the term values, in order."""
+  transformations: [TermTransformation!]
+
+  """
+  Defines how multiple records contributing to an analytical
+  observation are aggregated.
+  """
+  aggregation: TermAggregation
+
+  """Statistical effect of the term when a statistical model is used."""
+  effect: TermEffect
+
+  """Terms whose effects may vary as random slopes for this term."""
+  randomSlopeTerms: [AnalysisTermReferenceInput!]
+}
+
+"""
+Defines an interaction between two or more analysis terms.
+
+Each term may represent a concept or a domain dimension such as
+time, germplasm, unit, position, record group or study.
+"""
+input InteractionTermInput {
+  """
+  Terms participating in the interaction.
+  
+  The server validates that the referenced terms exist in the
+  analysis terms and that the requested interaction is supported
+  by the selected analysis.
+  """
+  terms: [AnalysisTermReferenceInput!]!
 }
 
 input LayoutInput {
@@ -248,7 +1021,12 @@ type Mutation {
     teamId: ID!
   ): BooleanPayload!
 
-  """Submit an analysis request"""
+  """
+  Submit an analysis request.
+  
+  The returned ID can be used with the analysisSubmission query
+  to retrieve the processing status and result.
+  """
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
   arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
@@ -1092,123 +1870,731 @@ type UserDisplay {
   ontologyRoleRequested: OntologyRole
 }
 
-type AnovaRow {
-  """Source of variation (factor name or 'Residual')"""
-  term: String
+type AnalysisSubmission {
+  """Current processing status of the analysis."""
+  status: SubmissionStatus!
 
-  """Sum of squares"""
-  sumSq: Float
+  """Name of the analysis."""
+  name: String
 
-  """Degrees of freedom"""
-  df: Int
+  """Type of analysis."""
+  analysisType: AnalysisType!
 
-  """F statistic"""
-  fValue: Float
+  """Datasets whose records are included in the analysis."""
+  datasetIds: [ID!]!
 
-  """Wald statistic"""
-  wald: Float
+  """Rules used to exclude records from the analysis."""
+  exclusions: [AnalysisExclusion!]!
 
-  """p-value"""
-  pValue: Float
+  """Configuration used to execute the analysis."""
+  config: AnalysisConfig!
+
+  """
+  Result produced by the analysis.
+  
+  Available when the analysis has completed successfully.
+  """
+  result: AnalysisResult
+
+  """Errors encountered while processing the analysis."""
+  errors: [AnalysisError!]!
+
+  """Warnings encountered while processing the analysis."""
+  warnings: [AnalysisWarning!]!
 }
 
-type FactorLevel {
-  label: String!
+type Binning {
+  """Boundary values separating bins."""
+  boundaries: [String!]!
+
+  """Determines which adjacent bin receives a boundary value."""
+  boundary: BinningBoundary!
+
+  """Labels assigned to the resulting bins."""
+  labels: [String!]
+}
+
+union AnalysisConfig = AnovaConfig | MDSConfig | CorrelationConfig | DescriptiveStatisticsConfig | OutlierDetectionConfig
+
+type AnalysisError {
+  """Machine-readable error code."""
+  code: String!
+
+  """Human-readable error message."""
+  message: String!
+
+  """
+  Path to the affected configuration value,
+  when applicable.
+  """
+  path: [String!]
+
+  """Records causing the error, e.g. records with duplicate observations."""
+  recordIds: [ID!]
+}
+
+type AnalysisWarning {
+  """Machine-readable warning code."""
+  code: String!
+
+  """Human-readable warning message."""
+  message: String!
+
+  """
+  Path to the affected configuration value,
+  when applicable.
+  """
+  path: [String!]
+
+  """
+  Records affected by the warning, e.g. records excluded because
+  they could not be assigned to a configured dimension.
+  
+  These IDs can be supplied as exclusions to a subsequent analysis.
+  """
+  recordIds: [ID!]
+}
+
+"""Estimated marginal means requested for an analysis."""
+type EstimatedMeansConfig {
+  terms: [AnalysisTermReference!]!
+  by: [AnalysisTermReference!]!
+  contrast: EstimatedMeansContrast!
+  control: String
+  adjustment: PValueAdjustment!
+}
+
+"""Estimated marginal means (least-squares means) and their contrasts."""
+type EstimatedMeansResult {
+  """Response term of the model."""
+  response: AnalysisTermReference
+
+  """Model terms for which means were estimated."""
+  terms: [AnalysisTermReference!]!
+
+  """Model terms conditioning the estimates."""
+  by: [AnalysisTermReference!]!
+
+  """Contrasts calculated between the means."""
+  contrast: EstimatedMeansContrast!
+
+  """Adjustment applied to p values."""
+  adjustment: PValueAdjustment!
+
+  """Estimated means."""
+  means: [LSMeanResult!]!
+
+  """Contrasts between the estimated means."""
+  contrasts: [EstimatedMeansContrastResult!]!
+}
+
+"""The level of a term."""
+type AnalysisTermLevel {
+  term: AnalysisTermReference!
+
+  """Level of the term, as represented in the analysis."""
   level: String!
 }
 
-type GroupSummary {
-  """Group identifier"""
-  group: [FactorLevel!]
+"""An estimated marginal mean."""
+type LSMeanResult {
+  """Levels of the terms for which the mean was estimated."""
+  levels: [AnalysisTermLevel!]!
 
-  """Group mean"""
+  """Levels of the conditioning terms."""
+  by: [AnalysisTermLevel!]!
+
+  """Estimated mean."""
   mean: Float
+  standardError: Float
+  degreesOfFreedom: Float
+  lowerConfidenceLimit: Float
+  upperConfidenceLimit: Float
+}
 
-  """Standard deviation"""
-  sd: Float
+"""A contrast between estimated marginal means."""
+type EstimatedMeansContrastResult {
+  """Label of the contrast, e.g. "A - B"."""
+  label: String!
 
-  """Standard error"""
-  se: Float
+  """Levels of the first mean in the contrast."""
+  levelsA: [AnalysisTermLevel!]!
 
-  """Sample size"""
-  n: Int
+  """Levels of the second mean in the contrast."""
+  levelsB: [AnalysisTermLevel!]!
 
-  """Quartile and median for box-plots"""
-  Q1: Float
+  """Levels of the conditioning terms."""
+  by: [AnalysisTermLevel!]!
+
+  """Estimated difference."""
+  estimate: Float
+  standardError: Float
+  degreesOfFreedom: Float
+
+  """Test statistic (t or z ratio)."""
+  statistic: Float
+
+  """Adjusted p value."""
+  pValue: Float
+  lowerConfidenceLimit: Float
+  upperConfidenceLimit: Float
+
+  """Whether the contrast is significant at the analysis alpha."""
+  significant: Boolean
+}
+
+"""
+A rule for excluding records from an analysis.
+
+Mirrors AnalysisExclusionInput, so it can be supplied as an
+exclusion to a subsequent analysis.
+"""
+type AnalysisExclusion {
+  recordIds: [ID!]
+  unitIds: [ID!]
+  germplasmIds: [ID!]
+  studyIds: [ID!]
+  positions: [PositionExclusion!]
+  recordGroups: [AnalysisRecordGroupMember!]
+
+  """Inclusive start of the rule. Null means unbounded."""
+  start: DateTime
+
+  """Exclusive end of the rule. Null means unbounded."""
+  end: DateTime
+}
+
+"""A position criterion of an exclusion rule."""
+type PositionExclusion {
+  locationId: ID!
+  layoutId: ID
+  axes: [AxisValue!]
+}
+
+"""The value of a layout axis."""
+type AxisValue {
+  index: Int!
+  value: String!
+}
+
+"""
+Grouping configuration used to construct analytical observations.
+
+Grouping defines the statistical unit represented by each observation.
+"""
+type AnalysisGrouping {
+  """Time grouping used to construct analytical observations."""
+  time: TimeGrouping
+
+  """Germplasm grouping used to construct analytical observations."""
+  germplasm: GermplasmGrouping
+
+  """Unit grouping used to construct analytical observations."""
+  unit: UnitGrouping
+
+  """Position grouping used to construct analytical observations."""
+  position: PositionGrouping
+
+  """Record group dimensions used to construct analytical observations."""
+  recordGroups: [AnalysisRecordGroupDimension!]!
+}
+
+type TimeGrouping {
+  """Binning configuration applied to record start/end times."""
+  binning: Binning!
+
+  """Determines how records are assigned to time bins."""
+  assignment: TimeAssignment!
+}
+
+type GermplasmGrouping {
+  """
+  Germplasm IDs defining the grouping levels.
+  
+  Germplasm hierarchy is traversed to assign each unit to
+  the appropriate grouping level.
+  """
+  germplasmIds: [ID!]!
+}
+
+type UnitGrouping {
+  """
+  Parent unit IDs defining the grouping levels.
+  
+  Unit hierarchy is traversed to assign each unit to the
+  appropriate grouping level.
+  """
+  unitIds: [ID!]!
+}
+
+type PositionGrouping {
+  """ID of the Location in the Region hierarchy."""
+  locationId: ID!
+
+  """ID of the Layout in the Arrangement hierarchy."""
+  layoutId: ID
+
+  """Layout axes used to define position groups."""
+  axisIndexes: [Int!]
+
+  """Explicit positions defining groups."""
+  positions: [Position!]!
+
+  """
+  Time at which positions are evaluated.
+  
+  When null, a unit is grouped according to whether it occupies
+  the specified position at any time.
+  """
+  time: DateTime
+}
+
+"""A record group dimension as applied by an analysis."""
+type AnalysisRecordGroupDimension {
+  """Name of the dimension."""
+  name: String!
+
+  """Record groupings contributing to the dimension."""
+  groupings: [AnalysisRecordGrouping!]!
+
+  """Shared levels combining codes across groupings or scopes."""
+  levels: [AnalysisRecordGroupLevel!]!
+}
+
+"""A record grouping contributing to a record group dimension."""
+type AnalysisRecordGrouping {
+  """ID of the record grouping."""
+  groupingId: ID!
+
+  """ID of the study the grouping belongs to."""
+  studyId: ID
+}
+
+"""A level shared by codes from one or more record groupings."""
+type AnalysisRecordGroupLevel {
+  label: String!
+  members: [AnalysisRecordGroupMember!]!
+}
+
+type AnalysisRecordGroupMember {
+  groupingId: ID!
+  code: String!
+
+  """
+  Dataset identifying the scope of the code, for dataset-scoped groupings.
+  """
+  datasetId: ID
+}
+
+union AnalysisResult = AnovaResult | MDSResult | CorrelationResult | DescriptiveStatisticsResult | OutlierDetectionResult
+
+type AnovaConfig {
+  """Terms used by the analysis."""
+  terms: [AnalysisTerm!]!
+
+  """The response term."""
+  response: AnalysisTermReference!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGrouping
+
+  """Interactions between analysis terms."""
+  interactions: [InteractionTerm!]!
+
+  """Significance level used for hypothesis testing."""
+  alpha: Float!
+
+  """Type of sums of squares."""
+  sumOfSquares: SumOfSquaresType!
+
+  """Denominator degrees of freedom method for mixed models."""
+  ddf: DdfMethod!
+
+  """Estimated marginal means and contrasts."""
+  estimatedMeans: [EstimatedMeansConfig!]!
+}
+
+type AnovaResult {
+  """ID of the analysis that produced the result."""
+  analysisId: ID!
+
+  """Results for individual model terms."""
+  terms: [AnovaTermResult!]!
+
+  """Results for model interactions."""
+  interactions: [AnovaInteractionResult!]!
+
+  """Variance components of random effects, for mixed models."""
+  randomEffects: [VarianceComponentResult!]!
+
+  """Estimated marginal means and contrasts when requested."""
+  estimatedMeans: [EstimatedMeansResult!]!
+
+  """Residual/error statistics for the fitted model."""
+  residual: AnovaResidualResult
+}
+
+"""Variance component of a random effect."""
+type VarianceComponentResult {
+  """Grouping term of the random effect."""
+  group: AnalysisTermReference!
+
+  """Term of a random slope. Null for random intercepts."""
+  slope: AnalysisTermReference
+
+  """Estimated variance."""
+  variance: Float
+
+  """Estimated standard deviation."""
+  standardDeviation: Float
+}
+
+type AnovaResidualResult {
+  """Degrees of freedom for the residual error."""
+  degreesOfFreedom: Float
+
+  """Residual sum of squares."""
+  sumOfSquares: Float
+
+  """Residual mean square."""
+  meanSquare: Float
+}
+
+type AnovaTermResult {
+  """Term represented by this result."""
+  term: AnalysisTermReference!
+
+  """Degrees of freedom."""
+  degreesOfFreedom: Float
+
+  """Denominator degrees of freedom, for mixed models."""
+  denominatorDegreesOfFreedom: Float
+
+  """Sum of squares."""
+  sumOfSquares: Float
+
+  """Mean square."""
+  meanSquare: Float
+
+  """F statistic."""
+  fStatistic: Float
+
+  """P value."""
+  pValue: Float
+}
+
+type AnovaInteractionResult {
+  """Terms participating in the interaction."""
+  terms: [AnalysisTermReference!]!
+
+  """Degrees of freedom."""
+  degreesOfFreedom: Float
+
+  """Denominator degrees of freedom, for mixed models."""
+  denominatorDegreesOfFreedom: Float
+
+  """Sum of squares."""
+  sumOfSquares: Float
+
+  """Mean square."""
+  meanSquare: Float
+
+  """F statistic."""
+  fStatistic: Float
+
+  """P value."""
+  pValue: Float
+}
+
+type CorrelationConfig {
+  """Terms included in the correlation matrix."""
+  terms: [AnalysisTerm!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGrouping
+
+  """Correlation method."""
+  method: CorrelationMethod!
+}
+
+type CorrelationResult {
+  """ID of the analysis that produced the result."""
+  analysisId: ID!
+
+  """Terms included in the correlation matrix."""
+  terms: [AnalysisTermReference!]!
+
+  """Correlation matrix."""
+  matrix: [CorrelationMatrixRow!]!
+}
+
+type CorrelationMatrixRow {
+  """Term represented by this row."""
+  term: AnalysisTermReference!
+
+  """
+  Correlation values corresponding to the ordered term list.
+  Null where too few observations have values for both terms.
+  """
+  values: [Float]!
+}
+
+type DescriptiveStatisticsConfig {
+  """Terms for which descriptive statistics are calculated."""
+  terms: [AnalysisTerm!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGrouping
+
+  """
+  Interactions between terms used when calculating
+  model-dependent statistics such as least-squares means.
+  """
+  interactions: [InteractionTerm!]!
+
+  """Estimated marginal means requested."""
+  estimatedMeans: [EstimatedMeansConfig!]!
+}
+
+type DescriptiveStatisticsResult {
+  """ID of the analysis that produced the result."""
+  analysisId: ID!
+
+  """Descriptive statistics calculated for the requested terms."""
+  terms: [DescriptiveTermResult!]!
+
+  """Estimated marginal means (least-squares means) when requested."""
+  estimatedMeans: [EstimatedMeansResult!]!
+}
+
+type DescriptiveTermResult {
+  """Term for which statistics were calculated."""
+  term: AnalysisTermReference!
+
+  """
+  Levels of the categorical and ordinal terms for which the statistics
+  were calculated. Empty for statistics over all observations.
+  """
+  levels: [AnalysisTermLevel!]!
+
+  """
+  Analytical group represented by this result, when all levels are
+  of domain terms.
+  """
+  group: AnalysisGroup
+
+  """Number of observations."""
+  count: Int!
+
+  """Number of missing observations."""
+  missingCount: Int!
+  mean: Float
+  standardDeviation: Float
+  standardError: Float
   median: Float
-  Q3: Float
+  minimum: Float
+  maximum: Float
+  lowerQuartile: Float
+  upperQuartile: Float
 }
 
-type TukeyRow {
-  group1: [FactorLevel!]
-  group2: [FactorLevel!]
-  qval: Float
-  lower: Float
-  upper: Float
+type AnalysisGroup {
+  """Time grouping represented by this group."""
+  time: String
+
+  """Germplasm grouping represented by this group."""
+  germplasmId: ID
+
+  """Unit grouping represented by this group."""
+  unitId: ID
+
+  """Position represented by this group."""
+  position: Position
+
+  """Study represented by this group, when a STUDY term is used."""
+  studyId: ID
+
+  """Record group levels represented by this group."""
+  recordGroups: [AnalysisRecordGroupAssignment!]!
 }
 
-type AnalysisResult {
-  """Analysis configuration that was submitted"""
-  config: AnalysisConfig
+"""The level of a record group dimension represented by a group."""
+type AnalysisRecordGroupAssignment {
+  """Name of the dimension."""
+  dimension: String!
 
-  """ANOVA table"""
-  anova: [AnovaRow!]
+  """
+  Identifier of the level, unique within the dimension.
+  
+  The label of a shared level, otherwise an identifier
+  composed of grouping, scope and code.
+  """
+  level: String!
 
-  """Group details for visualization"""
-  group: [GroupSummary!]
+  """Whether the level is a shared level."""
+  shared: Boolean!
 
-  """Tukey HSD results across groups"""
-  tukey: [TukeyRow!]
+  """Grouping of a nested level."""
+  groupingId: ID
+
+  """
+  Datasets of the scope of a nested level.
+  
+  Null for study-wide groupings and shared levels.
+  """
+  scopeDatasetIds: [ID!]
+
+  """Code of a nested level."""
+  code: String
 }
 
-type AnalysisVariable {
-  """Type of variable: concept from dataset, germplasm, or timepoint"""
-  type: VariableType!
+type MDSConfig {
+  """Terms used to calculate distances between analytical observations."""
+  terms: [AnalysisTerm!]!
 
-  """Concept ID (provided when type is CONCEPT)"""
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGrouping
+
+  """Distance metric used to calculate dissimilarity."""
+  distance: DistanceMetric!
+
+  """Number of dimensions in the MDS representation."""
+  dimensions: Int!
+
+  """Optional clustering of the analytical observations."""
+  clustering: MDSClusteringConfig
+}
+
+type MDSClusteringConfig {
+  """Clustering method."""
+  method: ClusteringMethod!
+
+  """Number of clusters when required by the selected method."""
+  clusters: Int
+}
+
+type MDSResult {
+  """ID of the analysis that produced the result."""
+  analysisId: ID!
+
+  """Analytical observations represented in MDS space."""
+  observations: [MDSObservation!]!
+}
+
+type MDSObservation {
+  """Group represented by the analytical observation."""
+  group: AnalysisGroup!
+
+  """Record IDs contributing to the observation."""
+  recordIds: [ID!]!
+
+  """Coordinates in MDS space."""
+  coordinates: [Float!]!
+
+  """Cluster assigned to this observation when clustering was requested."""
+  clusterId: ID
+}
+
+type OutlierDetectionConfig {
+  """Terms used to identify potential outliers."""
+  terms: [AnalysisTerm!]!
+
+  """Dimensions used to construct analytical observations."""
+  grouping: AnalysisGrouping
+
+  """Method used to identify potential outliers."""
+  method: OutlierDetectionMethod!
+}
+
+type OutlierDetectionResult {
+  """ID of the analysis that produced the result."""
+  analysisId: ID!
+
+  """Detected potential outliers."""
+  outliers: [OutlierResult!]!
+}
+
+type OutlierResult {
+  """Analytical observation identified as a potential outlier."""
+  observation: AnalysisGroup!
+
+  """
+  A rule excluding the records of the observation, which can be
+  supplied as an exclusion to a subsequent analysis.
+  
+  Built from the contributing base units, the time bin and
+  the record group members of the observation.
+  """
+  exclusion: AnalysisExclusion!
+
+  """
+  Term for which the observation was identified as an outlier.
+  Null for multivariate methods.
+  """
+  term: AnalysisTermReference
+
+  """Value associated with the observation."""
+  value: Float
+
+  """Score or statistic used to identify the outlier."""
+  score: Float
+}
+
+"""
+A resolved analysis term.
+
+A term may represent a concept or a domain dimension such as
+time, germplasm, unit, position, record group or study.
+"""
+type AnalysisTerm {
+  """Identifies the term."""
+  reference: AnalysisTermReference!
+
+  """Representation used for the term, where applicable."""
+  representation: TermRepresentationType
+
+  """Binning applied to the term."""
+  binning: Binning
+
+  """Explicit ordering of categorical or ordinal levels."""
+  levelOrder: [String!]
+
+  """Transformations applied to the term."""
+  transformations: [TermTransformation!]!
+
+  """
+  Aggregation applied when multiple records contribute
+  to an analytical observation.
+  """
+  aggregation: TermAggregation
+
+  """Statistical effect of the term when a statistical model is used."""
+  effect: TermEffect
+
+  """Terms whose effects may vary as random slopes for this term."""
+  randomSlopeTerms: [AnalysisTermReference!]
+}
+
+"""
+Identifies a term used by an analysis.
+
+Concept terms are identified by conceptId, record group terms by
+their dimension. Other domain terms are identified by their type.
+"""
+type AnalysisTermReference {
+  """Type of term."""
+  type: AnalysisTermType!
+
+  """Stable concept ID when the term represents a concept."""
   conceptId: ID
 
-  """Human-readable label for the variable"""
-  label: String!
+  """Record group dimension when the term represents a record group."""
+  recordGroupDimension: AnalysisRecordGroupDimension
 }
 
 type InteractionTerm {
-  """Index of first variable in independentVariables array"""
-  var1Index: Int!
-
-  """Index of second variable in independentVariables array"""
-  var2Index: Int!
-}
-
-type AnalysisConfig {
-  """Dataset IDs included in analysis"""
-  datasetIds: [ID!]!
-
-  """The dependent (response) variable"""
-  dependentVariable: AnalysisVariable!
-
-  """Independent (predictor) variables"""
-  independentVariables: [AnalysisVariable!]!
-
-  """Interaction terms between independent variables"""
-  interactionTerms: [InteractionTerm!]
-
-  """Timepoint boundaries for binning (partial datetime strings)"""
-  timepointBoundaries: [DateTime!]
-
-  """Optional name for this analysis"""
-  name: String
-}
-
-type AnalysisSubmission {
-  """Current processing status"""
-  status: SubmissionStatus!
-
-  """Analysis results (available when COMPLETED)"""
-  result: AnalysisResult
-
-  """Error messages (if FAILED)"""
-  errors: [String!]
+  """Terms participating in the interaction."""
+  terms: [AnalysisTermReference!]!
 }
 
 type Layout {
@@ -1296,7 +2682,7 @@ type Controller {
 }
 
 type RecordGroup {
-  name: String!
+  id: ID!
   code: String!
 }
 
@@ -1313,6 +2699,7 @@ type Record {
 
 type Dataset {
   id: ID!
+  studyId: ID!
   concept: OntologyNodeInterface!
   records: [Record]
   contributors: [Person]
@@ -1338,6 +2725,7 @@ type SubmittedData {
 
 enum SubmissionStatus {
   PENDING
+  QUEUED
   PROCESSING
   COMPLETED
   FAILED
@@ -2326,6 +3714,9 @@ enum QueryStatus {
 type Error {
   name: String
   message: String
+
+  """Path of the input field the error relates to, when applicable."""
+  path: [String!]
 }
 
 type StatusPayload {
@@ -2545,13 +3936,19 @@ type GermplasmEntriesPayload {
 
 type AnalysisSubmissionIdPayload {
   status: QueryStatus!
-  result: String
+  result: ID
+  errors: [Error!]
+}
+
+type AnalysisSubmissionIdsPayload {
+  status: QueryStatus!
+  result: [ID!]
   errors: [Error!]
 }
 
 type AnalysisSubmissionPayload {
   status: QueryStatus!
-  result: AnalysisSubmission!
+  result: AnalysisSubmission
   errors: [Error!]
 }
 
@@ -2782,6 +4179,10 @@ type Query {
 
   """ Get analysis status and results """
   analysisSubmission(id: ID!): AnalysisSubmissionPayload!
+
+  """ Get the IDs of the user's analysis submissions that have not expired, most recently updated first 
+  """
+  analysisRecentSubmissions: AnalysisSubmissionIdsPayload!
 }
 
 interface ReferenceInterface {

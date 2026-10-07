@@ -107,6 +107,20 @@
     "ExternalDataReference",
     "DataFileReference"
   ],
+  "AnalysisConfig": [
+    "AnovaConfig",
+    "MDSConfig",
+    "CorrelationConfig",
+    "DescriptiveStatisticsConfig",
+    "OutlierDetectionConfig"
+  ],
+  "AnalysisResult": [
+    "AnovaResult",
+    "MDSResult",
+    "CorrelationResult",
+    "DescriptiveStatisticsResult",
+    "OutlierDetectionResult"
+  ],
   "OntologyEntryUnion": [
     "Term",
     "Subject",

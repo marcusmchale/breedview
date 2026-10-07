@@ -1,0 +1,10 @@
+query AnalysisRecentSubmissions {
+  analysisRecentSubmissions {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

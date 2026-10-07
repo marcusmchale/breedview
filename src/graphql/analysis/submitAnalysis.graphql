@@ -5,6 +5,7 @@ mutation SubmitAnalysis($analysis: AnalysisInput!) {
     errors {
       name
       message
+      path
     }
   }
 }

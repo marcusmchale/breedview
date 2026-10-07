@@ -14,6 +14,7 @@ import UPDATE_FACTOR from '../../graphql/ontology/updateFactor.graphql'
 import UPDATE_EVENT from '../../graphql/ontology/updateEvent.graphql'
 import UPDATE_LOCATION_TYPE from '../../graphql/ontology/updateLocationType.graphql'
 import UPDATE_DESIGN from '../../graphql/ontology/updateDesign.graphql'
+import UPDATE_RECORD_GROUP_TYPE from '../../graphql/ontology/updateRecordGroupType.graphql'
 import UPDATE_LAYOUT_TYPE from '../../graphql/ontology/updateLayoutType.graphql'
 
 // Helper functions

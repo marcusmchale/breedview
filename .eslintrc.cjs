@@ -14,8 +14,8 @@ module.exports = {
     sourceType: 'module'
   },
   rules: {
-    'no-console': import.meta.env?.PROD ? 'warn' : 'off',
-    'no-debugger': import.meta.env?.PROD ? 'warn' : 'off',
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
   },
   settings: {
     'import/resolver': {

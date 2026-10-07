@@ -4,6 +4,7 @@
 @import './badges.css';
 @import './forms.css';
 @import './layout.css';
+@import './analysis.css';
 
 /* CSS Variables for consistent theming */
 :root {

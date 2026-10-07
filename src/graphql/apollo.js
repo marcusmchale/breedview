@@ -118,7 +118,10 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Category', 'scales'),
     ...createReplaceOnMergePolicy('Term', 'subjects'),
      // disable cache for RecordGroup as id is not unique per RecordGroup, it is the id of the grouping
-    RecordGroup: { keyFields: false }
+    RecordGroup: { keyFields: false },
+    // analysis submissions have no id; merge so summary and full queries of the same submission coexist
+    AnalysisSubmissionPayload: { merge: true },
+    AnalysisSubmission: { merge: true }
   }
 })
 

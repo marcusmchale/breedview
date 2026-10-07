@@ -1,0 +1,311 @@
+/* Shared styles for the analysis workspace (components/analysis) */
+
+.analysis-workspace {
+  --an-border: #e5e7eb;
+  --an-muted: #6b7280;
+  --an-text: #1f2937;
+  --an-accent: #2563eb;
+  --an-accent-soft: #eff6ff;
+  --an-error: #b91c1c;
+  --an-error-soft: #fef2f2;
+  --an-warning: #92400e;
+  --an-warning-soft: #fffbeb;
+  --an-success: #166534;
+  color: var(--an-text);
+}
+
+.analysis-workspace .panel {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.analysis-workspace .section {
+  padding: 20px;
+  border-bottom: 1px solid var(--an-border);
+  scroll-margin-top: 60px;
+}
+
+.analysis-workspace .section:last-child {
+  border-bottom: none;
+}
+
+.analysis-workspace .section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px;
+}
+
+.analysis-workspace .subsection-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+
+.analysis-workspace .hint {
+  color: var(--an-muted);
+  font-size: 0.8rem;
+  margin: 4px 0 0;
+}
+
+.analysis-workspace .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.analysis-workspace .field > label,
+.analysis-workspace .field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.analysis-workspace .field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.analysis-workspace .field-row > .field {
+  flex: 1 1 180px;
+}
+
+.analysis-workspace input[type='text'],
+.analysis-workspace input[type='number'],
+.analysis-workspace input[type='datetime-local'],
+.analysis-workspace select,
+.analysis-workspace textarea {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  color: inherit;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.analysis-workspace .has-error > input,
+.analysis-workspace .has-error > select,
+.analysis-workspace .has-error > textarea,
+.analysis-workspace .has-error.box {
+  border-color: var(--an-error);
+}
+
+.analysis-workspace .box {
+  border: 1px solid var(--an-border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #fafafa;
+}
+
+.analysis-workspace .box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.analysis-workspace .box-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.analysis-workspace .chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.analysis-workspace .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e5e7eb;
+  font-size: 0.8rem;
+  border: 1px solid transparent;
+  cursor: default;
+  line-height: 1.5;
+}
+
+.analysis-workspace button.chip {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.analysis-workspace .chip.selected {
+  background: var(--an-accent-soft);
+  border-color: var(--an-accent);
+  color: var(--an-accent);
+}
+
+.analysis-workspace .chip .chip-remove {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--an-muted);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.analysis-workspace .btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--an-accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.analysis-workspace .btn-link:disabled {
+  color: var(--an-muted);
+  cursor: not-allowed;
+}
+
+.analysis-workspace .btn-link.danger {
+  color: var(--an-error);
+}
+
+.analysis-workspace .btn-outline {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: var(--an-text);
+}
+
+.analysis-workspace .btn-outline:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.analysis-workspace .message {
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  margin: 6px 0;
+}
+
+.analysis-workspace .message.error {
+  background: var(--an-error-soft);
+  color: var(--an-error);
+  border-left: 3px solid var(--an-error);
+}
+
+.analysis-workspace .message.warning {
+  background: var(--an-warning-soft);
+  color: var(--an-warning);
+  border-left: 3px solid #f59e0b;
+}
+
+.analysis-workspace .message.info {
+  background: var(--an-accent-soft);
+  color: #1e40af;
+  border-left: 3px solid var(--an-accent);
+}
+
+/* Result tables */
+.analysis-workspace .table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.analysis-workspace table.result-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.analysis-workspace table.result-table th,
+.analysis-workspace table.result-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--an-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.analysis-workspace table.result-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  position: sticky;
+  top: 0;
+}
+
+.analysis-workspace table.result-table td.num,
+.analysis-workspace table.result-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-workspace table.result-table tr.significant td {
+  background: #f0fdf4;
+}
+
+.analysis-workspace table.result-table tr.overall td {
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.analysis-workspace .muted {
+  color: var(--an-muted);
+}
+
+.analysis-workspace .sig-mark {
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+/* Charts */
+.analysis-workspace .chart-wrapper {
+  position: relative;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.analysis-workspace .chart-wrapper svg {
+  display: block;
+  font-family: inherit;
+}
+
+.analysis-workspace .chart-wrapper .tick {
+  font-size: 11px;
+  fill: #898781;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-workspace .chart-wrapper .axis-label,
+.analysis-workspace .chart-wrapper .facet-label {
+  font-size: 12px;
+  fill: #52514e;
+}
+
+.analysis-workspace .chart-wrapper .facet-label {
+  font-weight: 600;
+}
+
+.analysis-workspace .chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  background: white;
+  border: 1px solid rgba(11, 11, 11, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+  color: #0b0b0b;
+}

@@ -15,7 +15,7 @@ import RegionManagement from '@/components/regions/RegionsManagement.vue'
 import ArrangementManagement from "@/components/arrangements/ArrangementManagement.vue";
 import BlockManagement from '@/components/blocks/BlockManagement.vue'
 import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
-import Analysis from "@/components/analysis/analysis.vue";
+import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 
 const routes = [
   {
@@ -137,7 +137,7 @@ const routes = [
   {
     path: '/analysis',
     name: 'Analysis',
-    component: Analysis,
+    component: AnalysisWorkspace,
     meta: {
       requiresAuth: true,
       title: 'Analysis'

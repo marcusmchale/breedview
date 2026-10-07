@@ -1,0 +1,38 @@
+<script setup>
+import { termKey, toReference } from '@/composables/analysis/useAnalysisForm'
+import { termLabel } from '@/composables/analysis/useAnalysisNames'
+
+/** Toggleable chips selecting term references from a list of terms. */
+const props = defineProps({
+  modelValue: { type: Array, default: () => [] },
+  options: { type: Array, required: true },
+  emptyText: { type: String, default: 'No eligible terms.' }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const isSelected = (ref) => props.modelValue.some((r) => termKey(r) === termKey(ref))
+
+const toggle = (ref) => {
+  const next = isSelected(ref)
+    ? props.modelValue.filter((r) => termKey(r) !== termKey(ref))
+    : [...props.modelValue, toReference(ref)]
+  emit('update:modelValue', next)
+}
+</script>
+
+<template>
+  <div class="chip-list">
+    <button
+      v-for="term in options"
+      :key="termKey(term.reference)"
+      type="button"
+      class="chip"
+      :class="{ selected: isSelected(term.reference) }"
+      @click="toggle(term.reference)"
+    >
+      {{ termLabel(term.reference) }}
+    </button>
+    <span v-if="options.length === 0" class="hint">{{ emptyText }}</span>
+  </div>
+</template>

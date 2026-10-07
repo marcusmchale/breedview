@@ -1,0 +1,18 @@
+query AnalysisSubmissionSummary($analysisId: ID!) {
+  analysisSubmission(id: $analysisId) {
+    status
+    result {
+      status
+      name
+      analysisType
+      datasetIds
+      errors { code message path recordIds }
+      warnings { code message path recordIds }
+    }
+    errors {
+      name
+      message
+      path
+    }
+  }
+}

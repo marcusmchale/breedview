@@ -4,6 +4,7 @@ query Datasets($datasetIds: [ID!], $studyIds: [ID!], $conceptIds: [ID!]) {
     status
     result {
       id
+      studyId
       concept {
         id versionId view
         name

@@ -1,0 +1,291 @@
+fragment AnalysisTermReferenceFields on AnalysisTermReference {
+  type
+  conceptId
+  recordGroupDimension { name }
+}
+
+fragment AnalysisBinningFields on Binning {
+  boundaries
+  boundary
+  labels
+}
+
+fragment AnalysisTermFields on AnalysisTerm {
+  reference { ...AnalysisTermReferenceFields }
+  representation
+  binning { ...AnalysisBinningFields }
+  levelOrder
+  transformations
+  aggregation
+  effect
+  randomSlopeTerms { ...AnalysisTermReferenceFields }
+}
+
+fragment AnalysisRecordGroupMemberFields on AnalysisRecordGroupMember {
+  groupingId
+  code
+  datasetId
+}
+
+fragment AnalysisGroupingFields on AnalysisGrouping {
+  time {
+    assignment
+    binning { ...AnalysisBinningFields }
+  }
+  germplasm { germplasmIds }
+  unit { unitIds }
+  position {
+    locationId
+    layoutId
+    axisIndexes
+    positions {
+      location { id name }
+      layout { id name axes }
+      coordinates
+      start
+      end
+    }
+    time
+  }
+  recordGroups {
+    name
+    groupings { groupingId studyId }
+    levels {
+      label
+      members { ...AnalysisRecordGroupMemberFields }
+    }
+  }
+}
+
+fragment AnalysisExclusionFields on AnalysisExclusion {
+  recordIds
+  unitIds
+  germplasmIds
+  studyIds
+  positions {
+    locationId
+    layoutId
+    axes { index value }
+  }
+  recordGroups { ...AnalysisRecordGroupMemberFields }
+  start
+  end
+}
+
+fragment AnalysisInteractionFields on InteractionTerm {
+  terms { ...AnalysisTermReferenceFields }
+}
+
+fragment AnalysisEstimatedMeansConfigFields on EstimatedMeansConfig {
+  terms { ...AnalysisTermReferenceFields }
+  by { ...AnalysisTermReferenceFields }
+  contrast
+  control
+  adjustment
+}
+
+fragment AnalysisConfigFields on AnalysisConfig {
+  ... on AnovaConfig {
+    terms { ...AnalysisTermFields }
+    response { ...AnalysisTermReferenceFields }
+    grouping { ...AnalysisGroupingFields }
+    interactions { ...AnalysisInteractionFields }
+    alpha
+    sumOfSquares
+    ddf
+    estimatedMeans { ...AnalysisEstimatedMeansConfigFields }
+  }
+  ... on MDSConfig {
+    terms { ...AnalysisTermFields }
+    grouping { ...AnalysisGroupingFields }
+    distance
+    dimensions
+    clustering { method clusters }
+  }
+  ... on CorrelationConfig {
+    terms { ...AnalysisTermFields }
+    grouping { ...AnalysisGroupingFields }
+    correlationMethod: method
+  }
+  ... on DescriptiveStatisticsConfig {
+    terms { ...AnalysisTermFields }
+    grouping { ...AnalysisGroupingFields }
+    interactions { ...AnalysisInteractionFields }
+    estimatedMeans { ...AnalysisEstimatedMeansConfigFields }
+  }
+  ... on OutlierDetectionConfig {
+    terms { ...AnalysisTermFields }
+    grouping { ...AnalysisGroupingFields }
+    outlierMethod: method
+  }
+}
+
+fragment AnalysisTermLevelFields on AnalysisTermLevel {
+  term { ...AnalysisTermReferenceFields }
+  level
+}
+
+fragment AnalysisGroupFields on AnalysisGroup {
+  time
+  germplasmId
+  unitId
+  position {
+    location { id name }
+    layout { id name axes }
+    coordinates
+    start
+    end
+  }
+  studyId
+  recordGroups {
+    dimension
+    level
+    shared
+    groupingId
+    scopeDatasetIds
+    code
+  }
+}
+
+fragment AnalysisEstimatedMeansResultFields on EstimatedMeansResult {
+  response { ...AnalysisTermReferenceFields }
+  terms { ...AnalysisTermReferenceFields }
+  by { ...AnalysisTermReferenceFields }
+  contrast
+  adjustment
+  means {
+    levels { ...AnalysisTermLevelFields }
+    by { ...AnalysisTermLevelFields }
+    mean
+    standardError
+    degreesOfFreedom
+    lowerConfidenceLimit
+    upperConfidenceLimit
+  }
+  contrasts {
+    label
+    levelsA { ...AnalysisTermLevelFields }
+    levelsB { ...AnalysisTermLevelFields }
+    by { ...AnalysisTermLevelFields }
+    estimate
+    standardError
+    degreesOfFreedom
+    statistic
+    pValue
+    lowerConfidenceLimit
+    upperConfidenceLimit
+    significant
+  }
+}
+
+fragment AnalysisAnovaStatisticFields on AnovaTermResult {
+  degreesOfFreedom
+  denominatorDegreesOfFreedom
+  sumOfSquares
+  meanSquare
+  fStatistic
+  pValue
+}
+
+fragment AnalysisResultFields on AnalysisResult {
+  ... on AnovaResult {
+    analysisId
+    terms {
+      term { ...AnalysisTermReferenceFields }
+      ...AnalysisAnovaStatisticFields
+    }
+    interactions {
+      terms { ...AnalysisTermReferenceFields }
+      degreesOfFreedom
+      denominatorDegreesOfFreedom
+      sumOfSquares
+      meanSquare
+      fStatistic
+      pValue
+    }
+    randomEffects {
+      group { ...AnalysisTermReferenceFields }
+      slope { ...AnalysisTermReferenceFields }
+      variance
+      standardDeviation
+    }
+    estimatedMeans { ...AnalysisEstimatedMeansResultFields }
+    residual {
+      degreesOfFreedom
+      sumOfSquares
+      meanSquare
+    }
+  }
+  ... on MDSResult {
+    analysisId
+    observations {
+      group { ...AnalysisGroupFields }
+      recordIds
+      coordinates
+      clusterId
+    }
+  }
+  ... on CorrelationResult {
+    analysisId
+    terms { ...AnalysisTermReferenceFields }
+    matrix {
+      term { ...AnalysisTermReferenceFields }
+      values
+    }
+  }
+  ... on DescriptiveStatisticsResult {
+    analysisId
+    terms {
+      term { ...AnalysisTermReferenceFields }
+      levels { ...AnalysisTermLevelFields }
+      group { ...AnalysisGroupFields }
+      count
+      missingCount
+      mean
+      standardDeviation
+      standardError
+      median
+      minimum
+      maximum
+      lowerQuartile
+      upperQuartile
+    }
+    estimatedMeans { ...AnalysisEstimatedMeansResultFields }
+  }
+  ... on OutlierDetectionResult {
+    analysisId
+    outliers {
+      observation { ...AnalysisGroupFields }
+      exclusion { ...AnalysisExclusionFields }
+      term { ...AnalysisTermReferenceFields }
+      value
+      score
+    }
+  }
+}
+
+fragment AnalysisMessageFields on AnalysisError {
+  code
+  message
+  path
+  recordIds
+}
+
+fragment AnalysisWarningFields on AnalysisWarning {
+  code
+  message
+  path
+  recordIds
+}
+
+fragment AnalysisSubmissionFields on AnalysisSubmission {
+  status
+  name
+  analysisType
+  datasetIds
+  exclusions { ...AnalysisExclusionFields }
+  config { ...AnalysisConfigFields }
+  result { ...AnalysisResultFields }
+  errors { ...AnalysisMessageFields }
+  warnings { ...AnalysisWarningFields }
+}

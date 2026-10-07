@@ -1,0 +1,196 @@
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
+import { renameDimensionReferences } from '@/composables/analysis/useAnalysisForm'
+import { datasetName, groupingName, studyName } from '@/composables/analysis/useAnalysisNames'
+import RecordGroupMemberSelect from '@/components/analysis/config/RecordGroupMemberSelect.vue'
+import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
+
+const props = defineProps({
+  index: { type: Number, required: true }
+})
+
+const emit = defineEmits(['remove'])
+
+const { form, data } = useAnalysisEditor()
+
+const dimension = computed(() => form.grouping.recordGroups[props.index])
+const path = computed(() => `grouping.recordGroups.${props.index}`)
+
+/* ---------- name ---------- */
+
+const nameDraft = ref(dimension.value.name)
+watch(() => dimension.value?.name, (name) => (nameDraft.value = name ?? ''))
+
+const nameProblem = computed(() => {
+  const name = nameDraft.value.trim()
+  if (!name) return 'A name is required.'
+  if (name.includes('|')) return 'The name must not contain "|".'
+  if (form.grouping.recordGroups.some((d, i) => i !== props.index && d.name === name)) return 'Names must be unique.'
+  return null
+})
+
+const commitName = () => {
+  const name = nameDraft.value.trim()
+  if (nameProblem.value || name === dimension.value.name) return
+  renameDimensionReferences(form, dimension.value.name, name)
+  dimension.value.name = name
+}
+
+/* ---------- groupings ---------- */
+
+const groupingsByStudy = computed(() => {
+  const out = {}
+  for (const g of data.groupings) (out[g.studyId] ??= []).push(g)
+  return out
+})
+
+const usedElsewhere = computed(
+  () => new Set(form.grouping.recordGroups.filter((_, i) => i !== props.index).flatMap((d) => d.groupingIds))
+)
+
+const isSelected = (id) => dimension.value.groupingIds.includes(id)
+
+// At most one grouping per study, and a grouping belongs to only one dimension
+const isDisabled = (g) => {
+  if (isSelected(g.id)) return false
+  if (usedElsewhere.value.has(g.id)) return true
+  return dimension.value.groupingIds.some((id) => data.groupingsById[id]?.studyId === g.studyId)
+}
+
+const disabledReason = (g) => {
+  if (usedElsewhere.value.has(g.id)) return 'Used by another dimension'
+  if (isDisabled(g)) return 'Another grouping of this study is selected'
+  return ''
+}
+
+const toggleGrouping = (g) => {
+  const d = dimension.value
+  if (isSelected(g.id)) {
+    d.groupingIds = d.groupingIds.filter((id) => id !== g.id)
+    d.levels.forEach((l) => (l.members = l.members.filter((m) => m.groupingId !== g.id)))
+  } else {
+    d.groupingIds = [...d.groupingIds, g.id]
+  }
+}
+
+// Groupings selected in the dimension that aren't in the selected studies (e.g. from a loaded analysis)
+const unknownGroupingIds = computed(() => dimension.value.groupingIds.filter((id) => !data.groupingsById[id]))
+
+const selectedGroupings = computed(() =>
+  dimension.value.groupingIds.map((id) => data.groupingsById[id]).filter(Boolean)
+)
+
+/* ---------- shared levels ---------- */
+
+const addLevel = () => dimension.value.levels.push({ label: '', members: [] })
+const removeLevel = (i) => dimension.value.levels.splice(i, 1)
+const addMember = (level) => level.members.push({ groupingId: selectedGroupings.value[0]?.id ?? null, code: '', datasetId: null })
+const setMember = (level, i, value) => level.members.splice(i, 1, value)
+const removeMember = (level, i) => level.members.splice(i, 1)
+</script>
+
+<template>
+  <div class="box">
+    <div class="box-header">
+      <div class="field name-field">
+        <label>Dimension name</label>
+        <input v-model="nameDraft" type="text" placeholder="e.g. Replicate" @change="commitName" @blur="commitName" />
+        <span v-if="nameProblem" class="hint error-text">{{ nameProblem }}</span>
+        <FieldErrors :path="`${path}.name`" />
+      </div>
+      <button type="button" class="btn-link danger" @click="emit('remove')">Remove dimension</button>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Record groupings</span>
+      <p v-if="data.groupings.length === 0" class="hint">
+        No record groupings are defined for the studies of the selected datasets.
+      </p>
+      <div v-for="(list, studyId) in groupingsByStudy" :key="studyId" class="study-groupings">
+        <span class="muted">{{ studyName(studyId) }}</span>
+        <label v-for="g in list" :key="g.id" class="grouping-option" :title="disabledReason(g)">
+          <input type="checkbox" :checked="isSelected(g.id)" :disabled="isDisabled(g)" @change="toggleGrouping(g)" />
+          {{ g.name }}
+          <span class="muted">{{ g.type?.name }} · {{ g.scope === 'DATASET_SCOPED' ? 'dataset-scoped' : 'study-wide' }}</span>
+        </label>
+      </div>
+      <p v-for="id in unknownGroupingIds" :key="id" class="hint">
+        {{ groupingName(id) }} (from the loaded analysis; select its study to edit it)
+      </p>
+      <FieldErrors :path="`${path}.groupingIds`" prefix />
+    </div>
+
+    <div class="field">
+      <span class="field-label">Shared levels</span>
+      <p class="hint">
+        By default, levels are nested: equal codes in different groupings or scopes are different levels. A shared level
+        merges exactly the codes it lists, e.g. a processing batch spanning studies.
+      </p>
+      <div v-for="(level, li) in dimension.levels" :key="li" class="level">
+        <div class="level-header">
+          <input v-model="level.label" type="text" placeholder="Level label" />
+          <button type="button" class="btn-link danger" @click="removeLevel(li)">Remove level</button>
+        </div>
+        <div v-for="(member, mi) in level.members" :key="mi" class="member-row">
+          <RecordGroupMemberSelect
+            :model-value="member"
+            :groupings="selectedGroupings"
+            :codes-by-grouping="data.codesByGrouping"
+            :dataset-ids="form.datasetIds"
+            @update:model-value="setMember(level, mi, $event)"
+          />
+          <span v-if="member.datasetId" class="muted">{{ datasetName(member.datasetId) }}</span>
+          <button type="button" class="btn-link danger" @click="removeMember(level, mi)">×</button>
+        </div>
+        <button type="button" class="btn-link" :disabled="selectedGroupings.length === 0" @click="addMember(level)">
+          + Add code
+        </button>
+        <FieldErrors :path="`${path}.levels.${li}`" prefix />
+      </div>
+      <button type="button" class="btn-link" @click="addLevel">+ Add shared level</button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.name-field {
+  flex: 1;
+  max-width: 320px;
+  margin-bottom: 0;
+}
+
+.error-text {
+  color: var(--an-error);
+}
+
+.study-groupings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.grouping-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.level {
+  border-left: 3px solid var(--an-border);
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: white;
+}
+
+.level-header,
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+</style>

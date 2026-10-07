@@ -1,0 +1,40 @@
+<script setup>
+import { watch } from 'vue'
+import { useUnitsQuery } from '@/composables/blocks/unitsQuery'
+import { useUnitsLazyQuery } from '@/composables/blocks/unitsLazyQuery'
+import { registerNames, unitName } from '@/composables/analysis/useAnalysisNames'
+import TreeMultiPicker from '@/components/analysis/config/TreeMultiPicker.vue'
+
+/** Unit tree rooted at the blocks of the selected datasets. */
+const props = defineProps({
+  modelValue: { type: Array, default: () => [] },
+  blockIds: { type: Array, default: () => [] },
+  placeholder: { type: String, default: 'Select units' }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const { units: blocks } = useUnitsQuery({ unitIds: () => props.blockIds })
+const { units: children, unitsLoading, loadChildUnits } = useUnitsLazyQuery()
+
+watch([blocks, children], ([roots, kids]) => registerNames('unit', [...roots, ...kids]), { immediate: true })
+
+const loadChildren = (nodeId) => loadChildUnits(nodeId)
+const hasChildren = (node) => (node.children?.length ?? 0) > 0
+const nodeLabel = (node) => node.name || `Unit ${node.id}`
+</script>
+
+<template>
+  <TreeMultiPicker
+    :model-value="modelValue"
+    :root-nodes="blocks"
+    :load-children-fn="loadChildren"
+    :children-loading="!!unitsLoading"
+    :current-children="children"
+    :has-children-fn="hasChildren"
+    :get-node-label-fn="nodeLabel"
+    :label-fn="unitName"
+    :placeholder="placeholder"
+    @update:model-value="emit('update:modelValue', $event)"
+  />
+</template>
