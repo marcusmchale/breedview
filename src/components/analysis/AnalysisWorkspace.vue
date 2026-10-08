@@ -2,6 +2,7 @@
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecentSubmissions } from '@/composables/analysis/recentSubmissionsQuery'
+import { useDeleteAnalysis } from '@/composables/analysis/deleteAnalysis'
 import {
   analysisTypeLabel,
   createEmptyExclusion,
@@ -22,9 +23,16 @@ const router = useRouter()
 
 const { ids, recentLoading, refetchRecent } = useRecentSubmissions()
 
+const { deleteAnalysis } = useDeleteAnalysis()
+
 // Submitted in this session, shown before the recent list catches up
 const submittedIds = ref([])
-const allIds = computed(() => [...submittedIds.value.filter((id) => !ids.value.includes(id)), ...ids.value])
+// Hidden as soon as deletion starts, and until the recent list no longer has them
+const deletedIds = ref(new Set())
+const allIds = computed(() =>
+  [...submittedIds.value.filter((id) => !ids.value.includes(id)), ...ids.value]
+    .filter((id) => !deletedIds.value.has(id))
+)
 
 const selectedId = ref(route.query.id ?? null)
 const mode = ref(selectedId.value ? 'view' : 'edit')
@@ -97,6 +105,44 @@ const onSubmitted = (id) => {
   refetchRecent()
 }
 
+/* ---------- deletion ---------- */
+
+const setDeleted = (id, deleted) => {
+  const next = new Set(deletedIds.value)
+  if (deleted) next.add(id)
+  else next.delete(id)
+  deletedIds.value = next
+}
+
+const removeAnalysis = async ({ id, title }) => {
+  if (!confirm(`Delete analysis "${title}"? A queued or running analysis is cancelled.`)) return
+
+  // Hide it and close it first, so nothing polls the analysis while it is deleted
+  setDeleted(id, true)
+  if (selectedId.value === id) newAnalysis()
+
+  let outcome
+  try {
+    outcome = await deleteAnalysis(id)
+  } catch (e) {
+    outcome = { deleted: false, errors: [{ message: e.message }] }
+  }
+
+  if (!outcome.deleted) {
+    setDeleted(id, false)
+    alert(`Failed to delete: ${outcome.errors.map((e) => e.message).join('; ') || 'Unknown error'}`)
+    return
+  }
+
+  submittedIds.value = submittedIds.value.filter((s) => s !== id)
+  try {
+    await refetchRecent()
+    if (!ids.value.includes(id)) setDeleted(id, false)
+  } catch {
+    // Stays hidden; the next refresh drops it from the list
+  }
+}
+
 watch(
   () => route.query.id,
   (id) => {
@@ -112,6 +158,7 @@ watch(
       :selected-id="mode === 'view' ? selectedId : null"
       :loading="recentLoading"
       @select="select"
+      @delete="removeAnalysis"
       @new="newAnalysis"
       @refresh="refetchRecent()"
     />

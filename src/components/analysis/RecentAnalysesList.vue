@@ -7,7 +7,7 @@ defineProps({
   loading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['select', 'new', 'refresh'])
+const emit = defineEmits(['select', 'delete', 'new', 'refresh'])
 </script>
 
 <template>
@@ -28,6 +28,7 @@ const emit = defineEmits(['select', 'new', 'refresh'])
         :analysis-id="id"
         :selected="id === selectedId"
         @select="emit('select', $event)"
+        @delete="emit('delete', $event)"
       />
     </ul>
     <p class="hint pad">Analyses expire some days after their last status change (7 by default).</p>

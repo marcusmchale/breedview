@@ -9,9 +9,13 @@ const props = defineProps({
   selected: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'delete'])
 
-const { submission, status, notFound } = useAnalysisSubmissionQuery(() => props.analysisId, { summary: true })
+// The open submission view polls the selected analysis; this item follows it through the cache
+const { submission, status, notFound } = useAnalysisSubmissionQuery(() => props.analysisId, {
+  summary: true,
+  poll: () => !props.selected
+})
 
 const title = computed(() => {
   const s = submission.value
@@ -42,10 +46,24 @@ const messageCounts = computed(() => {
         <template v-if="messageCounts"> · {{ messageCounts }}</template>
       </span>
     </button>
+    <!-- A sibling of the item button, as buttons cannot be nested -->
+    <button
+      type="button"
+      class="delete"
+      :title="`Delete ${title}`"
+      :aria-label="`Delete ${title}`"
+      @click="emit('delete', { id: analysisId, title })"
+    >
+      ×
+    </button>
   </li>
 </template>
 
 <style scoped>
+li {
+  position: relative;
+}
+
 .item {
   display: flex;
   flex-direction: column;
@@ -87,5 +105,40 @@ const messageCounts = computed(() => {
 
 .details {
   font-size: 0.75rem;
+  padding-right: 20px;
+}
+
+.delete {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #6b7280;
+  cursor: pointer;
+  opacity: 0;
+}
+
+li:hover .delete,
+.item.selected + .delete,
+.delete:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .delete {
+    opacity: 1;
+  }
+}
+
+.delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 </style>

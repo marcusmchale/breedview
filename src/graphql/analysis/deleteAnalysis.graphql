@@ -1,0 +1,10 @@
+mutation DeleteAnalysis($id: ID!) {
+  analysisDelete(id: $id) {
+    status
+    result
+    errors {
+      name
+      message
+    }
+  }
+}

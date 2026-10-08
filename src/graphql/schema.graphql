@@ -1028,6 +1028,12 @@ type Mutation {
   to retrieve the processing status and result.
   """
   analysisSubmit(analysis: AnalysisInput!): AnalysisSubmissionIdPayload!
+
+  """
+  Delete an analysis, including its result.
+  A queued or running analysis is cancelled.
+  """
+  analysisDelete(id: ID!): BooleanPayload!
   arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
   arrangementsDeleteLayout(id: ID!): BooleanPayload!
@@ -1871,6 +1877,9 @@ type UserDisplay {
 }
 
 type AnalysisSubmission {
+  """ID of the analysis, as returned by submitAnalysis."""
+  id: ID!
+
   """Current processing status of the analysis."""
   status: SubmissionStatus!
 

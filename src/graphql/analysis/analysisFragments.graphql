@@ -279,6 +279,7 @@ fragment AnalysisWarningFields on AnalysisWarning {
 }
 
 fragment AnalysisSubmissionFields on AnalysisSubmission {
+  id
   status
   name
   analysisType

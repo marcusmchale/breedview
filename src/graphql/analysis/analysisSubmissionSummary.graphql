@@ -2,6 +2,7 @@ query AnalysisSubmissionSummary($analysisId: ID!) {
   analysisSubmission(id: $analysisId) {
     status
     result {
+      id
       status
       name
       analysisType
