@@ -90,7 +90,7 @@ const removeDimension = (i) => {
         <BinningEditor
           :model-value="form.grouping.time.binning"
           value-kind="date"
-          :records="data.records"
+          :records="data.timeSamples"
           path="grouping.time.binning"
           @update:model-value="form.grouping.time.binning = $event"
         />

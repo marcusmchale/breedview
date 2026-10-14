@@ -1,0 +1,25 @@
+#import "./analysisDatasetFragment.graphql"
+
+# The selected datasets with what their records span, for the analysis pickers and binning suggestions,
+# without loading the records themselves
+query AnalysisDatasetDimensions($datasetIds: [ID!]) {
+  datasets(ids: $datasetIds) {
+    status
+    result {
+      ...AnalysisDatasetFields
+      dimensions {
+        recordCount
+        unitCount
+        start
+        end
+        timePercentiles
+        valuePercentiles
+        groups { groupingId codes }
+      }
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

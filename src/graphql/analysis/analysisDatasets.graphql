@@ -1,19 +1,10 @@
+#import "./analysisDatasetFragment.graphql"
+
 query AnalysisDatasets($datasetIds: [ID!]) {
   datasets(ids: $datasetIds) {
     status
     result {
-      id
-      studyId
-      concept {
-        id versionId view
-        name
-        ... on Variable {
-          scale { id versionId view name scaleType categories { id name } }
-        }
-        ... on Factor {
-          scale { id versionId view name scaleType categories { id name } }
-        }
-      }
+      ...AnalysisDatasetFields
     }
     errors {
       name

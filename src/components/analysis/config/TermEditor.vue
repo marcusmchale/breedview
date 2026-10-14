@@ -60,12 +60,11 @@ const setAggregation = (value) => {
 const binnable = computed(() => canBin(term.value, scaleType.value))
 const binValueKind = computed(() => (scaleType.value === 'NUMERICAL' ? 'number' : 'date'))
 
-const conceptRecords = computed(() =>
-  concept.value ? data.records.filter((r) => concept.value.datasetIds.includes(r.datasetId)) : []
-)
-const numericValues = computed(() => conceptRecords.value.map((r) => Number(r.value)).filter(Number.isFinite))
+// The values of the concept's datasets at each percentile stand in for the records themselves
+const conceptValues = computed(() => (concept.value ? data.valueSamples(concept.value.datasetIds) : []))
+const numericValues = computed(() => conceptValues.value.map(Number).filter(Number.isFinite))
 // For date concepts the record value is the date to bin
-const dateValues = computed(() => conceptRecords.value.map((r) => ({ start: r.value, end: null })))
+const dateValues = computed(() => conceptValues.value.map((value) => ({ start: value, end: null })))
 
 const toggleBinning = (enabled) => {
   const t = term.value

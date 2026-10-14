@@ -1,0 +1,14 @@
+fragment AnalysisDatasetFields on Dataset {
+  id
+  studyId
+  concept {
+    id versionId view
+    name
+    ... on Variable {
+      scale { id versionId view name scaleType categories { id name } }
+    }
+    ... on Factor {
+      scale { id versionId view name scaleType categories { id name } }
+    }
+  }
+}

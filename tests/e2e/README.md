@@ -45,6 +45,7 @@ npm run test:e2e                 # all tests
 node --test tests/e2e/invitation.test.mjs
 npm run perf:curation            # STUDY="Study B" CONCEPT="Variable A" by default; PAGE_SIZE, START and END narrow the records
 npm run perf:blocks              # FIELD="Field B" by default
+npm run perf:analysis            # STUDY="Study B" CONCEPT="Variable A" by default: dataset selection in the analysis editor
 ```
 
 Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL` (default `http://localhost:8025`).

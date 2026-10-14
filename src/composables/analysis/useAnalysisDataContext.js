@@ -3,17 +3,18 @@ import { useApolloClient } from '@vue/apollo-composable'
 
 import STUDY_QUERY from '@/graphql/programs/study.graphql'
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
-import { useDatasetsQuery } from '@/composables/datasets/datasetsQuery'
+import { useAnalysisDatasetsQuery } from '@/composables/analysis/analysisDatasetsQuery'
 import { datasetConcepts, registerNames, useAnalysisNames } from '@/composables/analysis/useAnalysisNames'
 
 /**
  * Data available to the analysis editor for the selected studies and datasets:
  * studies and their record groupings, dataset summaries, concepts with their
- * scales, and record-derived options (record group codes, units, germplasm, times).
+ * scales, and what the records span (record group codes, times and values at each
+ * percentile), read as dimensions of each dataset rather than as the records themselves.
  */
 export function useAnalysisDataContext(form) {
   const { resolveClient } = useApolloClient()
-  const { registerDatasets, ensureDatasets } = useAnalysisNames()
+  const { registerDatasets } = useAnalysisNames()
 
   const studyIds = computed(() => toValue(form).studyIds)
   const datasetIds = computed(() => toValue(form).datasetIds)
@@ -70,21 +71,18 @@ export function useAnalysisDataContext(form) {
     )
   }))
 
-  /* ---------- datasets with records ---------- */
+  /* ---------- datasets with dimensions ---------- */
 
-  const { datasets, datasetsLoading } = useDatasetsQuery({
-    datasetIds: () => (datasetIds.value.length > 0 ? datasetIds.value : null)
-  })
+  const { datasets, loading: datasetsLoading } = useAnalysisDatasetsQuery({ datasetIds })
 
   const selectedDatasets = computed(() => {
     const byId = Object.fromEntries(datasets.value.map((d) => [d.id, d]))
     return datasetIds.value.map((id) => byId[id]).filter(Boolean)
   })
 
+  // Datasets loaded from a submission may belong to studies that aren't selected; the dimensions query reads
+  // them by id all the same, so their concepts and studies are known from it
   watch(selectedDatasets, (list) => registerDatasets(list), { immediate: true })
-
-  // Datasets loaded from a submission may belong to studies that aren't selected
-  watch(datasetIds, (ids) => ensureDatasets(ids), { immediate: true })
 
   // Keep the studies of selected datasets selected, so their datasets and groupings are listed
   watch(
@@ -115,14 +113,30 @@ export function useAnalysisDataContext(form) {
 
   const conceptsById = computed(() => Object.fromEntries(concepts.value.map((c) => [c.id, c])))
 
-  const records = computed(() =>
-    selectedDatasets.value.flatMap((d) => (d.records ?? []).map((r) => ({ ...r, datasetId: d.id })))
+  /* ---------- dimensions ---------- */
+
+  // What each selected dataset's records span, without the records: counts, time range, times and values at
+  // each percentile from 0 to 100, and record group codes by grouping
+  const dimensionsByDataset = computed(() =>
+    Object.fromEntries(selectedDatasets.value.filter((d) => d.dimensions).map((d) => [d.id, d.dimensions]))
   )
 
-  watch(records, (list) => {
-    registerNames('unit', list.map((r) => r.unit))
-    registerNames('germplasm', list.map((r) => r.unit?.germplasm))
-  })
+  const recordCount = computed(() =>
+    Object.values(dimensionsByDataset.value).reduce((count, d) => count + d.recordCount, 0)
+  )
+
+  /**
+   * Record times at each percentile of the selected datasets, shaped like records ({start, end}) for time
+   * binning suggestions. Every dataset contributes the same number of samples whatever its size.
+   */
+  const timeSamples = computed(() =>
+    Object.values(dimensionsByDataset.value).flatMap((d) =>
+      (d.timePercentiles ?? []).map((time) => ({ start: time, end: null }))
+    )
+  )
+
+  /** Record values at each percentile of the given datasets, as strings, for value binning suggestions */
+  const valueSamples = (ids) => ids.flatMap((id) => dimensionsByDataset.value[id]?.valuePercentiles ?? [])
 
   /* ---------- record groupings ---------- */
 
@@ -150,14 +164,16 @@ export function useAnalysisDataContext(form) {
   const codesByGrouping = computed(() => {
     const out = {}
     const seen = new Set()
-    for (const r of records.value) {
-      for (const g of r.groups ?? []) {
-        const grouping = groupingsById.value[g.id]
-        const datasetId = grouping?.scope === 'DATASET_SCOPED' ? r.datasetId : null
-        const key = `${g.id}|${datasetId}|${g.code}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        ;(out[g.id] ??= []).push({ code: g.code, datasetId })
+    for (const d of selectedDatasets.value) {
+      for (const g of d.dimensions?.groups ?? []) {
+        const grouping = groupingsById.value[g.groupingId]
+        const datasetId = grouping?.scope === 'DATASET_SCOPED' ? d.id : null
+        for (const code of g.codes) {
+          const key = `${g.groupingId}|${datasetId}|${code}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          ;(out[g.groupingId] ??= []).push({ code, datasetId })
+        }
       }
     }
     Object.values(out).forEach((list) => list.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })))
@@ -178,8 +194,6 @@ export function useAnalysisDataContext(form) {
     return [...map.values()]
   })
 
-  const unitIds = computed(() => [...new Set(records.value.map((r) => r.unit?.id).filter(Boolean))])
-
   return {
     studies,
     studiesById,
@@ -191,12 +205,14 @@ export function useAnalysisDataContext(form) {
     datasetsLoading,
     concepts,
     conceptsById,
-    records,
+    dimensionsByDataset,
+    recordCount,
+    timeSamples,
+    valueSamples,
     groupings,
     groupingsById,
     codesByGrouping,
     blockIds,
-    locations,
-    unitIds
+    locations
   }
 }

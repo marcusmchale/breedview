@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .vue,.js --fix",
     "test:e2e": "node --test tests/e2e/*.test.mjs",
     "perf:curation": "node tests/e2e/perf/curation.mjs",
-    "perf:blocks": "node tests/e2e/perf/blocks.mjs"
+    "perf:blocks": "node tests/e2e/perf/blocks.mjs",
+    "perf:analysis": "node tests/e2e/perf/analysis.mjs"
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",
