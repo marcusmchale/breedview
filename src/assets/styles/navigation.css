@@ -14,9 +14,10 @@
   margin: 0 auto;
   padding: 0 1rem;
   display: flex;
+  gap: 1rem;
   justify-content: space-between;
   align-items: center;
-  height: var(--navbar-height, 60px);
+  min-height: var(--navbar-height, 60px);
 }
 
 .nav-brand .brand-link {
@@ -32,8 +33,11 @@
 
 .nav-menu {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 1rem;
+  gap: 0.25rem 0.5rem;
+  padding: 0.5rem 0;
 }
 
 .nav-link {

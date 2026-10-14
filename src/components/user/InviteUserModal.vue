@@ -274,6 +274,11 @@ const closeModal = () => {
   white-space: nowrap;
 }
 
+.offer-item select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .invitations-section {
   margin-top: 24px;
   padding-top: 16px;
