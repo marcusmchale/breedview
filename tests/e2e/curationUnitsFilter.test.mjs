@@ -34,8 +34,11 @@ test('the units filter offers the units the selected datasets have records for',
   const studies = await optionLabels()
   const study = Math.max(studies.findIndex((l) => l.includes(STUDY)), 0)
   await page.evaluate(`[...document.querySelectorAll('.options-list .option-checkbox')][${study}].click()`)
-  await page.sleep(300)
+  // Done only once the picker has the study, and on only once it has closed: a click while it re-renders is lost,
+  // leaving the study list open for the option labels read below
+  await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.trim().startsWith('1 selected')`)
   await page.click('.btn-done')
+  await page.waitFor(`!document.querySelector('.options-list')`)
   await page.waitFor(`document.querySelector('select[name=conceptIds] option')`, 120000)
   // the first concept; the roots of the units filter are read as soon as datasets are selected
   let mark = page.mark()
