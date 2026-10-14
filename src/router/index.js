@@ -45,6 +45,7 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: RegistrationPage,
+    props: route => ({ token: route.query.token }),
     meta: {
       title: 'Register',
       hideNavigation: true
