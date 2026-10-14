@@ -27,10 +27,13 @@ const { controller: releaseController, loading, refetch: refetchRelease } = useC
   query: CONTROLLER_RELEASE_QUERY,
   fetchPolicy: 'no-cache'
 })
+// the latest writes, until all of them are asked for
+const allWrites = ref(false)
 const { controller, loading: detailsLoading, error, refetch: refetchDetails } = useControllerQuery({
   entityLabel: () => props.entityLabel,
   entityId: () => props.entityId,
-  enabled: showModal
+  enabled: showModal,
+  variables: () => (allWrites.value ? { lastWrites: null } : {})
 })
 
 const openModal = async () => {
@@ -84,6 +87,7 @@ const handleReleaseUpdated = async () => {
       @close="closeModal"
       @release-updated="handleReleaseUpdated"
       @controls-changed="handleReleaseUpdated"
+      @show-all-writes="allWrites = true"
     />
   </div>
 </template>

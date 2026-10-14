@@ -1,0 +1,12 @@
+# The teams controlling entities alone, for access checks
+query controlsControllerTeams($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
+  controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
+    status
+    result {
+      teams { id }
+    }
+    errors {
+      message
+    }
+  }
+}

@@ -6,7 +6,7 @@ import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
-import CONTROLLERS_QUERY from '@/graphql/controls/controllers.graphql'
+import CONTROLLER_TEAMS_QUERY from '@/graphql/controls/controllerTeams.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
 
 export function useDatasetCurationTable() {
@@ -328,12 +328,13 @@ export function useDatasetCurationTable() {
 
     try {
       const result = await client.query({
-        query: CONTROLLERS_QUERY,
+        query: CONTROLLER_TEAMS_QUERY,
         variables: {
           entityLabel: 'DATASET',
           entityIds: datasetIds
         },
-        fetchPolicy: 'network-only'
+        // the payload is not normalised, so keep this partial controller out of the cache
+        fetchPolicy: 'no-cache'
       })
 
       const controllers = result?.data?.controlsControllers?.result || []

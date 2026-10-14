@@ -1,9 +1,11 @@
-query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
+# The latest $lastWrites writes, or all of them when it is null
+query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!, $lastWrites: Int = 20) {
   controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
     status
     result {
       controls { team { id name } release time }
-      writes { user { id name } time }
+      writes(last: $lastWrites) { user { id name } time }
+      writeCount
       teams { id name }
       release
       created

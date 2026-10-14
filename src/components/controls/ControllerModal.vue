@@ -35,7 +35,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'releaseUpdated', 'controlsChanged'])
+const emit = defineEmits(['close', 'releaseUpdated', 'controlsChanged', 'showAllWrites'])
+
+// The writes come oldest first, and may be only the latest of them
+const latestWritesFirst = computed(() => [...(props.controller?.writes ?? [])].reverse())
+const moreWrites = computed(() => (props.controller?.writeCount ?? 0) - (props.controller?.writes?.length ?? 0))
 
 // Control transfers and renouncing, for admins of teams controlling the entity
 const { adminTeamIds } = useUserAccess()
@@ -293,8 +297,12 @@ const formatDate = (dateString) => {
 
           <div v-if="controller.writes && controller.writes.length > 0" class="section">
             <strong>Write History:</strong>
+            <p v-if="moreWrites > 0" class="writes-note">
+              Latest {{ controller.writes.length }} of {{ controller.writeCount }} writes.
+              <button class="link-button" @click="emit('showAllWrites')">Show all</button>
+            </p>
             <ul class="list">
-              <li v-for="(write, index) in controller.writes" :key="index" class="list-item">
+              <li v-for="(write, index) in latestWritesFirst" :key="index" class="list-item">
                 <div class="write-info">
                   <span class="user-name">{{ write.user?.name || 'Unknown User' }}</span>
                   <span class="write-time">{{ formatDate(write.time) }}</span>
@@ -458,6 +466,22 @@ const formatDate = (dateString) => {
 .detail-row strong {
   color: #333;
   min-width: 100px;
+}
+
+.writes-note {
+  margin: 4px 0;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #007bff;
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
 }
 
 .section {
