@@ -51,7 +51,9 @@ test('the dataset submission opens for the first study', async () => {
     // follow the first entry down to the bottom of the tree, where a location has blocks and a block has units
     for (let level = 0; level < 5 && (await page.exists('.options-list .expand-button')); level++) {
       await page.evaluate(`document.querySelector('.options-list .expand-button').click()`)
-      await page.sleep(1500)
+      await page.sleep(300)
+      // the list shows a spinner while a level loads
+      await page.waitFor(`!document.querySelector('.options-list .loading-state') && (document.querySelector('.options-list .option-label') || document.querySelector('.options-list .empty-state'))`, 60000)
     }
     assert.ok(await page.exists('.options-list .option-checkbox'), `a ${what} can be picked`)
     const label = await page.evaluate(`document.querySelector('.options-list .option-label')?.innerText.trim()`)

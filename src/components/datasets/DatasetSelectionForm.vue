@@ -6,6 +6,9 @@ import { useSelectStudyQueries } from '@/composables/datasets/selectStudyQueries
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
 import { useUnitsQuery } from '@/composables/blocks/unitsQuery'
 import { useUnitsLazyQuery } from '@/composables/blocks/unitsLazyQuery'
+import { useUnitsBySubject } from '@/composables/blocks/unitsBySubject'
+import { useCachedName } from '@/composables/queryBase/cachedName'
+import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 
 const props = defineProps({
   loading: {
@@ -92,7 +95,6 @@ const blockIds = computed(() => [
   ...new Set(selectedSummaries.value.flatMap((s) => (s.blocks ?? []).map((b) => b.id)))
 ])
 const { units: blockUnits, unitsLoading: blockUnitsLoading } = useUnitsQuery({ unitIds: blockIds })
-const { units: selectedUnits } = useUnitsQuery({ unitIds: () => selectionData.value.unitIds })
 const {
   units: displayedUnits,
   loadChildUnits: loadDisplayedChildUnits,
@@ -105,6 +107,14 @@ watch(blockIds, () => {
 })
 
 const unitLabel = (unit) => unit.name || (unit.subject ? `${unit.subject.name} ${unit.id}` : `Unit ${unit.id}`)
+// Everything below a unit, or below every block, by subject, for selecting all units of a subject at once
+const { loadUnitGroups } = useUnitsBySubject()
+const loadUnitTypeGroups = (node) => loadUnitGroups(node ? [node] : blockUnits.value)
+const unitNameOf = useCachedName('Unit')
+
+// Everything below a program or a trial, or every trial and study, for selecting all studies at once
+const { loadStudyGroups } = useProgramsTree()
+const studyNameOf = useCachedName('Study')
 
 // Can proceed to table
 const canLoadTable = computed(() => {
@@ -123,11 +133,11 @@ const loadChildren = (nodeId, node) => {
   }
 }
 
-const childrenLoading = computed(() => studiesLoading || trialsLoading || programsLoading)
+const childrenLoading = computed(() => !!(studiesLoading.value || trialsLoading.value || programsLoading.value))
 
 const currentChildren = computed(() => {
   if (selectedProgram.value) {
-    return selectedTrial.value ? studies : trials
+    return (selectedTrial.value ? studies.value : trials.value) ?? []
   }
   return []
 })
@@ -195,13 +205,14 @@ defineExpose({ reset })
         label="Studies:"
         help="Select one or more studies"
         :value="selectionData.studyIds"
-        :selected-nodes="[]"
+        :label-fn="studyNameOf"
         :rootNodes="programs"
         :loadChildrenFn="loadChildren"
         :childrenLoading="childrenLoading"
         :currentChildren="currentChildren"
         :hasChildrenFn="hasChildren"
         :isSelectableFn="isSelectable"
+        :load-type-groups-fn="loadStudyGroups"
         :get-node-label-fn="(node) => node.name || `${node.id}`"
         :max-selections="10"
         validation="required"
@@ -255,13 +266,13 @@ defineExpose({ reset })
           label="Units:"
           :help="blockUnitsLoading ? 'Loading the blocks of these datasets…' : 'Optional: only records of these units and of everything below them (a block or a plot selects what it contains)'"
           :value="selectionData.unitIds"
-          :selected-nodes="selectedUnits"
+          :label-fn="unitNameOf"
           :rootNodes="blockUnits"
           :loadChildrenFn="loadDisplayedChildUnits"
           :childrenLoading="displayedUnitsLoading"
           :currentChildren="displayedUnits"
           :get-node-label-fn="unitLabel"
-          :max-selections="100"
+          :load-type-groups-fn="loadUnitTypeGroups"
         />
 
         <FormKit

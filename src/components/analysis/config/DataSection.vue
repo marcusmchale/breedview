@@ -3,7 +3,8 @@ import { computed, ref } from 'vue'
 import { useSelectStudyQueries } from '@/composables/datasets/selectStudyQueries'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { ANALYSIS_TYPES } from '@/composables/analysis/useAnalysisForm'
-import { datasetName, studyName } from '@/composables/analysis/useAnalysisNames'
+import { datasetName, registerNames, studyName } from '@/composables/analysis/useAnalysisNames'
+import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 import TreeMultiPicker from '@/components/analysis/config/TreeMultiPicker.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
 
@@ -43,6 +44,14 @@ const hasChildren = (node) => {
 }
 
 const isSelectable = (node) => node.__typename === 'Study'
+
+// Everything below a program or a trial, or every trial and study, for selecting all studies at once
+const { loadStudyGroups } = useProgramsTree()
+const loadTypeGroups = async (node) => {
+  const groups = await loadStudyGroups(node)
+  for (const group of groups) if (group.key === 'Study') registerNames('study', group.nodes)
+  return groups
+}
 
 // Selected datasets keep their study selected, so deselecting a study drops its datasets
 const setStudies = (ids) => {
@@ -122,6 +131,7 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
         :current-children="currentChildren"
         :has-children-fn="hasChildren"
         :is-selectable-fn="isSelectable"
+        :load-type-groups-fn="loadTypeGroups"
         :label-fn="studyName"
         placeholder="Select studies"
         @update:model-value="setStudies"

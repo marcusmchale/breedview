@@ -4,6 +4,9 @@ import { FormKit } from "@formkit/vue";
 import { useSelectStudyQueries } from "@/composables/datasets/selectStudyQueries";
 import { useSelectLocationsQuery } from "@/composables/datasets/selectLocationsQueries";
 import { useSelectUnitsQuery } from "@/composables/datasets/selectUnitsQueries";
+import { useUnitsBySubject } from "@/composables/blocks/unitsBySubject";
+import { useLocationsByType } from "@/composables/regions/locationsByType";
+import { useCachedName } from "@/composables/queryBase/cachedName";
 import { useSelectConceptsQuery } from "@/composables/datasets/selectConceptsQueries";
 import { useStudyQuery } from "@/composables/programs/studyQuery";
 import { useDatasetSummariesQuery } from "@/composables/datasets/datasetSummariesQuery";
@@ -70,7 +73,6 @@ const {
 
 const {
   regions,
-  selectedLocations,
   loadDisplayedChildLocations,
   displayedLocationsLoading,
   displayedLocations
@@ -193,16 +195,22 @@ const loadChildren = (nodeId, node) => {
   }
 }
 
-const childrenLoading = computed(() => {
-  return studiesLoading || trialsLoading || programsLoading
-})
+const childrenLoading = computed(() => !!(studiesLoading.value || trialsLoading.value || programsLoading.value))
+
+// Everything below a location or a unit, or below every region or block, by type or subject, for selecting all at once
+const { loadLocationGroups } = useLocationsByType()
+const loadLocationTypeGroups = (node) => loadLocationGroups(node ? [node] : regions.value ?? [])
+const locationNameOf = useCachedName('Location')
+const { loadUnitGroups } = useUnitsBySubject()
+const loadUnitTypeGroups = (node) => loadUnitGroups(node ? [node] : blocks.value ?? [])
+const unitNameOf = useCachedName('Unit')
 
 const currentChildren = computed(() => {
   if (selectedProgram.value) {
     if (selectedTrial.value) {
-      return studies
+      return studies.value ?? []
     } else {
-      return trials
+      return trials.value ?? []
     }
   } else {
     return []
@@ -275,13 +283,13 @@ const closeModal = () => {
             label="Locations:"
             help="Select locations"
             :value="selectionData.locationIds"
-            :selected-nodes="selectedLocations"
+            :label-fn="locationNameOf"
             :rootNodes="regions"
             :loadChildrenFn="loadDisplayedChildLocations"
             :childrenLoading="displayedLocationsLoading"
             :currentChildren="displayedLocations"
             :get-node-label-fn="(u) => u.name || `${u.type?.name} ${u.id}`"
-            :max-selections="5"
+            :load-type-groups-fn="loadLocationTypeGroups"
             validation="required"
           />
 
@@ -291,13 +299,13 @@ const closeModal = () => {
             label="Units:"
             help="Select units from blocks at these locations"
             :value="selectionData.unitIds"
-            :selected-nodes="selectedUnits"
+            :label-fn="unitNameOf"
             :rootNodes="blocks"
             :loadChildrenFn="loadDisplayedChildUnits"
             :childrenLoading="displayedUnitsLoading"
             :currentChildren="displayedUnits"
             :get-node-label-fn="(u) => u.name || `${u.subject?.name} ${u.id}`"
-            :max-selections="100"
+            :load-type-groups-fn="loadUnitTypeGroups"
             validation="required"
           />
 

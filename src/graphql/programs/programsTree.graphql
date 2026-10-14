@@ -1,0 +1,21 @@
+# Every program with its trials and their studies, by name only.
+query programsTree {
+  programs {
+    status
+    result {
+      id
+      name
+      trials {
+        id
+        name
+        studies {
+          id
+          name
+        }
+      }
+    }
+    errors {
+      message
+    }
+  }
+}

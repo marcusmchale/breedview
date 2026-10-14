@@ -55,6 +55,9 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
 - `smoke.test.mjs`: every routed page renders for a signed-in user without console errors.
 - `invitation.test.mjs`: invite with a team offer, the emailed link, registration with the prefilled read-only email
   and the accepted team, verification from the emailed link, login with the affiliation, and refusal of the used link.
+- `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
+  "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
+  when a study is unticked, and ticking a trial selects the studies below it.
 
 ## Adding a test
 

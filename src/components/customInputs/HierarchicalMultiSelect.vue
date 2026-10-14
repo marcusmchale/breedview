@@ -22,6 +22,8 @@
           :loadChildrenFn="context.loadChildrenFn"
           :childrenLoading="context.childrenLoading"
           :currentChildren="context.currentChildren"
+          :load-type-groups-fn="context.loadTypeGroupsFn"
+          :label-fn="context.labelFn"
           :get-node-label-fn="context.getNodeLabelFn"
           :is-disabled-fn="context.isDisabledFn"
           :is-selectable-fn="context.isSelectableFn"

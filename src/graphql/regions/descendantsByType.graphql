@@ -1,0 +1,17 @@
+# Every readable location below the given locations, grouped by location type, as id and name.
+query descendantsByType (
+    $locationIds: [ID!]!
+){
+    regionsDescendantsByType(
+        locationIds: $locationIds
+    ){
+        status
+        result {
+            type { id versionId view name }
+            locations { id name }
+        }
+        errors {
+            message
+        }
+    }
+}

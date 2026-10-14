@@ -1,0 +1,17 @@
+# Every readable unit below the given units, grouped by subject, as id and name.
+query descendantsBySubject (
+    $unitIds: [ID!]!
+){
+    blocksDescendantsBySubject(
+        unitIds: $unitIds
+    ){
+        status
+        result {
+            subject { id versionId view name }
+            units { id name }
+        }
+        errors {
+            message
+        }
+    }
+}

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import SelectionChips from './SelectionChips.vue'
 
 const props = defineProps({
   // Array of selected node IDs (FormKit value)
@@ -7,10 +8,20 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  // Array of selected node objects
+  // Selected node objects, a fallback for labelling the chips in the trigger when no labelFn is given
   selectedNodes: {
     type: Array,
     default: () => []
+  },
+  // The label of a selected id, for the chips in the trigger
+  labelFn: {
+    type: Function,
+    default: null
+  },
+  // Whether the trigger shows the selection as chips; otherwise the placeholder and the count
+  showChips: {
+    type: Boolean,
+    default: true
   },
   rootNodes: {
     type: Array,
@@ -34,6 +45,12 @@ const props = defineProps({
     type: Array,
     required: true,
     default: () => []
+  },
+  // Loads what lies below a node (null for below every root) grouped by type, as [{ key, label, nodes }],
+  // e.g. the units of a block by subject. Enables selecting by type.
+  loadTypeGroupsFn: {
+    type: Function,
+    default: null
   },
   getNodeLabelFn: {
     type: Function,
@@ -70,12 +87,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'update:groups', 'change'])
 
 // Dropdown state
 const isOpen = ref(false)
 const dropdownRef = ref(null)
-const isLoading = ref(false)
 
 // Navigation state
 const navigationPath = ref([])
@@ -85,15 +101,14 @@ const dropdownStyle = ref({})
 
 // Internal selection state (array of IDs)
 const internalSelectedIds = ref([...props.modelValue])
+const selectedIdSet = computed(() => new Set(internalSelectedIds.value.map(String)))
 
-// Display only first 3 selected nodes as chips
-const displayedSelectedNodes = computed(() => {
-  return props.selectedNodes.slice(0, 3)
-})
-
-const remainingCount = computed(() => {
-  return Math.max(0, props.selectedNodes.length - 3)
-})
+// The label of a selected id in the trigger: labelFn, or the selected nodes, or the id
+const chipLabel = (id) => {
+  if (props.labelFn) return props.labelFn(id)
+  const node = props.selectedNodes.find((n) => String(n.id) === String(id))
+  return node ? getNodeLabel(node) : `#${id}`
+}
 
 const getNodeLabel = (node) => {
   if (!node) return ''
@@ -115,6 +130,8 @@ const currentOptions = computed(() => {
     return props.currentChildren
   }
 })
+
+const isLoading = computed(() => !!currentParentNode.value && props.childrenLoading)
 
 const updateCurrentOptions = async () => {
   if (!currentParentNode.value) return
@@ -201,96 +218,261 @@ const currentLevelLabel = computed(() => {
   return getNodeLabel(currentParentNode.value)
 })
 
+/* ---------- selection rules ---------- */
+
+// A disabled node can neither be selected nor opened
 const isNodeDisabled = (node) => {
   if (excludedNodeIds.value.has(node.id)) {
     return true
   }
-
-  // Check if max selections reached and node is not already selected
-  if (props.maxSelections &&
-      internalSelectedIds.value.length >= props.maxSelections &&
-      !internalSelectedIds.value.includes(node.id)) {
-    return true
-  }
-
   return props.isDisabledFn(node)
 }
 
+// A selectable node can be ticked; its children may still be opened when it is not
 const isNodeSelectable = (node) => {
-  // First check if fully disabled
   if (isNodeDisabled(node)) {
     return false
   }
-  // Then check custom selectable function
   return props.isSelectableFn(node)
 }
 
-
-const isNodeSelected = (node) => {
-  return internalSelectedIds.value.includes(node.id) && isNodeSelectable(node)
-}
-
-const toggleSelection = (node) => {
-  if (isNodeDisabled(node)) return
-
-  const newSelectedIds = [...internalSelectedIds.value]
-  const index = newSelectedIds.indexOf(node.id)
-
-  if (index > -1) {
-    // Remove selection
-    newSelectedIds.splice(index, 1)
-  } else {
-    // Add selection
-    if (!props.maxSelections || newSelectedIds.length < props.maxSelections) {
-      newSelectedIds.push(node.id)
-    }
-  }
-
-  internalSelectedIds.value = newSelectedIds
-  emit('update:modelValue', newSelectedIds)
-  emit('change', newSelectedIds)
-}
-
-const removeSelection = (nodeId) => {
-  const newSelectedIds = internalSelectedIds.value.filter(id => id !== nodeId)
-  internalSelectedIds.value = newSelectedIds
-  emit('update:modelValue', newSelectedIds)
-  emit('change', newSelectedIds)
-}
-
-const clearAllSelections = () => {
-  internalSelectedIds.value = []
-  emit('update:modelValue', [])
-  emit('change', [])
-}
+// ids are only unique per type, so a node of another type (e.g. a program with a study's id) is never selected
+const isNodeSelected = (node) => selectedIdSet.value.has(String(node.id)) && props.isSelectableFn(node)
 
 const canSelectMore = computed(() => {
   if (!props.maxSelections) return true
   return internalSelectedIds.value.length < props.maxSelections
 })
 
+const limitReached = computed(() => !canSelectMore.value)
 
-const selectAllDisplayed = () => {
-  const newSelectedIds = [...internalSelectedIds.value]
+// The limit stops further ticks, not navigation or unticking
+const canToggle = (node) => isNodeSelectable(node) && (isNodeSelected(node) || canSelectMore.value)
 
-  // Filter out disabled and already selected nodes
-  const selectableNodes = currentOptions.value.filter(node =>
-    !isNodeDisabled(node) && isNodeSelectable(node) && !newSelectedIds.includes(node.id)
-  )
-
-  // Add as many as possible within the max limit
-  for (const node of selectableNodes) {
-    if (props.maxSelections && newSelectedIds.length >= props.maxSelections) {
-      break
-    }
-    newSelectedIds.push(node.id)
-  }
-
-  internalSelectedIds.value = newSelectedIds
-  emit('update:modelValue', newSelectedIds)
-  emit('change', newSelectedIds)
+const commitSelection = (ids) => {
+  internalSelectedIds.value = ids
+  emit('update:modelValue', ids)
+  emit('change', ids)
 }
 
+const toggleSelection = (node) => {
+  if (selectsBelow(node)) {
+    if (canToggleBelow(node)) toggleBelow(node)
+    return
+  }
+  if (!canToggle(node)) return
+
+  const newSelectedIds = [...internalSelectedIds.value]
+  const index = newSelectedIds.indexOf(node.id)
+
+  if (index > -1) {
+    newSelectedIds.splice(index, 1)
+  } else {
+    newSelectedIds.push(node.id)
+  }
+  commitSelection(newSelectedIds)
+}
+
+const removeSelection = (nodeId) => {
+  commitSelection(internalSelectedIds.value.filter(id => id !== nodeId))
+}
+
+const clearAllSelections = () => {
+  commitSelection([])
+}
+
+// Add the selectable nodes among `nodes` that are not yet selected, as many as the limit allows.
+// Returns how many were left out by the limit.
+const addNodes = (nodes) => {
+  const newSelectedIds = [...internalSelectedIds.value]
+  const selected = new Set(newSelectedIds.map(String))
+  let leftOut = 0
+  for (const node of nodes) {
+    if (!isNodeSelectable(node) || selected.has(String(node.id))) continue
+    if (props.maxSelections && newSelectedIds.length >= props.maxSelections) {
+      leftOut += 1
+      continue
+    }
+    newSelectedIds.push(node.id)
+    selected.add(String(node.id))
+  }
+  commitSelection(newSelectedIds)
+  return leftOut
+}
+
+const removeNodes = (nodes) => {
+  const drop = new Set(nodes.map((node) => String(node.id)))
+  commitSelection(internalSelectedIds.value.filter((id) => !drop.has(String(id))))
+}
+
+const selectAllDisplayed = () => {
+  addNodes(currentOptions.value)
+}
+
+/* ---------- selection by type, over everything below the current node ---------- */
+
+const typePanel = ref(null)
+let typePanelRequest = 0
+
+const closeTypePanel = () => {
+  typePanel.value = null
+  typePanelRequest += 1
+}
+
+const scopeLabel = (scope) => (scope ? getNodeLabel(scope) : 'everything')
+
+const typePanelScopeLabel = computed(() => scopeLabel(typePanel.value?.scope))
+
+const scopeKey = (scope) => (scope ? `${scope.__typename ?? ''}:${scope.id}` : 'root')
+
+// The selectable groups below a scope, loaded once per scope while the dropdown is open
+const groupsBelow = ref({})
+const groupsBelowPending = new Map()
+
+const loadGroupsBelow = (scope) => {
+  const key = scopeKey(scope)
+  if (groupsBelow.value[key]) return Promise.resolve(groupsBelow.value[key])
+  if (groupsBelowPending.has(key)) return groupsBelowPending.get(key)
+  const pending = (async () => {
+    try {
+      const loaded = await props.loadTypeGroupsFn(scope)
+      const groups = []
+      let notSelectable = 0
+      for (const group of loaded ?? []) {
+        const nodes = (group.nodes ?? []).filter((node) => {
+          if (isNodeSelectable(node)) return true
+          notSelectable += 1
+          return false
+        })
+        if (nodes.length > 0) groups.push({ key: String(group.key), label: group.label ?? String(group.key), nodes })
+      }
+      const below = { groups, notSelectable, ids: groups.flatMap((group) => group.nodes.map((node) => String(node.id))) }
+      groupsBelow.value = { ...groupsBelow.value, [key]: below }
+      return below
+    } finally {
+      groupsBelowPending.delete(key)
+    }
+  })()
+  groupsBelowPending.set(key, pending)
+  return pending
+}
+
+const openTypePanel = async () => {
+  if (!props.loadTypeGroupsFn) return
+  const request = ++typePanelRequest
+  const scope = currentParentNode.value
+  typePanel.value = { scope, loading: true, error: null, groups: [], notSelectable: 0, leftOut: 0 }
+  try {
+    const { groups, notSelectable } = await loadGroupsBelow(scope)
+    if (request !== typePanelRequest) return
+    typePanel.value = { scope, loading: false, error: null, groups, notSelectable, leftOut: 0 }
+  } catch (error) {
+    if (request !== typePanelRequest) return
+    typePanel.value = { scope, loading: false, error: error?.message || 'Could not load', groups: [], notSelectable: 0, leftOut: 0 }
+  }
+}
+
+const groupSelectedCount = (group) => group.nodes.filter(isNodeSelected).length
+
+// Groups selected by type, kept while every one of their ids stays selected, so the chips can show them as one
+const selectedGroups = ref([])
+
+const emitGroups = () => emit('update:groups', selectedGroups.value.map((group) => ({ ...group, ids: [...group.ids] })))
+
+const groupKey = (scope, group) => `${scope?.id ?? 'root'}:${group.key}`
+
+const rememberGroup = (scope, group) => {
+  const key = groupKey(scope, group)
+  const label = scope ? `${group.label} in ${scopeLabel(scope)}` : group.label
+  const ids = group.nodes.map((node) => node.id).filter((id) => selectedIdSet.value.has(String(id)))
+  selectedGroups.value = [...selectedGroups.value.filter((g) => g.key !== key), { key, label, ids }]
+  emitGroups()
+}
+
+const forgetGroup = (key) => {
+  if (!selectedGroups.value.some((g) => g.key === key)) return
+  selectedGroups.value = selectedGroups.value.filter((g) => g.key !== key)
+  emitGroups()
+}
+
+// A group whose member is unticked, or that is cleared, goes back to single chips
+watch(selectedIdSet, (ids) => {
+  const kept = selectedGroups.value.filter((group) => group.ids.every((id) => ids.has(String(id))))
+  if (kept.length !== selectedGroups.value.length) {
+    selectedGroups.value = kept
+    emitGroups()
+  }
+})
+
+const selectGroup = (group, select) => {
+  if (!typePanel.value) return
+  if (select) {
+    typePanel.value.leftOut = addNodes(group.nodes)
+    rememberGroup(typePanel.value.scope, group)
+  } else {
+    typePanel.value.leftOut = 0
+    forgetGroup(groupKey(typePanel.value.scope, group))
+    removeNodes(group.nodes)
+  }
+}
+
+const selectAllGroups = (select) => {
+  for (const group of typePanel.value?.groups ?? []) selectGroup(group, select)
+}
+
+const removeGroup = (group) => {
+  forgetGroup(group.key)
+  commitSelection(internalSelectedIds.value.filter((id) => !group.ids.map(String).includes(String(id))))
+}
+
+const allGroupNodes = computed(() => (typePanel.value?.groups ?? []).flatMap((group) => group.nodes))
+
+/* ---------- a node that cannot be selected itself stands for everything selectable below it ---------- */
+
+// e.g. a program or a trial in a tree where only studies are selected: its tick selects its studies
+const selectsBelow = (node) => !!props.loadTypeGroupsFn && !isNodeDisabled(node) && !props.isSelectableFn(node) && hasChildren(node)
+
+const belowState = (node) => {
+  const below = groupsBelow.value[scopeKey(node)]
+  if (!below) return { known: false, all: false, some: false }
+  const selected = below.ids.filter((id) => selectedIdSet.value.has(id)).length
+  return { known: true, all: below.ids.length > 0 && selected === below.ids.length, some: selected > 0 && selected < below.ids.length }
+}
+
+const isBelowAllSelected = (node) => selectsBelow(node) && belowState(node).all
+const isBelowSomeSelected = (node) => selectsBelow(node) && belowState(node).some
+const canToggleBelow = (node) => selectsBelow(node) && belowState(node).known && (belowState(node).all || canSelectMore.value)
+
+const toggleBelow = async (node) => {
+  const below = await loadGroupsBelow(node)
+  const select = !belowState(node).all
+  for (const group of below.groups) {
+    if (select) {
+      addNodes(group.nodes)
+      rememberGroup(node, group)
+    } else {
+      forgetGroup(groupKey(node, group))
+      removeNodes(group.nodes)
+    }
+  }
+}
+
+const belowTitle = (node) => {
+  const below = groupsBelow.value[scopeKey(node)]
+  if (!below) return 'Loading what lies below…'
+  if (below.ids.length === 0) return 'Nothing selectable below'
+  const what = below.groups.map((group) => `${group.nodes.length.toLocaleString()} ${group.label}`).join(', ')
+  return `${belowState(node).all ? 'Deselect' : 'Select'} everything below: ${what}`
+}
+
+// know what lies below the listed nodes that select below, so their ticks show the state of it
+watch(currentOptions, (nodes) => {
+  for (const node of nodes ?? []) {
+    if (selectsBelow(node)) loadGroupsBelow(node).catch(() => {})
+  }
+}, { immediate: true })
+
+/* ---------- navigation ---------- */
 
 const navigateInto = (node) => {
   if (isNodeDisabled(node)) return
@@ -309,6 +491,9 @@ const navigateToLevel = (index) => {
   }
 }
 
+// The type panel is scoped to the level it was opened at
+watch(currentParentNode, closeTypePanel)
+
 const toggleDropdown = (event) => {
   if (props.disabled) return
   event.stopPropagation()
@@ -319,6 +504,9 @@ const closeDropdown = () => {
   isOpen.value = false
   navigationPath.value = []
   currentParentNode.value = null
+  closeTypePanel()
+  // what lies below a node is read again when the dropdown opens next, in case it changed
+  groupsBelow.value = {}
 }
 
 // Sync internal state with props
@@ -347,30 +535,22 @@ onBeforeUnmount(() => {
       @click.stop="toggleDropdown"
       tabindex="0"
     >
-      <div v-if="selectedNodes.length > 0" class="selected-values">
-        <span
-          v-for="node in displayedSelectedNodes"
-          :key="`selected-${node.id}`"
-          class="selected-chip"
-        >
-          {{ getNodeLabel(node) }}
-          <button
-            type="button"
-            class="remove-chip"
-            @click.stop="removeSelection(node.id)"
-            :disabled="disabled"
-          >
-            ×
-          </button>
-        </span>
-        <span v-if="remainingCount > 0" class="remaining-count">
-          +{{ remainingCount }} more
-        </span>
+      <div v-if="showChips && internalSelectedIds.length > 0" class="selected-values">
+        <SelectionChips
+          compact
+          :ids="internalSelectedIds"
+          :groups="selectedGroups"
+          :label-fn="chipLabel"
+          :disabled="disabled"
+          @remove="removeSelection"
+          @remove-group="removeGroup"
+          @clear="clearAllSelections"
+        />
       </div>
       <span v-else class="placeholder">
         {{ placeholder }}
         <span v-if="showSelectionCount && internalSelectedIds.length > 0" class="selection-count">
-          ({{ internalSelectedIds.length }} selected)
+          ({{ internalSelectedIds.length.toLocaleString() }} selected)
         </span>
       </span>
       <span class="dropdown-arrow" :class="{ open: isOpen }">▼</span>
@@ -401,39 +581,108 @@ onBeforeUnmount(() => {
             </span>
           </div>
 
-          <!-- Selection summary -->
-          <div v-if="internalSelectedIds.length > 0" class="selection-summary">
-            {{ internalSelectedIds.length }} item{{ internalSelectedIds.length !== 1 ? 's' : '' }} selected
+          <!-- Selection summary and bulk actions -->
+          <div class="selection-summary" :class="{ 'limit-reached': limitReached }">
+            <span class="selection-count-text">
+              {{ internalSelectedIds.length.toLocaleString() }} selected<template v-if="maxSelections"> of at most {{ maxSelections }}</template>
+            </span>
             <div class="selection-actions">
               <button
                 type="button"
                 class="select-all-button"
                 @click.stop="selectAllDisplayed"
-                :disabled="!canSelectMore"
+                :disabled="!canSelectMore || currentOptions.length === 0"
+                title="Select what is listed at this level"
               >
-                Select All
+                Select shown
               </button>
               <button
+                v-if="loadTypeGroupsFn"
+                type="button"
+                class="select-by-type-button"
+                :class="{ active: !!typePanel }"
+                @click.stop="typePanel ? closeTypePanel() : openTypePanel()"
+                title="Select everything of a type below this level"
+              >
+                By type…
+              </button>
+              <button
+                v-if="internalSelectedIds.length > 0"
                 type="button"
                 class="clear-all-button"
                 @click.stop="clearAllSelections"
               >
-                Clear All
+                Clear all
               </button>
             </div>
           </div>
 
-          <!-- If no items selected, show select all button separately -->
-          <div v-else-if="currentOptions.length > 0" class="selection-summary">
-            <span>0 items selected</span>
-            <button
-              type="button"
-              class="select-all-button"
-              @click.stop="selectAllDisplayed"
-              :disabled="!canSelectMore"
-            >
-              Select All
-            </button>
+          <!-- Selection by type over everything below the current level -->
+          <div v-if="typePanel" class="type-panel">
+            <div class="type-panel-header">
+              <span>Below <strong>{{ typePanelScopeLabel }}</strong></span>
+              <button type="button" class="type-panel-close" @click.stop="closeTypePanel" title="Close">×</button>
+            </div>
+            <div v-if="typePanel.loading" class="loading-state">
+              <span class="spinner"></span> Loading…
+            </div>
+            <div v-else-if="typePanel.error" class="type-panel-error">{{ typePanel.error }}</div>
+            <template v-else>
+              <div v-if="typePanel.groups.length === 0" class="empty-state">
+                Nothing selectable below {{ typePanelScopeLabel }}
+              </div>
+              <template v-else>
+                <div
+                  v-for="group in typePanel.groups"
+                  :key="`type-${group.key}`"
+                  class="type-row"
+                >
+                  <span class="type-label">
+                    {{ group.label }} <span class="type-count">({{ group.nodes.length.toLocaleString() }})</span>
+                  </span>
+                  <span class="type-selected">{{ groupSelectedCount(group).toLocaleString() }} selected</span>
+                  <span class="type-actions">
+                    <button
+                      type="button"
+                      class="btn-link"
+                      :disabled="!canSelectMore || groupSelectedCount(group) === group.nodes.length"
+                      @click.stop="selectGroup(group, true)"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-link"
+                      :disabled="groupSelectedCount(group) === 0"
+                      @click.stop="selectGroup(group, false)"
+                    >
+                      None
+                    </button>
+                  </span>
+                </div>
+                <div v-if="typePanel.groups.length > 1" class="type-row type-row-all">
+                  <span class="type-label">Everything <span class="type-count">({{ allGroupNodes.length.toLocaleString() }})</span></span>
+                  <span class="type-selected">{{ allGroupNodes.filter(isNodeSelected).length.toLocaleString() }} selected</span>
+                  <span class="type-actions">
+                    <button
+                      type="button"
+                      class="btn-link"
+                      :disabled="!canSelectMore"
+                      @click.stop="selectAllGroups(true)"
+                    >
+                      All
+                    </button>
+                    <button type="button" class="btn-link" @click.stop="selectAllGroups(false)">None</button>
+                  </span>
+                </div>
+              </template>
+              <div v-if="typePanel.leftOut > 0" class="type-panel-note">
+                {{ typePanel.leftOut }} not selected: at most {{ maxSelections }} can be selected
+              </div>
+              <div v-else-if="typePanel.notSelectable > 0" class="type-panel-note">
+                {{ typePanel.notSelectable }} below {{ typePanelScopeLabel }} cannot be selected here
+              </div>
+            </template>
           </div>
 
           <!-- Options list -->
@@ -447,7 +696,8 @@ onBeforeUnmount(() => {
                 :key="`option-${node.id}`"
                 :class="{
                   'option-item': true,
-                  'selected': isNodeSelected(node),
+                  'selected': isNodeSelected(node) || isBelowAllSelected(node),
+                  'selects-below': selectsBelow(node),
                   'disabled': isNodeDisabled(node),
                   'not-selectable': !isNodeSelectable(node),
                   'has-children': hasChildren(node)
@@ -456,9 +706,11 @@ onBeforeUnmount(() => {
                 <label class="checkbox-label">
                   <input
                     type="checkbox"
-                    :checked="isNodeSelected(node)"
+                    :checked="isNodeSelected(node) || isBelowAllSelected(node)"
+                    :indeterminate.prop="isBelowSomeSelected(node)"
                     @change="toggleSelection(node)"
-                    :disabled="!isNodeSelectable(node)"
+                    :disabled="!(canToggle(node) || canToggleBelow(node))"
+                    :title="selectsBelow(node) ? belowTitle(node) : undefined"
                     class="option-checkbox"
                   />
                   <span class="option-label">{{ getNodeLabel(node) }}</span>
@@ -475,7 +727,7 @@ onBeforeUnmount(() => {
                 </button>
               </div>
             </template>
-            <div v-if="currentOptions.length === 0" class="empty-state">
+            <div v-if="!isLoading && currentOptions.length === 0" class="empty-state">
               No options available
             </div>
           </div>
@@ -536,39 +788,6 @@ onBeforeUnmount(() => {
   gap: 4px;
   flex: 1;
   align-items: center;
-}
-
-.selected-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #1976d2;
-}
-
-.remove-chip {
-  background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 0;
-  line-height: 1;
-  font-weight: bold;
-}
-
-.remove-chip:hover:not(:disabled) {
-  color: #0d47a1;
-}
-
-.remaining-count {
-  font-size: 12px;
-  color: #666;
-  font-weight: 500;
 }
 
 .placeholder {
@@ -662,7 +881,12 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
-.select-all-button {
+.selection-summary.limit-reached .selection-count-text {
+  color: #b26a00;
+}
+
+.select-all-button,
+.select-by-type-button {
   background: none;
   border: none;
   color: #1976d2;
@@ -671,14 +895,129 @@ onBeforeUnmount(() => {
   text-decoration: underline;
 }
 
-.select-all-button:hover:not(:disabled) {
+.select-all-button:hover:not(:disabled),
+.select-by-type-button:hover:not(:disabled) {
   color: #0d47a1;
 }
 
-.select-all-button:disabled {
+.select-all-button:disabled,
+.select-by-type-button:disabled {
   color: #999;
   cursor: not-allowed;
   text-decoration: none;
+}
+
+.select-by-type-button.active {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.type-panel {
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafbfc;
+  font-size: 13px;
+}
+
+.type-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+.type-panel-close {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.type-panel-close:hover {
+  color: #000;
+}
+
+.type-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.type-row-all {
+  background: #f0f4f8;
+}
+
+.type-label {
+  color: #333;
+}
+
+.type-count,
+.type-selected {
+  color: #666;
+  font-size: 12px;
+}
+
+.type-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.type-actions .btn-link {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.type-actions .btn-link:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.type-panel-note,
+.type-panel-error {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #b26a00;
+}
+
+.type-panel-error {
+  color: #d32f2f;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: #666;
+  font-size: 13px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #cfd8dc;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .clear-all-button {

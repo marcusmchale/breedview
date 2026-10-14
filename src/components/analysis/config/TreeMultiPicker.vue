@@ -1,5 +1,7 @@
 <script setup>
+import { ref } from 'vue'
 import HierarchicalMultiSelectDropdown from '@/components/customInputs/HierarchicalMultiSelectDropdown.vue'
+import SelectionChips from '@/components/customInputs/SelectionChips.vue'
 
 /**
  * Hierarchical multi-select with removable chips for the selected IDs.
@@ -12,6 +14,7 @@ const props = defineProps({
   childrenLoading: { type: Boolean, default: false },
   currentChildren: { type: Array, default: () => [] },
   hasChildrenFn: { type: Function, default: undefined },
+  loadTypeGroupsFn: { type: Function, default: null },
   getNodeLabelFn: { type: Function, default: (node) => node.name || `${node.id}` },
   isSelectableFn: { type: Function, default: () => true },
   labelFn: { type: Function, required: true },
@@ -20,7 +23,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+// groups selected by type in the dropdown, shown as one chip each
+const groups = ref([])
+
 const remove = (id) => emit('update:modelValue', props.modelValue.filter((x) => x !== id))
+const removeGroup = (group) => {
+  const ids = new Set(group.ids.map(String))
+  emit('update:modelValue', props.modelValue.filter((x) => !ids.has(String(x))))
+}
+const clear = () => emit('update:modelValue', [])
 </script>
 
 <template>
@@ -32,17 +43,24 @@ const remove = (id) => emit('update:modelValue', props.modelValue.filter((x) => 
       :children-loading="childrenLoading"
       :current-children="currentChildren"
       :has-children-fn="hasChildrenFn"
+      :load-type-groups-fn="loadTypeGroupsFn"
+      :show-chips="false"
       :get-node-label-fn="getNodeLabelFn"
       :is-selectable-fn="isSelectableFn"
       :placeholder="placeholder"
       @update:model-value="emit('update:modelValue', $event)"
+      @update:groups="groups = $event"
     />
-    <div v-if="modelValue.length" class="chip-list selected-chips">
-      <span v-for="id in modelValue" :key="id" class="chip">
-        {{ labelFn(id) }}
-        <button type="button" class="chip-remove" title="Remove" @click="remove(id)">×</button>
-      </span>
-    </div>
+    <SelectionChips
+      v-if="modelValue.length"
+      class="selected-chips"
+      :ids="modelValue"
+      :groups="groups"
+      :label-fn="labelFn"
+      @remove="remove"
+      @remove-group="removeGroup"
+      @clear="clear"
+    />
   </div>
 </template>
 

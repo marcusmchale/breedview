@@ -1,10 +1,17 @@
 import {ref, computed, toValue} from 'vue'
 import { useLazyQuery, useApolloClient } from "@vue/apollo-composable";
+import { gql } from '@apollo/client/core'
+
+/** Fragment with only the child ids of a hierarchical type, for reading what to load next from the cache. */
+const childIdsFragment = (typeName) => gql`
+  fragment ${typeName}ChildIds on ${typeName} {
+    children { id }
+  }
+`
 
 
 export function useItemsLazyQuery({
     itemsQueryGraphql,
-    itemQueryFragment,
     queryName,
     variableName,
     typeName
@@ -36,17 +43,15 @@ export function useItemsLazyQuery({
         return items
     })
 
-    // Assumes the item is already loaded to the cache
+    // Assumes the item is already loaded to the cache, if only with its child ids (a tree walk loads no more).
     // Get its children ids from the cache and load them.
     // Returns what the lazy query's load returns: a promise of the result, or false when it has already run
     const loadChildren = (itemId) => {
         const cachedItem = client.cache.readFragment({
             id: `${typeName}:${itemId}`,
-            fragment: itemQueryFragment
+            fragment: childIdsFragment(typeName)
         })
-        if (cachedItem?.children && cachedItem?.children?.length > 0) {
-            itemIds.value = cachedItem.children.map(child => child.id)
-        }
+        itemIds.value = (cachedItem?.children ?? []).map(child => child.id)
         return loadItems()
     }
 
