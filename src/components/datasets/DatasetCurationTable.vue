@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import {
   useVueTable,
   getCoreRowModel,
@@ -152,6 +153,29 @@ const table = computed(() => {
 })
 
 const rows = computed(() => table.value?.getRowModel().rows ?? [])
+
+// Only the rows in view are rendered: a study's datasets can hold tens of thousands of rows.
+// Row heights are fixed in CSS so the virtualiser needs no measuring; a section header adds to its row.
+const ROW_HEIGHT = 37
+const SECTION_HEIGHT = 33
+const tableWrapperRef = ref(null)
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: rows.value.length,
+  getScrollElement: () => tableWrapperRef.value,
+  estimateSize: (index) => ROW_HEIGHT + (isSectionStart(index) ? SECTION_HEIGHT : 0),
+  overscan: 15
+})))
+const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems().map((item) => ({
+  key: item.key,
+  rIdx: item.index,
+  row: rows.value[item.index]
+})))
+const paddingTop = computed(() => rowVirtualizer.value.getVirtualItems()[0]?.start ?? 0)
+const paddingBottom = computed(() => {
+  const items = rowVirtualizer.value.getVirtualItems()
+  return items.length ? rowVirtualizer.value.getTotalSize() - items[items.length - 1].end : 0
+})
+const columnCount = computed(() => table.value?.getFlatHeaders().length ?? 1)
 
 // ---- Grouping cell editing ----
 const editingGroupCell = ref(null) // { rowIndex, columnId }
@@ -334,7 +358,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       Error loading datasets: {{ datasetsError }}
     </div>
 
-    <div v-else-if="table" class="table-wrapper">
+    <div v-else-if="table" ref="tableWrapperRef" class="table-wrapper">
       <table class="curation-table">
         <thead>
           <tr>
@@ -375,7 +399,10 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
           </tr>
         </thead>
         <tbody>
-          <template v-for="(row, rIdx) in rows" :key="row.id">
+          <tr v-if="paddingTop > 0" class="spacer-row" aria-hidden="true">
+            <td :colspan="columnCount" :style="{ height: paddingTop + 'px' }"></td>
+          </tr>
+          <template v-for="{ key, rIdx, row } in virtualItems" :key="key">
             <!-- Section header for DATASET_SCOPED grouping values -->
             <tr v-if="isSectionStart(rIdx)" class="section-header">
               <td :colspan="row.getVisibleCells().length">
@@ -453,6 +480,9 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
               </td>
             </tr>
           </template>
+          <tr v-if="paddingBottom > 0" class="spacer-row" aria-hidden="true">
+            <td :colspan="columnCount" :style="{ height: paddingBottom + 'px' }"></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -517,6 +547,39 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   text-align: left;
 }
 
+/* Fixed row heights, so the virtualised rows line up with the scroll position without measuring */
+.curation-table tbody tr {
+  height: 37px;
+}
+
+.curation-table tbody td {
+  box-sizing: border-box;
+  height: 37px;
+  padding-top: 0;
+  padding-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.curation-table tbody tr.section-header {
+  height: 33px;
+}
+
+.curation-table tbody tr.section-header td {
+  height: 33px;
+}
+
+.curation-table tbody tr.spacer-row {
+  height: auto;
+}
+
+.curation-table tbody tr.spacer-row td {
+  height: auto;
+  padding: 0;
+  border: none;
+}
+
 .curation-table th {
   background: #f5f5f5;
   font-weight: 600;
@@ -534,6 +597,12 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 
 .curation-table tbody .sticky-col {
   background: white;
+  /* below the sticky header, so scrolled rows don't draw over it; the header's own frozen cell sits above both */
+  z-index: 9;
+}
+
+.curation-table thead .sticky-col {
+  z-index: 12;
 }
 
 .sortable { cursor: pointer; }

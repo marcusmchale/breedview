@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
+import { useVirtualizer } from '@tanstack/vue-virtual';
 import {
   useVueTable,
   getCoreRowModel,
@@ -317,6 +318,27 @@ const rows = computed(() => {
   return table.value?.getRowModel().rows ?? [];
 });
 
+// Only the rows in view are rendered; a selection can run to thousands of units
+const ROW_HEIGHT = 37
+const tableWrapperRef = ref(null)
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: rows.value.length,
+  getScrollElement: () => tableWrapperRef.value,
+  estimateSize: () => ROW_HEIGHT,
+  overscan: 15
+})))
+const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems().map((item) => ({
+  key: item.key,
+  rIdx: item.index,
+  row: rows.value[item.index]
+})))
+const paddingTop = computed(() => rowVirtualizer.value.getVirtualItems()[0]?.start ?? 0)
+const paddingBottom = computed(() => {
+  const items = rowVirtualizer.value.getVirtualItems()
+  return items.length ? rowVirtualizer.value.getTotalSize() - items[items.length - 1].end : 0
+})
+const columnCount = computed(() => table.value?.getFlatHeaders().length ?? 1)
+
 // Dynamically determine coordinate columns from units
 const coordinateColumns = computed(() => {
   return determineCoordinateColumns();
@@ -613,7 +635,7 @@ const getFileReferenceDisplay = (value) => {
             </span>
           </div>
 
-          <div class="table-wrapper">
+          <div ref="tableWrapperRef" class="table-wrapper">
             <table class="dataset-table">
               <thead>
                 <tr>
@@ -682,9 +704,12 @@ const getFileReferenceDisplay = (value) => {
                 </tr>
               </thead>
               <tbody>
+                <tr v-if="paddingTop > 0" class="spacer-row" aria-hidden="true">
+                  <td :colspan="columnCount" :style="{ height: paddingTop + 'px' }"></td>
+                </tr>
                 <tr
-                  v-for="(row, rIdx) in rows"
-                  :key="row.id"
+                  v-for="{ key, rIdx, row } in virtualItems"
+                  :key="key"
                   :class="{ 'group-boundary': isGroupBoundary(rIdx) }"
                 >
                   <td
@@ -815,6 +840,9 @@ const getFileReferenceDisplay = (value) => {
                       {{ cell.getValue() }}
                     </template>
                   </td>
+                </tr>
+                <tr v-if="paddingBottom > 0" class="spacer-row" aria-hidden="true">
+                  <td :colspan="columnCount" :style="{ height: paddingBottom + 'px' }"></td>
                 </tr>
               </tbody>
             </table>
@@ -1048,6 +1076,12 @@ const getFileReferenceDisplay = (value) => {
 
 .dataset-table tbody .sticky-col {
   background: white;
+  /* below the sticky header, so scrolled rows don't draw over it; the header's own frozen cell sits above both */
+  z-index: 9;
+}
+
+.dataset-table thead .sticky-col {
+  z-index: 12;
 }
 
 .sortable {
@@ -1455,5 +1489,30 @@ tr.group-boundary td {
   margin: 0 0 8px;
   font-size: 0.85rem;
   color: #666;
+}
+
+/* Fixed row heights, so the virtualised rows line up with the scroll position without measuring */
+.dataset-table tbody tr {
+  height: 37px;
+}
+
+.dataset-table tbody td {
+  box-sizing: border-box;
+  height: 37px;
+  padding-top: 0;
+  padding-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dataset-table tbody tr.spacer-row {
+  height: auto;
+}
+
+.dataset-table tbody tr.spacer-row td {
+  height: auto;
+  padding: 0;
+  border: none;
 }
 </style>

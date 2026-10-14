@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js --fix"
+    "lint": "eslint . --ext .vue,.js --fix",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "perf:curation": "node tests/e2e/perf/curation.mjs",
+    "perf:blocks": "node tests/e2e/perf/blocks.mjs"
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",
@@ -15,6 +18,7 @@
     "@formkit/vue": "^1.6.9",
     "@geoman-io/leaflet-geoman-free": "^2.19.0",
     "@tanstack/vue-table": "^8.21.3",
+    "@tanstack/vue-virtual": "^3.13.45",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vue/apollo-composable": "^4.2.2",
     "apollo-upload-client": "^17.0.0",
