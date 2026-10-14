@@ -24,8 +24,7 @@ const showModal = ref(false)
 const { controller: releaseController, loading, refetch: refetchRelease } = useControllerQuery({
   entityLabel: () => props.entityLabel,
   entityId: () => props.entityId,
-  query: CONTROLLER_RELEASE_QUERY,
-  fetchPolicy: 'no-cache'
+  query: CONTROLLER_RELEASE_QUERY
 })
 // the latest writes, until all of them are asked for
 const allWrites = ref(false)

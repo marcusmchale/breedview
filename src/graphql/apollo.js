@@ -9,7 +9,7 @@ import { useCsrf } from '@/composables/system/useCsrf'
 import possibleTypes from './possibleTypes.json';
 
 import { getIdentityResolver, OntologyKeyFields } from "@/apolloConfig/identityResolvers";
-import { createUnionResolver, createUnionListReadPolicy, createUnionListTrackingPolicy, createPayloadByIdsReadPolicy, createReplaceOnMergePolicy} from "@/apolloConfig/apolloCachePolicy";
+import { createUnionResolver, createUnionListReadPolicy, createUnionListTrackingPolicy, createPayloadByIdsReadPolicy, createReplaceOnMergePolicy, createPositionalMergePolicy} from "@/apolloConfig/apolloCachePolicy";
 
 const graphqlUri = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_GRAPHQL_PATH}`
 
@@ -121,6 +121,8 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Scale', 'categories'),
     ...createReplaceOnMergePolicy('Category', 'scales'),
     ...createReplaceOnMergePolicy('Term', 'subjects'),
+    // controllers have no id: the badge's release, the curation table's teams and the full details share one entry
+    ...createPositionalMergePolicy('ControllersPayload'),
      // disable cache for RecordGroup as id is not unique per RecordGroup, it is the id of the grouping
     RecordGroup: { keyFields: false }
   }

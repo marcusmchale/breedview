@@ -119,8 +119,25 @@ const createReplaceOnMergePolicy = (typeName, attribute) => ({
   }
 })
 
+// A payload whose result lists objects without ids, one per requested id: queries reading different fields of the
+// same field and arguments merge their lists item by item instead of replacing each other. Results of the same
+// arguments list the same entities in the same order, so items match by position.
+const createPositionalMergePolicy = (payloadTypename, attribute = 'result') => ({
+  [payloadTypename]: {
+    merge: true,
+    fields: {
+      [attribute]: {
+        merge(existing, incoming, { mergeObjects }) {
+          if (!existing || !incoming || existing.length !== incoming.length) return incoming
+          return incoming.map((item, i) => (existing[i] && item ? mergeObjects(existing[i], item) : item))
+        }
+      }
+    }
+  }
+})
 
 export {
+    createPositionalMergePolicy,
     createUnionResolver,
     createUnionListReadPolicy,
     createUnionListTrackingPolicy,

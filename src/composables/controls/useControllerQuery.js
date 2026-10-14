@@ -4,8 +4,8 @@ import CONTROLLERS_QUERY from '../../graphql/controls/controllers.graphql'
 
 /**
  * The controller of one entity. Pass `query` to read fewer fields, as long as it reads `controlsControllers`,
- * and `enabled` to hold the query back until it is needed. The controllers payload is not normalised, so a query
- * reading fewer fields should use the 'no-cache' fetchPolicy, or it replaces the full controller in the cache.
+ * and `enabled` to hold the query back until it is needed. Queries reading different fields share the cached
+ * controllers through the ControllersPayload merge policy (see apollo.js).
  * `variables` adds to the entity label and id, such as `lastWrites` for the full controller query.
  */
 export function useControllerQuery({
@@ -13,7 +13,6 @@ export function useControllerQuery({
   entityId,
   query = CONTROLLERS_QUERY,
   enabled = true,
-  fetchPolicy = undefined,
   variables: extraVariables = {}
 }) {
 
@@ -30,7 +29,7 @@ export function useControllerQuery({
   const { result, loading, error, refetch } = useQuery(
     query,
     variables,
-    () => ({ enabled: queryEnabled.value, ...(fetchPolicy ? { fetchPolicy } : {}) })
+    { enabled: queryEnabled }
   )
 
   const controller = computed(() =>

@@ -333,8 +333,7 @@ export function useDatasetCurationTable() {
           entityLabel: 'DATASET',
           entityIds: datasetIds
         },
-        // the payload is not normalised, so keep this partial controller out of the cache
-        fetchPolicy: 'no-cache'
+        fetchPolicy: 'network-only'
       })
 
       const controllers = result?.data?.controlsControllers?.result || []
