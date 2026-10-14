@@ -93,6 +93,10 @@ const handleLicenceSave = (licence) => {
 }
 
 const submitForm = async (values) => {
+  if (!selectedControlTeamId.value) {
+    formError.value = 'Please select a control team'
+    return
+  }
   try {
     formError.value = ''
 

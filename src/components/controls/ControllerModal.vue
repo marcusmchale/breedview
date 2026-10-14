@@ -317,10 +317,12 @@ const formatDate = (dateString) => {
             No detailed controller information available
           </div>
 
+          <!-- Outside the section below, so the outcome stays visible after the user's teams give up control -->
+          <div v-if="transferMessage" class="success-message">{{ transferMessage }}</div>
+          <div v-if="transferError" class="error-message">{{ transferError }}</div>
+
           <div v-if="canTransfer" class="section transfer-section">
             <strong>Control:</strong>
-            <div v-if="transferMessage" class="success-message">{{ transferMessage }}</div>
-            <div v-if="transferError" class="error-message">{{ transferError }}</div>
             <div class="form-actions">
               <button class="btn btn-primary" @click="showOfferModal = true">Transfer control</button>
               <button v-if="canRenounce && !showRenounceForm" class="btn btn-secondary" @click="showRenounceForm = true">
