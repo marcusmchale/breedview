@@ -318,27 +318,6 @@ const rows = computed(() => {
   return table.value?.getRowModel().rows ?? [];
 });
 
-// Only the rows in view are rendered; a selection can run to thousands of units
-const ROW_HEIGHT = 37
-const tableWrapperRef = ref(null)
-const rowVirtualizer = useVirtualizer(computed(() => ({
-  count: rows.value.length,
-  getScrollElement: () => tableWrapperRef.value,
-  estimateSize: () => ROW_HEIGHT,
-  overscan: 15
-})))
-const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems().map((item) => ({
-  key: item.key,
-  rIdx: item.index,
-  row: rows.value[item.index]
-})))
-const paddingTop = computed(() => rowVirtualizer.value.getVirtualItems()[0]?.start ?? 0)
-const paddingBottom = computed(() => {
-  const items = rowVirtualizer.value.getVirtualItems()
-  return items.length ? rowVirtualizer.value.getTotalSize() - items[items.length - 1].end : 0
-})
-const columnCount = computed(() => table.value?.getFlatHeaders().length ?? 1)
-
 // Dynamically determine coordinate columns from units
 const coordinateColumns = computed(() => {
   return determineCoordinateColumns();
@@ -363,6 +342,28 @@ watch(coordinateColumns, (coords) => {
     }
   });
 }, { immediate: true });
+
+// Only the rows in view are rendered; a selection can run to thousands of units. The virtualiser reads the
+// row count as soon as it is set up, so it comes after everything the columns depend on
+const ROW_HEIGHT = 37
+const tableWrapperRef = ref(null)
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: rows.value.length,
+  getScrollElement: () => tableWrapperRef.value,
+  estimateSize: () => ROW_HEIGHT,
+  overscan: 15
+})))
+const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems().map((item) => ({
+  key: item.key,
+  rIdx: item.index,
+  row: rows.value[item.index]
+})))
+const paddingTop = computed(() => rowVirtualizer.value.getVirtualItems()[0]?.start ?? 0)
+const paddingBottom = computed(() => {
+  const items = rowVirtualizer.value.getVirtualItems()
+  return items.length ? rowVirtualizer.value.getTotalSize() - items[items.length - 1].end : 0
+})
+const columnCount = computed(() => table.value?.getFlatHeaders().length ?? 1)
 
 
 // Handle cell editing
