@@ -110,10 +110,9 @@ const closeModal = () => {
 }
 
 </script>
-091544388 Pauline
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">>
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Update Profile</h2>
@@ -125,7 +124,7 @@ const closeModal = () => {
           Loading user data...
         </div>
 
-        <div v-else-if=           "error" class="error">
+        <div v-else-if="error" class="error">
           <p>Unable to load user information</p>
           <button @click="$emit('back-to-home')" class="btn btn-primary">
             Go Back

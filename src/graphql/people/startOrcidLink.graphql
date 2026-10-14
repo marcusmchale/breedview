@@ -1,0 +1,9 @@
+mutation peopleStartOrcidLink {
+    peopleStartOrcidLink {
+        status
+        result
+        errors {
+            message
+        }
+    }
+}

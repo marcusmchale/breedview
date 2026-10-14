@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import PersonCard from './PersonCard.vue'
 import PersonFormModal from './PersonFormModal.vue'
 import ErasePersonModal from './ErasePersonModal.vue'
+import ClaimRequestsPanel from './ClaimRequestsPanel.vue'
 import PERSON_FRAGMENT from '@/graphql/people/personFragment.graphql'
 import { useCacheUpdates } from '@/apolloConfig/cacheUpdates'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
@@ -74,6 +75,8 @@ const handleErased = (personId) => {
       People are credited for research data as dataset contributors and listed as contacts for programs and trials.
       Records you cannot read are shown restricted.
     </p>
+
+    <ClaimRequestsPanel @decided="refetchPeople" />
 
     <div class="toolbar">
       <input

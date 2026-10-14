@@ -1,0 +1,8 @@
+mutation peopleRequestClaim($personId: ID!) {
+    peopleRequestClaim(personId: $personId) {
+        status
+        errors {
+            message
+        }
+    }
+}

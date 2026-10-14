@@ -1,0 +1,12 @@
+#import "./personFragment.graphql"
+query peopleMyPerson {
+    peopleMyPerson {
+        status
+        result {
+            ...PersonFields
+        }
+        errors {
+            message
+        }
+    }
+}

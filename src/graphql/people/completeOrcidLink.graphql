@@ -1,0 +1,8 @@
+mutation peopleCompleteOrcidLink($code: String!, $state: String!) {
+    peopleCompleteOrcidLink(code: $code, state: $state) {
+        status
+        errors {
+            message
+        }
+    }
+}

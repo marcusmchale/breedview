@@ -1,10 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../composables/user/useAuthStore'
-import InviteUserModal from './user/InviteUserModal.vue'
-
-import EditProfileModal from "@/components/user/EditProfileModal.vue";
 
 const router = useRouter()
 
@@ -14,9 +11,6 @@ const { user, isLoading, error: storeError } = useAuthStore()
 // Create computed properties for template usage
 const loading = computed(() => isLoading.value)
 const error = computed(() => storeError.value)
-
-const showInviteModal = ref(false)
-const showEditProfileModal = ref(false)
 
 const redirectToLogin = () => {
   router.push('/login')
@@ -47,26 +41,11 @@ const redirectToLogin = () => {
       </div>
 
       <div class="user-actions">
-        <button @click="showInviteModal = true" class="btn btn-primary">
-          Invite User
-        </button>
-        <button @click="showEditProfileModal = true" class="btn btn-primary">
-          Edit Profile
-        </button>
+        <router-link to="/profile" class="btn btn-primary">
+          Your profile
+        </router-link>
       </div>
     </div>
-
-    <!-- Invite User Modal -->
-    <InviteUserModal
-      :is-open="showInviteModal"
-      @close="showInviteModal = false"
-    />
-
-    <EditProfileModal
-        :is-open="showEditProfileModal"
-        @close="showEditProfileModal = false"
-    />
-
   </div>
 </template>
 

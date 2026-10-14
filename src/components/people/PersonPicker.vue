@@ -20,6 +20,11 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // Only Persons not yet linked to an account, e.g. for claims
+  excludeLinked: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
@@ -38,6 +43,7 @@ const candidates = computed(() =>
   people.value.filter(person => {
     if (personForm(person) !== 'full') return false
     if (props.linkedOnly && !person.linkedUser) return false
+    if (props.excludeLinked && person.linkedUser) return false
     const text = filter.value.trim().toLowerCase()
     if (!text) return true
     return personLabel(person).toLowerCase().includes(text) ||

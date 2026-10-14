@@ -17,6 +17,8 @@ import BlockManagement from '@/components/blocks/BlockManagement.vue'
 import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'
+import ProfilePage from '@/components/user/ProfilePage.vue'
+import OrcidCallbackPage from '@/components/user/OrcidCallbackPage.vue'
 
 const routes = [
   {
@@ -153,6 +155,27 @@ const routes = [
     meta: {
       requiresAuth: true,
       title: 'People'
+    }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfilePage,
+    meta: {
+      requiresAuth: true,
+      title: 'Profile'
+    }
+  },
+  {
+    // ORCID's redirect after sign-in, configured as ORCID_REDIRECT_URI on the API
+    path: '/orcid',
+    name: 'OrcidCallback',
+    component: OrcidCallbackPage,
+    props: route => ({ code: route.query.code, state: route.query.state, error: route.query.error }),
+    meta: {
+      requiresAuth: true,
+      title: 'ORCID',
+      hideNavigation: true
     }
   },
   {

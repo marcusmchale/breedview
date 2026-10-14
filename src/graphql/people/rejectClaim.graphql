@@ -1,0 +1,8 @@
+mutation peopleRejectClaim($personId: ID!, $userId: ID!) {
+    peopleRejectClaim(personId: $personId, userId: $userId) {
+        status
+        errors {
+            message
+        }
+    }
+}

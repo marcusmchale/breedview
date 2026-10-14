@@ -1,0 +1,8 @@
+mutation peopleRemoveOrcid {
+    peopleRemoveOrcid {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -1,0 +1,8 @@
+mutation accountsDeleteAccount($password: String!, $erasePerson: Boolean) {
+    accountsDeleteAccount(password: $password, erasePerson: $erasePerson) {
+        status
+        errors {
+            message
+        }
+    }
+}

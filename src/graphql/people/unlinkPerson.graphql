@@ -1,0 +1,8 @@
+mutation peopleUnlinkPerson($personId: ID!) {
+    peopleUnlinkPerson(personId: $personId) {
+        status
+        errors {
+            message
+        }
+    }
+}

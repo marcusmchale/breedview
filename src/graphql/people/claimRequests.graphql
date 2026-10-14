@@ -1,0 +1,16 @@
+#import "./personFragment.graphql"
+query peopleClaimRequests {
+    peopleClaimRequests {
+        status
+        result {
+            person { ...PersonFields }
+            userId
+            name
+            fullname
+            requestedAt
+        }
+        errors {
+            message
+        }
+    }
+}

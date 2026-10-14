@@ -1,0 +1,8 @@
+mutation peopleWithdrawClaim($personId: ID!) {
+    peopleWithdrawClaim(personId: $personId) {
+        status
+        errors {
+            message
+        }
+    }
+}

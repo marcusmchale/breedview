@@ -122,6 +122,9 @@ onMounted(async () => {
           <router-link to="/analysis" class="nav-link" active-class="active">
             Analysis
           </router-link>
+          <router-link to="/profile" class="nav-link" active-class="active">
+            Profile
+          </router-link>
           <button @click="logout" class="nav-logout" :disabled="logoutLoading">
             {{ logoutLoading ? 'Logging out...' : 'Logout' }}
           </button>

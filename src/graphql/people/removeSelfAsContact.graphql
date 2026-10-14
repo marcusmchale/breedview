@@ -1,0 +1,8 @@
+mutation peopleRemoveSelfAsContact($entityLabel: ControlledModelLabel!, $entityId: ID!) {
+    peopleRemoveSelfAsContact(entityLabel: $entityLabel, entityId: $entityId) {
+        status
+        errors {
+            message
+        }
+    }
+}

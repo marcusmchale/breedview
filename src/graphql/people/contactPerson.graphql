@@ -1,0 +1,8 @@
+mutation peopleContactPerson($personId: ID!, $entityLabel: ControlledModelLabel!, $entityId: ID!, $subject: String!, $message: String!) {
+    peopleContactPerson(personId: $personId, entityLabel: $entityLabel, entityId: $entityId, subject: $subject, message: $message) {
+        status
+        errors {
+            message
+        }
+    }
+}
