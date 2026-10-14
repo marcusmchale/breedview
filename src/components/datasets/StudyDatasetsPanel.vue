@@ -108,9 +108,11 @@ const toggleExpanded = (datasetId) => {
 
 const isExpanded = (datasetId) => expandedDatasets.value.has(datasetId)
 
+// Record times keep the precision they were entered with (a day, or a minute), so show them as given
+// rather than parsing a date alone into midnight in the browser's time zone
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString()
+  return String(dateStr).replace('T', ' ')
 }
 </script>
 
