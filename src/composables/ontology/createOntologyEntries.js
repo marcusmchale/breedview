@@ -71,8 +71,6 @@ export function createTermHandler(context) {
   const locationTypes = getEntriesByType(ontologyEntries, 'LocationType')
   const layoutTypes = getEntriesByType(ontologyEntries, 'LayoutType')
   const designs = getEntriesByType(ontologyEntries, 'Design')
-  const roles = getEntriesByType(ontologyEntries, 'Role')
-  const titles = getEntriesByType(ontologyEntries, 'Title')
   const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
 
   openForm(
@@ -223,24 +221,6 @@ export function createTermHandler(context) {
         multiple: true,
         options: mapToSelectOptions(recordGroupTypes),
         placeholder: 'Select record group types (optional)'
-      },
-      {
-        name: 'roleIds',
-        type: 'select',
-        label: 'Roles',
-        validation: '',
-        multiple: true,
-        options: mapToSelectOptions(roles),
-        placeholder: 'Select roles (optional)'
-      },
-      {
-        name: 'titleIds',
-        type: 'select',
-        label: 'Titles',
-        validation: '',
-        multiple: true,
-        options: mapToSelectOptions(titles),
-        placeholder: 'Select titles (optional)'
       }
     ],
     (formData) => {
@@ -262,8 +242,6 @@ export function createTermHandler(context) {
         locationTypeIds: processIdArray(formData.locationTypeIds),
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
-        roleIds: processIdArray(formData.roleIds),
-        titleIds: processIdArray(formData.titleIds),
         recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds)
       }
 

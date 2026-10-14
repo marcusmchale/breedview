@@ -90,18 +90,6 @@ export const ontologyLabelsMap = {
     PascalCase: 'RecordGroupType',
     code: 'RGT',
     color: '#118AB2'  // Cerulean blue
-  },
-  ROLE: {
-    text: 'Role',
-    PascalCase: 'Role',
-    code: 'Rol',
-    color: '#000000'
-  },
-  TITLE: {
-    text: 'Title',
-    PascalCase: 'Title',
-    code: 'Ti',
-    color: '#999999'
   }
 }
 // Reverse lookup map: PascalCase -> enum label

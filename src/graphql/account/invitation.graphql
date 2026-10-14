@@ -1,0 +1,15 @@
+query accountsInvitation($token: String!) {
+    accountsInvitation(token: $token) {
+        status
+        result {
+            email
+            invitedBy
+            teams { teamId teamName access }
+            offersPerson
+            expiresAt
+        }
+        errors {
+            message
+        }
+    }
+}

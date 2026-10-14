@@ -1,0 +1,8 @@
+mutation accountsCancelInvitation($id: ID!) {
+    accountsCancelInvitation(id: $id) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -14,10 +14,9 @@ export async function checkAuthentication() {
     }
 
     if (accountData.status === 'SUCCESS' && accountData.result?.user) {
-      return { 
-        isAuthenticated: true, 
-        user: accountData.result.user,
-        allowedEmails: accountData.result.allowed_emails 
+      return {
+        isAuthenticated: true,
+        user: accountData.result.user
       }
     } else {
       return { 

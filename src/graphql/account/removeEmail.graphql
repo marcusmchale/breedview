@@ -1,8 +1,0 @@
-mutation accountsRemoveEmail($email: String!) {
-  accountsRemoveEmail(email: $email) {
-    status
-    errors {
-      message
-    }
-  }
-}

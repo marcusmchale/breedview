@@ -1,0 +1,18 @@
+query accountsInvitations {
+    accountsAccount {
+        status
+        result {
+            invitations {
+                id
+                email
+                teams { team { id name fullname } access }
+                person { id name institution restricted erased }
+                createdAt
+                expiresAt
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

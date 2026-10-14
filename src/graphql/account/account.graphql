@@ -3,7 +3,6 @@ query accountsAccount {
         status
         result {
             user { id name fullname email ontologyRole ontologyRoleRequested }
-            allowedEmails
         }
         errors {
             message

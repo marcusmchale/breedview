@@ -1,8 +1,0 @@
-mutation accountsAddEmail($email: String!) {
-  accountsAddEmail(email: $email) {
-    status
-    errors {
-      message
-    }
-  }
-}

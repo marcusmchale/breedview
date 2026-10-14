@@ -1,0 +1,8 @@
+mutation accountsResendInvitation($id: ID!) {
+    accountsResendInvitation(id: $id) {
+        status
+        errors {
+            message
+        }
+    }
+}

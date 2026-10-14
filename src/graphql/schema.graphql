@@ -1,3 +1,8 @@
+input TeamInvitationInput {
+  teamId: ID!
+  access: Access!
+}
+
 """
 Defines how values are divided into bins.
 
@@ -890,6 +895,42 @@ input UnitUpdate {
   childrenIds: [ID!]
 }
 
+input ControlledEntityInput {
+  label: ControlledModelLabel!
+  id: ID!
+}
+
+input ControlTransferOffer {
+  """
+  Controlled models to transfer. Each is transferred alone, not with other models in its aggregate
+  """
+  entities: [ControlledEntityInput!]!
+
+  """
+  Teams giving up control. The user must be an admin of each, and each must control every entity
+  """
+  fromTeamIds: [ID!]!
+
+  """The team offered control, e.g. the root of another organisation"""
+  recipientTeamId: ID!
+
+  """
+  Keep control for the teams giving it, sharing control with the teams taking it
+  """
+  keepFromTeams: Boolean
+
+  """
+  Only when the user is also an admin of the recipient team: the teams taking control.
+  The transfer is then accepted immediately.
+  """
+  toTeamIds: [ID!]
+
+  """
+  Only with toTeamIds: the release level of the new controls. Defaults to PRIVATE
+  """
+  release: ReadRelease
+}
+
 input RecordGroupInput {
   id: ID!
   code: String!
@@ -975,9 +1016,6 @@ input GermplasmInput {
   """
   controlMethodIds: [ID!]
 
-  """Authors of this germplasm entry (A list of personId)"""
-  authorIds: [ID!] = []
-
   """References for ths germplasm entry (A list of referenceId)"""
   referenceIds: [ID!] = []
 
@@ -994,21 +1032,63 @@ input GermplasmUpdate {
   time: DateTime
   reproduction: Reproduction
   controlMethodIds: [ID!]
-  authorIds: [ID!] = []
   referenceIds: [ID!] = []
   sources: [GermplasmSourceRelationship!]
 }
 
 type Mutation {
-  accountsCreateAccount(name: String!, fullname: String, email: String!, password: String!): BooleanPayload!
+  """
+  Register. Except for the first account, requires the token from an invitation link,
+  and the email address must be the one invited.
+  """
+  accountsCreateAccount(
+    name: String!
+    fullname: String
+    email: String!
+    password: String!
+    invitationToken: String
+
+    """ Affiliations offered with the invitation to accept. Others are declined 
+    """
+    acceptTeamIds: [ID!]
+
+    """
+    Link the Person offered with the invitation to the new account.
+    Before the user confirms, tell them that other users may message them through BreedGraph
+    if the Person is listed as a contact, at their account email address, which senders never see.
+    They can remove themselves as a contact, and unlink or erase the Person, at any time.
+    """
+    linkPerson: Boolean
+  ): BooleanPayload!
   accountsUpdateUser(name: String, fullname: String, email: String, password: String): BooleanPayload!
   accountsVerifyEmail(token: String!): BooleanPayload!
   accountsRequestPasswordReset(email: String!): BooleanPayload
   accountsResetPassword(token: String!, password: String!): BooleanPayload!
   accountsLogin(username: String!, password: String!): BooleanPayload!
   accountsLogout: BooleanPayload!
-  accountsAddEmail(email: String!): BooleanPayload!
-  accountsRemoveEmail(email: String!): BooleanPayload!
+
+  """
+  Delete your own account, confirming with your password, and log out.
+  Your contributions stay attributed to an anonymous user id.
+  Refused while you are the only ontology admin or the only admin of a team.
+  Before the user confirms, ask whether to erase their linked Person as well, with erasing as the default.
+  """
+  accountsDeleteAccount(
+    password: String!
+
+    """ Erase the linked Person (the default), otherwise only unlink it """
+    erasePerson: Boolean = true
+  ): BooleanPayload!
+
+  """
+  Invite someone to register. Teams must be administered by the inviting user,
+  and a Person must be controlled by a team they administer.
+  """
+  accountsInvite(email: String!, teams: [TeamInvitationInput!], personId: ID): BooleanPayload!
+  accountsCancelInvitation(id: ID!): BooleanPayload!
+
+  """ Send the invitation again, extending its expiry """
+  accountsResendInvitation(id: ID!): BooleanPayload!
   accountsRequestAffiliation(teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
   accountsApproveAffiliation(userId: ID!, teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
   accountsRemoveAffiliation(teamId: ID!, access: Access!): BooleanPayload!
@@ -1043,6 +1123,26 @@ type Mutation {
   blocksAddPosition(id: ID!, position: PositionInput!): BooleanPayload!
   blocksRemovePosition(id: ID!, position: PositionInput!): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [ID!]!, release: ReadRelease!): BooleanPayload!
+
+  """Offer control of controlled models to a recipient team"""
+  controlsOfferTransfer(offer: ControlTransferOffer!): BooleanPayload!
+
+  """
+  Accept a transfer offered to a team the user is an admin of.
+  toTeamIds must be the recipient team or teams below it, each administered by the user.
+  """
+  controlsAcceptTransfer(id: ID!, toTeamIds: [ID!]!, release: ReadRelease): BooleanPayload!
+
+  """Reject a transfer offered to a team the user is an admin of"""
+  controlsRejectTransfer(id: ID!): BooleanPayload!
+
+  """Cancel a pending transfer offered from teams the user is an admin of"""
+  controlsCancelTransfer(id: ID!): BooleanPayload!
+
+  """
+  End the control of teams the user is an admin of, where other teams also control the entities
+  """
+  controlsRenounceControl(entities: [ControlledEntityInput!]!, teamIds: [ID!]!): BooleanPayload!
 
   """
   Submission Payloads include a key, the data is processed asynchronously
@@ -1093,9 +1193,78 @@ type Mutation {
   organisationsCreateTeam(team: TeamInput!): BooleanPayload!
   organisationsDeleteTeam(id: ID!): BooleanPayload!
   organisationsUpdateTeam(team: TeamUpdate!): BooleanPayload!
+
+  """
+  Declare the legal entity responsible for an organisation, accepting the current data processing terms.
+  Only on the root team, by its admins. A new declaration replaces the current one, which is kept as history.
+  """
+  organisationsDeclareLegalEntity(teamId: ID!, legalEntity: LegalEntityInput!): BooleanPayload!
+
+  """
+  Withdraw the legal entity declared for an organisation, by admins of its root team.
+  Refused while the organisation controls any Person, including erased Persons. The declaration is kept as history.
+  """
+  organisationsWithdrawLegalEntity(teamId: ID!): BooleanPayload!
+
+  """
+  Record a Person. The organisation of the control team must have declared its legal entity,
+  and becomes the data controller for the record.
+  """
   peopleCreatePerson(person: PersonInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+
+  """
+  Curators of the record can change all fields. The linked user can change the name and institution
+  """
   peopleUpdatePerson(person: PersonUpdate!): BooleanPayload!
-  peopleDeletePerson(id: ID!): BooleanPayload!
+
+  """
+  Remove identifying data, keeping the id so contributions stay attributed.
+  By admins of the controlling teams or the linked user. Cannot be undone.
+  """
+  peopleErasePerson(id: ID!): BooleanPayload!
+
+  """
+  Ask to link the current user's account to a Person, for admins of its controlling teams to approve.
+  Before the user confirms, tell them that other users may message them through BreedGraph
+  if the Person is listed as a contact, at their account email address, which senders never see.
+  They can remove themselves as a contact, and unlink or erase the Person, at any time.
+  """
+  peopleRequestClaim(personId: ID!): BooleanPayload!
+  peopleWithdrawClaim(personId: ID!): BooleanPayload!
+
+  """ Link the requesting user to the Person. By admins of its controlling teams, who should confirm the user's identity 
+  """
+  peopleApproveClaim(personId: ID!, userId: ID!): BooleanPayload!
+  peopleRejectClaim(personId: ID!, userId: ID!): BooleanPayload!
+
+  """ Remove the link between a Person and an account. By the linked user or admins of its controlling teams 
+  """
+  peopleUnlinkPerson(personId: ID!): BooleanPayload!
+
+  """ Stop being a contact of a Program or Trial. By the user linked to the contact Person 
+  """
+  peopleRemoveSelfAsContact(entityLabel: ControlledModelLabel!, entityId: ID!): BooleanPayload!
+
+  """
+  Start verifying the user's ORCID iD for their linked Person. Returns the ORCID sign-in URL to send the browser to.
+  ORCID then redirects to the configured ORCID_REDIRECT_URI, a front-end page, adding code and state to it.
+  """
+  peopleStartOrcidLink: StringPayload!
+
+  """ Complete the ORCID sign-in with the code and state from the redirect, storing the verified ORCID iD 
+  """
+  peopleCompleteOrcidLink(code: String!, state: String!): BooleanPayload!
+
+  """ Remove the ORCID iD from the user's linked Person """
+  peopleRemoveOrcid: BooleanPayload!
+
+  """
+  Send a message to a contact of a Program or Trial the sender can read (entityLabel PROGRAM or TRIAL).
+  BreedGraph emails the linked user without revealing their address. The sender's name and email address
+  are included, so the recipient can reply: tell the sender this before sending.
+  Messages are rate limited per sender and limited in length.
+  """
+  peopleContactPerson(personId: ID!, entityLabel: ControlledModelLabel!, entityId: ID!, subject: String!, message: String!): BooleanPayload!
   programsCreateProgram(program: ProgramInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
   programsUpdateProgram(program: ProgramUpdate!): BooleanPayload!
   programsDeleteProgram(id: ID!): BooleanPayload!
@@ -1151,9 +1320,6 @@ input TermInput {
   abbreviation: String
   synonyms: [String!]
 
-  """People that established this entry (Person ID)"""
-  authorIds: [ID!]
-
   """
   References for additional details, (Reference ID) e.g. a link to another ontology.
   """
@@ -1178,8 +1344,6 @@ input TermInput {
   locationTypeIds: [ID!]
   layoutTypeIds: [ID!]
   designIds: [ID!]
-  roleIds: [ID!]
-  titleIds: [ID!]
   recordGroupTypeIds: [ID!]
 }
 
@@ -1188,7 +1352,6 @@ input SubjectInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1202,7 +1365,6 @@ input TraitInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1215,7 +1377,6 @@ input ConditionInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1227,7 +1388,6 @@ input ScaleInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1245,7 +1405,6 @@ input CategoryInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1262,7 +1421,6 @@ input ObservationMethodInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1275,7 +1433,6 @@ input VariableInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1290,7 +1447,6 @@ input ControlMethodInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1303,7 +1459,6 @@ input FactorInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1318,7 +1473,6 @@ input EventInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1332,7 +1486,6 @@ input LocationTypeInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1344,7 +1497,6 @@ input DesignInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1356,7 +1508,6 @@ input RecordGroupTypeInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1368,7 +1519,6 @@ input LayoutTypeInput {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1382,7 +1532,6 @@ input TermUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1399,8 +1548,6 @@ input TermUpdate {
   locationTypeIds: [ID!]
   layoutTypeIds: [ID!]
   designIds: [ID!]
-  roleIds: [ID!]
-  titleIds: [ID!]
 }
 
 input SubjectUpdate {
@@ -1409,7 +1556,6 @@ input SubjectUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1422,7 +1568,6 @@ input TraitUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1436,7 +1581,6 @@ input ConditionUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1450,7 +1594,6 @@ input ScaleUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1465,7 +1608,6 @@ input CategoryUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1479,7 +1621,6 @@ input ObservationMethodUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1493,7 +1634,6 @@ input VariableUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1509,7 +1649,6 @@ input ControlMethodUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1523,7 +1662,6 @@ input FactorUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1539,7 +1677,6 @@ input EventUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1554,7 +1691,6 @@ input LocationTypeUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1567,7 +1703,6 @@ input DesignUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1580,7 +1715,6 @@ input RecordGroupTypeUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1593,7 +1727,6 @@ input LayoutTypeUpdate {
   description: String
   abbreviation: String
   synonyms: [String!]
-  authorIds: [ID!]
   referenceIds: [ID!]
   parentIds: [ID!]
   childIds: [ID!]
@@ -1610,6 +1743,20 @@ input TeamInput {
 
   """ Optional parent team to extend an organisation"""
   parentId: ID
+
+  """ Optional legal entity for a new organisation, i.e. without a parent """
+  legalEntity: LegalEntityInput
+}
+
+input LegalEntityInput {
+  legalName: String!
+
+  """ A role address for requests about personal data, not an individual's """
+  privacyContact: String!
+
+  """ The version of the data processing terms shown and accepted, see organisationsDataProcessingTerms 
+  """
+  termsVersion: String!
 }
 
 input TeamUpdate {
@@ -1620,19 +1767,47 @@ input TeamUpdate {
 
 input PersonInput {
   name: String!
-  fullname: String
+
+  """
+  The institution the person did the work with, shown with the name for attribution
+  """
+  institution: String
+
+  """Affiliation"""
+  teamIds: [ID!]
+
+  """Defaults to PUBLIC_TASK"""
+  basis: LawfulBasis
+
+  """
+  Confirm the person was informed that this record is held. Required to be true
+  """
+  informedAttestation: Boolean!
 }
 
 input PersonUpdate {
   id: ID!
   name: String
-  fullname: String
+
+  """An empty string removes it"""
+  institution: String
+
+  """Requires curate access"""
+  teamIds: [ID!]
+
+  """Requires curate access"""
+  basis: LawfulBasis
 }
 
 input ProgramInput {
   name: String!
   fullname: String
   description: String
+
+  """
+  Persons to contact about this. Each must be linked to an account, and released to at least the
+  release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
+  """
   contactIds: [ID!] = []
   referenceIds: [ID!] = []
 }
@@ -1642,6 +1817,11 @@ input ProgramUpdate {
   name: String
   fullname: String
   description: String
+
+  """
+  Persons to contact about this. Each must be linked to an account, and released to at least the
+  release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
+  """
   contactIds: [ID!]
   referenceIds: [ID!]
 }
@@ -1653,6 +1833,11 @@ input TrialInput {
   description: String
   start: DateTime
   end: DateTime
+
+  """
+  Persons to contact about this. Each must be linked to an account, and released to at least the
+  release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
+  """
   contactIds: [ID!] = []
   referenceIds: [ID!] = []
 }
@@ -1664,6 +1849,11 @@ input TrialUpdate {
   description: String
   start: DateTime
   end: DateTime
+
+  """
+  Persons to contact about this. Each must be linked to an account, and released to at least the
+  release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
+  """
   contactIds: [ID!]
   referenceIds: [ID!]
 }
@@ -1865,7 +2055,54 @@ type User {
 
 type Account {
   user: User!
-  allowedEmails: [String!]
+
+  """Pending invitations sent by this user"""
+  invitations: [Invitation!]!
+}
+
+"""
+An invitation to register, sent by email with a registration link containing a token.
+The invitation, including the email address, is deleted when accepted, cancelled or expired.
+"""
+type Invitation {
+  id: ID!
+  email: String!
+
+  """
+  Affiliations offered, which the invited user can accept or decline when registering
+  """
+  teams: [TeamInvitation!]!
+
+  """A Person offered for the invited user to link to their account"""
+  person: Person
+  createdAt: DateTime
+  expiresAt: DateTime
+}
+
+type TeamInvitation {
+  team: Team
+  access: Access!
+}
+
+"""
+What an invitation offers, shown to the invited user before registering
+"""
+type InvitationPreview {
+  email: String!
+
+  """Full name of the inviting user"""
+  invitedBy: String
+  teams: [TeamInvitationPreview!]!
+
+  """True when the invitation offers a Person to link to the new account"""
+  offersPerson: Boolean!
+  expiresAt: DateTime
+}
+
+type TeamInvitationPreview {
+  teamId: ID!
+  teamName: String!
+  access: Access!
 }
 
 type UserDisplay {
@@ -2690,6 +2927,54 @@ type Controller {
   updated: DateTime!
 }
 
+enum ControlTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+"""
+A controlled model. Transfers apply to the model itself, not to other models in its aggregate.
+"""
+type ControlledEntity {
+  label: ControlledModelLabel!
+  id: ID!
+}
+
+"""
+An offer of control over controlled models, from teams that control them to a recipient team.
+Admins of the recipient team accept, choosing the teams that take control from the recipient team
+and the teams below it, and the release level.
+Visible to admins of the recipient team and of the teams giving up control.
+"""
+type ControlTransfer {
+  id: ID!
+  status: ControlTransferStatus!
+  entities: [ControlledEntity!]!
+
+  """Teams giving up control"""
+  fromTeams: [Team!]!
+
+  """True for shared control: the teams giving up control keep it as well"""
+  keepFromTeams: Boolean!
+  recipientTeam: Team
+
+  """Teams taking control, chosen on acceptance"""
+  toTeams: [Team!]!
+
+  """Release level of the new controls, chosen on acceptance"""
+  release: ReadRelease
+  offeredBy: UserDisplay
+  offeredAt: DateTime
+  acceptedBy: UserDisplay
+  acceptedAt: DateTime
+  rejectedBy: UserDisplay
+  rejectedAt: DateTime
+  cancelledBy: UserDisplay
+  cancelledAt: DateTime
+}
+
 type RecordGroup {
   id: ID!
   code: String!
@@ -2781,7 +3066,6 @@ type GermplasmEntry {
   reproduction: Reproduction
   origin: Location
   controlMethods: [ControlMethod!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   sources: [GermplasmRelationship!]
   sinks: [GermplasmRelationship!]
@@ -2954,20 +3238,6 @@ enum OntologyNodeLabel {
   in a dataset rather than as record groups.
   """
   RECORD_GROUP_TYPE
-
-  """
-  Role entries describe roles for people.
-  These are linked to Person (see People).
-  Examples: "Post-doctoral researcher", "Principal Investigator"
-  """
-  ROLE
-
-  """
-  Title entries describe titles for people.
-  These are linked to Person (see People).
-  Examples: "Professor", "Doctor"
-  """
-  TITLE
 }
 
 enum OntologyRelationshipLabel {
@@ -3122,7 +3392,6 @@ interface OntologyNodeInterface {
   """
   External relationships attributes are also handled with versioned change tracking like intrinsic attributes.
   """
-  authors: [Person!]
   references: [ReferenceInterface!]
 }
 
@@ -3154,8 +3423,6 @@ interface TermRelationships {
   locationTypes: [LocationType!]
   layoutTypes: [LayoutType!]
   designs: [Design!]
-  roles: [Role!]
-  titles: [Title!]
 }
 
 type Term implements OntologyNodeInterface & OntologyRelationships & TermRelationships {
@@ -3167,7 +3434,6 @@ type Term implements OntologyNodeInterface & OntologyRelationships & TermRelatio
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Term!]
   children: [Term!]
@@ -3184,8 +3450,6 @@ type Term implements OntologyNodeInterface & OntologyRelationships & TermRelatio
   locationTypes: [LocationType!]
   layoutTypes: [LayoutType!]
   designs: [Design!]
-  roles: [Role!]
-  titles: [Title!]
 }
 
 """Other nodes may all have a relationship to terms"""
@@ -3212,7 +3476,6 @@ type Subject implements OntologyNodeInterface & OntologyRelationships & RelatedT
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Subject!]
   children: [Subject!]
@@ -3241,7 +3504,6 @@ type Trait implements OntologyNodeInterface & OntologyRelationships & RelatedToT
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Trait!]
   children: [Trait!]
@@ -3269,7 +3531,6 @@ type Condition implements OntologyNodeInterface & OntologyRelationships & Relate
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Condition!]
   children: [Condition!]
@@ -3309,7 +3570,6 @@ type Scale implements OntologyNodeInterface & ScaleInterface & OntologyRelations
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   scaleType: ScaleType!
   parents: [Scale!]
@@ -3337,7 +3597,6 @@ type Category implements OntologyNodeInterface & OntologyRelationships & Related
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Category!]
   children: [Category!]
@@ -3368,7 +3627,6 @@ type ObservationMethod implements OntologyNodeInterface & ObservationMethodInter
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [ObservationMethod!]
   children: [ObservationMethod!]
@@ -3405,7 +3663,6 @@ type Variable implements OntologyNodeInterface & OntologyRelationships & Related
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Variable!]
   children: [Variable!]
@@ -3437,7 +3694,6 @@ type ControlMethod implements OntologyNodeInterface & ControlMethodInterface & O
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [ControlMethod!]
   children: [ControlMethod!]
@@ -3474,7 +3730,6 @@ type Factor implements OntologyNodeInterface & OntologyRelationships & RelatedTo
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Factor!]
   children: [Factor!]
@@ -3503,7 +3758,6 @@ type Event implements OntologyNodeInterface & OntologyRelationships & RelatedToT
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Event!]
   children: [Event!]
@@ -3526,7 +3780,6 @@ type LocationType implements OntologyNodeInterface & OntologyRelationships & Rel
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [LocationType!]
   children: [LocationType!]
@@ -3551,7 +3804,6 @@ type LayoutType implements OntologyNodeInterface & LayoutTypeInterface & Ontolog
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   axes: [AxisType!]
   parents: [LayoutType!]
@@ -3573,7 +3825,6 @@ type Design implements OntologyNodeInterface & OntologyRelationships & RelatedTo
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Design!]
   children: [Design!]
@@ -3593,56 +3844,13 @@ type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & 
   description: String
   abbreviation: String
   synonyms: [String!]
-  authors: [Person!]
   references: [ReferenceInterface!]
   parents: [Design!]
   children: [Design!]
   terms: [Term!]
 }
 
-"""
-Role entries describe roles for people.
-These are linked to Person (see People).
-Examples: "Post-doctoral researcher", "Principal Investigator"
-"""
-type Role implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
-  id: ID!
-  versionId: ID!
-  view: OntologyView!
-  phase: LifecyclePhase!
-  name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String!]
-  authors: [Person!]
-  references: [ReferenceInterface!]
-  parents: [Role!]
-  children: [Role!]
-  terms: [Term!]
-}
-
-"""
-Title entries describe titles for people.
-These are linked to Person (see People).
-Examples: "Professor", "Doctor"
-"""
-type Title implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
-  id: ID!
-  versionId: ID!
-  view: OntologyView!
-  phase: LifecyclePhase!
-  name: String!
-  description: String
-  abbreviation: String
-  synonyms: [String!]
-  authors: [Person!]
-  references: [ReferenceInterface!]
-  parents: [Title!]
-  children: [Title!]
-  terms: [Term!]
-}
-
-union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType | Role | Title
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType
 
 type OntologyRelationship {
   id: ID!
@@ -3705,6 +3913,38 @@ type Team {
   affiliations: Affiliations
   directAffiliations: Affiliations
   inheritedAffiliations: Affiliations
+
+  """
+  The legal entity responsible for the organisation. Only declared on organisation roots
+  """
+  legalEntity: LegalEntity
+}
+
+"""
+The legal entity responsible for an organisation, declared on its root team by accepting the data processing terms.
+Required for the organisation to record Persons.
+"""
+type LegalEntity {
+  legalName: String!
+
+  """A role address for requests about personal data"""
+  privacyContact: String!
+
+  """The version of the data processing terms accepted"""
+  termsVersion: String!
+  declaredAt: DateTime
+
+  """Visible to admins of the team only"""
+  declaredBy: UserDisplay
+}
+
+"""The data processing terms accepted when declaring a legal entity"""
+type DataProcessingTerms {
+  """
+  Null when no terms are configured, in which case legal entities cannot be declared
+  """
+  version: String
+  url: String
 }
 
 type UserAccess {
@@ -3937,6 +4177,18 @@ type ControllersPayload {
   errors: [Error!]
 }
 
+type ControlTransferPayload {
+  status: QueryStatus!
+  result: ControlTransfer
+  errors: [Error!]
+}
+
+type ControlTransfersPayload {
+  status: QueryStatus!
+  result: [ControlTransfer!]
+  errors: [Error!]
+}
+
 type GermplasmEntriesPayload {
   status: QueryStatus!
   result: [GermplasmEntry!]
@@ -3961,10 +4213,107 @@ type AnalysisSubmissionPayload {
   errors: [Error!]
 }
 
+type DataProcessingTermsPayload {
+  status: QueryStatus!
+  result: DataProcessingTerms
+  errors: [Error!]
+}
+
+type PersonPayload {
+  status: QueryStatus!
+  result: Person
+  errors: [Error!]
+}
+
+type PeoplePayload {
+  status: QueryStatus!
+  result: [Person!]
+  errors: [Error!]
+}
+
+type InvitationPreviewPayload {
+  status: QueryStatus!
+  result: InvitationPreview
+  errors: [Error!]
+}
+
+type PersonClaimsPayload {
+  status: QueryStatus!
+  result: [PersonClaim!]
+  errors: [Error!]
+}
+
+type PersonClaimRequestsPayload {
+  status: QueryStatus!
+  result: [PersonClaimRequest!]
+  errors: [Error!]
+}
+
+type StringPayload {
+  status: QueryStatus!
+  result: String
+  errors: [Error!]
+}
+
+"""The GDPR basis for holding a Person record"""
+enum LawfulBasis {
+  PUBLIC_TASK
+  LEGITIMATE_INTEREST
+}
+
+"""
+Someone who took part in research, for attribution. See docs/person.md.
+Users who can read the record, and the linked user, see all fields.
+Other registered users see the id only (restricted), which can be used to look up who controls the record.
+An erased Person keeps its id only, so contributions stay attributed to an anonymous person.
+"""
 type Person {
   id: ID!
+
+  """Display name used for attribution. Null when restricted or erased"""
+  name: String
+
+  """
+  The institution the person did the work with, for attribution. Null when restricted or erased
+  """
+  institution: String
+
+  """Affiliation"""
+  teams: [Team!]!
+  basis: LawfulBasis
+
+  """The creator confirmed the person was informed that this record is held"""
+  informedAttestation: Boolean
+
+  """Set by the linked user, verified through ORCID sign-in"""
+  orcid: String
+
+  """The user linked to this Person, who has rights over the record"""
+  linkedUser: UserDisplay
+  recordedBy: UserDisplay
+  recordedAt: DateTime
+  erased: Boolean!
+  erasedAt: DateTime
+
+  """True when the viewer can see the id only"""
+  restricted: Boolean!
+}
+
+"""
+A pending request by a user to be linked to a Person, shown to admins of its controlling teams
+"""
+type PersonClaimRequest {
+  person: Person
+  userId: ID!
   name: String!
   fullname: String
+  requestedAt: DateTime
+}
+
+"""A pending request by the current user to be linked to a Person"""
+type PersonClaim {
+  person: Person
+  requestedAt: DateTime
 }
 
 type DatasetScope {
@@ -4038,6 +4387,36 @@ type Query {
 
   """Get a multiple team details"""
   organisationsTeams(ids: [ID!]): TeamsPayload!
+
+  """ What an invitation offers, for the registration form. Requires the token from the invitation link, not login 
+  """
+  accountsInvitation(token: String!): InvitationPreviewPayload!
+
+  """ Persons the user can read, optionally by exact name (case insensitive) 
+  """
+  people(name: String): PeoplePayload!
+
+  """ Get Persons by id. Registered users without read access see the id only 
+  """
+  peoplePeople(ids: [ID!]!): PeoplePayload!
+
+  """ Get a Person by id. Registered users without read access see the id only 
+  """
+  peoplePerson(id: ID!): PersonPayload!
+
+  """ The Person linked to the current user's account, if any """
+  peopleMyPerson: PersonPayload!
+
+  """ The current user's pending requests to be linked to a Person """
+  peopleMyClaims: PersonClaimsPayload!
+
+  """ Pending requests to be linked to Persons controlled by teams the current user administers 
+  """
+  peopleClaimRequests: PersonClaimRequestsPayload!
+
+  """ The current data processing terms, to show when declaring a legal entity 
+  """
+  organisationsDataProcessingTerms: DataProcessingTermsPayload!
 
   """Get the latest ontology version"""
   ontologyVersion: VersionPayload!
@@ -4157,6 +4536,13 @@ type Query {
 
   """ Get the controller data for access controlled entities """
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): ControllersPayload!
+
+  """ Control transfers offered to or from teams the user is an admin of """
+  controlsTransfers(statuses: [ControlTransferStatus!]): ControlTransfersPayload!
+
+  """ Get a control transfer offered to or from a team the user is an admin of 
+  """
+  controlsTransfer(id: ID!): ControlTransferPayload!
 
   """Get a list of Germplasm entries"""
   germplasmEntries(ids: [ID!]): GermplasmEntriesPayload!

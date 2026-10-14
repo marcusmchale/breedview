@@ -75,8 +75,6 @@ const getCurrentValues = (entry) => {
     locationTypeIds: entry.locationTypes ? entry.locationTypes.map(l => l.id) : [],
     layoutTypeIds: entry.layoutTypes ? entry.layoutTypes.map(l => l.id) : [],
     designIds: entry.designs ? entry.designs.map(d => d.id) : [],
-    roleIds: entry.roles ? entry.roles.map(r => r.id) : [],
-    titleIds: entry.titles ? entry.titles.map(t => t.id) : [],
     recordGroupTypeIds: entry.recordGroupTypes ? entry.recordGroupTypes.map(r => r.id) : [],
     // For Variable - single objects, not arrays
     traitId: entry.trait ? entry.trait.id : undefined,
@@ -168,8 +166,6 @@ export function updateTermHandler(context) {
   const locationTypes = getEntriesByType(ontologyEntries, 'LocationType')
   const layoutTypes = getEntriesByType(ontologyEntries, 'LayoutType')
   const designs = getEntriesByType(ontologyEntries, 'Design')
-  const roles = getEntriesByType(ontologyEntries, 'Role')
-  const titles = getEntriesByType(ontologyEntries, 'Title')
   const recordGroupTypes = getEntriesByType(ontologyEntries, 'RecordGroupType')
   openForm(
     'Update Term',
@@ -415,37 +411,6 @@ export function updateTermHandler(context) {
         ),
         placeholder: 'Select record group types (optional)',
         value: currentValues.recordGroupTypeIds
-      },
-
-      {
-        name: 'roleIds',
-        type: 'select',
-        label: 'Roles',
-        validation: '',
-        multiple: true,
-        options: prepareMultiselectOptions(
-          'roleIds',
-          roles,
-          currentValues.roleIds || [],
-          entry.id
-        ),
-        placeholder: 'Select roles (optional)',
-        value: currentValues.roleIds
-      },
-      {
-        name: 'titleIds',
-        type: 'select',
-        label: 'Titles',
-        validation: '',
-        multiple: true,
-        options: prepareMultiselectOptions(
-          'titleIds',
-          titles,
-          currentValues.titleIds || [],
-          entry.id
-        ),
-        placeholder: 'Select titles (optional)',
-        value: currentValues.titleIds
       }
     ],
     (formData) => {
@@ -468,9 +433,7 @@ export function updateTermHandler(context) {
         locationTypeIds: processIdArray(formData.locationTypeIds),
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
-        recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds),
-        roleIds: processIdArray(formData.roleIds),
-        titleIds: processIdArray(formData.titleIds)
+        recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds)
       }
 
       return updateTermMutation({ term: processedData })

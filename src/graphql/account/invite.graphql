@@ -1,0 +1,8 @@
+mutation accountsInvite($email: String!, $teams: [TeamInvitationInput!], $personId: ID) {
+    accountsInvite(email: $email, teams: $teams, personId: $personId) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -28,9 +28,7 @@
     "LocationType",
     "LayoutType",
     "Design",
-    "RecordGroupType",
-    "Role",
-    "Title"
+    "RecordGroupType"
   ],
   "ReferenceUnion": [
     "LegalReference",
