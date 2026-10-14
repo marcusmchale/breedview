@@ -1,0 +1,8 @@
+mutation peopleUpdatePerson($person: PersonUpdate!) {
+    peopleUpdatePerson(person: $person) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -1,0 +1,8 @@
+mutation peopleErasePerson($personId: ID!) {
+    peopleErasePerson(id: $personId) {
+        status
+        errors {
+            message
+        }
+    }
+}

@@ -16,6 +16,7 @@ import ArrangementManagement from "@/components/arrangements/ArrangementManageme
 import BlockManagement from '@/components/blocks/BlockManagement.vue'
 import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
+import PeoplePage from '@/components/people/PeoplePage.vue'
 
 const routes = [
   {
@@ -145,6 +146,15 @@ const routes = [
     }
   },
 
+  {
+    path: '/people',
+    name: 'People',
+    component: PeoplePage,
+    meta: {
+      requiresAuth: true,
+      title: 'People'
+    }
+  },
   {
     path: '/reset-password',
     name: 'ResetPassword',

@@ -1,4 +1,5 @@
 #import "./recordFragment.graphql"
+#import "../people/personFragment.graphql"
 query Datasets($datasetIds: [ID!], $studyIds: [ID!], $conceptIds: [ID!]) {
   datasets(ids: $datasetIds, studyIds: $studyIds, conceptIds: $conceptIds) {
     status
@@ -35,8 +36,7 @@ query Datasets($datasetIds: [ID!], $studyIds: [ID!], $conceptIds: [ID!]) {
         ...RecordFields
       }
       contributors {
-        id
-        name
+        ...PersonFields
       }
       references {
         id

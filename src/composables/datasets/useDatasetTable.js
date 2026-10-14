@@ -511,7 +511,7 @@ export function useDatasetTable({
   };
 
   // Submit a single concept column
-  const submitColumn = async (conceptId, controlTeamId, release) => {
+  const submitColumn = async (conceptId, controlTeamId, release, contributorIds = []) => {
     // Skip if already submitted
     if (columnStatus.value[conceptId]?.status === 'success') return;
 
@@ -540,12 +540,17 @@ export function useDatasetTable({
 
     try {
       console.debug('submitting dataset', toValue(selectedStudy), conceptId);
+      const dataset = {
+        studyId: toValue(selectedStudy).id,
+        conceptId: conceptId,
+        records: records,
+      };
+      const contributors = toValue(contributorIds) ?? [];
+      if (contributors.length > 0) {
+        dataset.contributorIds = contributors;
+      }
       const result = await createDataset({
-        dataset: {
-          studyId: toValue(selectedStudy).id,
-          conceptId: conceptId,
-          records: records,
-        },
+        dataset,
         controlTeamId: controlTeamId,
         release: release
       });
@@ -572,12 +577,12 @@ export function useDatasetTable({
   };
 
   // Submit all columns in parallel
-  const submitAllColumns = async (controlTeamId, release) => {
+  const submitAllColumns = async (controlTeamId, release, contributorIds = []) => {
     const pendingConcepts = getConcepts().filter(
       (c) => columnStatus.value[c.id]?.status !== 'success'
     );
 
-    const submissions = pendingConcepts.map((concept) => submitColumn(concept.id, controlTeamId, release));
+    const submissions = pendingConcepts.map((concept) => submitColumn(concept.id, controlTeamId, release, contributorIds));
     await Promise.allSettled(submissions);
   };
 

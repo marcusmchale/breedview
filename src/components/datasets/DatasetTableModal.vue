@@ -15,6 +15,7 @@ import ReferencesModal from '@/components/references/ReferencesModal.vue'
 import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
 
 import ControlSelector from "@/components/controls/ControlSelector.vue";
+import PersonPicker from "@/components/people/PersonPicker.vue";
 
 const props = defineProps({
   visible: {
@@ -52,6 +53,10 @@ const emit = defineEmits(['close', 'submitted']);
 const selectedControlTeamId = ref(null)
 const selectedRelease = ref(null)
 const errorMessage = ref('')
+
+// Persons credited as contributors on every dataset submitted from this table
+const selectedContributorIds = ref([])
+const showContributors = ref(false)
 
 const handleControlTeamError = (error) => {
   errorMessage.value = error
@@ -471,7 +476,7 @@ const confirmClose = () => {
 // Submit handler
 const handleSubmit = async () => {
   hasAttemptedSubmit.value = true;
-  await submitAllColumns(selectedControlTeamId, selectedRelease)
+  await submitAllColumns(selectedControlTeamId, selectedRelease, selectedContributorIds.value)
 };
 
 // Submission completes asynchronously via polling - react when all columns succeed
@@ -844,6 +849,27 @@ const getFileReferenceDisplay = (value) => {
           </div>
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
+          </div>
+          <div class="contributors-control">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="isSubmitting || allSubmitted"
+              @click="showContributors = !showContributors"
+            >
+              Contributors ({{ selectedContributorIds.length }})
+            </button>
+            <div v-if="showContributors" class="contributors-panel">
+              <p class="contributors-help">
+                People credited for these datasets. Only person records you can read are listed;
+                add new people on the People page.
+              </p>
+              <PersonPicker
+                v-model="selectedContributorIds"
+                :disabled="isSubmitting || allSubmitted"
+                empty-text="No person records available to credit."
+              />
+            </div>
           </div>
           <ControlSelector
             v-model:controlTeamId="selectedControlTeamId"
@@ -1407,4 +1433,27 @@ tr.group-boundary td {
   font-size: 12px;
 }
 
+.contributors-control {
+  position: relative;
+}
+
+.contributors-panel {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: 420px;
+  max-width: 90vw;
+  padding: 12px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.contributors-help {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #666;
+}
 </style>

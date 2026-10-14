@@ -1,0 +1,15 @@
+fragment PersonFields on Person {
+    id
+    name
+    institution
+    teams { id name fullname }
+    basis
+    informedAttestation
+    orcid
+    linkedUser { id name fullname }
+    recordedBy { id name fullname }
+    recordedAt
+    erased
+    erasedAt
+    restricted
+}

@@ -1,0 +1,12 @@
+#import "./personFragment.graphql"
+query people($name: String) {
+    people(name: $name) {
+        status
+        result {
+            ...PersonFields
+        }
+        errors {
+            message
+        }
+    }
+}

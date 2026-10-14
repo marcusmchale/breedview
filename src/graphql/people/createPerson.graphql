@@ -1,0 +1,8 @@
+mutation peopleCreatePerson($person: PersonInput!, $controlTeamId: ID!, $release: ReadRelease) {
+    peopleCreatePerson(person: $person, controlTeamId: $controlTeamId, release: $release) {
+        status
+        errors {
+            message
+        }
+    }
+}
