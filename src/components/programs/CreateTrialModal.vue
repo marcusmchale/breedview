@@ -8,6 +8,7 @@ import { useMutateTrials } from '@/composables/programs/mutateTrials'
 import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import ContactsField from "@/components/people/ContactsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -43,6 +44,9 @@ const formData = ref({
 })
 
 
+// Contacts: Persons linked to an account, released widely enough for this trial
+const selectedContactIds = ref([])
+
 // References state
 const selectedReferenceIds = ref([])
 const selectedReferences = ref([])
@@ -73,7 +77,8 @@ const submitForm = async (values) => {
       description: values.description?.trim() || undefined,
       start: values.start?.trim() || undefined,
       end: values.end?.trim() || undefined,
-      referenceIds: selectedReferenceIds.value.length > 0 ? selectedReferenceIds.value : undefined
+      referenceIds: selectedReferenceIds.value.length > 0 ? selectedReferenceIds.value : undefined,
+      contactIds: selectedContactIds.value.length > 0 ? selectedContactIds.value : undefined
     }
 
     // Remove undefined values
@@ -161,6 +166,9 @@ const submitForm = async (values) => {
             placeholder="e.g. 2024-12-31"
           />
         </div>
+
+        <!-- Contacts Section -->
+        <ContactsField v-model="selectedContactIds" />
 
         <!-- References Section -->
         <div class="reference-section">

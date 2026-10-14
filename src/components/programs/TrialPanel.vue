@@ -5,6 +5,7 @@ import { useTrialQuery } from '@/composables/programs/trialQuery'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
+import ContactsDisplay from '@/components/people/ContactsDisplay.vue'
 import StudyPanel from './StudyPanel.vue'
 import UpdateTrialModal from './UpdateTrialModal.vue'
 import DeleteTrialModal from './DeleteTrialModal.vue'
@@ -126,6 +127,15 @@ const handleStudyDeleted = () => {
           <span v-if="trial.start"><strong>Start:</strong> {{ trial.start }}</span>
           <span v-if="trial.end"><strong>End:</strong> {{ trial.end }}</span>
         </p>
+
+        <!-- Contacts -->
+        <ContactsDisplay
+          :contacts="trial.contacts"
+          entity-label="TRIAL"
+          :entity-id="trialId"
+          :entity-name="trial.name"
+          @changed="refetchTrial"
+        />
 
         <!-- References Display -->
         <ReferencesDisplay

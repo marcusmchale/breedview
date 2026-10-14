@@ -2,6 +2,7 @@
   <div class="form-container">
     <div v-if="!showRequestReset && !showRegistration">
       <h1>Login</h1>
+      <div v-if="notice" class="success-message">{{ notice }}</div>
       <FormKit
         type="form"
         v-model="formValues"
@@ -69,13 +70,16 @@
 <script setup>
 import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import RequestPasswordReset from './RequestPasswordReset.vue'
 import RegistrationPage from './RegistrationPage.vue'
 import LOGIN_MUTATION from '../../graphql/authentication/login.graphql'
 
 const router = useRouter()
+const route = useRoute()
 const error = ref('')
+// A notice passed in the URL, e.g. after the account was deleted
+const notice = ref(route.query.message || '')
 const formValues = ref({})
 const showRequestReset = ref(false)
 const showRegistration = ref(false)

@@ -5,6 +5,7 @@ import { FormKit } from '@formkit/vue'
 import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
 import ControlSelector from "@/components/controls/ControlSelector.vue";
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import ContactsField from "@/components/people/ContactsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const emit = defineEmits(['close', 'success'])
@@ -25,6 +26,9 @@ const formData = ref({
   description: ''
 })
 
+
+// Contacts: Persons linked to an account, released widely enough for this program
+const selectedContactIds = ref([])
 
 // References state
 const selectedReferenceIds = ref([])
@@ -62,6 +66,9 @@ const submitForm = async (values) => {
     // Add reference IDs if any selected
     if (selectedReferenceIds.value.length > 0) {
       cleanValues.referenceIds = selectedReferenceIds.value
+    }
+    if (selectedContactIds.value.length > 0) {
+      cleanValues.contactIds = selectedContactIds.value
     }
 
     const { status, errors } = await createProgram({
@@ -122,6 +129,9 @@ const submitForm = async (values) => {
           placeholder="Enter program description"
           :input-attrs="{ rows: 4 }"
         />
+
+        <!-- Contacts Section -->
+        <ContactsField v-model="selectedContactIds" />
 
         <!-- References Section -->
         <div class="reference-section">

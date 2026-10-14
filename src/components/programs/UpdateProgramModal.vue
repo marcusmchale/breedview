@@ -5,6 +5,7 @@ import { FormKit } from '@formkit/vue'
 import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import ContactsField from "@/components/people/ContactsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -25,6 +26,9 @@ const formData = ref({
 })
 
 const formError = ref('')
+
+// Contacts - initialize from program data
+const selectedContactIds = ref(props.program.contacts?.map(c => String(c.id)) || [])
 
 // References state - initialize from program data
 const selectedReferenceIds = ref(props.program.references?.map(r => r.id) || [])
@@ -58,7 +62,8 @@ const submitForm = async (values) => {
     const { status, errors } = await updateProgram({
       id: props.program.id,
       ...cleanValues,
-      referenceIds: selectedReferenceIds.value
+      referenceIds: selectedReferenceIds.value,
+      contactIds: selectedContactIds.value
     })
 
     if (status === 'SUCCESS') {
@@ -113,6 +118,9 @@ const submitForm = async (values) => {
           placeholder="Enter program description"
           :input-attrs="{ rows: 4 }"
         />
+
+        <!-- Contacts Section -->
+        <ContactsField v-model="selectedContactIds" />
 
         <!-- References Section -->
         <div class="reference-section">

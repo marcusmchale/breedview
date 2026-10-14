@@ -5,6 +5,7 @@ import { FormKit } from '@formkit/vue'
 import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import ContactsField from "@/components/people/ContactsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -27,6 +28,9 @@ const formData = ref({
 })
 
 const formError = ref('')
+
+// Contacts - initialize from trial data
+const selectedContactIds = ref(props.trial.contacts?.map(c => String(c.id)) || [])
 
 // References state - initialize from trial data
 const selectedReferenceIds = ref(props.trial.references?.map(r => r.id) || [])
@@ -58,7 +62,8 @@ const submitForm = async (values) => {
       description: values.description?.trim() || undefined,
       start: values.start?.trim() || undefined,
       end: values.end?.trim() || undefined,
-      referenceIds: selectedReferenceIds.value
+      referenceIds: selectedReferenceIds.value,
+      contactIds: selectedContactIds.value
     }
 
     // Remove undefined values (except trialId and arrays)
@@ -142,6 +147,9 @@ const submitForm = async (values) => {
             placeholder="e.g. 2024-12-31"
           />
         </div>
+
+        <!-- Contacts Section -->
+        <ContactsField v-model="selectedContactIds" />
 
         <!-- References Section -->
         <div class="reference-section">

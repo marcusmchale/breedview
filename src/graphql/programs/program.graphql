@@ -1,4 +1,5 @@
 #import "../references/referenceFragment.graphql"
+#import "../people/personFragment.graphql"
 query programsProgram($programId: ID, $trialId: ID, $studyId: ID) {
   programsProgram(id: $programId, trialId: $trialId, studyId: $studyId) {
     status
@@ -7,7 +8,7 @@ query programsProgram($programId: ID, $trialId: ID, $studyId: ID) {
       name
       fullname
       description
-      contacts { id }
+      contacts { ...PersonFields }
       references { ...ReferenceFields }
       trials { id name }
     }

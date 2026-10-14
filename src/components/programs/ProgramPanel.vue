@@ -5,6 +5,7 @@ import { useProgramQuery } from '@/composables/programs/programQuery'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
+import ContactsDisplay from '@/components/people/ContactsDisplay.vue'
 import TrialPanel from './TrialPanel.vue'
 import UpdateProgramModal from './UpdateProgramModal.vue'
 import DeleteProgramModal from './DeleteProgramModal.vue'
@@ -119,6 +120,15 @@ const handleTrialDeleted = () => {
       <div class="program-card-content">
         <p v-if="program.fullname"><strong>Full Name:</strong> {{ program.fullname }}</p>
         <p v-if="program.description"><strong>Description:</strong> {{ program.description }}</p>
+
+        <!-- Contacts -->
+        <ContactsDisplay
+          :contacts="program.contacts"
+          entity-label="PROGRAM"
+          :entity-id="programId"
+          :entity-name="program.name"
+          @changed="refetchProgram"
+        />
 
         <!-- References Display -->
         <ReferencesDisplay

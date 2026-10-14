@@ -1,4 +1,5 @@
 #import "../references/referenceFragment.graphql"
+#import "../people/personFragment.graphql"
 query programs {
   programs {
     status
@@ -7,7 +8,7 @@ query programs {
       name
       fullname
       description
-      contacts { id }
+      contacts { ...PersonFields }
       references { ...ReferenceFields }
       trials { id, name }
     }
