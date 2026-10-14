@@ -1,0 +1,18 @@
+# The dataset summaries of a study without their locations and blocks, which are slow to resolve for large studies
+query StudyDatasetsSummaries($studyId: ID!){
+  datasetsSummaries(studyId: $studyId) {
+    status
+    result {
+        id
+        concept { id versionId view name }
+        subjects { id versionId view name }
+        record_count
+        start
+        end
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

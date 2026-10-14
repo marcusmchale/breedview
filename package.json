@@ -11,7 +11,8 @@
     "test:e2e": "node --test tests/e2e/*.test.mjs",
     "perf:curation": "node tests/e2e/perf/curation.mjs",
     "perf:blocks": "node tests/e2e/perf/blocks.mjs",
-    "perf:analysis": "node tests/e2e/perf/analysis.mjs"
+    "perf:analysis": "node tests/e2e/perf/analysis.mjs",
+    "perf:programs": "node tests/e2e/perf/programs.mjs"
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",

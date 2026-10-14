@@ -9,6 +9,7 @@ import UpdateStudyModal from './UpdateStudyModal.vue'
 import DeleteStudyModal from './DeleteStudyModal.vue'
 import ReferenceItem from "@/components/references/ReferenceItem.vue";
 import RecordGroupingPanel from '@/components/programs/RecordGroupingPanel.vue'
+import StudySummary from './StudySummary.vue'
 
 const props = defineProps({
   studyId: {
@@ -30,6 +31,10 @@ const {
   refetchStudy
 } = useStudyQuery(() => props.studyId)
 
+
+// The dataset summary and record groupings stay collapsed, and unqueried, until asked for
+const datasetsExpanded = ref(false)
+const groupingsExpanded = ref(false)
 
 // Modal states
 const isUpdateModalOpen = ref(false)
@@ -110,7 +115,21 @@ const handleDeleteSuccess = () => {
         />
       </div>
 
+      <button class="section-toggle" @click="datasetsExpanded = !datasetsExpanded">
+        <span class="toggle-arrow" :class="{ expanded: datasetsExpanded }">▶</span>
+        Datasets
+      </button>
+      <StudySummary
+        v-if="datasetsExpanded"
+        :study-id="study.id"
+      />
+
+      <button class="section-toggle" @click="groupingsExpanded = !groupingsExpanded">
+        <span class="toggle-arrow" :class="{ expanded: groupingsExpanded }">▶</span>
+        Record Groupings ({{ study.groupings?.length ?? 0 }})
+      </button>
       <RecordGroupingPanel
+        v-if="groupingsExpanded"
         :study-id="study.id"
       />
 
@@ -188,6 +207,30 @@ const handleDeleteSuccess = () => {
 .licence-info {
   margin-left: 8px;
   color: #333;
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.toggle-arrow {
+  font-size: 0.75em;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.toggle-arrow.expanded {
+  transform: rotate(90deg);
 }
 
 .loading, .error {

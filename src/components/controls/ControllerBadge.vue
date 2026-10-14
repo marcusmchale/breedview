@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import ControllerModal from './ControllerModal.vue'
 import { useControllerQuery } from '@/composables/controls/useControllerQuery'
+import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
 const props = defineProps({
   entityLabel: {
@@ -19,12 +20,18 @@ const props = defineProps({
 })
 
 const showModal = ref(false)
-const { controller, loading, error, refetch } = useControllerQuery(
-    {
-      entityLabel: () => props.entityLabel,
-      entityId: () => props.entityId
-    }
-)
+// The badge shows the release alone; the controls, writes and teams are read when the details are opened
+const { controller: releaseController, loading, refetch: refetchRelease } = useControllerQuery({
+  entityLabel: () => props.entityLabel,
+  entityId: () => props.entityId,
+  query: CONTROLLER_RELEASE_QUERY,
+  fetchPolicy: 'no-cache'
+})
+const { controller, loading: detailsLoading, error, refetch: refetchDetails } = useControllerQuery({
+  entityLabel: () => props.entityLabel,
+  entityId: () => props.entityId,
+  enabled: showModal
+})
 
 const openModal = async () => {
 
@@ -36,7 +43,7 @@ const closeModal = () => {
 }
 
 const handleReleaseUpdated = async () => {
-  await refetch()
+  await Promise.all([refetchRelease(), showModal.value && refetchDetails()])
 }
 
 </script>
@@ -50,9 +57,9 @@ const handleReleaseUpdated = async () => {
       :disabled="loading"
 
       :class="{
-        'release-private': controller?.release === 'PRIVATE',
-        'release-registered': controller?.release === 'REGISTERED',
-        'release-public': controller?.release === 'PUBLIC'
+        'release-private': releaseController?.release === 'PRIVATE',
+        'release-registered': releaseController?.release === 'REGISTERED',
+        'release-public': releaseController?.release === 'PUBLIC'
       }"
 
     >
@@ -60,17 +67,17 @@ const handleReleaseUpdated = async () => {
       <span
           class="badge-text"
           :class="{
-            'release-private': controller?.release === 'PRIVATE',
-            'release-registered': controller?.release === 'REGISTERED',
-            'release-public': controller?.release === 'PUBLIC'
+            'release-private': releaseController?.release === 'PRIVATE',
+            'release-registered': releaseController?.release === 'REGISTERED',
+            'release-public': releaseController?.release === 'PUBLIC'
           }"
-      >{{ loading ? 'Loading...' : controller?.release }}</span>
+      >{{ loading ? 'Loading...' : releaseController?.release }}</span>
     </button>
 
     <ControllerModal
       :is-visible="showModal"
       :controller="controller"
-      :loading="loading"
+      :loading="detailsLoading"
       :error="error"
       :entity-label="entityLabel"
       :entity-id="entityId"

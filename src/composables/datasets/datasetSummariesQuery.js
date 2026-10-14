@@ -3,7 +3,10 @@ import { useQuery } from '@vue/apollo-composable'
 
 import DATASET_SUMMARIES_QUERY from '@/graphql/datasets/datasetSummaries.graphql'
 
-export function useDatasetSummariesQuery(studyId) {
+/**
+ * The dataset summaries of a study. Pass `query` to read fewer fields, as long as it reads `datasetsSummaries`.
+ */
+export function useDatasetSummariesQuery(studyId, { query = DATASET_SUMMARIES_QUERY } = {}) {
   const queryEnabled = computed(() => {
     const id = toValue(studyId)
     return id !== null && id !== undefined
@@ -15,7 +18,7 @@ export function useDatasetSummariesQuery(studyId) {
     error: summariesError,
     refetch: refetchSummaries
   } = useQuery(
-    DATASET_SUMMARIES_QUERY,
+    query,
     () => ({ studyId: toValue(studyId) }),
     { enabled: queryEnabled }
   )

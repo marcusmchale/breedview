@@ -1,0 +1,12 @@
+# The release of controlled entities alone, for badges: the full controllers are slow to resolve
+query controlsControllerRelease($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
+  controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
+    status
+    result {
+      release
+    }
+    errors {
+      message
+    }
+  }
+}
