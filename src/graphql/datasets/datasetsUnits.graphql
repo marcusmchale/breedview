@@ -1,0 +1,17 @@
+# One level of the tree of units the datasets have records for: the roots of their blocks, or the children of the
+# given parents that have records at or below them, each with what those records amount to under the time window.
+query DatasetsUnits($datasetIds: [ID!]!, $parentIds: [ID!], $start: DateTime, $end: DateTime) {
+  datasetsUnits(datasetIds: $datasetIds, parentIds: $parentIds, start: $start, end: $end) {
+    status
+    result {
+      unit { id name subject { id versionId view name } }
+      unitCount
+      recordCount
+      hasChildren
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

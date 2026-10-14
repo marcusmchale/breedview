@@ -4,13 +4,12 @@ import { FormKit } from '@formkit/vue'
 
 import { useSelectStudyQueries } from '@/composables/datasets/selectStudyQueries'
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
-import { useUnitsQuery } from '@/composables/blocks/unitsQuery'
-import { useUnitsLazyQuery } from '@/composables/blocks/unitsLazyQuery'
-import { useUnitsBySubject } from '@/composables/blocks/unitsBySubject'
+import { useDatasetsUnitsTree } from '@/composables/datasets/useDatasetsUnitsTree'
 import { useCachedName } from '@/composables/queryBase/cachedName'
+import { isPartialDatetime } from '@/plugins/formkitRules'
 import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 
-const props = defineProps({
+defineProps({
   loading: {
     type: Boolean,
     default: false
@@ -90,26 +89,33 @@ const datasetsHint = computed(() => {
   return `${list.length} dataset${list.length === 1 ? '' : 's'} with ${records.toLocaleString()} records${span}.`
 })
 
-// Units filter: rooted at the blocks the selected datasets have records in, drilling down through the block
-const blockIds = computed(() => [
-  ...new Set(selectedSummaries.value.flatMap((s) => (s.blocks ?? []).map((b) => b.id)))
-])
-const { units: blockUnits, unitsLoading: blockUnitsLoading } = useUnitsQuery({ unitIds: blockIds })
+// Units filter: only the units the selected datasets have records for, as a tree from their blocks down, under
+// the time window once it is well formed (a half-typed date narrows nothing)
+const selectedDatasetIds = computed(() => selectedSummaries.value.map((s) => s.id))
+const windowFor = (value) => {
+  const text = (value || '').trim()
+  return isPartialDatetime(text) ? text : ''
+}
 const {
-  units: displayedUnits,
-  loadChildUnits: loadDisplayedChildUnits,
-  unitsLoading: displayedUnitsLoading
-} = useUnitsLazyQuery()
-
-// Units no longer among the selected datasets' blocks drop out of the filter
-watch(blockIds, () => {
-  if (selectionData.value.unitIds.length > 0 && blockIds.value.length === 0) selectionData.value.unitIds = []
+  rootNodes: unitRoots,
+  rootsLoading: unitRootsLoading,
+  children: displayedUnits,
+  childrenLoading: displayedUnitsLoading,
+  loadChildren: loadDisplayedChildUnits,
+  hasChildren: unitHasChildren,
+  loadTypeGroups: loadUnitTypeGroups,
+  nodeLabel: unitLabel
+} = useDatasetsUnitsTree({
+  datasetIds: selectedDatasetIds,
+  start: () => windowFor(selectionData.value.start),
+  end: () => windowFor(selectionData.value.end)
 })
 
-const unitLabel = (unit) => unit.name || (unit.subject ? `${unit.subject.name} ${unit.id}` : `Unit ${unit.id}`)
-// Everything below a unit, or below every block, by subject, for selecting all units of a subject at once
-const { loadUnitGroups } = useUnitsBySubject()
-const loadUnitTypeGroups = (node) => loadUnitGroups(node ? [node] : blockUnits.value)
+// With no datasets selected there are no units to narrow to
+watch(selectedDatasetIds, (ids) => {
+  if (selectionData.value.unitIds.length > 0 && ids.length === 0) selectionData.value.unitIds = []
+})
+
 const unitNameOf = useCachedName('Unit')
 
 // Everything below a program or a trial, or every trial and study, for selecting all studies at once
@@ -264,13 +270,14 @@ defineExpose({ reset })
           type="hierarchical-multiselect"
           name="unitIds"
           label="Units:"
-          :help="blockUnitsLoading ? 'Loading the blocks of these datasets…' : 'Optional: only records of these units and of everything below them (a block or a plot selects what it contains)'"
+          :help="unitRootsLoading ? 'Loading the units of these datasets…' : 'Optional: only records of these units and of everything below them (a block or a plot selects what it contains); only units with records in these datasets are listed'"
           :value="selectionData.unitIds"
           :label-fn="unitNameOf"
-          :rootNodes="blockUnits"
+          :rootNodes="unitRoots"
           :loadChildrenFn="loadDisplayedChildUnits"
           :childrenLoading="displayedUnitsLoading"
           :currentChildren="displayedUnits"
+          :hasChildrenFn="unitHasChildren"
           :get-node-label-fn="unitLabel"
           :load-type-groups-fn="loadUnitTypeGroups"
         />

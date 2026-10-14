@@ -1,0 +1,15 @@
+# Every readable unit the datasets have records for, below the given units (or anywhere, with none) and within the
+# time window, grouped by subject as id and name: for selecting all the recorded units of a subject at once.
+query DatasetsUnitsBySubject($datasetIds: [ID!]!, $unitIds: [ID!], $start: DateTime, $end: DateTime) {
+  datasetsUnitsBySubject(datasetIds: $datasetIds, unitIds: $unitIds, start: $start, end: $end) {
+    status
+    result {
+      subject { id versionId view name }
+      units { id name }
+    }
+    errors {
+      name
+      message
+    }
+  }
+}
