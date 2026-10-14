@@ -9,7 +9,7 @@ import {
   FlexRender,
 } from '@tanstack/vue-table'
 
-import { useDatasetsQuery } from '@/composables/datasets/datasetsQuery'
+import { useDatasetRecordPages } from '@/composables/datasets/useDatasetRecordPages'
 import { useDatasetCurationTable } from '@/composables/datasets/useDatasetCurationTable'
 import { useStudiesGroupings } from '@/composables/programs/studiesGroupingsQuery'
 
@@ -27,16 +27,29 @@ const props = defineProps({
   datasetIds: { type: Array, required: true },
   // { [datasetId]: studyId }
   datasetStudyIds: { type: Object, default: () => ({}) },
-  curateTeamIds: { type: Array, default: () => [] }
+  curateTeamIds: { type: Array, default: () => [] },
+  // narrowing of the records: { unitIds, start, end }, each optional
+  filters: { type: Object, default: () => ({}) },
+  // units loaded per page, with every record of those units from every dataset
+  pageSize: { type: Number, default: 1000 }
 })
 
 const emit = defineEmits(['back', 'submit', 'has-unsaved-changes'])
 
-// Datasets query
-const { datasets, datasetsLoading, datasetsError } = useDatasetsQuery({
-  studyIds: () => null,
-  conceptIds: () => null,
-  datasetIds: () => props.datasetIds
+// Datasets with their records, a page of units at a time under the selection's narrowing, so every row is complete
+const { page, pageCount, pageSummary, datasets, datasetsLoading, datasetsError } = useDatasetRecordPages({
+  datasetIds: () => props.datasetIds,
+  filters: () => props.filters,
+  pageSize: () => props.pageSize
+})
+const filterSummary = computed(() => {
+  const parts = []
+  const { start, end, unitIds } = props.filters ?? {}
+  if (start && end) parts.push(`${start} to ${end}`)
+  else if (start) parts.push(`from ${start}`)
+  else if (end) parts.push(`to ${end}`)
+  if (unitIds?.length) parts.push(`${unitIds.length} unit${unitIds.length === 1 ? '' : 's'} and what they contain`)
+  return parts.join(' · ')
 })
 
 // Curation table composable
@@ -345,9 +358,15 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   <div class="curation-table-container">
     <CurationTableToolbar
       :column-visibility="columnVisibility"
+      :page="page"
+      :page-count="pageCount"
+      :page-summary="pageSummary"
+      :filter-summary="filterSummary"
+      :paging-locked="hasUnsavedChanges || isSubmitting"
       @back="handleBack"
       @export="handleExport"
       @update:column-visibility="columnVisibility = $event"
+      @update:page="page = $event"
     />
 
     <div v-if="tableLoading || datasetsLoading || groupingsLoading" class="loading-state">

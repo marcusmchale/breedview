@@ -1,17 +1,29 @@
 <script setup>
+import { computed } from 'vue'
 
 const props = defineProps({
   columnVisibility: {
     type: Object,
     required: true
-  }
+  },
+  // paging through the records of the loaded datasets
+  page: { type: Number, default: 1 },
+  pageCount: { type: Number, default: 1 },
+  pageSummary: { type: String, default: '' },
+  filterSummary: { type: String, default: '' },
+  // true while the table holds unsaved changes, which a new page would discard
+  pagingLocked: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['back', 'export', 'update:columnVisibility'])
+const emit = defineEmits(['back', 'export', 'update:columnVisibility', 'update:page'])
 
 const updateVisibility = (key, value) => {
   emit('update:columnVisibility', { ...props.columnVisibility, [key]: value })
 }
+
+const lockTitle = 'Save or discard your changes before changing page'
+const canPrev = computed(() => !props.pagingLocked && props.page > 1)
+const canNext = computed(() => !props.pagingLocked && props.page < props.pageCount)
 </script>
 
 <template>
@@ -19,6 +31,30 @@ const updateVisibility = (key, value) => {
     <button class="btn btn-secondary btn-sm" @click="$emit('back')">
       ← Back to Selection
     </button>
+
+    <div v-if="pageSummary" class="paging">
+      <template v-if="pageCount > 1">
+        <button
+          class="btn btn-secondary btn-sm"
+          :disabled="!canPrev"
+          :title="pagingLocked ? lockTitle : ''"
+          @click="emit('update:page', page - 1)"
+        >
+          ◀ Prev
+        </button>
+        <span class="page-label">Page {{ page }} of {{ pageCount }}</span>
+        <button
+          class="btn btn-secondary btn-sm"
+          :disabled="!canNext"
+          :title="pagingLocked ? lockTitle : ''"
+          @click="emit('update:page', page + 1)"
+        >
+          Next ▶
+        </button>
+      </template>
+      <span class="page-summary">{{ pageSummary }}</span>
+      <span v-if="filterSummary" class="filter-summary">{{ filterSummary }}</span>
+    </div>
 
     <div class="toolbar-spacer"></div>
 
@@ -64,6 +100,28 @@ const updateVisibility = (key, value) => {
   flex: 1;
 }
 
+.paging {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+  flex-wrap: wrap;
+}
+
+.page-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.filter-summary {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
 .column-toggles {
   display: flex;
   gap: 12px;
@@ -84,6 +142,11 @@ const updateVisibility = (key, value) => {
   cursor: pointer;
   border: none;
   font-weight: 500;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-sm {

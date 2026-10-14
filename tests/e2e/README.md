@@ -43,7 +43,7 @@ pytest suite does flush the database, so never run it against a database you wan
 ```bash
 npm run test:e2e                 # all tests
 node --test tests/e2e/invitation.test.mjs
-npm run perf:curation            # STUDY="Study B" CONCEPT="Variable A" by default
+npm run perf:curation            # STUDY="Study B" CONCEPT="Variable A" by default; PAGE_SIZE, START and END narrow the records
 npm run perf:blocks              # FIELD="Field B" by default
 ```
 

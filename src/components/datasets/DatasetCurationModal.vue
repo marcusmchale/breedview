@@ -20,6 +20,9 @@ const phase = ref('selection')
 // Selected data from selection form
 const selectedDatasetIds = ref([])
 const datasetStudyIds = ref({})
+// Narrowing and page size for the records, chosen with the datasets
+const recordFilters = ref({})
+const pageSize = ref(1000)
 
 // User access for determining curate permissions
 const { curateTeamIds } = useUserAccess()
@@ -56,9 +59,11 @@ const confirmClose = () => {
 }
 
 // Handle load table from selection form
-const handleLoadTable = ({ datasetIds, datasetStudyIds: studyMap }) => {
+const handleLoadTable = ({ datasetIds, datasetStudyIds: studyMap, filters, pageSize: size }) => {
   selectedDatasetIds.value = datasetIds
   datasetStudyIds.value = studyMap || {}
+  recordFilters.value = filters || {}
+  pageSize.value = size || 1000
   phase.value = 'table'
 }
 
@@ -121,6 +126,8 @@ const isSubmitting = computed(() => {
             :dataset-ids="selectedDatasetIds"
             :dataset-study-ids="datasetStudyIds"
             :curate-team-ids="curateTeamIds"
+            :filters="recordFilters"
+            :page-size="pageSize"
             @back="handleBackToSelection"
             @submit="handleTableSubmit"
             @has-unsaved-changes="handleUnsavedChanges"

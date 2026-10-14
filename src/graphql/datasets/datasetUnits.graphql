@@ -1,0 +1,16 @@
+# The units each dataset has records for under a narrowing, and how many records that is: the curation table
+# pages by unit with these, so that every record of a unit, from every dataset, lands in the same page.
+query DatasetUnits($datasetIds: [ID!]!, $unitIds: [ID!], $start: DateTime, $end: DateTime) {
+  datasets(ids: $datasetIds) {
+    status
+    result {
+      id
+      unitIds(unitIds: $unitIds, start: $start, end: $end)
+      recordCount(unitIds: $unitIds, start: $start, end: $end)
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

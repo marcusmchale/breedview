@@ -4,6 +4,8 @@ import { FormKit } from '@formkit/vue'
 
 import { useSelectStudyQueries } from '@/composables/datasets/selectStudyQueries'
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
+import { useUnitsQuery } from '@/composables/blocks/unitsQuery'
+import { useUnitsLazyQuery } from '@/composables/blocks/unitsLazyQuery'
 
 const props = defineProps({
   loading: {
@@ -14,13 +16,22 @@ const props = defineProps({
 
 const emit = defineEmits(['load-table'])
 
+const PAGE_SIZE_OPTIONS = [250, 500, 1000, 2500, 5000].map((n) => ({ label: n.toLocaleString(), value: n }))
+const DEFAULT_PAGE_SIZE = 1000
+
 // Selection state
 const selectedProgram = ref(null)
 const selectedTrial = ref(null)
-const selectionData = ref({
+const emptySelection = () => ({
   studyIds: [],
-  conceptIds: []
+  conceptIds: [],
+  // narrowing of the records: units (with everything below them) and a time window
+  unitIds: [],
+  start: '',
+  end: '',
+  pageSize: DEFAULT_PAGE_SIZE
 })
+const selectionData = ref(emptySelection())
 
 // Study selection queries
 const {
@@ -59,6 +70,41 @@ const conceptOptions = computed(() => {
     value: concept.id
   }))
 })
+
+// Summaries of the datasets the selection will load
+const selectedSummaries = computed(() =>
+  summaries.value.filter((s) => selectionData.value.conceptIds.includes(s.concept?.id))
+)
+
+// What the selected datasets hold, so the user can judge whether to narrow them
+const datasetsHint = computed(() => {
+  const list = selectedSummaries.value
+  if (list.length === 0) return ''
+  const records = list.reduce((n, s) => n + (s.record_count ?? 0), 0)
+  const starts = list.map((s) => s.start).filter(Boolean).map(String).sort()
+  const ends = list.map((s) => s.end).filter(Boolean).map(String).sort()
+  const span = starts.length ? ` between ${starts[0]} and ${ends[ends.length - 1] ?? starts[starts.length - 1]}` : ''
+  return `${list.length} dataset${list.length === 1 ? '' : 's'} with ${records.toLocaleString()} records${span}.`
+})
+
+// Units filter: rooted at the blocks the selected datasets have records in, drilling down through the block
+const blockIds = computed(() => [
+  ...new Set(selectedSummaries.value.flatMap((s) => (s.blocks ?? []).map((b) => b.id)))
+])
+const { units: blockUnits, unitsLoading: blockUnitsLoading } = useUnitsQuery({ unitIds: blockIds })
+const { units: selectedUnits } = useUnitsQuery({ unitIds: () => selectionData.value.unitIds })
+const {
+  units: displayedUnits,
+  loadChildUnits: loadDisplayedChildUnits,
+  unitsLoading: displayedUnitsLoading
+} = useUnitsLazyQuery()
+
+// Units no longer among the selected datasets' blocks drop out of the filter
+watch(blockIds, () => {
+  if (selectionData.value.unitIds.length > 0 && blockIds.value.length === 0) selectionData.value.unitIds = []
+})
+
+const unitLabel = (unit) => unit.name || (unit.subject ? `${unit.subject.name} ${unit.id}` : `Unit ${unit.id}`)
 
 // Can proceed to table
 const canLoadTable = computed(() => {
@@ -111,16 +157,23 @@ const handleLoadTable = () => {
         .filter((s) => datasetIds.includes(s.id))
         .map((s) => [s.id, s._studyId])
     )
+    const { unitIds, start, end, pageSize } = selectionData.value
     emit('load-table', {
       datasetIds,
-      datasetStudyIds
+      datasetStudyIds,
+      filters: {
+        unitIds: [...unitIds],
+        start: (start || '').trim(),
+        end: (end || '').trim()
+      },
+      pageSize: Number(pageSize) || DEFAULT_PAGE_SIZE
     })
   }
 }
 
 // Reset form (exposed for parent to call)
 const reset = () => {
-  selectionData.value = { studyIds: [], conceptIds: [] }
+  selectionData.value = emptySelection()
   selectedProgram.value = null
   selectedTrial.value = null
 }
@@ -169,6 +222,56 @@ defineExpose({ reset })
       <p v-if="selectionData.studyIds.length > 0 && conceptOptions.length === 0 && !summariesLoading" class="no-concepts-msg">
         No datasets found for the selected studies.
       </p>
+
+      <!-- Narrowing of the records, shown once datasets are selected -->
+      <fieldset v-if="selectedSummaries.length > 0" class="record-filters">
+        <legend>Records</legend>
+        <p class="datasets-hint">{{ datasetsHint }}</p>
+
+        <div class="window-inputs">
+          <FormKit
+            type="text"
+            name="start"
+            label="From:"
+            placeholder="e.g. 2015 or 2015-03-01"
+            help="Records whose period ends on or after this time"
+            validation="partialDatetime"
+            :validation-messages="{ partialDatetime: 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM' }"
+          />
+          <FormKit
+            type="text"
+            name="end"
+            label="To:"
+            placeholder="e.g. 2015-12-31"
+            help="Records whose period starts on or before this time"
+            validation="partialDatetime"
+            :validation-messages="{ partialDatetime: 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM' }"
+          />
+        </div>
+
+        <FormKit
+          type="hierarchical-multiselect"
+          name="unitIds"
+          label="Units:"
+          :help="blockUnitsLoading ? 'Loading the blocks of these datasets…' : 'Optional: only records of these units and of everything below them (a block or a plot selects what it contains)'"
+          :value="selectionData.unitIds"
+          :selected-nodes="selectedUnits"
+          :rootNodes="blockUnits"
+          :loadChildrenFn="loadDisplayedChildUnits"
+          :childrenLoading="displayedUnitsLoading"
+          :currentChildren="displayedUnits"
+          :get-node-label-fn="unitLabel"
+          :max-selections="100"
+        />
+
+        <FormKit
+          type="select"
+          name="pageSize"
+          label="Units per page:"
+          help="Each page holds every record of its units, from every dataset; larger pages take longer to load"
+          :options="PAGE_SIZE_OPTIONS"
+        />
+      </fieldset>
     </FormKit>
 
     <div class="selection-actions">
@@ -199,6 +302,34 @@ defineExpose({ reset })
   color: #666;
   font-style: italic;
   margin-top: 12px;
+}
+
+.record-filters {
+  margin-top: 16px;
+  padding: 12px 16px 4px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.record-filters legend {
+  padding: 0 6px;
+  font-weight: 600;
+  color: #333;
+}
+
+.datasets-hint {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 13px;
+}
+
+.window-inputs {
+  display: flex;
+  gap: 16px;
+}
+
+.window-inputs > * {
+  flex: 1;
 }
 
 .btn {
