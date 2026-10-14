@@ -2,6 +2,7 @@
 <script setup>
 import {
   ref,
+  computed,
   watch,
   toRaw
 } from 'vue'
@@ -16,8 +17,9 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 import { useLocationGeocoding } from '@/composables/regions/useLocationGeocoding'
 import { useLocationMapQueries } from "@/composables/regions/locationMapQueries";
+import { alpha3ToAlpha2 } from "@/composables/regions/countryCodes";
 
-const { locationId, selectedLocation, childLocations } = useLocationMapQueries()
+const { locationId, selectedLocation, childLocations, regionCountry } = useLocationMapQueries()
 
 // Add Mapbox token (get from environment variable)
 const mapboxToken = `${import.meta.env.VITE_MAPBOX_TOKEN}`
@@ -26,23 +28,19 @@ const props = defineProps({
   selectedLocationId: {
     type: String,
     default: null
-  },
-  updateCoordinatesLoading: {
-    type: Boolean,
-    default: false
-  },
-  updateCoordinatesError: {
-    type: String,
-    default: null
   }
 })
 
 // Watch for selected location changes
 watch(() => props.selectedLocationId, (newSelectedLocationId) => {
   locationId.value = newSelectedLocationId
+  // a shape drawn for the previous location must not be saved against the new one
+  clearDrawing()
 })
 
-const emit = defineEmits(['update-coordinates'])
+// drawn-change: emits the drawn coordinates (or null when nothing is drawn) so the location card can save them
+// show-card: the user asked to go to the location card to save the drawn shape
+const emit = defineEmits(['update-coordinates', 'drawn-change', 'show-card'])
 
 // Map state
 // Create a custom emoji icon for markers
@@ -76,6 +74,128 @@ const displayedItems = new L.FeatureGroup()
 
 // Composables
 const { geocodeCountry } = useLocationGeocoding()
+// separate instance so country geocoding doesn't share loading/error state with the search box
+const {
+  searchPlaces,
+  loading: placeSearchLoading,
+  error: placeSearchError
+} = useLocationGeocoding()
+
+// Place search state
+const placeQuery = ref('')
+const placeResults = ref([])
+const placeSearched = ref(false)
+const searchResultLayer = new L.FeatureGroup()  // kept separate so results are never submitted as coordinates
+
+// Search scope: 'view' (only the visible map area), 'country' (the selected location's country) or 'anywhere'
+const searchScope = ref('anywhere')
+const searchCountry = computed(() => {
+  const alpha2 = alpha3ToAlpha2(regionCountry.value?.code)
+  if (!alpha2) return null
+  return { name: regionCountry.value.name, alpha2 }
+})
+const scopeOptions = computed(() => [
+  { value: 'view', label: 'This view' },
+  ...(searchCountry.value ? [{ value: 'country', label: searchCountry.value.name }] : []),
+  { value: 'anywhere', label: 'Anywhere' }
+])
+const scopeDescription = (scope) => {
+  if (scope === 'view') return 'in this view'
+  if (scope === 'country') return `in ${searchCountry.value?.name}`
+  return 'anywhere'
+}
+// Wider scopes to offer when a search finds nothing
+const widerScopes = computed(() => {
+  if (searchScope.value === 'view') {
+    return scopeOptions.value.filter(option => option.value !== 'view')
+  }
+  if (searchScope.value === 'country') {
+    return scopeOptions.value.filter(option => option.value === 'anywhere')
+  }
+  return []
+})
+
+// Default to the selected location's country, and reset to it when the country changes
+watch(() => searchCountry.value?.alpha2, (alpha2) => {
+  if (alpha2) {
+    searchScope.value = 'country'
+  } else if (searchScope.value === 'country') {
+    searchScope.value = 'anywhere'
+  }
+}, { immediate: true })
+
+// Visible map area as a Nominatim viewbox [west, south, east, north], or null when the whole world is in view
+const getViewbox = () => {
+  if (!mapRef.value?.leafletObject) return null
+  const bounds = toRaw(mapRef.value.leafletObject).getBounds()
+  let west = bounds.getWest()
+  let east = bounds.getEast()
+  if (east - west >= 360) return null
+  // leaflet longitudes run past ±180 after panning across the antimeridian; shift back into range
+  const shift = Math.round((west + east) / 2 / 360) * 360
+  west -= shift
+  east -= shift
+  return [
+    Math.max(-180, west),
+    Math.max(-90, bounds.getSouth()),
+    Math.min(180, east),
+    Math.min(90, bounds.getNorth())
+  ]
+}
+
+let placeSearchRequest = 0  // ignore responses from searches that have since been superseded
+const handlePlaceSearch = async () => {
+  if (!placeQuery.value.trim()) return
+  const request = ++placeSearchRequest
+  const results = await searchPlaces(placeQuery.value, {
+    viewbox: getViewbox(),  // also prefers the visible area for the country and anywhere scopes
+    bounded: searchScope.value === 'view',
+    countryCode: searchScope.value === 'country' ? searchCountry.value?.alpha2 : null
+  })
+  if (request !== placeSearchRequest) return
+  placeResults.value = results
+  placeSearched.value = true
+}
+
+// Keep the listed results in step with the chosen scope
+watch(searchScope, () => {
+  if (placeSearched.value) handlePlaceSearch()
+})
+
+const clearPlaceSearch = () => {
+  placeSearchRequest++
+  placeQuery.value = ''
+  placeResults.value = []
+  placeSearched.value = false
+  searchResultLayer.clearLayers()
+}
+
+const goToPlace = (place) => {
+  if (!mapRef.value?.leafletObject) return
+  const map = toRaw(mapRef.value.leafletObject)
+
+  if (!map.hasLayer(searchResultLayer)) {
+    map.addLayer(searchResultLayer)
+  }
+  searchResultLayer.clearLayers()
+  const marker = L.circleMarker([place.latitude, place.longitude], {
+    radius: 8,
+    color: '#dc3545',
+    weight: 2,
+    fillColor: '#dc3545',
+    fillOpacity: 0.4
+  })
+  marker.bindTooltip(place.name)
+  searchResultLayer.addLayer(marker)
+
+  if (place.bounds) {
+    map.fitBounds(place.bounds, { maxZoom: 16 })
+  } else {
+    map.setView([place.latitude, place.longitude], 14)
+  }
+  placeResults.value = []
+  placeSearched.value = false
+}
 
 // Initialize map
 const onMapReady = () => {
@@ -122,24 +242,23 @@ const onMapReady = () => {
       }
     })
 
-        // --- Reactive sync ---
-    const updateHasLayer = () => {
-      hasLayer.value = drawnItems.getLayers().length > 0;
-    };
-
-    drawnItems.on('layeradd', updateHasLayer);
-    drawnItems.on('layerremove', updateHasLayer);
-
+    // --- Reactive sync ---
+    drawnItems.on('layeradd', syncDrawnCoordinates)
+    drawnItems.on('layerremove', syncDrawnCoordinates)
 
     // Geoman event listeners (replaces draw:created, draw:deleted, etc.)
     map.on('pm:create', (e) => {
       const layer = e.layer
+      // keep the emitted coordinates in step when the shape is edited or dragged
+      layer.on('pm:edit', syncDrawnCoordinates)
       drawnItems.addLayer(layer)
-      updateHasLayer()
     })
 
-    map.on('pm:remove', () => {
-      updateHasLayer()
+    map.on('pm:remove', (e) => {
+      // removal mode takes the layer off the map but doesn't always remove it from our group
+      if (drawnItems.hasLayer(e.layer)) {
+        drawnItems.removeLayer(e.layer)
+      }
     })
 
     map.on('pm:drawstart', () => {
@@ -190,14 +309,9 @@ const hasValidCoordinates = (coords) => {
   return false
 }
 
-const submitCoordinates = () => {
+// Collect the coordinates of all drawn shapes
+const getDrawnCoordinates = () => {
   const layers = drawnItems.getLayers()
-
-  if (layers.length === 0) {
-    console.warn('No shapes drawn')
-    return []
-  }
-
   const coordinates = []
 
   layers.forEach(layer => {
@@ -224,15 +338,22 @@ const submitCoordinates = () => {
     }
   })
 
-  // Emit the update-coordinates event with the collected data
-  emit('update-coordinates', {
-    locationId: props.selectedLocationId,
-    coordinates: coordinates
-  })
-
-  // Clear drawn items and redraw
-  drawnItems.clearLayers()
+  return coordinates
 }
+
+const syncDrawnCoordinates = () => {
+  const coordinates = getDrawnCoordinates()
+  hasLayer.value = coordinates.length > 0
+  emit('drawn-change', hasLayer.value ? coordinates : null)
+}
+
+// Remove any drawn shapes, e.g. once they have been saved or discarded from the location card
+const clearDrawing = () => {
+  drawnItems.clearLayers()
+  syncDrawnCoordinates()
+}
+
+defineExpose({ clearDrawing })
 
 
 // Helper function to display location coordinates on map
@@ -522,20 +643,74 @@ watch(childLocations, async (newChildren) => {
       </div>
     </div>
 
-    <div class="drawing-controls">
-      <span v-if="updateCoordinatesError" class="error-message">{{ updateCoordinatesError }}</span>
-      <span v-if="updateCoordinatesLoading" class="loading-state">Saving coordinates...</span>
-      <button
-        @click="submitCoordinates"
-        class="draw-btn submit-btn"
-        title="Submit coordinates"
-        :disabled="!hasLayer"
-      >
-        ✓ Update Coordinates
-      </button>
-    </div>
-
     <div class="map-wrapper">
+      <button
+        v-if="hasLayer && selectedLocation"
+        type="button"
+        class="unsaved-shape-cue"
+        @click="emit('show-card')"
+      >
+        Unsaved shape for <strong>{{ selectedLocation.name }}</strong>. Save it on the location card below ↓
+      </button>
+      <div v-else-if="hasLayer" class="unsaved-shape-cue unsaved-shape-cue--warning">
+        Select a location in the tree before drawing. Selecting one clears this shape.
+      </div>
+      <div class="place-search">
+        <form class="place-search-form" @submit.prevent="handlePlaceSearch">
+          <input
+            v-model="placeQuery"
+            type="search"
+            class="place-search-input"
+            :placeholder="`Search ${scopeDescription(searchScope)}…`"
+            @keydown.esc="clearPlaceSearch"
+          />
+          <button
+            type="submit"
+            class="draw-btn"
+            :disabled="placeSearchLoading || !placeQuery.trim()"
+          >
+            {{ placeSearchLoading ? 'Searching...' : 'Search' }}
+          </button>
+        </form>
+        <div class="place-search-scope" role="radiogroup" aria-label="Search in">
+          <span class="place-search-scope-label">Search in:</span>
+          <div class="scope-toggle">
+            <button
+              v-for="option in scopeOptions"
+              :key="option.value"
+              type="button"
+              role="radio"
+              :aria-checked="searchScope === option.value"
+              :class="['scope-option', { active: searchScope === option.value }]"
+              @click="searchScope = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+        <ul v-if="placeResults.length > 0" class="place-results">
+          <li
+            v-for="(place, index) in placeResults"
+            :key="index"
+            class="place-result"
+            @click="goToPlace(place)"
+          >
+            {{ place.name }}
+          </li>
+        </ul>
+        <p v-else-if="placeSearchError" class="place-search-message error-message">
+          {{ placeSearchError }}
+        </p>
+        <p v-else-if="placeSearched && !placeSearchLoading" class="place-search-message">
+          No places found {{ scopeDescription(searchScope) }}.
+          <template v-for="option in widerScopes" :key="option.value">
+            ·
+            <button type="button" class="link-btn" @click="searchScope = option.value">
+              Search {{ scopeDescription(option.value) }}
+            </button>
+          </template>
+        </p>
+      </div>
       <l-map
         ref="mapRef"
         v-model:zoom="zoom"
@@ -610,16 +785,33 @@ watch(childLocations, async (newChildren) => {
 }
 
 
-.drawing-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  flex-wrap: wrap;
+.unsaved-shape-cue {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000; /* above the leaflet panes and controls */
+  max-width: calc(100% - 40px);
+  padding: 8px 14px;
+  border: 1px solid #1e7e34;
+  border-radius: 4px;
+  background-color: #28a745;
+  color: white;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 
+.unsaved-shape-cue:hover {
+  background-color: #218838;
+}
+
+.unsaved-shape-cue--warning {
+  border-color: #ffc107;
+  background-color: #fff3cd;
+  color: #664d03;
+  cursor: default;
+}
 
 .draw-btn {
   padding: 8px 14px;
@@ -638,34 +830,6 @@ watch(childLocations, async (newChildren) => {
   border-color: #adb5bd;
 }
 
-.draw-btn.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #0056b3;
-}
-
-.draw-btn.clear-btn {
-  background-color: #fff3cd;
-  border-color: #ffc107;
-}
-
-.draw-btn.clear-btn:hover:not(:disabled) {
-  background-color: #ffe69c;
-  border-color: #ffb300;
-}
-
-.draw-btn.submit-btn {
-  background-color: #28a745;
-  color: white;
-  border-color: #1e7e34;
-  margin-left: auto;
-}
-
-.draw-btn.submit-btn:hover:not(:disabled) {
-  background-color: #218838;
-  border-color: #1e7e34;
-}
-
 .draw-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -679,6 +843,118 @@ watch(childLocations, async (newChildren) => {
   overflow: hidden;
   border: 1px solid #ddd;
   min-height: 500px;
+}
+
+.place-search {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000; /* above the leaflet panes and controls */
+  width: 320px;
+  max-width: calc(100% - 70px);
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.place-search-form {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+}
+
+.place-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.place-search-scope {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.place-search-scope-label {
+  white-space: nowrap;
+}
+
+.scope-toggle {
+  display: flex;
+  min-width: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.scope-option {
+  padding: 3px 8px;
+  border: none;
+  border-right: 1px solid #ddd;
+  background-color: white;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scope-option:last-child {
+  border-right: none;
+}
+
+.scope-option:hover:not(.active) {
+  background-color: #e9ecef;
+}
+
+.scope-option.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #007bff;
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.place-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #eee;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.place-result {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.place-result:hover {
+  background-color: #e9ecef;
+}
+
+.place-search-message {
+  margin: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #666;
 }
 
 .map-wrapper :deep(.leaflet-container) {

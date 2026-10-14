@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 
 import LocationMap from './LocationMap.vue'
 import LocationTree from './LocationTree.vue'
@@ -21,6 +21,7 @@ const displayedLocationId = ref(null)
 const onLocationSelected = (locationId) => {
   console.log("Location selected:", locationId)
   displayedLocationId.value = locationId
+  updateCoordinatesError.value = null
 }
 
 const {
@@ -49,16 +50,43 @@ const handleCreateRegionSuccess = async () => {
 const updateCoordinatesError = ref(null)
 const updateCoordinatesLoading = updateLocationLoading
 
+// Shape drawn on the map, waiting to be saved from the location card
+const mapRef = ref(null)
+const cardPanelRef = ref(null)
+// shallowRef: Apollo freezes what it is given, which breaks if a deep reactive proxy still wraps it
+const drawnCoordinates = shallowRef(null)
 
+const onDrawnChange = (coordinates) => {
+  drawnCoordinates.value = coordinates
+}
+
+const scrollToCard = () => {
+  cardPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const discardDrawing = () => {
+  mapRef.value?.clearDrawing()
+}
+
+const handleSaveDrawnCoordinates = async (payload) => {
+  const saved = await handleUpdateCoordinates(payload)
+  if (saved) discardDrawing()
+}
+
+// Returns true when the coordinates were saved
 const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
+  updateCoordinatesError.value = null
   try {
     const locationData = {
         id: locationId,
-        coordinates: coordinates
+        // plain copies so Apollo never receives (and freezes) reactive objects
+        coordinates: coordinates.map(({ latitude, longitude }) => ({ latitude, longitude }))
       }
 
-    const { status, errors } = await updateLocation( locationData )
-    if (status !== 'SUCCESS') {
+    const { status, errors } = await updateLocation( locationData ) ?? {}
+    if (status === 'SUCCESS') {
+      return true
+    } else {
       // Handle server errors
       if (errors && errors.length > 0) {
         updateCoordinatesError.value = errors.map(err => err.message).join(', ')
@@ -70,6 +98,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
     console.error('Error updating coordinates:', error)
     updateCoordinatesError.value = `Failed to update coordinates: ${error}`
   }
+  return false
 }
 
 </script>
@@ -95,17 +124,23 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 
         <div class="map-panel">
           <LocationMap
+            ref="mapRef"
             :selectedLocationId="displayedLocationId"
-            :updateCoodinatesLoading="updateCoordinatesLoading"
-            :updateCoordinatesError="updateCoordinatesError"
             @update-coordinates="handleUpdateCoordinates"
+            @drawn-change="onDrawnChange"
+            @show-card="scrollToCard"
           />
         </div>
       </div>
-      <div v-if="displayedLocationId" class="card-panel">
+      <div v-if="displayedLocationId" ref="cardPanelRef" class="card-panel">
         <LocationCard
           :locationId="displayedLocationId"
           :locationTypes="locationTypes"
+          :drawnCoordinates="drawnCoordinates"
+          :saveCoordinatesLoading="updateCoordinatesLoading"
+          :saveCoordinatesError="updateCoordinatesError"
+          @save-coordinates="handleSaveDrawnCoordinates"
+          @discard-drawing="discardDrawing"
         />
       </div>
     </div>

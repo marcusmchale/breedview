@@ -17,7 +17,36 @@ const props = defineProps({
     required: false,
     default: () => []
   },
+  // coordinates currently drawn on the location map, or null when nothing is drawn
+  drawnCoordinates: {
+    type: Array,
+    default: null
+  },
+  saveCoordinatesLoading: {
+    type: Boolean,
+    default: false
+  },
+  saveCoordinatesError: {
+    type: String,
+    default: null
+  }
 })
+
+const emit = defineEmits(['save-coordinates', 'discard-drawing'])
+
+const drawnShapeDescription = computed(() => {
+  const count = props.drawnCoordinates?.length ?? 0
+  if (count === 0) return null
+  if (count === 1) return 'a point'
+  return `a polygon with ${count} points`
+})
+
+const saveCoordinates = () => {
+  emit('save-coordinates', {
+    locationId: props.locationId,
+    coordinates: props.drawnCoordinates
+  })
+}
 
 const {
     location,
@@ -130,9 +159,40 @@ const handleAddChildSuccess = async () => {
       </div>
 
       <!-- Coordinates -->
-      <div v-if="coordinatesList.length > 0" class="section">
+      <div class="section">
         <h3 class="section-title">Coordinates</h3>
-        <div class="list">
+
+        <div v-if="drawnShapeDescription" class="drawn-shape">
+          <p class="drawn-shape-text">
+            Drawn on map: <strong>{{ drawnShapeDescription }}</strong>.
+            <template v-if="coordinatesList.length > 0">
+              Saving replaces the {{ coordinatesList.length }} existing coordinate{{ coordinatesList.length !== 1 ? 's' : '' }} below.
+            </template>
+          </p>
+          <div class="drawn-shape-actions">
+            <button
+              class="btn btn-sm btn-save"
+              :disabled="saveCoordinatesLoading"
+              @click="saveCoordinates"
+            >
+              {{ saveCoordinatesLoading ? 'Saving…' : `✓ Save as coordinates for ${location.name}` }}
+            </button>
+            <button
+              class="btn btn-sm btn-outline"
+              :disabled="saveCoordinatesLoading"
+              @click="emit('discard-drawing')"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+        <p v-else class="coord-hint">
+          Draw a marker or polygon on the map to set this location's coordinates.
+        </p>
+        <p v-if="saveCoordinatesError" class="coord-error">{{ saveCoordinatesError }}</p>
+
+        <p v-if="coordinatesList.length === 0" class="coord-empty">No coordinates recorded.</p>
+        <div v-else class="list">
           <div v-for="(coord, index) in coordinatesList" :key="index" class="list-item">
             <span class="coord-pair">
               {{ coord.latitude }}°, {{ coord.longitude }}°
@@ -320,6 +380,58 @@ const handleAddChildSuccess = async () => {
 .coord-extra {
   font-size: 0.82rem;
   color: #666;
+}
+
+.drawn-shape {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+}
+
+.drawn-shape-text {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.drawn-shape-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coord-hint,
+.coord-empty {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.coord-empty {
+  font-style: italic;
+  color: #999;
+}
+
+.coord-error {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: #dc3545;
+}
+
+.btn-save {
+  background: #28a745;
+  color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #218838;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .tag-list {

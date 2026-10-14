@@ -66,9 +66,30 @@ export function useLocationMapQueries() {
         }
     })
 
+    // Fetch the country (region root) of the selected location, used to scope place searches
+    const regionId = computed(() => {
+        if (!selectedLocation.value) return null
+        if (!selectedLocation.value.parent) return null  // the selected location is itself the country
+        return selectedLocation.value.region?.id ?? null
+    })
+    const {
+        result: regionResult
+    } = useQuery(
+        LOCATIONS_QUERY,
+        () => ({ locationIds: [regionId.value] }),
+        () => ({ enabled: regionId.value !== null })
+    )
+    const regionCountry = computed(() => {
+        if (!selectedLocation.value) return null
+        if (!selectedLocation.value.parent) return selectedLocation.value
+        if (regionId.value === null) return null
+        return regionResult.value?.regionsLocations?.result?.[0] ?? null
+    })
+
     return {
         locationId,
         selectedLocation,
-        childLocations
+        childLocations,
+        regionCountry
     }
 }
