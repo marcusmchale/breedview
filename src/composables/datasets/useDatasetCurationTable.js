@@ -34,6 +34,9 @@ export function useDatasetCurationTable() {
   // Controller data: { [datasetId]: { canEdit, controller } }
   const datasetControllers = ref({})
 
+  // Contributors of each dataset: { [datasetId]: { originalIds, ids, people } }, people being the Persons as loaded
+  const datasetContributors = ref({})
+
   // Records marked for deletion: { [datasetId]: Set<recordId> }
   const recordsToDelete = ref({})
 
@@ -150,6 +153,7 @@ export function useDatasetCurationTable() {
       rowMetadata.value = {}
       conceptData.value = {}
       datasetControllers.value = {}
+      datasetContributors.value = {}
       recordsToDelete.value = {}
       columnStatus.value = {}
       cellErrors.value = {}
@@ -171,6 +175,13 @@ export function useDatasetCurationTable() {
       // Extract all dataset IDs and fetch controllers
       const datasetIds = datasets.map(d => d.id)
       await fetchControllers(datasetIds, userCurateTeamIds)
+
+      // Contributors, as loaded, so changes to them can be told apart and submitted
+      datasets.forEach(dataset => {
+        const people = dataset.contributors ?? []
+        const ids = people.map(person => String(person.id))
+        datasetContributors.value[dataset.id] = { originalIds: ids, ids: [...ids], people }
+      })
 
       // Build concept data map
       datasets.forEach(dataset => {
@@ -662,10 +673,36 @@ export function useDatasetCurationTable() {
   /**
    * Check if there are unsaved changes
    */
+  /* ---------- contributors ---------- */
+
+  const sortedIds = (ids) => [...new Set((ids ?? []).map(String))].sort().join(',')
+
+  const hasContributorsChanged = (datasetId) => {
+    const entry = datasetContributors.value[datasetId]
+    return !!entry && sortedIds(entry.ids) !== sortedIds(entry.originalIds)
+  }
+
+  // Contributors can be changed by whoever can curate the dataset, while it is not being saved
+  const canEditContributors = (datasetId) =>
+    !isSubmitting.value && !activeSubmissions.value[datasetId] && !!datasetControllers.value[datasetId]?.canEdit
+
+  const setContributors = (datasetId, ids) => {
+    const entry = datasetContributors.value[datasetId]
+    if (!entry || !canEditContributors(datasetId)) return
+    entry.ids = (ids ?? []).map(String)
+  }
+
   const hasUnsavedChanges = computed(() => {
     // Check for deletions
     for (const datasetId in recordsToDelete.value) {
       if (recordsToDelete.value[datasetId].size > 0) {
+        return true
+      }
+    }
+
+    // Check for contributor changes
+    for (const datasetId in datasetContributors.value) {
+      if (hasContributorsChanged(datasetId)) {
         return true
       }
     }
@@ -769,6 +806,13 @@ export function useDatasetCurationTable() {
         }
       }
 
+      // Check contributors
+      for (const datasetId in datasetContributors.value) {
+        if (hasContributorsChanged(datasetId)) {
+          datasetsWithChanges.add(datasetId)
+        }
+      }
+
       // Process each dataset
       for (const datasetId of datasetsWithChanges) {
         columnStatus.value[datasetId] = { status: 'submitting' }
@@ -784,12 +828,16 @@ export function useDatasetCurationTable() {
             deletions.forEach(recordId => deleteRecordFromCache({itemId: recordId}))
           }
 
-          // Then, handle updates
+          // Then, handle updates to records and contributors in one submission
           const { updates, indexMapping, conceptId } = prepareDatasetUpdates(datasetId)
-          if (updates.length > 0) {
+          const contributorIds = hasContributorsChanged(datasetId)
+            ? [...datasetContributors.value[datasetId].ids]
+            : null
+          if (updates.length > 0 || contributorIds) {
             const result = await updateDataset({
               id: datasetId,
-              records: updates
+              records: updates,
+              ...(contributorIds ? { contributorIds } : {})
             })
 
             if (result?.status === 'SUCCESS' || result?.result) {
@@ -797,7 +845,7 @@ export function useDatasetCurationTable() {
               const submissionId = result.result
               if (submissionId) {
                 // Store the mapping for error handling when polling completes
-                pendingSubmissions.value[datasetId] = { indexMapping, conceptId, updates }
+                pendingSubmissions.value[datasetId] = { indexMapping, conceptId, updates, contributorIds }
                 startSubmissionPolling(datasetId, submissionId)
               }
             } else {
@@ -858,9 +906,13 @@ export function useDatasetCurationTable() {
 
     const onSubmissionComplete = ({ status, errors, itemErrors }) => {
       const pending = pendingSubmissions.value[datasetId]
-      const { indexMapping, conceptId, updates } = pending || {}
+      const { indexMapping, conceptId, updates, contributorIds } = pending || {}
 
       if (status === 'COMPLETED') {
+        // The saved contributors are the new baseline
+        if (contributorIds && datasetContributors.value[datasetId]) {
+          datasetContributors.value[datasetId].originalIds = [...contributorIds]
+        }
         if (updates && updates.length > 0) {
               updates.forEach(update => {
                 const cacheUpdate = {
@@ -994,6 +1046,7 @@ export function useDatasetCurationTable() {
     rowMetadata.value = {}
     conceptData.value = {}
     datasetControllers.value = {}
+    datasetContributors.value = {}
     recordsToDelete.value = {}
     columnStatus.value = {}
     cellErrors.value = {}
@@ -1015,6 +1068,7 @@ export function useDatasetCurationTable() {
     cellMetadata,
     conceptData,
     datasetControllers,
+    datasetContributors,
     columnStatus,
     cellErrors,
     cellReferences,
@@ -1043,6 +1097,9 @@ export function useDatasetCurationTable() {
     hasRowGroupsChanged,
     getCellReferences,
     updateCellReferences,
+    hasContributorsChanged,
+    canEditContributors,
+    setContributors,
     submitAllChanges,
     exportToCSV,
     getDatasetStatus,

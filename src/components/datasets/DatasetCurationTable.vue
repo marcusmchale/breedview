@@ -14,6 +14,7 @@ import { useDatasetCurationTable } from '@/composables/datasets/useDatasetCurati
 import { useStudiesGroupings } from '@/composables/programs/studiesGroupingsQuery'
 
 import CurationTableToolbar from './CurationTableToolbar.vue'
+import CurationContributorsPanel from './CurationContributorsPanel.vue'
 import CurationTableCell from './CurationTableCell.vue'
 import CurationTableFooter from './CurationTableFooter.vue'
 import LoadingOverlay from '@/components/datasets/LoadingOverlay.vue'
@@ -56,6 +57,7 @@ const filterSummary = computed(() => {
 const {
   tableData, conceptData, columnStatus, isLoading: tableLoading, isSubmitting,
   hasUnsavedChanges, hasValueChanged, allSubmitted, getConcepts,
+  datasetContributors, hasContributorsChanged, canEditContributors, setContributors,
   initializeFromDatasets, isCellEditable, cellHasRecord, getCellInfo,
   updateCell, getCellError, markRecordForDeletion, unmarkRecordForDeletion,
   isMarkedForDeletion, getCellReferences, updateCellReferences,
@@ -82,6 +84,22 @@ watch(datasets, async (newDatasets) => {
     })
   }
 }, { immediate: true })
+
+// Contributors of every loaded dataset, for the panel above the table
+const datasetLabel = (datasetId) => {
+  const entry = Object.values(conceptData.value).find((cd) => cd.datasetIds.includes(datasetId))
+  return entry ? `${entry.concept.name} (#${datasetId})` : `Dataset #${datasetId}`
+}
+const contributorRows = computed(() =>
+  Object.entries(datasetContributors.value).map(([datasetId, entry]) => ({
+    id: datasetId,
+    label: datasetLabel(datasetId),
+    ids: entry.ids,
+    people: entry.people,
+    canEdit: canEditContributors(datasetId),
+    changed: hasContributorsChanged(datasetId)
+  }))
+)
 
 // Emit unsaved changes status
 watch(hasUnsavedChanges, (value) => {
@@ -367,6 +385,13 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       @export="handleExport"
       @update:column-visibility="columnVisibility = $event"
       @update:page="page = $event"
+    />
+
+    <CurationContributorsPanel
+      v-if="!tableLoading && !datasetsLoading && contributorRows.length"
+      :datasets="contributorRows"
+      :disabled="isSubmitting"
+      @update="setContributors($event.datasetId, $event.ids)"
     />
 
     <div v-if="tableLoading || datasetsLoading || groupingsLoading" class="loading-state">
