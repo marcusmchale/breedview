@@ -1,0 +1,12 @@
+query organisationsDataProcessingTerms {
+    organisationsDataProcessingTerms {
+        status
+        result {
+            version
+            url
+        }
+        errors {
+            message
+        }
+    }
+}

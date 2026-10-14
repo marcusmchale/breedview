@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import DELETE_TEAM_MUTATION from '../../graphql/organisations/deleteTeam.graphql'
 import REMOVE_AFFILIATION_MUTATION from '../../graphql/account/removeAffiliation.graphql'
@@ -9,6 +9,7 @@ import AffiliationBadges from '../affiliations/AffiliationBadges.vue'
 import TeamActions from './TeamActions.vue'
 import AffiliationDetailsModal from '../affiliations/AffiliationDetailsModal.vue'
 import ManageAffiliationsModal from '../affiliations/ManageAffiliationsModal.vue'
+import LegalEntityModal from './LegalEntityModal.vue'
 
 const props = defineProps({
   teamData: { type: Object, required: true },
@@ -30,6 +31,14 @@ const selectedAffiliation = ref({ accessType: '', data: null })
 const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
 const deleteTeamError = ref('')
+const showLegalEntityModal = ref(false)
+
+// Only organisation roots (teams without a parent) declare a legal entity
+const isRoot = computed(() => !teamInfo.value.parent)
+
+const handleLegalEntityUpdated = async () => {
+  await refreshTeamData()
+}
 
 // Mutations
 const { mutate: deleteTeamMutation, loading: deleteTeamLoading } = useMutation(DELETE_TEAM_MUTATION)
@@ -166,6 +175,19 @@ onUnmounted(() => {
         <p v-if="teamInfo.fullname"><strong>Full Name:</strong> {{ teamInfo.fullname }}</p>
         <p><strong>Children:</strong> {{ teamInfo.children?.length || 0 }}</p>
       </div>
+
+      <div v-if="isRoot" class="legal-entity" :class="{ declared: !!teamInfo.legalEntity }">
+        <template v-if="teamInfo.legalEntity">
+          <strong>Legal entity:</strong> {{ teamInfo.legalEntity.legalName }}
+          <span class="legal-entity-detail">
+            &middot; privacy contact {{ teamInfo.legalEntity.privacyContact }}
+            &middot; terms v{{ teamInfo.legalEntity.termsVersion }}
+          </span>
+        </template>
+        <template v-else>
+          <strong>Legal entity:</strong> not declared, so this organisation cannot record people
+        </template>
+      </div>
     </div>
 
     <TeamActions
@@ -173,10 +195,13 @@ onUnmounted(() => {
       :has-children="hasChildren"
       :delete-team-loading="deleteTeamLoading"
       :delete-team-error="deleteTeamError"
+      :is-root="isRoot"
+      :has-legal-entity="!!teamInfo.legalEntity"
       @request-affiliation="emit('request-affiliation', teamInfo)"
       @manage-affiliations="showManageAffiliationsModal"
       @create-team="emit('create-team', teamInfo)"
       @delete-team="handleDeleteTeam"
+      @legal-entity="showLegalEntityModal = true"
     />
 
     <div v-if="isExpanded" class="children-section">
@@ -217,6 +242,14 @@ onUnmounted(() => {
       :current-user-id="currentUserId"
       @close="closeManageAffiliationsModal"
       @affiliation-updated="handleAffiliationUpdated"
+    />
+
+    <LegalEntityModal
+      v-if="isRoot"
+      :is-open="showLegalEntityModal"
+      :team="teamInfo"
+      @close="showLegalEntityModal = false"
+      @legal-entity-updated="handleLegalEntityUpdated"
     />
   </div>
 </template>
@@ -281,6 +314,20 @@ onUnmounted(() => {
 
 .team-meta p {
   margin: 0;
+}
+
+.legal-entity {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #856404;
+}
+
+.legal-entity.declared {
+  color: #155724;
+}
+
+.legal-entity-detail {
+  color: #666;
 }
 
 .children-section {

@@ -1,0 +1,8 @@
+mutation organisationsDeclareLegalEntity($teamId: ID!, $legalEntity: LegalEntityInput!) {
+    organisationsDeclareLegalEntity(teamId: $teamId, legalEntity: $legalEntity) {
+        status
+        errors {
+            message
+        }
+    }
+}

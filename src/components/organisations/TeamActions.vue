@@ -26,6 +26,14 @@
     </button>
     
     <button
+      v-if="userIsAdmin && isRoot"
+      class="btn btn-secondary"
+      @click="$emit('legal-entity')"
+    >
+      {{ hasLegalEntity ? 'Legal Entity' : 'Declare Legal Entity' }}
+    </button>
+
+    <button
       v-if="userIsAdmin && !hasChildren"
       class="btn btn-danger"
       @click="$emit('delete-team')"
@@ -37,11 +45,16 @@
 
   <div v-if="deleteTeamError" class="error-message">
     {{ deleteTeamError }}
+    <template v-if="deleteRefusedForControl">
+      Transfer or renounce its control first.
+    </template>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   userIsAdmin: {
     type: Boolean,
     required: true
@@ -57,10 +70,21 @@ defineProps({
   deleteTeamError: {
     type: String,
     default: ''
+  },
+  // Organisation roots can declare a legal entity
+  isRoot: {
+    type: Boolean,
+    default: false
+  },
+  hasLegalEntity: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team'])
+defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team', 'legal-entity'])
+
+const deleteRefusedForControl = computed(() => /control/i.test(props.deleteTeamError || ''))
 </script>
 
 <style scoped>

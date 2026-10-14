@@ -34,11 +34,29 @@
                 placeholder="Enter organisation full name (optional)"
               />
             </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="createOrgLoading">
-                {{ createOrgLoading ? 'Creating...' : 'Create Organisation' }}
-              </button>
-            </div>
+          </div>
+
+          <div v-if="termsAvailable" class="legal-entity-section">
+            <label class="legal-entity-toggle">
+              <input v-model="declareLegalEntity" type="checkbox" :disabled="createOrgLoading" />
+              <span>Declare the legal entity responsible for this organisation</span>
+            </label>
+            <p class="legal-entity-help">
+              Needed before the organisation can record people. It can also be declared later by an admin of the organisation.
+            </p>
+            <LegalEntityForm
+              v-if="declareLegalEntity"
+              ref="legalEntityFormRef"
+              v-model="newLegalEntity"
+              :disabled="createOrgLoading"
+              @terms-version="termsVersion = $event"
+            />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" :disabled="createOrgLoading || !legalEntityComplete">
+              {{ createOrgLoading ? 'Creating...' : 'Create Organisation' }}
+            </button>
           </div>
         </form>
         <div v-if="createOrgError" class="error-message">
@@ -99,6 +117,8 @@ import CREATE_ORGANISATION_MUTATION from '../../graphql/organisations/createOrga
 import TeamNode from '../organisations/TeamNode.vue'
 import CreateTeamModal from '../organisations/CreateTeamModal.vue'
 import RequestAffiliationModal from './RequestAffiliationModal.vue'
+import LegalEntityForm from '../organisations/LegalEntityForm.vue'
+import { useDataProcessingTermsQuery } from '@/composables/organisations/dataProcessingTermsQuery'
 
 // Get authentication data from the store
 const { currentUserId } = useAuthStore()
@@ -116,6 +136,14 @@ const selectedParentTeam = ref(null)
 const newOrganisation = ref({ name: '', fullname: '' })
 const createOrgError = ref('')
 const createOrgSuccess = ref('')
+
+// Optional legal entity declaration for the new organisation (only offered when terms are configured)
+const { termsAvailable } = useDataProcessingTermsQuery()
+const declareLegalEntity = ref(false)
+const newLegalEntity = ref({ legalName: '', privacyContact: '', accepted: false })
+const legalEntityFormRef = ref(null)
+const termsVersion = ref(null)
+const legalEntityComplete = computed(() => !declareLegalEntity.value || !!legalEntityFormRef.value?.complete)
 
 // Request Affiliation modal data
 const showRequestAffiliationModal = ref(false)
@@ -145,6 +173,8 @@ onCreateOrgDone((result) => {
     createOrgSuccess.value = 'Organisation created successfully!'
     createOrgError.value = ''
     newOrganisation.value = { name: '', fullname: '' }
+    declareLegalEntity.value = false
+    newLegalEntity.value = { legalName: '', privacyContact: '', accepted: false }
 
     // Refetch organisations to show the new one
     refetchOrganisations()
@@ -195,12 +225,18 @@ const submitCreateOrganisation = async () => {
   createOrgSuccess.value = ''
 
   try {
-    await createOrganisationMutation({
-      team: {
-        name: newOrganisation.value.name.trim(),
-        fullname: newOrganisation.value.fullname.trim() || null
+    const team = {
+      name: newOrganisation.value.name.trim(),
+      fullname: newOrganisation.value.fullname.trim() || null
+    }
+    if (declareLegalEntity.value) {
+      team.legalEntity = {
+        legalName: newLegalEntity.value.legalName.trim(),
+        privacyContact: newLegalEntity.value.privacyContact.trim(),
+        termsVersion: termsVersion.value
       }
-    })
+    }
+    await createOrganisationMutation({ team })
   } catch (error) {
     console.error('Create organisation failed:', error)
     createOrgError.value = error.message || 'An unexpected error occurred.'
@@ -268,6 +304,33 @@ const handleAffiliationRequested = (affiliationData) => {
   display: flex;
   gap: 1rem;
   align-items: end;
+}
+
+.legal-entity-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.legal-entity-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+}
+
+.legal-entity-help {
+  margin: 4px 0 12px 24px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.create-org-form > .form-actions {
+  margin-top: 1rem;
 }
 
 .form-group {
