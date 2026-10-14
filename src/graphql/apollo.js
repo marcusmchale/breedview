@@ -9,7 +9,7 @@ import { useCsrf } from '@/composables/system/useCsrf'
 import possibleTypes from './possibleTypes.json';
 
 import { getIdentityResolver, OntologyKeyFields } from "@/apolloConfig/identityResolvers";
-import { createUnionResolver, createUnionListReadPolicy, createUnionListTrackingPolicy, createReplaceOnMergePolicy} from "@/apolloConfig/apolloCachePolicy";
+import { createUnionResolver, createUnionListReadPolicy, createUnionListTrackingPolicy, createPayloadByIdsReadPolicy, createReplaceOnMergePolicy} from "@/apolloConfig/apolloCachePolicy";
 
 const graphqlUri = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_GRAPHQL_PATH}`
 
@@ -89,6 +89,10 @@ const cache = new InMemoryCache({
                 getIdentityResolver("OntologyEntryUnion")
             )
           })
+        },
+        // units of an expanded block node are loaded in one query; each node then reads its own from the cache
+        blocksUnits: {
+          read: createPayloadByIdsReadPolicy({ typename: "Unit", payloadTypename: "UnitsPayload", idArgName: "ids" })
         },
       }
     },

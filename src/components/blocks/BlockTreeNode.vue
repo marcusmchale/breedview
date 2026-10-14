@@ -32,10 +32,18 @@ const {
 
 // Expanded state for tree
 const expanded = ref(false)
-const toggleExpand = () => {
+// The children are loaded in one query and only rendered once it has returned, so that each child
+// node finds its unit in the cache instead of sending a request of its own
+const childrenReady = ref(false)
+const toggleExpand = async () => {
   expanded.value = !expanded.value
-  if (expanded.value) {
-    loadChildUnits(props.unitId)
+  if (expanded.value && !childrenReady.value) {
+    try {
+      const loading = loadChildUnits(props.unitId)
+      if (loading) await loading
+    } finally {
+      childrenReady.value = true
+    }
   }
 }
 
@@ -93,7 +101,7 @@ const handleChildNodeSelected = ({ nodeId, parentId }) => {
       </div>
 
       <div v-if="expanded && unit.children && unit.children.length > 0" class="children">
-        <div v-if="childUnitsLoading" class="loading">Loading children...</div>
+        <div v-if="childUnitsLoading || !childrenReady" class="loading">Loading children...</div>
         <div v-else-if="childUnitsError" class="error">
           Error loading children: {{ childUnitsError.message }}
         </div>

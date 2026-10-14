@@ -37,7 +37,8 @@ export function useItemsLazyQuery({
     })
 
     // Assumes the item is already loaded to the cache
-    // Get its children ids from the cache and load them
+    // Get its children ids from the cache and load them.
+    // Returns what the lazy query's load returns: a promise of the result, or false when it has already run
     const loadChildren = (itemId) => {
         const cachedItem = client.cache.readFragment({
             id: `${typeName}:${itemId}`,
@@ -46,7 +47,7 @@ export function useItemsLazyQuery({
         if (cachedItem?.children && cachedItem?.children?.length > 0) {
             itemIds.value = cachedItem.children.map(child => child.id)
         }
-        loadItems()
+        return loadItems()
     }
 
     return {
