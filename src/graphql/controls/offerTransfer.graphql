@@ -1,0 +1,8 @@
+mutation controlsOfferTransfer($offer: ControlTransferOffer!) {
+    controlsOfferTransfer(offer: $offer) {
+        status
+        errors {
+            message
+        }
+    }
+}

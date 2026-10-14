@@ -1,0 +1,8 @@
+mutation controlsRenounceControl($entities: [ControlledEntityInput!]!, $teamIds: [ID!]!) {
+    controlsRenounceControl(entities: $entities, teamIds: $teamIds) {
+        status
+        errors {
+            message
+        }
+    }
+}

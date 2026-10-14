@@ -1,0 +1,18 @@
+fragment ControlTransferFields on ControlTransfer {
+    id
+    status
+    entities { label id }
+    fromTeams { id name fullname }
+    keepFromTeams
+    recipientTeam { id name fullname }
+    toTeams { id name fullname }
+    release
+    offeredBy { id name fullname }
+    offeredAt
+    acceptedBy { id name fullname }
+    acceptedAt
+    rejectedBy { id name fullname }
+    rejectedAt
+    cancelledBy { id name fullname }
+    cancelledAt
+}

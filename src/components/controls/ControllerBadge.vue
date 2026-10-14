@@ -76,6 +76,7 @@ const handleReleaseUpdated = async () => {
       :entity-id="entityId"
       @close="closeModal"
       @release-updated="handleReleaseUpdated"
+      @controls-changed="handleReleaseUpdated"
     />
   </div>
 </template>

@@ -1,0 +1,12 @@
+#import "./transferFragment.graphql"
+query controlsTransfers($statuses: [ControlTransferStatus!]) {
+    controlsTransfers(statuses: $statuses) {
+        status
+        result {
+            ...ControlTransferFields
+        }
+        errors {
+            message
+        }
+    }
+}

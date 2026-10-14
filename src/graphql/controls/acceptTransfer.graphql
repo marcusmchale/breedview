@@ -1,0 +1,8 @@
+mutation controlsAcceptTransfer($id: ID!, $toTeamIds: [ID!]!, $release: ReadRelease) {
+    controlsAcceptTransfer(id: $id, toTeamIds: $toTeamIds, release: $release) {
+        status
+        errors {
+            message
+        }
+    }
+}

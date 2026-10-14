@@ -1,0 +1,8 @@
+mutation controlsRejectTransfer($id: ID!) {
+    controlsRejectTransfer(id: $id) {
+        status
+        errors {
+            message
+        }
+    }
+}

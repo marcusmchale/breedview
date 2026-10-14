@@ -4,6 +4,9 @@
 import { computed, ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import SET_RELEASE_MUTATION from '../../graphql/controls/setRelease.graphql'
+import { useUserAccess } from '@/composables/user/useUserAccess'
+import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
+import OfferTransferModal from './OfferTransferModal.vue'
 
 const props = defineProps({
   isVisible: {
@@ -32,7 +35,47 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'releaseUpdated'])
+const emit = defineEmits(['close', 'releaseUpdated', 'controlsChanged'])
+
+// Control transfers and renouncing, for admins of teams controlling the entity
+const { adminTeamIds } = useUserAccess()
+const { renounceControl, renounceControlLoading } = useMutateTransfers()
+const administeredControlTeams = computed(() =>
+  (props.controller?.teams ?? []).filter(team => adminTeamIds.value.map(String).includes(String(team.id)))
+)
+const canTransfer = computed(() => administeredControlTeams.value.length > 0 && !!props.entityLabel && !!props.entityId)
+const canRenounce = computed(() => canTransfer.value && (props.controller?.teams?.length ?? 0) > 1)
+const showOfferModal = ref(false)
+const showRenounceForm = ref(false)
+const renounceTeamIds = ref([])
+const transferMessage = ref('')
+const transferError = ref('')
+
+const handleOffered = (accepted) => {
+  showOfferModal.value = false
+  transferMessage.value = accepted
+    ? 'Control transferred.'
+    : 'Transfer offered. Admins of the recipient team have been notified.'
+  if (accepted) emit('controlsChanged')
+}
+
+const submitRenounce = async () => {
+  if (renounceTeamIds.value.length === 0) return
+  transferError.value = ''
+  transferMessage.value = ''
+  const { status, errors } = await renounceControl({
+    entities: [{ label: props.entityLabel, id: props.entityId }],
+    teamIds: renounceTeamIds.value
+  })
+  if (status === 'SUCCESS') {
+    showRenounceForm.value = false
+    renounceTeamIds.value = []
+    transferMessage.value = 'Control renounced.'
+    emit('controlsChanged')
+  } else {
+    transferError.value = errors?.[0]?.message || 'Failed to renounce control'
+  }
+}
 
 const showReleaseForm = ref(false)
 const selectedRelease = ref('')
@@ -273,6 +316,34 @@ const formatDate = (dateString) => {
           <div v-if="!hasAnyData" class="no-data">
             No detailed controller information available
           </div>
+
+          <div v-if="canTransfer" class="section transfer-section">
+            <strong>Control:</strong>
+            <div v-if="transferMessage" class="success-message">{{ transferMessage }}</div>
+            <div v-if="transferError" class="error-message">{{ transferError }}</div>
+            <div class="form-actions">
+              <button class="btn btn-primary" @click="showOfferModal = true">Transfer control</button>
+              <button v-if="canRenounce && !showRenounceForm" class="btn btn-secondary" @click="showRenounceForm = true">
+                Renounce control
+              </button>
+            </div>
+            <div v-if="showRenounceForm" class="release-form">
+              <h3>Renounce control</h3>
+              <p class="text-muted">
+                End the control of your teams over this record. Other teams keep theirs; at least one must remain.
+              </p>
+              <label v-for="team in administeredControlTeams" :key="team.id" class="team-checkbox">
+                <input v-model="renounceTeamIds" type="checkbox" :value="String(team.id)" :disabled="renounceControlLoading" />
+                <span>{{ team.fullname || team.name }}</span>
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-danger" :disabled="renounceTeamIds.length === 0 || renounceControlLoading" @click="submitRenounce">
+                  {{ renounceControlLoading ? 'Renouncing...' : 'Renounce' }}
+                </button>
+                <button class="btn btn-secondary" :disabled="renounceControlLoading" @click="showRenounceForm = false">Cancel</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-else class="no-controller">
@@ -280,6 +351,16 @@ const formatDate = (dateString) => {
         </div>
       </div>
     </div>
+
+    <OfferTransferModal
+      v-if="canTransfer"
+      :is-open="showOfferModal"
+      :entity-label="entityLabel"
+      :entity-id="entityId"
+      :control-teams="administeredControlTeams"
+      @close="showOfferModal = false"
+      @offered="handleOffered"
+    />
   </div>
 </template>
 
@@ -588,5 +669,20 @@ const formatDate = (dateString) => {
 .error-state strong {
   display: block;
   margin-bottom: 8px;
+}
+.transfer-section .form-actions {
+  margin-top: 8px;
+}
+
+.team-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  cursor: pointer;
+}
+
+.team-checkbox input {
+  width: auto;
 }
 </style>

@@ -98,6 +98,9 @@ onMounted(async () => {
           <router-link to="/people" class="nav-link" active-class="active">
             People
           </router-link>
+          <router-link to="/transfers" class="nav-link" active-class="active">
+            Transfers
+          </router-link>
           <router-link to="/ontology" class="nav-link" active-class="active">
             Ontology
           </router-link>
