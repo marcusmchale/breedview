@@ -55,3 +55,11 @@ test('with curate access to the controlling team, the program can be changed and
   const offered = await actions()
   for (const action of ['Create New Program', 'Create Trial', 'Edit']) assert.ok(offered.includes(action), `${action} is offered: ${offered}`)
 })
+
+test('an admin of the controlling team reads the full history of a private program', async () => {
+  const payload = await graphql(page, `query { controlsControllers(entityLabel: PROGRAM, entityIds: [1]) { result {
+    writeCount created writes(last: 1) { time } controls { time } } } }`)
+  const controller = payload.result[0]
+  assert.ok(controller.writeCount > 0 && controller.created && controller.writes.length === 1, JSON.stringify(controller))
+  assert.ok(controller.controls.every((c) => c.time), 'with when each control was set')
+})

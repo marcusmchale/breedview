@@ -66,6 +66,26 @@ test('controllers: a hidden controlling team is shown as the nearest team the us
   await page.evaluate(`document.querySelector('.modal-close').click()`)
 })
 
+test('controllers: a hidden entity has a placeholder controller, whom to ask without its history', async () => {
+  const payload = await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: PROGRAM, entityIds: $ids) {
+    result { release access writeCount created updated writes { time } teams { team { name } standIn } controls { release time } } } }`,
+  { ids: hidden.Program })
+  assert.deepEqual(payload.result[0], {
+    release: 'PRIVATE', access: [], writeCount: 0, created: null, updated: null, writes: [],
+    teams: [{ team: { name: names.organisation }, standIn: true }],
+    controls: [{ release: 'PRIVATE', time: null }]
+  })
+  await page.goto(`${config.appUrl}/programs`)
+  await page.waitFor(`document.querySelector('.controller-badge:not([disabled])')`, 30000)
+  // the program's badge is the first
+  await page.click('.controller-badge')
+  await page.waitFor(`document.querySelector('.history-hidden-note')`, 30000)
+  const modal = await pageText()
+  assert.ok(!/Created:|Write History/.test(modal), 'no history')
+  assert.ok(modal.includes(`A team in ${names.organisation}`), 'whom to ask')
+  await page.evaluate(`document.querySelector('.modal-close').click()`)
+})
+
 test('regions: the released location under its public country, past the hidden regions between them', async () => {
   await page.goto(`${config.appUrl}/regions`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)

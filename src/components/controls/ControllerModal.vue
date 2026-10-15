@@ -53,6 +53,8 @@ const canTransfer = computed(() => administeredControlTeams.value.length > 0 && 
 const canRenounce = computed(() => canTransfer.value && (props.controller?.teams?.length ?? 0) > 1)
 // the controlling teams the user can see, and those standing in for teams hidden from them
 const shownTeams = computed(() => (props.controller?.teams ?? []).filter(({ standIn }) => !standIn).map(({ team }) => team))
+// an entity the user cannot read has a placeholder controller, without its history (see docs/read-access.md)
+const historyHidden = computed(() => props.controller != null && props.controller.created == null)
 const standInTeams = computed(() => (props.controller?.teams ?? []).filter(({ standIn }) => standIn).map(({ team }) => team))
 const showOfferModal = ref(false)
 const showRenounceForm = ref(false)
@@ -221,15 +223,20 @@ const formatDate = (dateString) => {
         </div>
 
         <div v-else-if="controller" class="controller-details">
-          <div class="detail-row">
-            <strong>Created:</strong>
-            <span>{{ formatDate(controller.created) }}</span>
-          </div>
+          <p v-if="historyHidden" class="history-hidden-note">
+            You can't read this record, so its history is hidden. The teams below control it: ask them for access.
+          </p>
+          <template v-else>
+            <div class="detail-row">
+              <strong>Created:</strong>
+              <span>{{ formatDate(controller.created) }}</span>
+            </div>
 
-          <div class="detail-row">
-            <strong>Updated:</strong>
-            <span>{{ formatDate(controller.updated) }}</span>
-          </div>
+            <div class="detail-row">
+              <strong>Updated:</strong>
+              <span>{{ formatDate(controller.updated) }}</span>
+            </div>
+          </template>
 
           <div v-if="controller.release" class="detail-row">
             <strong>Release:</strong>
@@ -299,7 +306,7 @@ const formatDate = (dateString) => {
                     <span class="release-badge" :class="'release-' + control.release?.toLowerCase()">
                       {{ control.release }}
                     </span>
-                    <span class="control-time">{{ formatDate(control.time) }}</span>
+                    <span v-if="control.time" class="control-time">{{ formatDate(control.time) }}</span>
                   </span>
                 </div>
               </li>
@@ -565,6 +572,11 @@ const formatDate = (dateString) => {
 
 .hidden-team {
   font-style: italic;
+}
+
+.history-hidden-note {
+  margin: 0 0 12px;
+  color: #666;
 }
 
 .stand-in-note {

@@ -61,7 +61,8 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
 
-- `partialAccess.test.mjs`: what a registered user outside every team sees. `lib/partialAccess.mjs` keeps an account,
+- `partialAccess.test.mjs`: what a registered user outside every team sees, including placeholder controllers
+  (whom to ask, without the history) for the entities hidden from them. `lib/partialAccess.mjs` keeps an account,
   `partial1` / `TestPass123!` (`E2E_PARTIAL_USER` to change), invited by the admin with no team offered, and releases a
   few dev data migration entities to registered users with hidden ones between them: the Study A study under its
   hidden trial and program, one of its datasets, field Field A and one tree in its hidden block, and location Field A under

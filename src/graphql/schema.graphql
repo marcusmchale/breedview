@@ -2918,7 +2918,9 @@ type Control {
   """
   team: TeamReference!
   release: ReadRelease!
-  time: DateTime!
+
+  """ When the control was set: null for an entity you cannot read """
+  time: DateTime
 }
 
 type WriteStamp {
@@ -2929,7 +2931,9 @@ type WriteStamp {
 type Controller {
   controls: [Control!]!
 
-  """The writes in the order they were made, or the last of them"""
+  """
+  The writes in the order they were made, or the last of them; none for an entity you cannot read
+  """
   writes(last: Int): [WriteStamp!]!
   writeCount: Int!
 
@@ -2941,8 +2945,11 @@ type Controller {
   """
   access: [Access!]!
   release: ReadRelease!
-  created: DateTime!
-  updated: DateTime!
+
+  """ The first and latest writes: null for an entity you cannot read, whose history is hidden 
+  """
+  created: DateTime
+  updated: DateTime
 }
 
 enum ControlTransferStatus {
