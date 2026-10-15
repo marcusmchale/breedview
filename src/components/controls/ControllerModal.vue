@@ -7,6 +7,7 @@ import SET_RELEASE_MUTATION from '../../graphql/controls/setRelease.graphql'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 import OfferTransferModal from './OfferTransferModal.vue'
+import { writerLabel } from '@/composables/people/personDisplay'
 
 const props = defineProps({
   isVisible: {
@@ -322,7 +323,7 @@ const formatDate = (dateString) => {
             <ul class="list">
               <li v-for="(write, index) in latestWritesFirst" :key="index" class="list-item">
                 <div class="write-info">
-                  <span class="user-name">{{ write.user?.name || 'Unknown User' }}</span>
+                  <span class="user-name">{{ writerLabel(write) }}</span>
                   <span class="write-time">{{ formatDate(write.time) }}</span>
                 </div>
               </li>

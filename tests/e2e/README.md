@@ -96,6 +96,10 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   private Person in full with its hidden team stood in for, and edit and erase follow curate and admin access.
   `lib/partialAccess.mjs` creates the partial account's Person, private to Galway, and links it the first time.
 
+- `accountsAccess.test.mjs`: organisation roots and legal entities are public, other teams only for affiliates, a
+  hidden team asked for by id is a placeholder, and writes are attributed to the writer's Person where the account is
+  not shown. `lib/partialAccess.mjs` links the admin to a public Person, "Admin Tester", the first time.
+
 ## Adding a test
 
 Copy the shape of `invitation.test.mjs`: launch a browser in `before`, use the helpers, assert on what the page shows,

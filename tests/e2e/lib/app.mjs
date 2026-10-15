@@ -50,6 +50,7 @@ export async function graphql(page, query, variables = {}) {
     return response.json()
   })()`)
   if (response.errors?.length) throw new Error('GraphQL: ' + response.errors.map((e) => e.message).join('; '))
+  if (!response.data) throw new Error('GraphQL: no data in ' + JSON.stringify(response).slice(0, 500))
   return Object.values(response.data)[0]
 }
 

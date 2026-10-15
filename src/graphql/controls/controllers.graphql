@@ -4,7 +4,7 @@ query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]
     status
     result {
       controls { team { team { id name } standIn } release time }
-      writes(last: $lastWrites) { user { id name } time }
+      writes(last: $lastWrites) { user { id name } person { id name institution restricted erased } time }
       writeCount
       teams { team { id name fullname } standIn }
       access

@@ -175,6 +175,34 @@ export async function ensurePartialPerson(page) {
   return Number(personId)
 }
 
+// The id of the admin account's own Person, public in Galway, created and linked the first time: write stamps by the
+// admin (such as on the public Galway germplasm it recorded) are attributed to it for users who cannot see the account
+export const adminPersonName = 'Admin Tester'
+export async function ensureAdminPerson(page) {
+  await login(page, config.adminUser, config.adminPassword)
+  try {
+    const own = (await graphql(page, 'query { peopleMyPerson { result { id } } }')).result
+    if (own) return Number(own.id)
+    const adminUserId = (await graphql(page, 'query { accountsAccount { result { user { id } } } }')).result.user.id
+    const find = async () => (await graphql(page, 'query ($name: String) { people(name: $name) { result { id linkedUser { id } } } }',
+      { name: adminPersonName })).result.find((p) => !p.linkedUser)
+    if (!(await find())) {
+      const created = await graphql(page, `mutation ($person: PersonInput!, $team: ID!) {
+        peopleCreatePerson(person: $person, controlTeamId: $team, release: PUBLIC) { status errors { message } } }`,
+      { person: { name: adminPersonName, informedAttestation: true }, team: people.team })
+      if (created.status !== 'SUCCESS') throw new Error(`creating ${adminPersonName}: ${JSON.stringify(created.errors)}`)
+    }
+    const personId = (await find()).id
+    const claim = await graphql(page, 'mutation ($id: ID!) { peopleRequestClaim(personId: $id) { status errors { message } } }', { id: personId })
+    const approved = await graphql(page, 'mutation ($id: ID!, $user: ID!) { peopleApproveClaim(personId: $id, userId: $user) { status errors { message } } }',
+      { id: personId, user: adminUserId })
+    if (approved.status !== 'SUCCESS') throw new Error(`linking ${adminPersonName}: ${JSON.stringify([claim.errors, approved.errors])}`)
+    return Number(personId)
+  } finally {
+    await logout(page)
+  }
+}
+
 // node tests/e2e/lib/partialAccess.mjs [setup|restore]: create the account and release, or make private again
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { launchBrowser } = await import('./browser.mjs')
@@ -186,6 +214,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('released entities are private again')
     } else {
       await ensurePartialPerson(page)
+      await ensureAdminPerson(page)
       await login(page, config.adminUser, config.adminPassword); await ensureReleases(page); await logout(page)
       console.log(`${partialUser} / ${config.password} is ready, with ${JSON.stringify(releasedTo)} released`)
     }

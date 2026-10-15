@@ -20,6 +20,13 @@ export function personLabel(person) {
   }
 }
 
+// Who did something (a write, a commit): the account where the viewer may see it, otherwise its Person
+export function writerLabel({ user, person }) {
+  if (user) return user.name
+  if (person) return personLabel(person)
+  return 'An account without a Person record'
+}
+
 export function orcidUrl(orcid) {
   if (!orcid) return null
   return orcid.startsWith('http') ? orcid : `https://orcid.org/${orcid}`
