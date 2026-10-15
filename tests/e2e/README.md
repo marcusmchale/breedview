@@ -43,6 +43,7 @@ pytest suite does flush the database, so never run it against a database you wan
 ```bash
 npm run test:e2e                 # all tests
 node --test tests/e2e/invitation.test.mjs
+npm run e2e:partial              # create the partial access account and release its entities; `-- restore` makes them private again
 npm run perf:curation            # STUDY="Study B" CONCEPT="Variable A" by default; PAGE_SIZE, START and END narrow the records
 npm run perf:blocks              # FIELD="Field B" by default
 npm run perf:analysis            # STUDY="Study B" CONCEPT="Variable A" by default: dataset selection in the analysis editor
@@ -59,6 +60,15 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
 - `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
+
+- `partialAccess.test.mjs`: what a registered user outside every team sees. `lib/partialAccess.mjs` keeps an account,
+  `partial1` / `TestPass123!` (`E2E_PARTIAL_USER` to change), invited by the admin with no team offered, and releases a
+  few dev data migration entities to registered users with hidden ones between them: the Study A study under its
+  hidden trial and program, one of its datasets, field Field A and one tree in its hidden block, and location Field A under
+  two hidden regions. The ids are those of the dev database restored from `migration.dump`. The tests check
+  that hidden entities are skipped or shown as placeholders on the programs, regions, blocks and curation pages. The
+  account and the releases are left in place for checking by hand; `npm run e2e:partial -- restore` makes the entities
+  private again.
 
 ## Adding a test
 

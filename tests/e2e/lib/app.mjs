@@ -1,6 +1,7 @@
 // BreedView-specific helpers: configuration, login, registration, and the MailHog mailbox the dev backend sends to.
 export const config = {
   appUrl: process.env.BREEDVIEW_URL || 'http://localhost:8080',
+  apiUrl: process.env.BREEDGRAPH_URL || 'http://localhost:8000',
   mailhogUrl: process.env.MAILHOG_URL || 'http://localhost:8025',
   // an existing account to act as; it must be an admin of adminTeam for the invitation test
   adminUser: process.env.E2E_ADMIN_USER || 'tester1',
@@ -33,6 +34,23 @@ export async function login(page, username, password = config.password) {
 
 export async function logout(page) {
   if (await page.exists('.nav-logout')) { await page.click('.nav-logout'); await page.sleep(1200) }
+}
+
+// Run a GraphQL operation from the page, as the signed-in user, with the session cookie and a CSRF token.
+// Returns the operation's payload (data[field]); throws on GraphQL errors.
+export async function graphql(page, query, variables = {}) {
+  const response = await page.evaluate(`(async () => {
+    const api = ${JSON.stringify(config.apiUrl)}
+    const { token } = await (await fetch(api + '/csrf', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } })).json()
+    const response = await fetch(api + '/graphql', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+      body: JSON.stringify({ query: ${JSON.stringify(query)}, variables: ${JSON.stringify(variables)} })
+    })
+    return response.json()
+  })()`)
+  if (response.errors?.length) throw new Error('GraphQL: ' + response.errors.map((e) => e.message).join('; '))
+  return Object.values(response.data)[0]
 }
 
 // Fill the registration form, with or without an invitation token in the page's URL, and submit
