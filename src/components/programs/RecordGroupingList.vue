@@ -9,6 +9,10 @@ defineProps({
   recordGroupTypes: {
     type: Array,
     required: true
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -26,6 +30,7 @@ const getTypeName = (typeId, types) => {
       :key="`${grouping.name}-${grouping.scope}`"
       :grouping="grouping"
       :type-name="getTypeName(grouping.type.id, recordGroupTypes)"
+      :editable="editable"
       @edit="$emit('edit', grouping)"
       @delete="$emit('delete', grouping)"
     />

@@ -8,6 +8,9 @@ import PERSON_FRAGMENT from '@/graphql/people/personFragment.graphql'
 import { useCacheUpdates } from '@/apolloConfig/cacheUpdates'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
 import { personForm, personLabel } from '@/composables/people/personDisplay'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+
+const canCreate = useCanCreate()
 
 const { people, peopleLoading, peopleError, refetchPeople } = usePeopleQuery()
 const { updateCache } = useCacheUpdates({ typename: 'Person', fragment: PERSON_FRAGMENT })
@@ -68,7 +71,7 @@ const handleErased = (personId) => {
   <div class="page-container people-page">
     <div class="page-header">
       <h2>People</h2>
-      <button class="btn btn-primary" @click="openCreate">+ Add Person</button>
+      <button v-if="canCreate" class="btn btn-primary" @click="openCreate">+ Add Person</button>
     </div>
 
     <p class="page-intro text-muted">

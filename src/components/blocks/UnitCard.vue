@@ -8,6 +8,7 @@ import AddPositionModal from '@/components/blocks/addPositionModal.vue'
 import PositionDetails from '@/components/blocks/positionDetails.vue'
 
 import { useUnitNodeQueries } from '@/composables/blocks/unitNodeQueries'
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
   unitId: {
@@ -43,6 +44,10 @@ const {
 
 const hasData = computed(() => !!unit.value)
 const isRedacted = computed(() => hasData.value && !unit.value.subject)
+
+// Changing a unit or its positions needs curate access to it; adding a child changes only the new unit
+const canCreate = useCanCreate()
+const canCurate = useCanCurate({ entityLabel: 'UNIT', entityId: () => props.unitId })
 
 const displayFields = computed(() => {
   if (!unit.value) return []
@@ -158,16 +163,16 @@ const handleAddPositionSuccess = async () => {
     <div class="card-header">
       <h2>{{ unit.name || `${unit.subject?.name || 'Unit'} ${unit.id}` }}</h2>
       <div class="card-actions">
-        <button @click="openEditModal" class="btn btn-sm btn-outline">
+        <button v-if="canCurate" @click="openEditModal" class="btn btn-sm btn-outline">
           ✏️ Edit
         </button>
-        <button @click="openDeleteModal" class="btn btn-sm btn-danger">
+        <button v-if="canCurate" @click="openDeleteModal" class="btn btn-sm btn-danger">
           🗑️ Delete
         </button>
-        <button @click="openAddChildModal" class="btn btn-sm btn-add-child">
+        <button v-if="canCreate" @click="openAddChildModal" class="btn btn-sm btn-add-child">
           + Add Child
         </button>
-        <button @click="openAddPositionModal" class="btn btn-sm btn-add-position">
+        <button v-if="canCurate" @click="openAddPositionModal" class="btn btn-sm btn-add-position">
           📍 Add Position
         </button>
         <ControllerBadge entityLabel="UNIT" :entityId="unit.id" />
@@ -212,6 +217,7 @@ const handleAddPositionSuccess = async () => {
         <PositionDetails
           :unitId="unitId"
           :positions="positionsList"
+          :editable="canCurate"
           @position-updated="refetchUnit"
         />
       </div>

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 
 import { useTrialQuery } from '@/composables/programs/trialQuery'
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
@@ -30,6 +31,10 @@ const {
   trialError,
   refetchTrial
 } = useTrialQuery(() => props.trialId)
+
+// Adding a study changes the trial, so it needs curate access to the trial as well as a team to write with
+const canCreate = useCanCreate()
+const canCurate = useCanCurate({ entityLabel: 'TRIAL', entityId: () => props.trialId })
 
 // Expansion state
 const expandStudies = ref(false)
@@ -99,8 +104,8 @@ const handleStudyDeleted = () => {
         <div class="trial-title-section">
           <strong>{{ trial.name }}</strong>
         </div>
-        <div class="trial-actions">
-          <button @click="openCreateStudyModal" class="btn btn-sm btn-outline">
+        <div v-if="canCurate" class="trial-actions">
+          <button v-if="canCreate" @click="openCreateStudyModal" class="btn btn-sm btn-outline">
             Create Study
           </button>
           <button @click="openUpdateModal" class="btn btn-sm btn-outline">

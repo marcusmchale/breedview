@@ -11,6 +11,10 @@ const props = defineProps({
   positions: {
     type: Array,
     required: true
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -105,6 +109,7 @@ const formatDate = (dateString) => {
       <div v-if="pos.start">Start: {{ formatDate(pos.start) }}</div>
       <div v-if="pos.end">End: {{ formatDate(pos.end) }}</div>
       <button
+        v-if="editable"
         @click="submitRemovePosition(pos)"
         class="btn btn-sm btn-add-position"
         title="Remove position record"

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 
 import { useProgramQuery } from '@/composables/programs/programQuery'
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
@@ -26,6 +27,10 @@ const {
   programError,
   refetchProgram
 } = useProgramQuery(() => props.programId)
+
+// Adding a trial changes the program, so it needs curate access to the program as well as a team to write with
+const canCreate = useCanCreate()
+const canCurate = useCanCurate({ entityLabel: 'PROGRAM', entityId: () => props.programId })
 
 // Expansion state
 const expandTrials = ref(false)
@@ -96,8 +101,8 @@ const handleTrialDeleted = () => {
         <div class="program-title-section">
           <h3>{{ program.name }}</h3>
         </div>
-        <div class="program-actions">
-          <button @click="openCreateTrialModal" class="btn btn-sm btn-outline">
+        <div v-if="canCurate" class="program-actions">
+          <button v-if="canCreate" @click="openCreateTrialModal" class="btn btn-sm btn-outline">
             Create Trial
           </button>
           <button @click="openUpdateModal" class="btn btn-sm btn-outline">

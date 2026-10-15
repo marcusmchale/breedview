@@ -9,6 +9,7 @@ import CreateRegionModal from "@/components/regions/createRegionModal.vue";
 
 import { useMutateLocations } from "@/composables/regions/mutateLocations";
 import { useLocationTreeQueries } from "@/composables/regions/locationTreeQueries";
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 
 const {
@@ -18,6 +19,9 @@ const {
 
 const enableCountries = ref(false)
 const displayedLocationId = ref(null)
+// drawing sets the selected location's coordinates, so the tools are offered only to those who can change it
+const canCreate = useCanCreate()
+const canCurateDisplayed = useCanCurate({ entityLabel: 'LOCATION', entityId: displayedLocationId })
 const onLocationSelected = (locationId) => {
   console.log("Location selected:", locationId)
   displayedLocationId.value = locationId
@@ -109,7 +113,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
   <title>Regions</title>
   <div class="regions-management">
     <div class="regions-header">
-      <button @click="openCreateRegionModal" class="btn btn-primary">
+      <button v-if="canCreate" @click="openCreateRegionModal" class="btn btn-primary">
         Register New Region
       </button>
     </div>
@@ -126,6 +130,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
           <LocationMap
             ref="mapRef"
             :selectedLocationId="displayedLocationId"
+            :drawable="canCurateDisplayed"
             @update-coordinates="handleUpdateCoordinates"
             @drawn-change="onDrawnChange"
             @show-card="scrollToCard"

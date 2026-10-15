@@ -6,7 +6,7 @@ import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
-import CONTROLLER_TEAMS_QUERY from '@/graphql/controls/controllerTeams.graphql'
+import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
 
 export function useDatasetCurationTable() {
@@ -143,7 +143,7 @@ export function useDatasetCurationTable() {
    * Initialize the curation table from datasets
    * groupingContext: { groupingsByStudy: { [studyId]: [Grouping] }, datasetStudyIds: { [datasetId]: studyId } }
    */
-  const initializeFromDatasets = async (datasets, userCurateTeamIds, groupingContext) => {
+  const initializeFromDatasets = async (datasets, groupingContext) => {
     isLoading.value = true
 
     try {
@@ -174,7 +174,7 @@ export function useDatasetCurationTable() {
 
       // Extract all dataset IDs and fetch controllers
       const datasetIds = datasets.map(d => d.id)
-      await fetchControllers(datasetIds, userCurateTeamIds)
+      await fetchControllers(datasetIds)
 
       // Contributors, as loaded, so changes to them can be told apart and submitted
       datasets.forEach(dataset => {
@@ -321,14 +321,14 @@ export function useDatasetCurationTable() {
   /**
    * Fetch controllers for all datasets and determine edit permissions
    */
-  const fetchControllers = async (datasetIds, userCurateTeamIds) => {
+  const fetchControllers = async (datasetIds) => {
     if (!datasetIds || datasetIds.length === 0) return
 
     const client = resolveClient()
 
     try {
       const result = await client.query({
-        query: CONTROLLER_TEAMS_QUERY,
+        query: CONTROLLER_ACCESS_QUERY,
         variables: {
           entityLabel: 'DATASET',
           entityIds: datasetIds
@@ -342,12 +342,8 @@ export function useDatasetCurationTable() {
       datasetIds.forEach((datasetId, index) => {
         const controller = controllers[index]
 
-        // Check if user has curate access
-        // User can edit if any of their curate teams matches controller teams
-        const controllerTeamIds = (controller?.teams || []).map(t => t.id)
-        const canEdit = userCurateTeamIds?.some(teamId =>
-          controllerTeamIds.includes(teamId)
-        ) || false
+        // the user can edit with curate access to a team controlling the dataset
+        const canEdit = controller?.access?.includes('CURATE') ?? false
 
         datasetControllers.value[datasetId] = {
           canEdit,

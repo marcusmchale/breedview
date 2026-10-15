@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 import { useProgramsQuery } from '@/composables/programs/programsQuery'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
 
 import ProgramPanel from './ProgramPanel.vue'
 import CreateProgramModal from './CreateProgramModal.vue'
@@ -13,6 +14,8 @@ const {
   queryErrors,
   refetchPrograms
 } = useProgramsQuery()
+
+const canCreate = useCanCreate()
 
 // Create program modal state
 const isCreateModalOpen = ref(false)
@@ -38,7 +41,7 @@ const handleProgramDeleted = () => {
 <template>
   <div class="page-container">
     <div class="programs-header">
-      <button @click="openCreateModal" class="btn btn-primary">
+      <button v-if="canCreate" @click="openCreateModal" class="btn btn-primary">
         Create New Program
       </button>
     </div>

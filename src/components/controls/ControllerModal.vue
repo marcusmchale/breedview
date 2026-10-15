@@ -122,9 +122,13 @@ const hasAnyData = computed(() => {
   return (
     (props.controller.controls && props.controller.controls.length > 0) ||
     (props.controller.writes && props.controller.writes.length > 0) ||
-    (props.controller.teams && props.controller.teams.length > 0)
+    (props.controller.teams && props.controller.teams.length > 0) ||
+    (props.controller.standInTeams && props.controller.standInTeams.length > 0)
   )
 })
+
+const hiddenTeamHint = (team) =>
+  `A team you are not affiliated with controls this record. ${team?.name ?? 'The nearest team you can see'} includes it: ask there for an affiliation.`
 
 const closeModal = () => {
   emit('close')
@@ -283,7 +287,10 @@ const formatDate = (dateString) => {
             <ul class="list">
               <li v-for="(control, index) in controller.controls" :key="index" class="list-item">
                 <div class="control-info">
-                  <span class="team-name">{{ control.team?.name || 'Unknown Team' }}</span>
+                  <span v-if="control.teamHidden" class="team-name hidden-team" :title="hiddenTeamHint(control.team)">
+                    A team you can't see, in {{ control.team?.name }}
+                  </span>
+                  <span v-else class="team-name">{{ control.team?.name || 'Unknown Team' }}</span>
                   <span class="control-details">
                     <span class="release-badge" :class="'release-' + control.release?.toLowerCase()">
                       {{ control.release }}
@@ -319,6 +326,21 @@ const formatDate = (dateString) => {
                 <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
               </li>
             </ul>
+          </div>
+
+          <div v-if="controller.standInTeams && controller.standInTeams.length > 0" class="section">
+            <strong>Teams you can't see:</strong>
+            <p class="stand-in-note">
+              Teams you are not affiliated with also control this record. Each is shown by the nearest team you can
+              see that includes it: ask there for an affiliation to see the team and what it controls.
+            </p>
+            <ul class="list">
+              <li v-for="team in controller.standInTeams" :key="team.id" class="list-item">
+                <span class="team-name hidden-team">A team in {{ team.name }}</span>
+                <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
+              </li>
+            </ul>
+            <router-link to="/affiliations" class="link-button" @click="closeModal">Request an affiliation</router-link>
           </div>
 
           <div v-if="!hasAnyData" class="no-data">
@@ -535,6 +557,16 @@ const formatDate = (dateString) => {
   font-size: 0.9em;
   color: #666;
   margin-left: 8px;
+}
+
+.hidden-team {
+  font-style: italic;
+}
+
+.stand-in-note {
+  margin: 4px 0 8px;
+  font-size: 0.9em;
+  color: #666;
 }
 
 .control-time,

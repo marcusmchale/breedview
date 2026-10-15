@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-import { useUserAccess } from '@/composables/user/useUserAccess'
 import DatasetSelectionForm from './DatasetSelectionForm.vue'
 import DatasetCurationTable from './DatasetCurationTable.vue'
 
@@ -23,9 +22,6 @@ const datasetStudyIds = ref({})
 // Narrowing and page size for the records, chosen with the datasets
 const recordFilters = ref({})
 const pageSize = ref(1000)
-
-// User access for determining curate permissions
-const { curateTeamIds } = useUserAccess()
 
 // Component refs
 const selectionFormRef = ref(null)
@@ -125,7 +121,6 @@ const isSubmitting = computed(() => {
             ref="curationTableRef"
             :dataset-ids="selectedDatasetIds"
             :dataset-study-ids="datasetStudyIds"
-            :curate-team-ids="curateTeamIds"
             :filters="recordFilters"
             :page-size="pageSize"
             @back="handleBackToSelection"

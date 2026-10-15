@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import ControllerBadge from "@/components/controls/ControllerBadge.vue";
+import { useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
   entry: {
@@ -16,6 +17,9 @@ const props = defineProps({
 const emit = defineEmits(['edit-entry', 'delete-entry'])
 
 const hasData = computed(() => !!props.entry)
+
+// Changing or removing it needs curate access to it
+const canCurate = useCanCurate({ entityLabel: 'GERMPLASM', entityId: () => props.entry?.id })
 
 const displayFields = computed(() => {
   if (!props.entry) return []
@@ -77,10 +81,10 @@ const sinksList = computed(() => {
     <div class="card-header">
       <h2>{{ entry.data?.name || entry.name }}</h2>
       <div class="card-actions">
-        <button @click="$emit('edit-entry')" class="btn btn-sm btn-outline">
+        <button v-if="canCurate" @click="$emit('edit-entry')" class="btn btn-sm btn-outline">
           ✏️ Edit
         </button>
-        <button @click="$emit('delete-entry')" class="btn btn-sm btn-danger">
+        <button v-if="canCurate" @click="$emit('delete-entry')" class="btn btn-sm btn-danger">
           🗑️ Delete
         </button>
         <ControllerBadge entityLabel="GERMPLASM" :entityId="entry.id" />

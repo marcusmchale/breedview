@@ -28,6 +28,11 @@ const props = defineProps({
   selectedLocationId: {
     type: String,
     default: null
+  },
+  // whether to offer the drawing tools, which set the selected location's coordinates
+  drawable: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -211,7 +216,7 @@ const onMapReady = () => {
 
     map.setView(center.value, zoom.value, { animate: false })
 
-    // Initialize Geoman controls (similar to leaflet-draw)
+    // Initialize Geoman controls (similar to leaflet-draw), shown only while drawable
     map.pm.addControls({
       position: 'topleft',
       drawMarker: true,
@@ -227,6 +232,7 @@ const onMapReady = () => {
       cutPolygon: false,
       removalMode: true,
     })
+    if (!props.drawable) map.pm.toggleControls()
 
     // Configure polygon drawing
     map.pm.setPathOptions({
@@ -352,6 +358,17 @@ const clearDrawing = () => {
   drawnItems.clearLayers()
   syncDrawnCoordinates()
 }
+
+const showDrawControls = (drawable) => {
+  const map = mapRef.value?.leafletObject && toRaw(mapRef.value.leafletObject)
+  if (!map?.pm) return
+  if (map.pm.controlsVisible() !== drawable) map.pm.toggleControls()
+  if (!drawable) {
+    map.pm.disableDraw()
+    clearDrawing()
+  }
+}
+watch(() => props.drawable, showDrawControls)
 
 defineExpose({ clearDrawing })
 

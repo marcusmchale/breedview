@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, toValue } from 'vue'
 import { useRecordGroupings } from '@/composables/programs/useRecordGroupings'
+import { useCanCurate } from '@/composables/controls/useWriteAccess'
 
 import RecordGroupingList from './RecordGroupingList.vue'
 import RecordGroupingModal from './RecordGroupingModal.vue'
@@ -21,6 +22,9 @@ const {
   updateGrouping,
   deleteGrouping
 } = useRecordGroupings(props.studyId)
+
+// groupings are part of the study, so changing them needs curate access to it
+const canCurate = useCanCurate({ entityLabel: 'STUDY', entityId: () => props.studyId })
 
 // Modal state
 const showModal = ref(false)
@@ -82,7 +86,7 @@ const handleDelete = async (grouping) => {
   <div class="record-grouping-panel">
     <div class="panel-header">
       <h3>Record Groupings</h3>
-      <button class="btn-primary" @click="openCreateModal">
+      <button v-if="canCurate" class="btn-primary" @click="openCreateModal">
         + Create Grouping
       </button>
     </div>
@@ -96,6 +100,7 @@ const handleDelete = async (grouping) => {
       <RecordGroupingList
         :groupings="groupings"
         :record-group-types="recordGroupTypes"
+        :editable="canCurate"
         @edit="openEditModal"
         @delete="handleDelete"
       />

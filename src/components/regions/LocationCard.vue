@@ -6,6 +6,7 @@ import DeleteModal from "@/components/regions/deleteModal.vue";
 import AddChildModal from "@/components/regions/addChildModal.vue";
 
 import { useLocationNodeQueries } from "@/composables/regions/locationNodeQueries";
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
   locationId: {
@@ -58,6 +59,10 @@ const {
 })
 
 const hasData = computed(() => !!location.value)
+
+// Changing or removing it needs curate access to it; adding a child changes only the new one
+const canCreate = useCanCreate()
+const canCurate = useCanCurate({ entityLabel: 'LOCATION', entityId: () => props.locationId })
 
 const displayFields = computed(() => {
   if (!location.value) return []
@@ -133,13 +138,13 @@ const handleAddChildSuccess = async () => {
     <div class="card-header">
       <h2>{{ location.name }}</h2>
       <div class="card-actions">
-        <button @click="openEditModal" class="btn btn-sm btn-outline">
+        <button v-if="canCurate" @click="openEditModal" class="btn btn-sm btn-outline">
           ✏️ Edit
         </button>
-        <button @click="openDeleteModal" class="btn btn-sm btn-danger">
+        <button v-if="canCurate" @click="openDeleteModal" class="btn btn-sm btn-danger">
           🗑️ Delete
         </button>
-        <button @click="openAddChildModal" class="btn btn-sm btn-add-child">
+        <button v-if="canCreate" @click="openAddChildModal" class="btn btn-sm btn-add-child">
           + Add Child
         </button>
         <ControllerBadge entityLabel="LOCATION" :entityId="location.id" />
@@ -162,7 +167,7 @@ const handleAddChildSuccess = async () => {
       <div class="section">
         <h3 class="section-title">Coordinates</h3>
 
-        <div v-if="drawnShapeDescription" class="drawn-shape">
+        <div v-if="drawnShapeDescription && canCurate" class="drawn-shape">
           <p class="drawn-shape-text">
             Drawn on map: <strong>{{ drawnShapeDescription }}</strong>.
             <template v-if="coordinatesList.length > 0">
@@ -186,7 +191,7 @@ const handleAddChildSuccess = async () => {
             </button>
           </div>
         </div>
-        <p v-else class="coord-hint">
+        <p v-else-if="canCurate" class="coord-hint">
           Draw a marker or polygon on the map to set this location's coordinates.
         </p>
         <p v-if="saveCoordinatesError" class="coord-error">{{ saveCoordinatesError }}</p>

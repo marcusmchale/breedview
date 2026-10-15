@@ -70,6 +70,11 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   account and the releases are left in place for checking by hand; `npm run e2e:partial -- restore` makes the entities
   private again.
 
+- `writeActions.test.mjs`: write actions follow the backend's checks (`composables/controls/useWriteAccess.js`):
+  creating needs a write affiliation, changing or adding to an entity needs curate access to a team controlling it.
+  The admin account sees "Create New Program" but no program edits until the test grants it curate access to the
+  migration team (`E2E_CURATE_TEAM`, default 2); the grant is removed afterwards.
+
 ## Adding a test
 
 Copy the shape of `invitation.test.mjs`: launch a browser in `before`, use the helpers, assert on what the page shows,

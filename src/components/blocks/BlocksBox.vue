@@ -4,6 +4,9 @@ import { ref, computed } from 'vue'
 import { useBlocksBoxQueries } from '@/composables/blocks/blocksBoxQueries'
 
 import CreateBlockModal from "@/components/blocks/createBlockModal.vue"
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+
+const canCreate = useCanCreate()
 
 const props = defineProps({
   locationId: {
@@ -51,6 +54,7 @@ const handleBlockClick = (block) => {
     <div class="blocks-header">
       <h5>Blocks</h5>
       <button
+        v-if="canCreate"
         @click="openAddUnitModal"
         class="btn btn-sm btn-add-unit"
         title="Create new block"

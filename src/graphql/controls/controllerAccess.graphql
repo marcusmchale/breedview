@@ -1,0 +1,12 @@
+# What the user may do with controlled entities, for write access checks
+query controlsControllerAccess($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
+  controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
+    status
+    result {
+      access
+    }
+    errors {
+      message
+    }
+  }
+}

@@ -9,6 +9,10 @@ const props = defineProps({
   typeName: {
     type: String,
     required: true
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -36,7 +40,7 @@ const scopeCount = computed(() => {
           {{ scopeLabel }}
         </span>
       </div>
-      <div class="card-actions">
+      <div v-if="editable" class="card-actions">
         <button class="btn-icon" @click="$emit('edit')" title="Edit">✏️</button>
         <button class="btn-icon delete" @click="$emit('delete')" title="Delete">🗑️</button>
       </div>

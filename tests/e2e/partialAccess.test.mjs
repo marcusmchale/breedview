@@ -27,6 +27,9 @@ const expandAll = async (selector) => {
 // dataset 6 has one record for each of 399 trees of Field A; dataset 5, also in Study A, stays private
 const recordedUnits = 399
 const hiddenDataset = 5
+// the buttons of the page that create, change or remove something
+const writeActions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
+  .filter((t) => /(Create|Edit|Delete|Add|New|Register|Position)/.test(t))`)
 const optionLabels = () => page.evaluate(`[...document.querySelectorAll('.options-list .option-label')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)
 const levelLoaded = `!document.querySelector('.options-list .loading-state') && document.querySelector('.options-list .option-label')`
 
@@ -46,9 +49,25 @@ test('programs: the released study below placeholders for its hidden trial and p
 })
 
 test('programs: no write actions are offered to a user without a team', async () => {
-  const actions = await page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
-    .filter((t) => /^(Create|Edit|Delete)/.test(t))`)
-  assert.deepEqual(actions, [], 'create, edit and delete are hidden')
+  assert.deepEqual(await writeActions(), [], 'create, edit and delete are hidden')
+})
+
+test('controllers: a hidden controlling team is shown as the nearest team the user can see, marked as such', async () => {
+  const payload = await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: STUDY, entityIds: $ids) {
+    result { access teams { id } standInTeams { name } controls { team { name } teamHidden } } } }`, { ids: released.Study })
+  assert.deepEqual(payload.result[0], {
+    access: ['READ'],
+    teams: [],
+    standInTeams: [{ name: names.organisation }],
+    controls: [{ team: { name: names.organisation }, teamHidden: true }]
+  })
+  // the study's badge is the last on the expanded programs page
+  await page.evaluate(`[...document.querySelectorAll('.controller-badge')].at(-1).click()`)
+  await page.waitFor(`document.body.innerText.includes("Teams you can't see")`, 30000)
+  const modal = await pageText()
+  assert.ok(modal.includes(`A team in ${names.organisation}`), 'the stand-in is named as such')
+  assert.ok(modal.includes('Request an affiliation'), 'with a way to ask for access')
+  await page.evaluate(`document.querySelector('.modal-close').click()`)
 })
 
 test('regions: the released location under its public country, past the hidden regions between them', async () => {
@@ -60,6 +79,11 @@ test('regions: the released location under its public country, past the hidden r
   assert.ok(tree, `${names.country} has children`)
   assert.match(flat(tree), new RegExp(`^${names.location} \\| ${released.Location[0]}\\b`), `${names.location} is its child: ${flat(tree)}`)
   for (const name of names.hiddenLocations) assert.ok(!(await pageText()).includes(name), `${name} is not shown`)
+  await page.evaluate(`[...document.querySelectorAll('.location-name')].find((e) => e.innerText.trim() === ${JSON.stringify(names.location)}).click()`)
+  await page.waitFor(`document.querySelector('.details-card h2')?.innerText.trim() === ${JSON.stringify(names.location)}`, 30000)
+  await page.sleep(1000)
+  assert.deepEqual(await writeActions(), [], 'no location actions')
+  assert.ok(!(await page.evaluate(`!!document.querySelector('.leaflet-pm-toolbar')?.offsetParent`)), 'no drawing tools on the map')
 })
 
 test('blocks: the released tree under its field, past its hidden block', async () => {
@@ -76,6 +100,10 @@ test('blocks: the released tree under its field, past its hidden block', async (
   await page.waitFor(`document.querySelectorAll('.tree-node').length > 1`, 30000)
   const nodes = await page.evaluate(`[...document.querySelectorAll('.tree-node .node-name')].map((e) => e.innerText.trim())`)
   assert.deepEqual(nodes, [names.field, names.tree], `the tree is the field's only child: ${nodes}`)
+  await page.evaluate(`[...document.querySelectorAll('.tree-node .node-header')].at(-1).click()`)
+  await page.waitFor(`document.querySelector('.details-card h2')?.innerText.trim() === ${JSON.stringify(names.tree)}`, 30000)
+  await page.sleep(1000)
+  assert.deepEqual(await writeActions(), [], 'no unit or position actions')
 })
 
 test('datasets: a search lists only the released datasets, and a hidden one asked for by id is a placeholder', async () => {

@@ -4,6 +4,9 @@ import { ref, toRef } from 'vue'
 import { useArrangementsBoxQueries } from "@/composables/arrangements/arrangementsBoxQueries"
 
 import CreateArrangementModal from "@/components/arrangements/createArrangementModal.vue"
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+
+const canCreate = useCanCreate()
 
 const props = defineProps({
   locationId: {
@@ -48,6 +51,7 @@ const handleArrangementClick = (arrangement) => {
     <div class="arrangements-header">
       <h5>Arrangements</h5>
       <button
+        v-if="canCreate"
         @click="openAddLayoutModal"
         class="btn btn-sm btn-add-layout"
         title="Create new arrangement"

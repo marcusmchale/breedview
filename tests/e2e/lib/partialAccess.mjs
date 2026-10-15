@@ -25,7 +25,8 @@ export const hidden = {
 
 export const names = {
   program: 'dev data', trial: 'Trial A', study: 'Study A', field: 'Field A', block: 'Block 1', tree: 'Variety A',
-  location: 'Field A', hiddenLocations: ['Subregion', 'Region'], country: 'Country'
+  location: 'Field A', hiddenLocations: ['Subregion', 'Region'], country: 'Country',
+  organisation: 'Galway'  // the visible team that includes the migration team, standing in for it
 }
 
 const CONTROLLERS = `query ($label: ControlledModelLabel!, $ids: [ID!]!) {

@@ -13,6 +13,9 @@ import { useAllGermplasmQuery } from "@/composables/germplasm/allGermplasmQuery"
 import { useGermplasmByIdsQuery } from "@/composables/germplasm/germplasmByIdsQuery";
 
 import GermplasmNetworkGraph from './GermplasmNetworkGraph.vue'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+
+const canCreate = useCanCreate()
 
 // Mutations
 const { deleteEntry, deleteEntryLoading } = useMutateEntries()
@@ -288,7 +291,7 @@ const confirmDelete = async () => {
 <template>
   <div class="page-container">
     <div class="germplasm-header">
-      <button @click="showCreateModal = true" class="btn btn-primary">
+      <button v-if="canCreate" @click="showCreateModal = true" class="btn btn-primary">
         Create New Entry
       </button>
     </div>

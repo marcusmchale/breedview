@@ -6,6 +6,7 @@ import DeleteModal from "@/components/arrangements/deleteModal.vue"
 import AddChildModal from "@/components/arrangements/addChildModal.vue"
 
 import { useLayoutNodeQueries } from "@/composables/arrangements/layoutNodeQueries"
+import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
   layoutId: {
@@ -43,6 +44,10 @@ const {
 } = useLayoutNodeQueries({ layoutId: () => props.parentId })
 
 const hasData = computed(() => !!layout.value)
+
+// Changing or removing it needs curate access to it; adding a child changes only the new one
+const canCreate = useCanCreate()
+const canCurate = useCanCurate({ entityLabel: 'LAYOUT', entityId: () => props.layoutId })
 
 const layoutType = computed(() =>
     props.layoutTypes?.find((layoutType) => layoutType.id === layout.value?.type?.id)
@@ -137,13 +142,13 @@ const handleAddChildSuccess = async () => {
     <div class="card-header">
       <h2>{{ layout.name || `${layout.type?.name || 'Layout'} ${layout.id}` }}</h2>
       <div class="card-actions">
-        <button @click="openEditModal" class="btn btn-sm btn-outline">
+        <button v-if="canCurate" @click="openEditModal" class="btn btn-sm btn-outline">
           ✏️ Edit
         </button>
-        <button @click="openDeleteModal" class="btn btn-sm btn-danger">
+        <button v-if="canCurate" @click="openDeleteModal" class="btn btn-sm btn-danger">
           🗑️ Delete
         </button>
-        <button @click="openAddChildModal" class="btn btn-sm btn-add-child">
+        <button v-if="canCreate" @click="openAddChildModal" class="btn btn-sm btn-add-child">
           + Add Child
         </button>
         <ControllerBadge entityLabel="LAYOUT" :entityId="layout.id" />

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 import { useStudyQuery } from '@/composables/programs/studyQuery'
+import { useCanCurate } from '@/composables/controls/useWriteAccess'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
@@ -30,6 +31,9 @@ const {
   studyError,
   refetchStudy
 } = useStudyQuery(() => props.studyId)
+
+// The study's record groupings are part of it, so changing them needs curate access to the study too
+const canCurate = useCanCurate({ entityLabel: 'STUDY', entityId: () => props.studyId })
 
 
 // The dataset summary and record groupings stay collapsed, and unqueried, until asked for
@@ -74,7 +78,7 @@ const handleDeleteSuccess = () => {
         <div class="study-title-section">
           <strong>{{ study.name }}</strong>
         </div>
-        <div class="study-actions">
+        <div v-if="canCurate" class="study-actions">
           <button @click="openUpdateModal" class="btn btn-sm btn-outline">
             Edit
           </button>

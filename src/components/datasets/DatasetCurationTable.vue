@@ -28,7 +28,6 @@ const props = defineProps({
   datasetIds: { type: Array, required: true },
   // { [datasetId]: studyId }
   datasetStudyIds: { type: Object, default: () => ({}) },
-  curateTeamIds: { type: Array, default: () => [] },
   // narrowing of the records: { unitIds, start, end }, each optional
   filters: { type: Object, default: () => ({}) },
   // units loaded per page, with every record of those units from every dataset
@@ -78,7 +77,7 @@ const studyIds = computed(() =>
 watch(datasets, async (newDatasets) => {
   if (newDatasets?.length > 0) {
     const groupingsByStudy = await fetchGroupings(studyIds.value)
-    await initializeFromDatasets(newDatasets, props.curateTeamIds, {
+    await initializeFromDatasets(newDatasets, {
       groupingsByStudy,
       datasetStudyIds: props.datasetStudyIds
     })

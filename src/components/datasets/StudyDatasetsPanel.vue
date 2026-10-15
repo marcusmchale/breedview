@@ -7,7 +7,7 @@
     </div>
 
     <div class="panel-actions">
-      <button class="btn btn-primary" @click="$emit('create-dataset')">
+      <button v-if="canCreate" class="btn btn-primary" @click="$emit('create-dataset')">
         + Create New Dataset
       </button>
     </div>
@@ -73,6 +73,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+
+const canCreate = useCanCreate()
 
 const props = defineProps({
   study: {

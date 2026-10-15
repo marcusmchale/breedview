@@ -3,10 +3,12 @@ query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]
   controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
     status
     result {
-      controls { team { id name } release time }
+      controls { team { id name } teamHidden release time }
       writes(last: $lastWrites) { user { id name } time }
       writeCount
       teams { id name }
+      standInTeams { id name fullname }
+      access
       release
       created
       updated
