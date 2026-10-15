@@ -17,11 +17,12 @@ import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graph
  */
 export function useCanCreate() {
   const { isAuthenticated } = useAuthStore()
-  const { writeTeamIds } = useUserAccess({ fetchPolicy: 'cache-first', enabled: isAuthenticated })
+  const { writeTeamIds } = useUserAccess({ fetchPolicy: 'cache-first' })
   return computed(() => isAuthenticated.value && writeTeamIds.value.length > 0)
 }
 
-export function useCanCurate({ entityLabel, entityId }) {
+// What the user's affiliations let them do with an entity (Controller.access), empty for anonymous users
+export function useEntityAccess({ entityLabel, entityId }) {
   const { isAuthenticated } = useAuthStore()
   const { controller } = useControllerQuery({
     entityLabel,
@@ -29,5 +30,10 @@ export function useCanCurate({ entityLabel, entityId }) {
     query: CONTROLLER_RELEASE_QUERY,
     enabled: () => isAuthenticated.value && toValue(entityId) != null
   })
-  return computed(() => isAuthenticated.value && (controller.value?.access?.includes('CURATE') ?? false))
+  return computed(() => (isAuthenticated.value ? controller.value?.access ?? [] : []))
+}
+
+export function useCanCurate({ entityLabel, entityId }) {
+  const access = useEntityAccess({ entityLabel, entityId })
+  return computed(() => access.value.includes('CURATE'))
 }

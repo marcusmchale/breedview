@@ -54,13 +54,9 @@ test('programs: no write actions are offered to a user without a team', async ()
 
 test('controllers: a hidden controlling team is shown as the nearest team the user can see, marked as such', async () => {
   const payload = await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: STUDY, entityIds: $ids) {
-    result { access teams { id } standInTeams { name } controls { team { name } teamHidden } } } }`, { ids: released.Study })
-  assert.deepEqual(payload.result[0], {
-    access: ['READ'],
-    teams: [],
-    standInTeams: [{ name: names.organisation }],
-    controls: [{ team: { name: names.organisation }, teamHidden: true }]
-  })
+    result { access teams { team { name } standIn } controls { team { team { name } standIn } } } } }`, { ids: released.Study })
+  const standIn = { team: { name: names.organisation }, standIn: true }
+  assert.deepEqual(payload.result[0], { access: ['READ'], teams: [standIn], controls: [{ team: standIn }] })
   // the study's badge is the last on the expanded programs page
   await page.evaluate(`[...document.querySelectorAll('.controller-badge')].at(-1).click()`)
   await page.waitFor(`document.body.innerText.includes("Teams you can't see")`, 30000)

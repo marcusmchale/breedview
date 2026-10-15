@@ -2,7 +2,7 @@ fragment PersonFields on Person {
     id
     name
     institution
-    teams { id name fullname }
+    teams { team { id name fullname } standIn }
     basis
     informedAttestation
     orcid

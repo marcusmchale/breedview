@@ -29,3 +29,17 @@ export const LAWFUL_BASIS_OPTIONS = [
   { value: 'PUBLIC_TASK', label: 'Public task', description: 'Research by a public body, e.g. a university' },
   { value: 'LEGITIMATE_INTEREST', label: 'Legitimate interest', description: 'Research by a private partner' }
 ]
+
+/**
+ * The name a team reference (TeamReference) is shown by: the team's, or for a team hidden from the viewer,
+ * "a team in" the nearest team they can see that includes it, which is whom to ask for access
+ */
+export function teamReferenceName({ team, standIn }, { full = false } = {}) {
+  const name = (full && team.fullname) || team.name
+  return standIn ? `a team in ${name}` : name
+}
+
+/** The names of a Person's teams as the viewer may see them */
+export function personTeamNames(person, options = {}) {
+  return (person?.teams ?? []).map((reference) => teamReferenceName(reference, options))
+}

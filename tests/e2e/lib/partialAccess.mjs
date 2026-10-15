@@ -18,7 +18,8 @@ export const releasedTo = {
     Unit: [14761],         // field Field A
     Location: [81],        // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
     Reference: [4],        // a data file data file, cited by the private dataset 1179
-    Germplasm: [60, 115]   // Variety C A1 and its hybrid Variety D x Variety CA1, below the private crop "Private Crop" (44)
+    Germplasm: [60, 115],  // Variety C A1 and its hybrid Variety D x Variety CA1, below the private crop "Private Crop" (44)
+    Person: [13]           // Public Contributor, the contributor to dataset 6
   },
   REGISTERED: {
     Unit: [17156]          // one Variety A tree in Field A's private "Block 1" (17560)
@@ -46,7 +47,16 @@ export const hidden = {
   Unit: [17560, 17157],    // Block 1, and another Variety A tree in it
   Location: [82, 85],
   Reference: [3],          // the data file cited by dataset 1178's records
-  Germplasm: [44, 87]      // the crop "Private Crop", and Variety D, the other parent of the public hybrid 115
+  Germplasm: [44, 87],     // the crop "Private Crop", and Variety D, the other parent of the public hybrid 115
+  Person: [12]             // Private Contributor, the contributor to the public dataset 1178
+}
+
+// Persons: one public, one private and a contributor to a public dataset, and the partial account's own Person,
+// private to Galway (the admin writes for Galway only), which its linked user sees in full, in the migration team,
+// which the linked user cannot see and so sees through Galway standing in for it
+export const people = {
+  public: 13, publicName: 'Public Contributor', hidden: 12, hiddenName: 'Private Contributor', contributedTo: 1178,
+  ownName: 'Partial Access Tester', team: 1, ownTeam: 2
 }
 
 // Germplasm: a hidden crop holding public entries, and a hidden entry between two public ones
@@ -133,6 +143,38 @@ export async function loginPartial(page) {
   await login(page, partialUser)
 }
 
+// The id of the partial account's own Person: created private to Galway by the admin and linked to the
+// account through a request the admin approves, the first time
+export async function ensurePartialPerson(page) {
+  await loginPartial(page)
+  const own = (await graphql(page, 'query { peopleMyPerson { result { id } } }')).result
+  const partialUserId = (await graphql(page, 'query { accountsAccount { result { user { id } } } }')).result.user.id
+  await logout(page)
+  if (own) return Number(own.id)
+
+  await login(page, config.adminUser, config.adminPassword)
+  const find = async () => (await graphql(page, 'query ($name: String) { people(name: $name) { result { id linkedUser { id } } } }',
+    { name: people.ownName })).result.find((p) => !p.linkedUser)
+  if (!(await find())) {
+    const created = await graphql(page, `mutation ($person: PersonInput!, $team: ID!) {
+      peopleCreatePerson(person: $person, controlTeamId: $team, release: PRIVATE) { status errors { message } } }`,
+    { person: { name: people.ownName, informedAttestation: true, teamIds: [people.ownTeam] }, team: people.team })
+    if (created.status !== 'SUCCESS') throw new Error(`creating ${people.ownName}: ${JSON.stringify(created.errors)}`)
+  }
+  const personId = (await find()).id
+  await logout(page)
+
+  await loginPartial(page)
+  const claim = await graphql(page, 'mutation ($id: ID!) { peopleRequestClaim(personId: $id) { status errors { message } } }', { id: personId })
+  await logout(page)
+  await login(page, config.adminUser, config.adminPassword)
+  const approved = await graphql(page, 'mutation ($id: ID!, $user: ID!) { peopleApproveClaim(personId: $id, userId: $user) { status errors { message } } }',
+    { id: personId, user: partialUserId })
+  await logout(page)
+  if (approved.status !== 'SUCCESS') throw new Error(`linking ${people.ownName}: ${JSON.stringify([claim.errors, approved.errors])}`)
+  return Number(personId)
+}
+
 // node tests/e2e/lib/partialAccess.mjs [setup|restore]: create the account and release, or make private again
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { launchBrowser } = await import('./browser.mjs')
@@ -143,7 +185,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await login(page, config.adminUser, config.adminPassword); await restoreReleases(page); await logout(page)
       console.log('released entities are private again')
     } else {
-      await loginPartial(page); await logout(page)
+      await ensurePartialPerson(page)
       await login(page, config.adminUser, config.adminPassword); await ensureReleases(page); await logout(page)
       console.log(`${partialUser} / ${config.password} is ready, with ${JSON.stringify(releasedTo)} released`)
     }

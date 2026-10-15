@@ -26,7 +26,7 @@ test('the navigation offers the open pages and a way to log in', async () => {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['Germplasm', 'Regions', 'Arrangements', 'Blocks', 'Programs', 'Datasets', 'Log in'])
+  assert.deepEqual(links, ['People', 'Germplasm', 'Regions', 'Arrangements', 'Blocks', 'Programs', 'Datasets', 'Log in'])
 })
 
 test('pages that need an account still send anonymous users to log in', async () => {

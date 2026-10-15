@@ -93,13 +93,13 @@ onMounted(async () => {
 
         <div class="nav-menu">
           <!-- anonymous users see only the pages open to them (allowAnonymous in the router) -->
+          <router-link v-if="isAuthenticated" to="/affiliations" class="nav-link" active-class="active">
+            Affiliations
+          </router-link>
+          <router-link to="/people" class="nav-link" active-class="active">
+            People
+          </router-link>
           <template v-if="isAuthenticated">
-            <router-link to="/affiliations" class="nav-link" active-class="active">
-              Affiliations
-            </router-link>
-            <router-link to="/people" class="nav-link" active-class="active">
-              People
-            </router-link>
             <router-link to="/transfers" class="nav-link" active-class="active">
               Transfers
             </router-link>

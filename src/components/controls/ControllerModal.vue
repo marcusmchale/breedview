@@ -45,10 +45,15 @@ const moreWrites = computed(() => (props.controller?.writeCount ?? 0) - (props.c
 const { adminTeamIds } = useUserAccess()
 const { renounceControl, renounceControlLoading } = useMutateTransfers()
 const administeredControlTeams = computed(() =>
-  (props.controller?.teams ?? []).filter(team => adminTeamIds.value.map(String).includes(String(team.id)))
+  (props.controller?.teams ?? [])
+    .filter(({ team, standIn }) => !standIn && adminTeamIds.value.map(String).includes(String(team.id)))
+    .map(({ team }) => team)
 )
 const canTransfer = computed(() => administeredControlTeams.value.length > 0 && !!props.entityLabel && !!props.entityId)
 const canRenounce = computed(() => canTransfer.value && (props.controller?.teams?.length ?? 0) > 1)
+// the controlling teams the user can see, and those standing in for teams hidden from them
+const shownTeams = computed(() => (props.controller?.teams ?? []).filter(({ standIn }) => !standIn).map(({ team }) => team))
+const standInTeams = computed(() => (props.controller?.teams ?? []).filter(({ standIn }) => standIn).map(({ team }) => team))
 const showOfferModal = ref(false)
 const showRenounceForm = ref(false)
 const renounceTeamIds = ref([])
@@ -122,8 +127,7 @@ const hasAnyData = computed(() => {
   return (
     (props.controller.controls && props.controller.controls.length > 0) ||
     (props.controller.writes && props.controller.writes.length > 0) ||
-    (props.controller.teams && props.controller.teams.length > 0) ||
-    (props.controller.standInTeams && props.controller.standInTeams.length > 0)
+    (props.controller.teams && props.controller.teams.length > 0)
   )
 })
 
@@ -287,10 +291,10 @@ const formatDate = (dateString) => {
             <ul class="list">
               <li v-for="(control, index) in controller.controls" :key="index" class="list-item">
                 <div class="control-info">
-                  <span v-if="control.teamHidden" class="team-name hidden-team" :title="hiddenTeamHint(control.team)">
-                    A team you can't see, in {{ control.team?.name }}
+                  <span v-if="control.team?.standIn" class="team-name hidden-team" :title="hiddenTeamHint(control.team.team)">
+                    A team you can't see, in {{ control.team.team.name }}
                   </span>
-                  <span v-else class="team-name">{{ control.team?.name || 'Unknown Team' }}</span>
+                  <span v-else class="team-name">{{ control.team?.team?.name || 'Unknown Team' }}</span>
                   <span class="control-details">
                     <span class="release-badge" :class="'release-' + control.release?.toLowerCase()">
                       {{ control.release }}
@@ -318,24 +322,24 @@ const formatDate = (dateString) => {
             </ul>
           </div>
 
-          <div v-if="controller.teams && controller.teams.length > 0" class="section">
+          <div v-if="shownTeams.length > 0" class="section">
             <strong>Teams:</strong>
             <ul class="list">
-              <li v-for="team in controller.teams" :key="team.id" class="list-item">
+              <li v-for="team in shownTeams" :key="team.id" class="list-item">
                 <span class="team-name">{{ team.name }}</span>
                 <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
               </li>
             </ul>
           </div>
 
-          <div v-if="controller.standInTeams && controller.standInTeams.length > 0" class="section">
+          <div v-if="standInTeams.length > 0" class="section">
             <strong>Teams you can't see:</strong>
             <p class="stand-in-note">
               Teams you are not affiliated with also control this record. Each is shown by the nearest team you can
               see that includes it: ask there for an affiliation to see the team and what it controls.
             </p>
             <ul class="list">
-              <li v-for="team in controller.standInTeams" :key="team.id" class="list-item">
+              <li v-for="team in standInTeams" :key="team.id" class="list-item">
                 <span class="team-name hidden-team">A team in {{ team.name }}</span>
                 <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
               </li>

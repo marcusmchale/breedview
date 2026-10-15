@@ -1,14 +1,16 @@
 <script setup>
 import { computed } from 'vue'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
-import { personForm, personLabel, orcidUrl } from '@/composables/people/personDisplay'
+import { personForm, personLabel, orcidUrl, personTeamNames } from '@/composables/people/personDisplay'
+import { useEntityAccess } from '@/composables/controls/useWriteAccess'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
 const props = defineProps({
   person: {
     type: Object,
     required: true
   },
-  // Show edit and erase actions (the server still checks who may do what)
+  // Offer edit and erase where the user may (false hides them regardless)
   editable: {
     type: Boolean,
     default: true
@@ -19,6 +21,14 @@ defineEmits(['edit', 'erase'])
 
 const form = computed(() => personForm(props.person))
 const orcidLink = computed(() => orcidUrl(props.person.orcid))
+const teamNames = computed(() => personTeamNames(props.person, { full: true }))
+
+// As the backend allows: curators edit, admins of the controlling teams erase, and the linked user does both
+const { currentUserId } = useAuthStore()
+const access = useEntityAccess({ entityLabel: 'PERSON', entityId: () => props.person.id })
+const isSubject = computed(() => currentUserId.value != null && String(props.person.linkedUser?.id) === String(currentUserId.value))
+const canEdit = computed(() => props.editable && (isSubject.value || access.value.includes('CURATE')))
+const canErase = computed(() => props.editable && (isSubject.value || access.value.includes('ADMIN')))
 
 const formatDate = (value) => {
   if (!value) return ''
@@ -49,9 +59,9 @@ const basisLabel = computed(() => ({
 
     <div v-else class="card-body">
       <dl class="details">
-        <template v-if="person.teams?.length">
+        <template v-if="teamNames.length">
           <dt>Teams</dt>
-          <dd>{{ person.teams.map(team => team.fullname || team.name).join(', ') }}</dd>
+          <dd>{{ teamNames.join(', ') }}</dd>
         </template>
         <template v-if="orcidLink">
           <dt>ORCID iD</dt>
@@ -77,9 +87,9 @@ const basisLabel = computed(() => ({
         </template>
       </dl>
 
-      <div v-if="editable" class="card-actions">
-        <button class="btn btn-secondary btn-small" @click="$emit('edit', person)">Edit</button>
-        <button class="btn btn-danger btn-small" @click="$emit('erase', person)">Erase</button>
+      <div v-if="canEdit || canErase" class="card-actions">
+        <button v-if="canEdit" class="btn btn-secondary btn-small" @click="$emit('edit', person)">Edit</button>
+        <button v-if="canErase" class="btn btn-danger btn-small" @click="$emit('erase', person)">Erase</button>
       </div>
     </div>
   </div>

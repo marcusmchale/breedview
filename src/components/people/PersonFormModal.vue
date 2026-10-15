@@ -41,9 +41,10 @@ const teamOptions = computed(() => {
   for (const list of [readTeams.value, writeTeams.value, adminTeams.value, curateTeams.value]) {
     for (const team of list) byId.set(String(team.id), team)
   }
-  // keep the Person's current teams even if the user can't see them
-  for (const team of props.person?.teams ?? []) {
-    if (!byId.has(String(team.id))) byId.set(String(team.id), team)
+  // the Person's current teams, should the user see them other than through an affiliation; teams hidden from the
+  // user are not offered, and the server keeps them when the rest are saved
+  for (const { team, standIn } of props.person?.teams ?? []) {
+    if (!standIn && !byId.has(String(team.id))) byId.set(String(team.id), team)
   }
   return [...byId.values()].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 })
@@ -57,7 +58,7 @@ watch(() => props.isOpen, (isOpen) => {
     form.value = {
       name: props.person?.name ?? '',
       institution: props.person?.institution ?? '',
-      teamIds: (props.person?.teams ?? []).map(team => String(team.id)),
+      teamIds: (props.person?.teams ?? []).filter(({ standIn }) => !standIn).map(({ team }) => String(team.id)),
       basis: props.person?.basis ?? 'PUBLIC_TASK',
       informed: false
     }

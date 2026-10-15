@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
-import { personForm, personLabel } from '@/composables/people/personDisplay'
+import { personForm, personLabel, personTeamNames } from '@/composables/people/personDisplay'
 
 // Pick Persons the user can read. v-model is a list of ids (multiple) or a single id.
 // Restricted and erased Persons cannot be picked.
@@ -47,7 +47,7 @@ const candidates = computed(() =>
     const text = filter.value.trim().toLowerCase()
     if (!text) return true
     return personLabel(person).toLowerCase().includes(text) ||
-      (person.teams ?? []).some(team => (team.name || '').toLowerCase().includes(text))
+      (person.teams ?? []).some(({ team }) => (team.name || '').toLowerCase().includes(text))
   })
 )
 
@@ -104,8 +104,8 @@ const unlistedSelected = computed(() =>
           @click.stop="toggle(person)"
         />
         <span class="person-name">{{ personLabel(person) }}</span>
-        <span v-if="person.teams?.length" class="person-teams">
-          {{ person.teams.map(team => team.name).join(', ') }}
+        <span v-if="personTeamNames(person).length" class="person-teams">
+          {{ personTeamNames(person).join(', ') }}
         </span>
         <span v-if="person.linkedUser" class="person-linked" title="Linked to an account">linked</span>
       </li>

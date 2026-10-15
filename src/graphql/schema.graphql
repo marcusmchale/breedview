@@ -2914,12 +2914,9 @@ enum ControlledModelLabel {
 }
 
 type Control {
+  """ The controlling team, or when it is hidden from you, the team standing in for it 
   """
-  The controlling team, or when it is hidden from you (teamHidden), the nearest team you can see that includes it:
-  the party to contact for access
-  """
-  team: Team!
-  teamHidden: Boolean!
+  team: TeamReference!
   release: ReadRelease!
   time: DateTime!
 }
@@ -2936,14 +2933,9 @@ type Controller {
   writes(last: Int): [WriteStamp!]!
   writeCount: Int!
 
-  """ The controlling teams you can see """
-  teams: [Team!]!
-
+  """ The controlling teams, those hidden from you stood in for by the nearest team you can see 
   """
-  For controlling teams hidden from you, the nearest teams you can see that include them, at furthest an
-  organisation's root: the parties to contact for access. A team may be both here and in teams.
-  """
-  standInTeams: [Team!]!
+  teams: [TeamReference!]!
 
   """ What your affiliations let you do with the entity through the teams that control it 
   """
@@ -4006,6 +3998,17 @@ type Affiliations {
   curate: [Affiliation!]
 }
 
+"""
+A reference to a team, as the viewer may see it: the team itself, or, when the team referred to is hidden from them,
+the nearest team they can see that includes it, at furthest its organisation's root (standIn). A stand-in says whom
+to ask for an affiliation to see more. It is a property of the reference, not of the team, so it is not on Team,
+which the client caches by id: the same team can be referred to as itself in one place and as a stand-in in another.
+"""
+type TeamReference {
+  team: Team!
+  standIn: Boolean!
+}
+
 type Team {
   id: ID!
   name: String!
@@ -4384,7 +4387,8 @@ enum LawfulBasis {
 """
 Someone who took part in research, for attribution. See docs/person.md.
 Users who can read the record, and the linked user, see all fields.
-Other registered users see the id only (restricted), which can be used to look up who controls the record.
+Others, anonymous users too, see the id only (restricted) where the Person is referred to or asked for by id, which
+can be used to look up who controls the record; searches leave such Persons out (docs/read-access.md).
 An erased Person keeps its id only, so contributions stay attributed to an anonymous person.
 """
 type Person {
@@ -4398,8 +4402,11 @@ type Person {
   """
   institution: String
 
-  """Affiliation"""
-  teams: [Team!]!
+  """
+  Affiliation, for attribution: the teams the person worked in, which grant no access (the linked user's
+  affiliations do). Those hidden from the viewer are stood in for by the nearest team they can see
+  """
+  teams: [TeamReference!]!
   basis: LawfulBasis
 
   """The creator confirmed the person was informed that this record is held"""

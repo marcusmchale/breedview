@@ -9,8 +9,11 @@ import { useCacheUpdates } from '@/apolloConfig/cacheUpdates'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
 import { personForm, personLabel } from '@/composables/people/personDisplay'
 import { useCanCreate } from '@/composables/controls/useWriteAccess'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
 const canCreate = useCanCreate()
+// requests to be linked are for admins, and need an account
+const { isAuthenticated } = useAuthStore()
 
 const { people, peopleLoading, peopleError, refetchPeople } = usePeopleQuery()
 const { updateCache } = useCacheUpdates({ typename: 'Person', fragment: PERSON_FRAGMENT })
@@ -28,7 +31,7 @@ const visiblePeople = computed(() => {
     if (!showErased.value && personForm(person) === 'erased') return false
     if (!text) return true
     return personLabel(person).toLowerCase().includes(text) ||
-      (person.teams ?? []).some(team => (team.name || '').toLowerCase().includes(text))
+      (person.teams ?? []).some(({ team }) => (team.name || '').toLowerCase().includes(text))
   })
 })
 
@@ -79,7 +82,7 @@ const handleErased = (personId) => {
       Records you cannot read are shown restricted.
     </p>
 
-    <ClaimRequestsPanel @decided="refetchPeople" />
+    <ClaimRequestsPanel v-if="isAuthenticated" @decided="refetchPeople" />
 
     <div class="toolbar">
       <input

@@ -75,7 +75,7 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   The admin account sees "Create New Program" but no program edits until the test grants it curate access to the
   migration team (`E2E_CURATE_TEAM`, default 2); the grant is removed afterwards.
 
-- `anonymousAccess.test.mjs`: someone not signed in can open the germplasm, programs, regions, arrangements, blocks
+- `anonymousAccess.test.mjs`: someone not signed in can open the people, germplasm, programs, regions, arrangements, blocks
   and datasets pages and sees what is public there, with placeholders, no controller badges and no write actions;
   other pages send them to log in. No request on those pages fails apart from the sign-in check, and the ontology
   is readable in its published and referential views but not the editorial one. The public entities come from `lib/partialAccess.mjs`, which releases the
@@ -89,6 +89,11 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   account and as the admin: a hidden crop is a placeholder holding the public entries below it, a hidden entry
   between public ones is skipped with an UNKNOWN relationship, and the germplasm page shows only what is public.
   The fixture makes the public Variety B private for this, and `npm run e2e:partial -- restore` makes it public again.
+
+- `peopleAccess.test.mjs`: Persons under the read policy, anonymously, as the partial access account and as the
+  admin: a hidden Person is restricted where referred to and absent from searches, the linked user sees their own
+  private Person in full with its hidden team stood in for, and edit and erase follow curate and admin access.
+  `lib/partialAccess.mjs` creates the partial account's Person, private to Galway, and links it the first time.
 
 ## Adding a test
 

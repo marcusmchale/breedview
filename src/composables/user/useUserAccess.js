@@ -1,16 +1,18 @@
 import { computed, toValue } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import USER_ACCESS_QUERY from '@/graphql/account/userAccess.graphql'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
-// options are useQuery's; enabled may be a ref or getter, such as whether anyone is signed in
+// options are useQuery's; enabled may be a ref or getter. Anonymous users have no access, so nothing is asked for them
 export function useUserAccess(options= {} ) {
+  const { isAuthenticated } = useAuthStore()
   const { result, loading, error , onResult, onError, refetch } = useQuery(
       USER_ACCESS_QUERY,
       {},
       () => ({
         fetchPolicy: "cache-and-network",
         ...options,
-        enabled: toValue(options.enabled ?? true)
+        enabled: isAuthenticated.value && toValue(options.enabled ?? true)
       })
   )
 

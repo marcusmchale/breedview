@@ -160,7 +160,8 @@ const routes = [
     name: 'People',
     component: PeoplePage,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'People'
     }
   },
