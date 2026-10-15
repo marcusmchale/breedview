@@ -75,8 +75,8 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   The admin account sees "Create New Program" but no program edits until the test grants it curate access to the
   migration team (`E2E_CURATE_TEAM`, default 2); the grant is removed afterwards.
 
-- `anonymousAccess.test.mjs`: someone not signed in can open the programs, regions, arrangements, blocks and
-  datasets pages and sees what is public there, with placeholders, no controller badges and no write actions;
+- `anonymousAccess.test.mjs`: someone not signed in can open the germplasm, programs, regions, arrangements, blocks
+  and datasets pages and sees what is public there, with placeholders, no controller badges and no write actions;
   other pages send them to log in. No request on those pages fails apart from the sign-in check, and the ontology
   is readable in its published and referential views but not the editorial one. The public entities come from `lib/partialAccess.mjs`, which releases the
   Study A study, its dataset 6, field Field A and location Field A to the public and the Variety A tree to registered users.
@@ -84,6 +84,11 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
 - `referencesAccess.test.mjs`: references under the read policy, anonymously, as the partial access account and as the
   admin: a private reference is a placeholder where it is asked for by id or cited by a record of a public dataset,
   and searches find only what the reader can see.
+
+- `germplasmAccess.test.mjs`: the germplasm pedigree under the read policy, anonymously, as the partial access
+  account and as the admin: a hidden crop is a placeholder holding the public entries below it, a hidden entry
+  between public ones is skipped with an UNKNOWN relationship, and the germplasm page shows only what is public.
+  The fixture makes the public Variety B private for this, and `npm run e2e:partial -- restore` makes it public again.
 
 ## Adding a test
 

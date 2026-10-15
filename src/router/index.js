@@ -100,7 +100,8 @@ const routes = [
     name: 'Germplasm',
     component: GermplasmManagement,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Germplasm'
     }
   },

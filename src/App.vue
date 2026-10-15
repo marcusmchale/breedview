@@ -106,10 +106,10 @@ onMounted(async () => {
             <router-link to="/ontology" class="nav-link" active-class="active">
               Ontology
             </router-link>
-            <router-link to="/germplasm" class="nav-link" active-class="active">
-              Germplasm
-            </router-link>
           </template>
+          <router-link to="/germplasm" class="nav-link" active-class="active">
+            Germplasm
+          </router-link>
           <router-link to="/regions" class="nav-link" active-class="active">
             Regions
           </router-link>

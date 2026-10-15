@@ -17,12 +17,19 @@ export const releasedTo = {
                            // dataset whose records cite the private data file reference 3
     Unit: [14761],         // field Field A
     Location: [81],        // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
-    Reference: [4]         // a data file data file, cited by the private dataset 1179
+    Reference: [4],        // a data file data file, cited by the private dataset 1179
+    Germplasm: [60, 115]   // Variety C A1 and its hybrid Variety D x Variety CA1, below the private crop "Private Crop" (44)
   },
   REGISTERED: {
     Unit: [17156]          // one Variety A tree in Field A's private "Block 1" (17560)
+  },
+  PRIVATE: {
+    Germplasm: [14]        // Variety B, made private between the public Taxon B (3) and Variety E (17)
   }
 }
+
+// What restoreReleases sets back, for entities the fixture changed from a release other than private
+const originally = { PUBLIC: { Germplasm: [14] } }
 
 // Everything registered users can read in the Study A study, its dataset and their units and locations
 export const released = {
@@ -38,7 +45,14 @@ export const hidden = {
   Trial: [2],
   Unit: [17560, 17157],    // Block 1, and another Variety A tree in it
   Location: [82, 85],
-  Reference: [3]           // the data file cited by dataset 1178's records
+  Reference: [3],          // the data file cited by dataset 1178's records
+  Germplasm: [44, 87]      // the crop "Private Crop", and Variety D, the other parent of the public hybrid 115
+}
+
+// Germplasm: a hidden crop holding public entries, and a hidden entry between two public ones
+export const germplasm = {
+  hiddenCrop: 44, publicUnderCrop: [60, 115], hybrid: 115, publicParent: 60, hiddenParent: 87,
+  hiddenMiddle: 14, above: 3, below: 17, publicCrop: 1
 }
 
 // References: one public, one private and cited by a public dataset's records
@@ -91,6 +105,9 @@ export async function ensureReleases(page) {
 export async function restoreReleases(page) {
   for (const entities of Object.values(releasedTo)) {
     for (const [label, ids] of Object.entries(entities)) await setRelease(page, label, ids, 'PRIVATE')
+  }
+  for (const [level, entities] of Object.entries(originally)) {
+    for (const [label, ids] of Object.entries(entities)) await setRelease(page, label, ids, level)
   }
 }
 

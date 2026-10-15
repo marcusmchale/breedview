@@ -26,13 +26,13 @@ test('the navigation offers the open pages and a way to log in', async () => {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['Regions', 'Arrangements', 'Blocks', 'Programs', 'Datasets', 'Log in'])
+  assert.deepEqual(links, ['Germplasm', 'Regions', 'Arrangements', 'Blocks', 'Programs', 'Datasets', 'Log in'])
 })
 
 test('pages that need an account still send anonymous users to log in', async () => {
-  await page.goto(`${config.appUrl}/germplasm`)
+  await page.goto(`${config.appUrl}/profile`)
   await page.waitFor(`location.pathname === '/login'`, 30000)
-  assert.match(await page.url(), /redirect=(%2F|\/)germplasm/)
+  assert.match(await page.url(), /redirect=(%2F|\/)profile/)
 })
 
 test('programs: the public study below placeholders, without badges or write actions', async () => {
