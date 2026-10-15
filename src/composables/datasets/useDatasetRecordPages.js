@@ -4,6 +4,10 @@ import { useQuery } from '@vue/apollo-composable'
 import DATASET_UNITS_QUERY from '@/graphql/datasets/datasetUnits.graphql'
 import { useDatasetsQuery } from './datasetsQuery'
 
+// Units per page by default: their records from every selected dataset arrive in one request, and the table
+// renders them all, so a page of 1,000 units (25,000 records with five datasets) took seconds to load
+export const DEFAULT_UNITS_PAGE_SIZE = 250
+
 /**
  * The selected datasets with their records, a page of units at a time.
  *

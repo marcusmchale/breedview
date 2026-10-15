@@ -8,6 +8,7 @@ import { useDatasetsUnitsTree } from '@/composables/datasets/useDatasetsUnitsTre
 import { useCachedName } from '@/composables/queryBase/cachedName'
 import { isPartialDatetime } from '@/plugins/formkitRules'
 import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
+import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 
 defineProps({
   loading: {
@@ -18,8 +19,8 @@ defineProps({
 
 const emit = defineEmits(['load-table'])
 
-const PAGE_SIZE_OPTIONS = [250, 500, 1000, 2500, 5000].map((n) => ({ label: n.toLocaleString(), value: n }))
-const DEFAULT_PAGE_SIZE = 1000
+const PAGE_SIZE_OPTIONS = [100, 250, 500, 1000, 2500, 5000].map((n) => ({ label: n.toLocaleString(), value: n }))
+const DEFAULT_PAGE_SIZE = DEFAULT_UNITS_PAGE_SIZE
 
 // Selection state
 const selectedProgram = ref(null)

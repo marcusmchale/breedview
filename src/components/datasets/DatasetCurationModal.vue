@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 
 import DatasetSelectionForm from './DatasetSelectionForm.vue'
 import DatasetCurationTable from './DatasetCurationTable.vue'
+import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 
 const props = defineProps({
   visible: {
@@ -21,7 +22,7 @@ const selectedDatasetIds = ref([])
 const datasetStudyIds = ref({})
 // Narrowing and page size for the records, chosen with the datasets
 const recordFilters = ref({})
-const pageSize = ref(1000)
+const pageSize = ref(DEFAULT_UNITS_PAGE_SIZE)
 
 // Component refs
 const selectionFormRef = ref(null)
@@ -59,7 +60,7 @@ const handleLoadTable = ({ datasetIds, datasetStudyIds: studyMap, filters, pageS
   selectedDatasetIds.value = datasetIds
   datasetStudyIds.value = studyMap || {}
   recordFilters.value = filters || {}
-  pageSize.value = size || 1000
+  pageSize.value = size || DEFAULT_UNITS_PAGE_SIZE
   phase.value = 'table'
 }
 

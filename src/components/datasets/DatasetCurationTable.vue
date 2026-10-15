@@ -9,7 +9,7 @@ import {
   FlexRender,
 } from '@tanstack/vue-table'
 
-import { useDatasetRecordPages } from '@/composables/datasets/useDatasetRecordPages'
+import { useDatasetRecordPages, DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 import { useDatasetCurationTable } from '@/composables/datasets/useDatasetCurationTable'
 import { useStudiesGroupings } from '@/composables/programs/studiesGroupingsQuery'
 
@@ -31,7 +31,7 @@ const props = defineProps({
   // narrowing of the records: { unitIds, start, end }, each optional
   filters: { type: Object, default: () => ({}) },
   // units loaded per page, with every record of those units from every dataset
-  pageSize: { type: Number, default: 1000 }
+  pageSize: { type: Number, default: DEFAULT_UNITS_PAGE_SIZE }
 })
 
 const emit = defineEmits(['back', 'submit', 'has-unsaved-changes'])
