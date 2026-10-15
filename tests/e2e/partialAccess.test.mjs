@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout, graphql, flat } from './lib/app.mjs'
-import { loginPartial, ensureReleases, released, hidden, names } from './lib/partialAccess.mjs'
+import { loginPartial, ensureReleases, released, hidden, names, datasets } from './lib/partialAccess.mjs'
 
 let browser, page
 before(async () => {
@@ -24,9 +24,9 @@ const expandAll = async (selector) => {
     await page.sleep(2000)
   }
 }
-// dataset 6 has one record for each of 399 trees of Field A; dataset 5, also in Study A, stays private
-const recordedUnits = 399
-const hiddenDataset = 5
+// the released dataset has one record for each recorded tree of the field; another dataset of the study stays private
+const recordedUnits = datasets.recordedUnits
+const hiddenDataset = datasets.hiddenInStudy
 // the buttons of the page that create, change or remove something
 const writeActions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
   .filter((t) => /(Create|Edit|Delete|Add|New|Register|Position)/.test(t))`)
@@ -162,7 +162,7 @@ test('curation: the released dataset with all its records, hidden units as place
   await page.waitFor(`!document.querySelector('.options-list')`)
   await page.waitFor(`document.querySelector('select[name=conceptIds] option') || document.querySelector('.no-concepts-msg')`, 60000)
   const concepts = await page.evaluate(`[...document.querySelectorAll('select[name=conceptIds] option')].map((o) => o.innerText.trim())`)
-  assert.deepEqual(concepts, ['Factor A'], `the released dataset's concept is offered: ${flat(await page.text('.no-concepts-msg'))}`)
+  assert.deepEqual(concepts, [datasets.concept], `the released dataset's concept is offered: ${flat(await page.text('.no-concepts-msg'))}`)
   await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); s.options[0].selected = true; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`, 30000)
   const hint = flat(await page.text('.datasets-hint'))

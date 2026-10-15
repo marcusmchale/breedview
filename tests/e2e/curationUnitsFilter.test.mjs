@@ -1,5 +1,5 @@
 // The units filter of the curation selection lists only units the selected datasets have records for, with counts.
-// env: STUDY="Study B" to prefer a study by name; otherwise the first study found is used.
+// env: STUDY to prefer a study by name; otherwise the first study found is used.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'

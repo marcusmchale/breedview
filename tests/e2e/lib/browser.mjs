@@ -37,28 +37,49 @@ export async function launchBrowser({ headless = true, width = 1280, height = 90
   }
 }
 
+// After this many full page loads, goto() moves to a fresh tab: with the dev server's unbundled modules (hundreds of
+// requests per load), Chrome refuses further loads in a tab after a dozen or so (net::ERR_INSUFFICIENT_RESOURCES) and
+// the app no longer renders; the production build does not have this problem. Cookies live in the profile, so the
+// session carries over to the new tab.
+const LOADS_PER_TAB = 10
+
 async function connectPage(port) {
-  const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
-  let target = list.find((t) => t.type === 'page')
-  if (!target) target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json()
-  const ws = new WebSocket(target.webSocketDebuggerUrl)
-  await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject })
-  let nextId = 0
+  const events = []  // every tab's events in one list, so marks stay valid across tabs
+  let ws, target, nextId = 0
   const pending = new Map()
-  const events = []
-  ws.onmessage = (message) => {
-    const msg = JSON.parse(message.data)
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id); pending.delete(msg.id)
-      msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result)
-    } else if (msg.method) {
-      events.push(msg)
+
+  const open = async (newTarget) => {
+    target = newTarget
+    ws = new WebSocket(target.webSocketDebuggerUrl)
+    await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject })
+    ws.onmessage = (message) => {
+      const msg = JSON.parse(message.data)
+      if (msg.id && pending.has(msg.id)) {
+        const { resolve, reject } = pending.get(msg.id); pending.delete(msg.id)
+        msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result)
+      } else if (msg.method) {
+        events.push(msg)
+      }
     }
+    for (const domain of ['Page', 'Runtime', 'Network', 'Log']) await send(`${domain}.enable`)
   }
   const send = (method, params = {}) => new Promise((resolve, reject) => {
     const id = ++nextId; pending.set(id, { resolve, reject }); ws.send(JSON.stringify({ id, method, params }))
   })
-  for (const domain of ['Page', 'Runtime', 'Network', 'Log']) await send(`${domain}.enable`)
+
+  const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
+  await open(list.find((t) => t.type === 'page') ??
+    await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json())
+
+  let loads = 0
+  const freshTab = async () => {
+    const old = target
+    const oldWs = ws
+    await open(await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json())
+    try { oldWs.close() } catch { /* ignore */ }
+    await fetch(`http://127.0.0.1:${port}/json/close/${old.id}`).catch(() => {})
+    loads = 0
+  }
 
   const evaluate = async (expression) => {
     const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
@@ -69,7 +90,10 @@ async function connectPage(port) {
 
   return {
     send, events, sleep, evaluate,
-    goto: async (url) => { await send('Page.navigate', { url }); await sleep(1500) },
+    goto: async (url) => {
+      if (++loads > LOADS_PER_TAB) { await freshTab(); loads = 1 }
+      await send('Page.navigate', { url }); await sleep(1500)
+    },
     url: () => evaluate('location.href'),
     text: (selector = 'body') => evaluate(`document.querySelector(${q(selector)})?.innerText ?? null`),
     exists: (selector) => evaluate(`!!document.querySelector(${q(selector)})`),

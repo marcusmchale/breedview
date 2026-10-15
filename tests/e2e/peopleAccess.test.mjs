@@ -2,8 +2,8 @@
 // linked to, in full; one they cannot read as a placeholder (its id, restricted) where it is referred to or asked for
 // by id, anonymous readers included; searches leave hidden Persons out, so a name does not reveal them. A Person's
 // teams hidden from the reader show as the nearest team they can see, marked as standing in. With lib/partialAccess.mjs:
-// Public Contributor is public, Private Contributor private and a contributor to the public dataset 1178, and the partial
-// account is linked to its own Person, private to Galway and in the migration team, which it cannot see.
+// one contributor is public, another private and a contributor to a public dataset, and the partial account is
+// linked to its own Person, private to the organisation and in the hidden team below it, which it cannot see.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -57,7 +57,7 @@ test('a registered user in no team sees the same, and their own Person in full, 
   await page.waitFor(`document.body.innerText.includes(${JSON.stringify(people.ownName)})`, 30000)
   await page.sleep(1500)
   const own = (await cards()).find((c) => c.includes(people.ownName))
-  assert.match(own, /a team in (University of )?Galway/, `the stand-in team is marked: ${own}`)
+  assert.ok(own.includes(`a team in `) && own.includes(names.organisation), `the stand-in team is marked: ${own}`)
   assert.match(own, /Edit/, 'the linked user can edit')
   assert.match(own, /Erase/, 'and erase')
   const other = (await cards()).find((c) => c.includes(people.publicName))
@@ -79,7 +79,7 @@ test('an admin of the controlling team sees the hidden Person in full, and can e
 })
 
 test('saving a Person keeps the teams the curator cannot see', async () => {
-  // curate access to Galway alone, not heritable, so the migration team below it stays hidden from the partial account
+  // curate access to the organisation alone, not heritable, so the team below it stays hidden from the partial account
   await loginPartial(page)
   const partialUserId = (await graphql(page, 'query { accountsAccount { result { user { id } } } }')).result.user.id
   const request = await graphql(page, `mutation ($team: ID!) { accountsRequestAffiliation(teamId: $team, access: CURATE,
@@ -99,9 +99,9 @@ test('saving a Person keeps the teams the curator cannot see', async () => {
     const hidden = { team: { id: String(people.team), name: names.organisation }, standIn: true }
 
     assert.equal((await save([String(people.team)])).status, 'SUCCESS')
-    assert.deepEqual((await myPerson()).teams, [galway, hidden], 'Galway added, the hidden migration team kept')
+    assert.deepEqual((await myPerson()).teams, [galway, hidden], 'the organisation added, the hidden team kept')
     assert.equal((await save([])).status, 'SUCCESS')
-    assert.deepEqual((await myPerson()).teams, [hidden], 'Galway removed, the hidden team still kept')
+    assert.deepEqual((await myPerson()).teams, [hidden], 'the organisation removed, the hidden team still kept')
     await logout(page)
   } finally {
     await login(page, config.adminUser, config.adminPassword)

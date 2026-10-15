@@ -1,82 +1,24 @@
-// A registered account in no team, and a few dev data migration entities released to registered users or the
+// A registered account in no team, and a few entities of the dev database released to registered users or the
 // public, so that what a user outside the teams, or an anonymous one, sees can be checked: readable entities, hidden
-// ones between them, and placeholders.
-// The ids are those of the dev database restored from migration.dump, where everything belongs to the
-// "Hidden Team" team (id 2), which the admin account administers.
+// ones between them, and placeholders. Which entities is set in fixture.local.mjs.
 import { config, login, logout, register, graphql, waitForMail, verifyEmail, flat } from './app.mjs'
 
 export const partialUser = process.env.E2E_PARTIAL_USER || 'partial1'
 export const partialEmail = `breedview-${partialUser}@${config.mailDomain}`
 
-// Released by level; each readable entity is separated from the next by a hidden one. Anonymous users see the
-// public ones only, so the tree is hidden from them and its field holds nothing they can see.
-export const releasedTo = {
-  PUBLIC: {
-    Study: [4],            // Study A, below the private trial "Trial A" (2) and program "dev data" (1)
-    Dataset: [6, 1178],    // Factor A, in Study A, with records for the trees of field Field A; and a Study B
-                           // dataset whose records cite the private data file reference 3
-    Unit: [14761],         // field Field A
-    Location: [81],        // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
-    Reference: [4],        // a data file data file, cited by the private dataset 1179
-    Germplasm: [60, 115],  // Variety C A1 and its hybrid Variety D x Variety CA1, below the private crop "Private Crop" (44)
-    Person: [13]           // Public Contributor, the contributor to dataset 6
-  },
-  REGISTERED: {
-    Unit: [17156]          // one Variety A tree in Field A's private "Block 1" (17560)
-  },
-  PRIVATE: {
-    Germplasm: [14]        // Variety B, made private between the public Taxon B (3) and Variety E (17)
-  }
+// The entities of the dev database to use, in fixture.local.mjs, which is not committed (see fixture.example.mjs)
+let fixture
+try {
+  fixture = await import('./fixture.local.mjs')
+} catch (error) {
+  throw new Error('tests/e2e/lib/fixture.local.mjs is missing or broken: copy fixture.example.mjs to it and fill in the ' +
+    'ids and names of the database the tests run against (' + error.message + ')')
 }
-
-// What restoreReleases sets back, for entities the fixture changed from a release other than private
-const originally = { PUBLIC: { Germplasm: [14] } }
-
-// Everything registered users can read in the Study A study, its dataset and their units and locations
-export const released = {
-  Study: [4],
-  Dataset: [6],
-  Unit: [14761, 17156],
-  Location: [81]
-}
-
-// Kept private: the test relies on them being hidden
-export const hidden = {
-  Program: [1],
-  Trial: [2],
-  Unit: [17560, 17157],    // Block 1, and another Variety A tree in it
-  Location: [82, 85],
-  Reference: [3],          // the data file cited by dataset 1178's records
-  Germplasm: [44, 87],     // the crop "Private Crop", and Variety D, the other parent of the public hybrid 115
-  Person: [12]             // Private Contributor, the contributor to the public dataset 1178
-}
-
-// Persons: one public, one private and a contributor to a public dataset, and the partial account's own Person,
-// private to Galway (the admin writes for Galway only), which its linked user sees in full, in the migration team,
-// which the linked user cannot see and so sees through Galway standing in for it
-export const people = {
-  public: 13, publicName: 'Public Contributor', hidden: 12, hiddenName: 'Private Contributor', contributedTo: 1178,
-  ownName: 'Partial Access Tester', team: 1, ownTeam: 2
-}
-
-// Germplasm: a hidden crop holding public entries, and a hidden entry between two public ones
-export const germplasm = {
-  hiddenCrop: 44, publicUnderCrop: [60, 115], hybrid: 115, publicParent: 60, hiddenParent: 87,
-  hiddenMiddle: 14, above: 3, below: 17, publicCrop: 1
-}
-
-// References: one public, one private and cited by a public dataset's records
-export const references = {
-  public: 4, hidden: 3, citedBy: 1178, description: 'Data file',
-  // the files of the public and private references, in breedgraph's file store
-  publicFile: '00000000-0000-0000-0000-000000000001', hiddenFile: '00000000-0000-0000-0000-000000000002'
-}
-
-export const names = {
-  program: 'dev data', trial: 'Trial A', study: 'Study A', field: 'Field A', block: 'Block 1', tree: 'Variety A',
-  location: 'Field A', hiddenLocations: ['Subregion', 'Region'], country: 'Country',
-  organisation: 'Galway'  // the visible team that includes the migration team, standing in for it
-}
+export const {
+  releasedTo, released, hidden, people, germplasm, references, names,
+  hiddenTeam, adminGermplasm, germplasmNames, datasets, perf
+} = fixture
+const { originally } = fixture
 
 const CONTROLLERS = `query ($label: ControlledModelLabel!, $ids: [ID!]!) {
   controlsControllers(entityLabel: $label, entityIds: $ids) { status errors { message } result { release } } }`

@@ -6,10 +6,10 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout, graphql, flat } from './lib/app.mjs'
-import { ensureAdminPerson, adminPersonName, loginPartial, people, names } from './lib/partialAccess.mjs'
+import { ensureAdminPerson, adminPersonName, loginPartial, people, names, hiddenTeam, adminGermplasm } from './lib/partialAccess.mjs'
 
-const HIDDEN_TEAM = 2       // Hidden Team, below Galway
-const ADMIN_GERMPLASM = 1   // Taxon A, public, recorded by the admin
+const HIDDEN_TEAM = hiddenTeam.id           // below the organisation, hidden from the partial account
+const ADMIN_GERMPLASM = adminGermplasm.id   // public, recorded by the admin
 
 let browser, page
 before(async () => {
@@ -42,7 +42,7 @@ test('a registered user sees writes attributed to the writer\'s Person, not the 
   await loginPartial(page)
   assert.deepEqual(await lastWrite(), { user: null, person: { name: adminPersonName, restricted: false } })
   assert.deepEqual(await teamById(HIDDEN_TEAM), { id: String(HIDDEN_TEAM), name: 'REDACTED', parent: null })
-  // a write by an account without a Person, on the public Study A study
+  // a write by an account without a Person, on the public study
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.controller-badge:not([disabled])')`, 30000)
   for (let level = 0; level < 2; level++) {
@@ -64,6 +64,6 @@ test('the admin sees its own account, the hidden team, and its organisation\'s t
   assert.equal(write.user?.name, config.adminUser)
   assert.equal(write.person?.name, adminPersonName)
   const galway = (await organisations()).find((o) => o.name === names.organisation)
-  assert.ok(galway.children.some((c) => Number(c.id) === HIDDEN_TEAM), 'the migration team below Galway')
-  assert.equal((await teamById(HIDDEN_TEAM)).name, 'Hidden Team')
+  assert.ok(galway.children.some((c) => Number(c.id) === HIDDEN_TEAM), 'the hidden team below the organisation')
+  assert.equal((await teamById(HIDDEN_TEAM)).name, hiddenTeam.name)
 })

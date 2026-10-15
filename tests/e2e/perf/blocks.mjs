@@ -1,9 +1,10 @@
 // Measure the blocks page on one field: listing its blocks, expanding the root, expanding the largest child.
-// node tests/e2e/perf/blocks.mjs  (env: FIELD="Field B", plus the lib/app.mjs settings)
+// node tests/e2e/perf/blocks.mjs  (env: FIELD, by default perf.field in lib/fixture.local.mjs, plus the lib/app.mjs settings)
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
+import { perf } from '../lib/partialAccess.mjs'
 
-const FIELD = process.env.FIELD || 'Field B'
+const FIELD = process.env.FIELD || perf.field
 const browser = await launchBrowser()
 const page = browser.page
 try {

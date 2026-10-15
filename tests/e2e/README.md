@@ -17,7 +17,7 @@ scripts used to check the people and controls work in October 2026.
 - `*.test.mjs` are tests for Node's built-in runner (`node --test`) with `node:assert`. Each file launches its own
   browser in `before` and closes it in `after`.
 - `perf/*.mjs` are not tests but measurement scripts: they print timings, request sizes, DOM row counts and heap for
-  the pages that matter at dev data scale. Run them before and after a performance change.
+  the pages that matter at the scale of a large migrated dataset. Run them before and after a performance change.
 
 Typing into the page uses the native value setter followed by `input` and `change` events, so Vue and FormKit see the
 change as they would from a keyboard. Selectors are the app's own classes and input names; when a component changes,
@@ -38,15 +38,22 @@ The tests are **additive**: each run registers a new account with a unique name 
 (`E2E_MAIL_DOMAIN` to change), and leaves it in the database. They do not flush anything. Note that the backend's own
 pytest suite does flush the database, so never run it against a database you want to keep.
 
+## The dev database and `lib/fixture.local.mjs`
+
+The tests run against a dev database whose data is not public, so which of its entities they use (ids, names,
+expected counts, the perf scripts' defaults) is kept out of the repository, in `tests/e2e/lib/fixture.local.mjs`,
+which `.gitignore` excludes. Copy `lib/fixture.example.mjs` to it and fill in the values for your database; the example
+describes what each entity must be. Do not commit names, ids or values from a non-public database anywhere else either.
+
 ## Running
 
 ```bash
 npm run test:e2e                 # all tests
 node --test tests/e2e/invitation.test.mjs
 npm run e2e:partial              # create the partial access account and release its entities; `-- restore` makes them private again
-npm run perf:curation            # STUDY="Study B" CONCEPT="Variable A" by default; PAGE_SIZE, START and END narrow the records
-npm run perf:blocks              # FIELD="Field B" by default
-npm run perf:analysis            # STUDY="Study B" CONCEPT="Variable A" by default: dataset selection in the analysis editor
+npm run perf:curation            # STUDY and CONCEPT (default: perf in lib/fixture.local.mjs); PAGE_SIZE, START and END narrow the records
+npm run perf:blocks              # FIELD (default: perf.field)
+npm run perf:analysis            # STUDY and CONCEPT (default: perf): dataset selection in the analysis editor
 npm run perf:programs            # every study panel's dataset summary on the programs page, opened at once
 ```
 
@@ -64,9 +71,9 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
 - `partialAccess.test.mjs`: what a registered user outside every team sees, including placeholder controllers
   (whom to ask, without the history) for the entities hidden from them. `lib/partialAccess.mjs` keeps an account,
   `partial1` / `TestPass123!` (`E2E_PARTIAL_USER` to change), invited by the admin with no team offered, and releases a
-  few dev data migration entities to registered users with hidden ones between them: the Study A study under its
-  hidden trial and program, one of its datasets, field Field A and one tree in its hidden block, and location Field A under
-  two hidden regions. The ids are those of the dev database restored from `migration.dump`. The tests check
+  few entities of the dev database to registered users or the public with hidden ones between them: a study under its
+  hidden trial and program, one of its datasets, a field and one tree in its hidden block, and the field's location
+  under two hidden regions. Which entities is set in `lib/fixture.local.mjs` (see below). The tests check
   that hidden entities are skipped or shown as placeholders on the programs, regions, blocks and curation pages. The
   account and the releases are left in place for checking by hand; `npm run e2e:partial -- restore` makes the entities
   private again.
@@ -80,7 +87,7 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   and datasets pages and sees what is public there, with placeholders, no controller badges and no write actions;
   other pages send them to log in. No request on those pages fails apart from the sign-in check, and the ontology
   is readable in its published and referential views but not the editorial one. The public entities come from `lib/partialAccess.mjs`, which releases the
-  Study A study, its dataset 6, field Field A and location Field A to the public and the Variety A tree to registered users.
+  study, its dataset, the field and its location to the public and one tree to registered users.
 
 - `referencesAccess.test.mjs`: references under the read policy, anonymously, as the partial access account and as the
   admin: a private reference is a placeholder where it is asked for by id or cited by a record of a public dataset,
@@ -89,7 +96,7 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
 - `germplasmAccess.test.mjs`: the germplasm pedigree under the read policy, anonymously, as the partial access
   account and as the admin: a hidden crop is a placeholder holding the public entries below it, a hidden entry
   between public ones is skipped with an UNKNOWN relationship, and the germplasm page shows only what is public.
-  The fixture makes the public Variety B private for this, and `npm run e2e:partial -- restore` makes it public again.
+  The fixture makes a public entry private for this, and `npm run e2e:partial -- restore` makes it public again.
 
 - `peopleAccess.test.mjs`: Persons under the read policy, anonymously, as the partial access account and as the
   admin: a hidden Person is restricted where referred to and absent from searches, the linked user sees their own

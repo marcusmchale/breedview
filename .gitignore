@@ -28,3 +28,6 @@ pnpm-debug.log*
 
 # Vite dependency cache
 /.vite/
+
+# The e2e tests' entities of the dev database, which is not public (see tests/e2e/lib/fixture.example.mjs)
+tests/e2e/lib/fixture.local.mjs

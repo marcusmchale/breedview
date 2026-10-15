@@ -1,13 +1,14 @@
 // Write actions are offered only where the backend would allow them: creating needs a write affiliation to some
 // team, and changing, removing or adding to an entity needs curate access to a team that controls it. The admin
-// account writes for the Galway organisation but does not curate the "Hidden Team" team (id 2) that controls
-// the migrated programs, so it can create a program but not edit one, until curate access is granted for the test.
+// account writes for the organisation but does not curate the team below it that controls the programs (hiddenTeam
+// in lib/fixture.local.mjs), so it can create a program but not edit one, until curate access is granted for the test.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout, graphql } from './lib/app.mjs'
+import { hiddenTeam, hidden } from './lib/partialAccess.mjs'
 
-const MIGRATION_TEAM = process.env.E2E_CURATE_TEAM || '2'
+const MIGRATION_TEAM = process.env.E2E_CURATE_TEAM || String(hiddenTeam.id)
 let browser, page, userId, granted = false
 
 const actions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
@@ -57,8 +58,8 @@ test('with curate access to the controlling team, the program can be changed and
 })
 
 test('an admin of the controlling team reads the full history of a private program', async () => {
-  const payload = await graphql(page, `query { controlsControllers(entityLabel: PROGRAM, entityIds: [1]) { result {
-    writeCount created writes(last: 1) { time } controls { time } } } }`)
+  const payload = await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: PROGRAM, entityIds: $ids) { result {
+    writeCount created writes(last: 1) { time } controls { time } } } }`, { ids: hidden.Program })
   const controller = payload.result[0]
   assert.ok(controller.writeCount > 0 && controller.created && controller.writes.length === 1, JSON.stringify(controller))
   assert.ok(controller.controls.every((c) => c.time), 'with when each control was set')

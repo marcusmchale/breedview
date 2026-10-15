@@ -21,9 +21,34 @@ export async function login(page, username, password = config.password) {
   await page.sleep(1000)
   if (!(await page.url()).includes('/login')) {
     // already signed in as someone: sign out first
-    await page.click('.nav-logout'); await page.sleep(1500); await page.goto(`${config.appUrl}/login`)
+    await logout(page)
+    await page.goto(`${config.appUrl}/login`)
   }
-  await page.waitFor(`document.querySelector('input[name=username]')`)
+  try {
+    await page.waitFor(`document.querySelector('input[name=username]')`)
+  } catch (error) {
+    const state = await page.evaluate('document.readyState')
+    const errors = page.consoleErrors(Math.max(0, page.mark() - 200)).slice(-3).join(' | ')
+    // requests sent and not finished since the last 300 events, e.g. a sign-in check the router guard waits on
+    const recent = page.events.slice(-3000)
+    const failed = recent.filter((e) => e.method === 'Network.loadingFailed').map((e) => e.params.errorText).slice(-3)
+    const logs = recent.filter((e) => e.method === 'Log.entryAdded').map((e) => `${e.params.entry.level}: ${e.params.entry.text}`).slice(-3)
+    const counts = {}
+    for (const e of recent) {
+      if (e.method === 'Network.requestWillBeSent') {
+        const path = e.params.request.url.replace(/^https?:\/\/[^/]+/, '').split('?')[0]
+        if (!path.startsWith('/src') && !path.startsWith('/node_modules') && !path.startsWith('/@')) counts[path] = (counts[path] ?? 0) + 1
+      }
+    }
+    const statuses = recent.filter((e) => e.method === 'Network.responseReceived' && e.params.response.status >= 400)
+      .map((e) => `${e.params.response.status} ${e.params.response.url.replace(/^https?:\/\/[^/]+/, '')}`).slice(-3)
+    const finished = new Set(recent.filter((e) => ['Network.loadingFinished', 'Network.loadingFailed'].includes(e.method)).map((e) => e.params.requestId))
+    const pending = recent.filter((e) => e.method === 'Network.requestWillBeSent' && !finished.has(e.params.requestId))
+      .map((e) => `${e.params.request.method} ${e.params.request.url.replace(/^https?:\/\/[^/]+/, '')}`)
+    const shot = await page.screenshot(`${process.env.E2E_SHOT_DIR || "/tmp"}/breedview-e2e-login-failure.png`)
+    throw new Error(`no login form for ${username} at ${await page.url()} (${state}, screenshot ${shot}): ` +
+      `${flat(await page.text('body')).slice(0, 200)} console: ${errors.slice(0, 400)} pending: ${pending.slice(-5).join(', ')} failed: ${failed.join(', ')} log: ${logs.join(' | ').slice(0, 400)} http: ${statuses.join(', ')} requests: ${JSON.stringify(counts).slice(0, 300)}`)
+  }
   await page.type('input[name=username]', username)
   await page.type('input[name=password]', password)
   await page.click('button[type=submit]')
@@ -32,8 +57,17 @@ export async function login(page, username, password = config.password) {
   if ((await page.url()).includes('/login')) throw new Error(`login as ${username} failed: ${flat(await page.text('.error-message'))}`)
 }
 
+// Navigating away before the logout request has finished would cancel it and leave the session signed in, so wait
+// until the app has left for the login page. The app goes there even when its logout request fails (e.g. on a CSRF
+// token replaced meanwhile), so check the session ended, and end it through the API if not.
 export async function logout(page) {
-  if (await page.exists('.nav-logout')) { await page.click('.nav-logout'); await page.sleep(1200) }
+  if (await page.exists('.nav-logout')) {
+    await page.click('.nav-logout')
+    await page.waitFor(`!document.querySelector('.nav-logout')`, 15000)
+    if ((await graphql(page, 'query { accountsAccount { status } }')).status === 'SUCCESS') {
+      await graphql(page, 'mutation { accountsLogout { status } }')
+    }
+  }
 }
 
 // Run a GraphQL operation from the page, as the signed-in user, with the session cookie and a CSRF token.
@@ -42,11 +76,14 @@ export async function graphql(page, query, variables = {}) {
   const response = await page.evaluate(`(async () => {
     const api = ${JSON.stringify(config.apiUrl)}
     const { token } = await (await fetch(api + '/csrf', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } })).json()
-    const response = await fetch(api + '/graphql', {
+    const post = (csrf) => fetch(api + '/graphql', {
       method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
       body: JSON.stringify({ query: ${JSON.stringify(query)}, variables: ${JSON.stringify(variables)} })
     })
+    let response = await post(token)
+    // the app's own requests may have replaced the token meanwhile: retry once with the new one, as the app does
+    if (response.status === 403 && response.headers.get('X-CSRF-Token')) response = await post(response.headers.get('X-CSRF-Token'))
     return response.json()
   })()`)
   if (response.errors?.length) throw new Error('GraphQL: ' + response.errors.map((e) => e.message).join('; '))

@@ -1,12 +1,12 @@
 // What someone who is not signed in sees: the programs, regions, arrangements, blocks and datasets pages are open to
 // them, showing what has been released to the public, with placeholders and skipped members as for anyone else
-// (breedgraph docs/read-access.md). The releases are set up by lib/partialAccess.mjs: the Study A study, dataset 6,
-// field Field A and location Field A are public; the Variety A tree is released to registered users only.
+// (breedgraph docs/read-access.md). The releases are set up by lib/partialAccess.mjs: a study, its dataset, a field
+// and its location are public; one tree of the field is released to registered users only.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout, graphql, flat } from './lib/app.mjs'
-import { ensureReleases, releasedTo, released, references, names } from './lib/partialAccess.mjs'
+import { ensureReleases, releasedTo, released, references, names, datasets } from './lib/partialAccess.mjs'
 
 let browser, page
 before(async () => {
@@ -70,8 +70,11 @@ test('blocks: the public field, without the tree released to registered users on
 test('the ontology: published and referenced entries, not the editorial view of drafts', async () => {
   const published = await graphql(page, 'query { ontologyEntries(labels: [SUBJECT]) { status result { name } } }')
   assert.ok(published.result.some((e) => e.name === 'Tree'), 'published subjects')
-  const referenced = await graphql(page, 'query { ontologyEntries(ids: [269], view: REFERENTIAL) { status result { name } } }')
-  assert.deepEqual(referenced.result.map((e) => e.name), ['Factor A'], "the public dataset's concept, as referenced")
+  const concept = (await graphql(page, `query ($ids: [ID!]) { datasets(ids: $ids) { result { concept { id } } } }`,
+    { ids: released.Dataset })).result[0].concept.id
+  const referenced = await graphql(page, `query ($ids: [ID!]) { ontologyEntries(ids: $ids, view: REFERENTIAL) { status result { name } } }`,
+    { ids: [concept] })
+  assert.deepEqual(referenced.result.map((e) => e.name), [datasets.concept], "the public dataset's concept, as referenced")
   const editorial = await graphql(page, 'query { ontologyEntries(labels: [SUBJECT], view: EDITORIAL) { status errors { message } } }')
   assert.equal(editorial.status, 'ERROR')
 })

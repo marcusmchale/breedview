@@ -1,11 +1,12 @@
 // Measure selecting the datasets of one concept of one study in the analysis editor: the requests, what they
 // carry and the heap, then a time binning suggestion from the dataset dimensions.
-// node tests/e2e/perf/analysis.mjs  (env: STUDY="Study B" CONCEPT="Variable A", plus the lib/app.mjs settings)
+// node tests/e2e/perf/analysis.mjs  (env: STUDY and CONCEPT, by default perf in lib/fixture.local.mjs, plus the lib/app.mjs settings)
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
+import { perf } from '../lib/partialAccess.mjs'
 
-const STUDY = process.env.STUDY || 'Study B'
-const CONCEPT = process.env.CONCEPT || 'Variable A'
+const STUDY = process.env.STUDY || perf.study
+const CONCEPT = process.env.CONCEPT || perf.concept
 
 const requests = (mark) => JSON.stringify(page.graphql(mark).map((r) => ({ op: r.op, ms: r.ms, kB: Math.round(r.bytes / 1024) })))
 const browser = await launchBrowser()
