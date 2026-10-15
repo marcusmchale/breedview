@@ -13,16 +13,18 @@ export const partialEmail = `breedview-${partialUser}@${config.mailDomain}`
 export const releasedTo = {
   PUBLIC: {
     Study: [4],            // Study A, below the private trial "Trial A" (2) and program "dev data" (1)
-    Dataset: [6],          // Factor A, in Study A, with records for the trees of field Field A
+    Dataset: [6, 1178],    // Factor A, in Study A, with records for the trees of field Field A; and a Study B
+                           // dataset whose records cite the private data file reference 3
     Unit: [14761],         // field Field A
-    Location: [81]         // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
+    Location: [81],        // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
+    Reference: [4]         // a data file data file, cited by the private dataset 1179
   },
   REGISTERED: {
     Unit: [17156]          // one Variety A tree in Field A's private "Block 1" (17560)
   }
 }
 
-// Everything registered users can read
+// Everything registered users can read in the Study A study, its dataset and their units and locations
 export const released = {
   Study: [4],
   Dataset: [6],
@@ -35,7 +37,15 @@ export const hidden = {
   Program: [1],
   Trial: [2],
   Unit: [17560, 17157],    // Block 1, and another Variety A tree in it
-  Location: [82, 85]
+  Location: [82, 85],
+  Reference: [3]           // the data file cited by dataset 1178's records
+}
+
+// References: one public, one private and cited by a public dataset's records
+export const references = {
+  public: 4, hidden: 3, citedBy: 1178, description: 'Data file',
+  // the files of the public and private references, in breedgraph's file store
+  publicFile: '00000000-0000-0000-0000-000000000001', hiddenFile: '00000000-0000-0000-0000-000000000002'
 }
 
 export const names = {
@@ -79,7 +89,9 @@ export async function ensureReleases(page) {
 
 // Make the released entities private again
 export async function restoreReleases(page) {
-  for (const [label, ids] of Object.entries(released)) await setRelease(page, label, ids, 'PRIVATE')
+  for (const entities of Object.values(releasedTo)) {
+    for (const [label, ids] of Object.entries(entities)) await setRelease(page, label, ids, 'PRIVATE')
+  }
 }
 
 // Sign in as the partial account, registering it first (invited by the admin, with no team offered) if it is new

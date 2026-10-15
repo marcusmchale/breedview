@@ -6,7 +6,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout, graphql, flat } from './lib/app.mjs'
-import { ensureReleases, releasedTo, names } from './lib/partialAccess.mjs'
+import { ensureReleases, releasedTo, released, references, names } from './lib/partialAccess.mjs'
 
 let browser, page
 before(async () => {
@@ -87,9 +87,9 @@ test('regions, arrangements and datasets: no request fails', async () => {
 
 test('datasets: the public dataset, its units hidden from anonymous users as placeholders', async () => {
   const search = await graphql(page, `query ($ids: [ID!]) { datasets(studyIds: $ids) { result { id recordCount } } }`, { ids: releasedTo.PUBLIC.Study })
-  assert.deepEqual(search.result.map((d) => Number(d.id)), releasedTo.PUBLIC.Dataset)
+  assert.deepEqual(search.result.map((d) => Number(d.id)), released.Dataset)
   const level = (parentIds) => graphql(page, `query ($ids: [ID!]!, $parents: [ID!]) { datasetsUnits(datasetIds: $ids, parentIds: $parents) {
-    result { unit { id name } unitCount } } }`, { ids: releasedTo.PUBLIC.Dataset, parents: parentIds })
+    result { unit { id name } unitCount } } }`, { ids: released.Dataset, parents: parentIds })
   const roots = (await level(null)).result
   assert.deepEqual(roots.map((r) => [r.unit.name, r.unitCount]), [[names.field, search.result[0].recordCount]])
   const children = (await level([roots[0].unit.id])).result

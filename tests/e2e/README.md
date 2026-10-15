@@ -81,6 +81,10 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   is readable in its published and referential views but not the editorial one. The public entities come from `lib/partialAccess.mjs`, which releases the
   Study A study, its dataset 6, field Field A and location Field A to the public and the Variety A tree to registered users.
 
+- `referencesAccess.test.mjs`: references under the read policy, anonymously, as the partial access account and as the
+  admin: a private reference is a placeholder where it is asked for by id or cited by a record of a public dataset,
+  and searches find only what the reader can see.
+
 ## Adding a test
 
 Copy the shape of `invitation.test.mjs`: launch a browser in `before`, use the helpers, assert on what the page shows,
