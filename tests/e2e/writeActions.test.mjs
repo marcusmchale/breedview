@@ -1,18 +1,23 @@
 // Write actions are offered only where the backend would allow them: creating needs a write affiliation to some
-// team, and changing, removing or adding to an entity needs curate access to a team that controls it. The admin
-// account writes for the organisation but does not curate the team below it that controls the programs (hiddenTeam
-// in lib/fixture.local.mjs), so it can create a program but not edit one, until curate access is granted for the test.
+// team, and changing, removing or adding to an entity needs curate access to a team that controls it. The test
+// database's admin writes and curates for the organisation (root) but only administers the team below it (child),
+// which controls the private program: so it can create programs and edit the organisation's, but not edit the child
+// team's until curate access is granted for the test.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, login, logout, graphql } from './lib/app.mjs'
-import { hiddenTeam, hidden } from './lib/partialAccess.mjs'
+import { config, loginAs, logout, graphql } from './lib/app.mjs'
+import { entities as e, teams } from './lib/fixture.mjs'
 
-const MIGRATION_TEAM = process.env.E2E_CURATE_TEAM || String(hiddenTeam.id)
+const CHILD = String(teams.child.id)
 let browser, page, userId, granted = false
 
-const actions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
+const pageActions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
   .filter((t) => /^(Create|Edit|Delete)/.test(t))`)
+// the actions of a program's card; the program is found by its name, or as the placeholder
+const actionsOf = (name) => page.evaluate(`[...[...document.querySelectorAll('.program-card')]
+  .find((c) => c.querySelector('.program-card-header h3')?.innerText.trim() === ${JSON.stringify(name)})
+  .querySelectorAll('button')].map((e) => e.innerText.trim()).filter((t) => /^(Create|Edit|Delete)/.test(t))`)
 
 async function openPrograms() {
   await page.goto(`${config.appUrl}/programs`)
@@ -27,40 +32,34 @@ const curateTeams = async () =>
 
 before(async () => {
   browser = await launchBrowser(); page = browser.page
-  await login(page, config.adminUser, config.adminPassword)
+  await loginAs(page, 'admin')
   userId = (await graphql(page, 'query { accountsAccount { result { user { id } } } }')).result.user.id
 })
 after(async () => {
   try {
     if (granted) {
-      await graphql(page, `mutation ($team: ID!) { accountsRemoveAffiliation(teamId: $team, access: CURATE) { status } }`, { team: MIGRATION_TEAM })
+      await graphql(page, `mutation ($team: ID!) { accountsRemoveAffiliation(teamId: $team, access: CURATE) { status } }`, { team: CHILD })
     }
   } finally {
     await logout(page); await browser?.close()
   }
 })
 
-test('without curate access, a writer can create a program but not change one', async () => {
-  assert.ok(!(await curateTeams()).includes(MIGRATION_TEAM), `the admin account does not curate team ${MIGRATION_TEAM}`)
+test('a writer can create a program, and change those of the teams they curate only', async () => {
+  assert.ok(!(await curateTeams()).includes(CHILD), `the admin does not curate ${teams.child.name}`)
   await openPrograms()
-  assert.deepEqual(await actions(), ['Create New Program'])
+  assert.ok((await pageActions()).includes('Create New Program'))
+  assert.ok((await actionsOf(e.program_public.name)).includes('Edit'), 'the organisation\'s program can be changed')
+  assert.ok(!(await actionsOf(e.program.name)).some((a) => /^(Edit|Delete|Create Trial)/.test(a)), 'the child team\'s cannot')
 })
 
 test('with curate access to the controlling team, the program can be changed and added to', async () => {
   const payload = await graphql(page, `mutation ($user: ID!, $team: ID!) {
     accountsApproveAffiliation(userId: $user, teamId: $team, access: CURATE, heritable: false) { status errors { message } } }`,
-  { user: userId, team: MIGRATION_TEAM })
+  { user: userId, team: CHILD })
   assert.equal(payload.status, 'SUCCESS', JSON.stringify(payload.errors))
   granted = true
   await openPrograms()
-  const offered = await actions()
-  for (const action of ['Create New Program', 'Create Trial', 'Edit']) assert.ok(offered.includes(action), `${action} is offered: ${offered}`)
-})
-
-test('an admin of the controlling team reads the full history of a private program', async () => {
-  const payload = await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: PROGRAM, entityIds: $ids) { result {
-    writeCount created writes(last: 1) { time } controls { time } } } }`, { ids: hidden.Program })
-  const controller = payload.result[0]
-  assert.ok(controller.writeCount > 0 && controller.created && controller.writes.length === 1, JSON.stringify(controller))
-  assert.ok(controller.controls.every((c) => c.time), 'with when each control was set')
+  const offered = await actionsOf(e.program.name)
+  for (const action of ['Create Trial', 'Edit']) assert.ok(offered.includes(action), `${action} is offered: ${offered}`)
 })

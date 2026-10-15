@@ -1,69 +1,54 @@
-// Accounts and organisations under the read policy (breedgraph docs/read-access.md): organisation roots and their
-// legal entities are public, other teams are seen by those affiliated with them, and a hidden team asked for by id is
-// a placeholder. Accounts are shown only to their owner and admins of their teams, so what an account did (a write)
-// is attributed to its Person, under the people policy. lib/partialAccess.mjs links the admin to a public Person.
+// Who wrote what, in the controller modal (breedgraph docs/read-access.md): accounts are shown only to their owner and
+// admins of their teams, so a write is attributed to the writer's Person where the viewer cannot see the account, and
+// a writer with neither is named as such. What the API returns (organisation roots and legal entities, team
+// placeholders, controllers refused anonymously, write attribution) is tested in breedgraph; here, the labels.
+// The admin is linked to a public Person and wrote the public program; the writer has no Person and wrote the study.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, login, logout, graphql, flat } from './lib/app.mjs'
-import { ensureAdminPerson, adminPersonName, loginPartial, people, names, hiddenTeam, adminGermplasm } from './lib/partialAccess.mjs'
-
-const HIDDEN_TEAM = hiddenTeam.id           // below the organisation, hidden from the partial account
-const ADMIN_GERMPLASM = adminGermplasm.id   // public, recorded by the admin
+import { config, loginAs, logout, flat } from './lib/app.mjs'
+import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
-before(async () => {
-  browser = await launchBrowser({ height: 1800 }); page = browser.page
-  await ensureAdminPerson(page)
-  await page.goto(`${config.appUrl}/login`)
-  // signed out for good before the anonymous checks: navigating straight after logging out can cut the logout short
-  const signedOut = async () => (await graphql(page, 'query { accountsAccount { status } }')).status === 'ERROR'
-  for (let attempt = 0; attempt < 10 && !(await signedOut()); attempt++) await page.sleep(500)
-})
+before(async () => { browser = await launchBrowser({ height: 1800 }); page = browser.page })
 after(async () => { await logout(page); await browser?.close() })
 
-const organisations = async () => (await graphql(page, `query { organisations { result { id name children { id }
-  legalEntity { legalName privacyContact declaredBy { id } } } } }`)).result
-const teamById = async (id) => (await graphql(page, `query ($id: ID!) { organisationsTeam(id: $id) { result { id name parent { id } } } }`, { id })).result
-const lastWrite = async () => (await graphql(page, `query ($ids: [ID!]!) { controlsControllers(entityLabel: GERMPLASM, entityIds: $ids) {
-  result { writes(last: 1) { user { name } person { name restricted } } } } }`, { ids: [ADMIN_GERMPLASM] })).result[0].writes[0]
+const badgeOf = (card, name) => `[...document.querySelectorAll('.controller-badge')].find((b) => b.closest(${JSON.stringify(card)})
+  ?.querySelector('h3, h4, strong')?.innerText.trim() === ${JSON.stringify(name)})`
 
-test('anonymous: organisation roots and their legal entities, not their teams', async () => {
-  const roots = await organisations()
-  const galway = roots.find((o) => o.name === names.organisation)
-  assert.ok(galway?.legalEntity?.legalName, 'the data controller is public')
-  assert.deepEqual([galway.children, galway.legalEntity.declaredBy], [[], null], 'but not its teams, nor who declared it')
-  assert.deepEqual(await teamById(HIDDEN_TEAM), { id: String(HIDDEN_TEAM), name: 'REDACTED', parent: null }, 'a hidden team by id is a placeholder')
-  const controllers = await graphql(page, `query { controlsControllers(entityLabel: GERMPLASM, entityIds: [1]) { status } }`)
-  assert.equal(controllers.status, 'ERROR', 'controllers are for signed-in users')
-})
-
-test('a registered user sees writes attributed to the writer\'s Person, not the account', async () => {
-  await loginPartial(page)
-  assert.deepEqual(await lastWrite(), { user: null, person: { name: adminPersonName, restricted: false } })
-  assert.deepEqual(await teamById(HIDDEN_TEAM), { id: String(HIDDEN_TEAM), name: 'REDACTED', parent: null })
-  // a write by an account without a Person, on the public study
+async function openPrograms() {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.controller-badge:not([disabled])')`, 30000)
   for (let level = 0; level < 2; level++) {
     await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
     await page.sleep(2500)
   }
-  await page.evaluate(`[...document.querySelectorAll('.controller-badge')].at(-1).click()`)
+  await page.waitFor(`!document.querySelector('.controller-badge[disabled]')`, 30000)
+}
+async function history(card, name) {
+  await page.evaluate(`${badgeOf(card, name)}.click()`)
   await page.waitFor(`document.body.innerText.includes('Write History')`, 30000)
-  const modal = flat(await page.text('body'))
-  assert.ok(modal.includes('An account without a Person record'), 'a writer with neither a visible account nor a Person')
-  assert.ok(!modal.includes('Unknown User'))
+  const modal = flat(await page.text('.controller-modal'))
   await page.evaluate(`document.querySelector('.modal-close').click()`)
+  return modal
+}
+
+test('a registered user sees writes attributed to the writer\'s Person, or to an account without one', async () => {
+  await loginAs(page, 'outsider')
+  await openPrograms()
+  const program = await history('.program-card-header', e.program_public.name)
+  assert.ok(program.includes(e.person_admin.name), `the admin's write is attributed to their Person: ${program}`)
+  assert.ok(!program.includes(config.adminUser), 'not to their account')
+  const study = await history('.study-card', e.study_public.name)
+  assert.ok(study.includes('An account without a Person record'), `a writer with neither a visible account nor a Person: ${study}`)
+  assert.ok(!study.includes('Unknown User'))
   await logout(page)
 })
 
-test('the admin sees its own account, the hidden team, and its organisation\'s teams', async () => {
-  await login(page, config.adminUser, config.adminPassword)
-  const write = await lastWrite()
-  assert.equal(write.user?.name, config.adminUser)
-  assert.equal(write.person?.name, adminPersonName)
-  const galway = (await organisations()).find((o) => o.name === names.organisation)
-  assert.ok(galway.children.some((c) => Number(c.id) === HIDDEN_TEAM), 'the hidden team below the organisation')
-  assert.equal((await teamById(HIDDEN_TEAM)).name, hiddenTeam.name)
+test('the admin sees their own account as the writer', async () => {
+  await loginAs(page, 'admin')
+  await openPrograms()
+  const program = await history('.program-card-header', e.program_public.name)
+  assert.ok(program.includes(config.adminUser), `the admin's own account: ${program}`)
+  await logout(page)
 })

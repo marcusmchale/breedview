@@ -76,7 +76,7 @@ const handleChildNodeSelected = ({ nodeId, parentId }) => {
         @click="handleNodeClick"
       >
         <button
-          v-if="unit.subject && unit.children && unit.children.length > 0"
+          v-if="unit.children && unit.children.length > 0"
           @click.stop="toggleExpand"
           class="expand-btn"
           :class="{ expanded }"

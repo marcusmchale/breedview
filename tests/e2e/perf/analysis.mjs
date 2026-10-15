@@ -1,9 +1,9 @@
 // Measure selecting the datasets of one concept of one study in the analysis editor: the requests, what they
 // carry and the heap, then a time binning suggestion from the dataset dimensions.
-// node tests/e2e/perf/analysis.mjs  (env: STUDY and CONCEPT, by default perf in lib/fixture.local.mjs, plus the lib/app.mjs settings)
+// node tests/e2e/perf/analysis.mjs  (env: STUDY and CONCEPT, by default the test database manifest's perf, plus the lib/app.mjs settings)
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
-import { perf } from '../lib/partialAccess.mjs'
+import { perf } from '../lib/fixture.mjs'
 
 const STUDY = process.env.STUDY || perf.study
 const CONCEPT = process.env.CONCEPT || perf.concept

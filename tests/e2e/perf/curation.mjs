@@ -1,10 +1,10 @@
 // Measure loading one concept of one study in the curation table: API time, rows rendered, heap, then the next page.
-// node tests/e2e/perf/curation.mjs  (env: STUDY and CONCEPT, by default perf in lib/fixture.local.mjs, PAGE_SIZE=1000 (units) START="" END="" UNIT="",
+// node tests/e2e/perf/curation.mjs  (env: STUDY and CONCEPT, by default the test database manifest's perf, PAGE_SIZE=1000 (units) START="" END="" UNIT="",
 // plus the lib/app.mjs settings). START and END narrow the records to a time window, and UNIT to the first block
 // whose name includes it, before loading.
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
-import { perf } from '../lib/partialAccess.mjs'
+import { perf } from '../lib/fixture.mjs'
 
 const STUDY = process.env.STUDY || perf.study
 const CONCEPT = process.env.CONCEPT || perf.concept

@@ -3,6 +3,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout } from './lib/app.mjs'
+import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => { browser = await launchBrowser(); page = browser.page; await login(page, config.adminUser, config.adminPassword) })
@@ -44,27 +45,32 @@ test('the dataset submission opens for the first study', async () => {
   await page.waitFor(`document.querySelectorAll('.modal-overlay .hierarchical-multiselect .select-trigger').length >= 2`, 30000)
   await page.sleep(1000)
   assert.match(await page.text('body'), /Create New Dataset[\s\S]*Study:/, 'the submission form shows the study')
-  // the table mounts once a location, a unit and a concept are chosen; pick the first of each
-  const pickFirst = async (index, what) => {
+  // the table mounts once a location, a unit and a concept are chosen: the test database's field, which holds blocks,
+  // and the first unit there
+  const optionIndex = (label) => `[...document.querySelectorAll('.options-list .option-item')].findIndex((o) => o.querySelector('.option-label')?.innerText.trim() === ${JSON.stringify(label)})`
+  const pick = async (index, what, path = [], target = null) => {
     await page.evaluate(`document.querySelectorAll('.modal-overlay .hierarchical-multiselect .select-trigger')[${index}].click()`)
     await page.waitFor(`document.querySelector('.options-list .option-label')`, 30000)
-    // follow the first entry down to the bottom of the tree, where a location has blocks and a block has units
+    // follow the path, or the first entry, down until the target is listed, or to the bottom of the tree
     for (let level = 0; level < 5 && (await page.exists('.options-list .expand-button')); level++) {
-      await page.evaluate(`document.querySelector('.options-list .expand-button').click()`)
+      if (target && (await page.evaluate(optionIndex(target))) >= 0) break
+      const along = path[level] ? await page.evaluate(optionIndex(path[level])) : -1
+      await page.evaluate(`(document.querySelectorAll('.options-list .option-item')[${along}]?.querySelector('.expand-button') ?? document.querySelector('.options-list .expand-button')).click()`)
       await page.sleep(300)
       // the list shows a spinner while a level loads
       await page.waitFor(`!document.querySelector('.options-list .loading-state') && (document.querySelector('.options-list .option-label') || document.querySelector('.options-list .empty-state'))`, 60000)
     }
-    assert.ok(await page.exists('.options-list .option-checkbox'), `a ${what} can be picked`)
-    const label = await page.evaluate(`document.querySelector('.options-list .option-label')?.innerText.trim()`)
-    await page.evaluate(`document.querySelector('.options-list .option-checkbox').click()`)
+    const at = target ? await page.evaluate(optionIndex(target)) : 0
+    assert.ok(at >= 0 && await page.exists('.options-list .option-checkbox'), `a ${what} can be picked`)
+    const label = await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${at}].querySelector('.option-label').innerText.trim()`)
+    await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${at}].querySelector('.option-checkbox').click()`)
     await page.sleep(300)
     await page.evaluate(`document.querySelector('.btn-done').click()`)
     await page.sleep(1500)
     return `${what} ${label}`
   }
-  const location = await pickFirst(0, 'location')
-  const unit = await pickFirst(1, 'unit')
+  const location = await pick(0, 'location', [e.country.name, e.state.name], e.field.name)
+  const unit = await pick(1, 'unit')
   await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 30000)
   await page.evaluate(`(() => { const s = document.querySelector('select[name=variableIds]'); s.options[0].selected = true; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.sleep(2500)

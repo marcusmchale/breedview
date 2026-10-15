@@ -8,6 +8,8 @@ let browser, page
 before(async () => { browser = await launchBrowser(); page = browser.page; await login(page, config.adminUser, config.adminPassword) })
 after(async () => { await logout(page); await browser?.close() })
 
+// components/customInputs/SelectionChips.vue: more single chips than this show as their count
+const MAX_SELECTION_CHIPS = 20
 const typeRows = () => page.evaluate(`[...document.querySelectorAll('.type-row')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)
 const summary = () => page.evaluate(`document.querySelector('.selection-summary')?.innerText.replace(/\\s+/g, ' ').trim()`)
 const typePanelReady = `document.querySelector('.type-row') || document.querySelector('.type-panel-error') || document.querySelector('.type-panel .empty-state')`
@@ -48,7 +50,7 @@ test('the studies picker of the analysis editor selects every study by type', as
   // the selection by type shows as one chip with its count
   const chips = () => page.evaluate(`[...document.querySelectorAll('#analysis-data .tree-multi-picker .selection-chip')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)
   assert.deepEqual(await chips(), [`Study · ${count} ×`], 'one group chip for the studies selected by type')
-  // unticking one study dissolves the group into named chips
+  // unticking one study dissolves the group into named chips, or their count when there are many
   await page.evaluate(`document.querySelector('#analysis-data .tree-multi-picker .select-trigger').click()`)
   await page.waitFor(`document.querySelector('.options-list .option-label')`)
   for (let level = 0; level < 2; level++) {
@@ -62,8 +64,12 @@ test('the studies picker of the analysis editor selects every study by type', as
   await page.click('.btn-done')
   await page.sleep(500)
   const single = await chips()
-  assert.equal(single.length, count - 1, 'a chip per remaining study')
-  assert.ok(single.every((c) => !/^Study \d+/.test(c) && !/Study ·/.test(c)), `every chip is a named study: ${single.join('; ')}`)
+  if (count - 1 > MAX_SELECTION_CHIPS) {
+    assert.deepEqual(single, [`${count - 1} selected ×`], 'too many for a chip each: their count')
+  } else {
+    assert.equal(single.length, count - 1, `a chip per remaining study: ${single.join('; ')}`)
+    assert.ok(single.every((c) => !/^Study \d+/.test(c) && !/Study ·/.test(c)), `every chip is a named study: ${single.join('; ')}`)
+  }
   // a trial cannot be selected itself, so its tick selects the studies below it, as one group
   await page.evaluate(`document.querySelector('#analysis-data .tree-multi-picker .select-trigger').click()`)
   await page.waitFor(`document.querySelector('.options-list .option-label')`)

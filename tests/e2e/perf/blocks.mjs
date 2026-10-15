@@ -1,8 +1,8 @@
 // Measure the blocks page on one field: listing its blocks, expanding the root, expanding the largest child.
-// node tests/e2e/perf/blocks.mjs  (env: FIELD, by default perf.field in lib/fixture.local.mjs, plus the lib/app.mjs settings)
+// node tests/e2e/perf/blocks.mjs  (env: FIELD, by default the test database manifest's perf.field, plus the lib/app.mjs settings)
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
-import { perf } from '../lib/partialAccess.mjs'
+import { perf } from '../lib/fixture.mjs'
 
 const FIELD = process.env.FIELD || perf.field
 const browser = await launchBrowser()
@@ -36,7 +36,7 @@ try {
   if (index >= 0) {
     mark = page.mark()
     await page.evaluate(`[...document.querySelectorAll('.unit-tree .children .node-header')][${index}].querySelector('.expand-btn').click()`)
-    const childMs = await page.waitFor(`document.querySelectorAll('.unit-tree .node-header').length > ${nodes} + 10 && !document.querySelector('.unit-tree .children .children .loading')`, 600000)
+    const childMs = await page.waitFor(`document.querySelectorAll('.unit-tree .node-header').length > ${nodes} && !document.querySelector('.unit-tree .children .children .loading')`, 600000)
     await page.sleep(1500)
     console.log(`expand largest child (${count} children): ${childMs} ms, ${await page.evaluate(`document.querySelectorAll('.unit-tree .node-header').length`)} nodes, ${page.graphql(mark).length} requests, heap ${await page.heapMB()} MB`)
   }

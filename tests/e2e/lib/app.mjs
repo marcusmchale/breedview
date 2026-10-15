@@ -1,12 +1,16 @@
 // BreedView-specific helpers: configuration, login, registration, and the MailHog mailbox the dev backend sends to.
+import { accounts } from './fixture.mjs'
+
 export const config = {
   appUrl: process.env.BREEDVIEW_URL || 'http://localhost:8080',
   apiUrl: process.env.BREEDGRAPH_URL || 'http://localhost:8000',
   mailhogUrl: process.env.MAILHOG_URL || 'http://localhost:8025',
-  // an existing account to act as; it must be an admin of adminTeam for the invitation test
-  adminUser: process.env.E2E_ADMIN_USER || 'tester1',
-  adminPassword: process.env.E2E_ADMIN_PASSWORD || 'TestPass123!',
+  // the account to act as, by default the test database's admin; it must be an admin of adminTeam (by default the
+  // first team it administers) for the invitation test
+  adminUser: process.env.E2E_ADMIN_USER || accounts.admin.username,
+  adminPassword: process.env.E2E_ADMIN_PASSWORD || accounts.admin.password,
   adminTeam: process.env.E2E_ADMIN_TEAM || null,
+  // the password of the accounts the tests register
   password: 'TestPass123!',
   // the address that registration emails go to, with a unique local part per run
   mailDomain: process.env.E2E_MAIL_DOMAIN || 'example.com'
@@ -55,6 +59,14 @@ export async function login(page, username, password = config.password) {
   await page.waitFor(`!location.href.includes('/login') || document.querySelector('.error-message')`, 15000)
   await page.sleep(500)
   if ((await page.url()).includes('/login')) throw new Error(`login as ${username} failed: ${flat(await page.text('.error-message'))}`)
+}
+
+// Sign in as one of the test database's accounts: admin, writer, stranger or outsider (lib/fixture.mjs)
+export async function loginAs(page, viewer) {
+  if (viewer === 'admin') return login(page, config.adminUser, config.adminPassword)
+  const account = accounts[viewer]
+  if (!account) throw new Error(`no account ${viewer} in the test database manifest`)
+  return login(page, account.username, account.password)
 }
 
 // Navigating away before the logout request has finished would cancel it and leave the session signed in, so wait
