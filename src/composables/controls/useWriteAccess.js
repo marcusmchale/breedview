@@ -1,5 +1,6 @@
 import { computed, toValue } from 'vue'
 import { useUserAccess } from '@/composables/user/useUserAccess'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useControllerQuery } from '@/composables/controls/useControllerQuery'
 import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
@@ -11,19 +12,22 @@ import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graph
  * The user's access is read from the cache once loaded, so panels do not each send a request for it. Curate access
  * to an entity is answered by the server (Controller.access) from the user's affiliations, not by comparing team ids
  * here: a controlling team hidden from the user is shown as a visible team standing in for it. It is read with the
- * controller badge's query, so the check adds no request of its own.
+ * controller badge's query, so the check adds no request of its own. Anonymous users can write nothing, so
+ * neither check sends a request for them.
  */
 export function useCanCreate() {
-  const { writeTeamIds } = useUserAccess({ fetchPolicy: 'cache-first' })
-  return computed(() => writeTeamIds.value.length > 0)
+  const { isAuthenticated } = useAuthStore()
+  const { writeTeamIds } = useUserAccess({ fetchPolicy: 'cache-first', enabled: isAuthenticated })
+  return computed(() => isAuthenticated.value && writeTeamIds.value.length > 0)
 }
 
 export function useCanCurate({ entityLabel, entityId }) {
+  const { isAuthenticated } = useAuthStore()
   const { controller } = useControllerQuery({
     entityLabel,
     entityId,
     query: CONTROLLER_RELEASE_QUERY,
-    enabled: () => toValue(entityId) != null
+    enabled: () => isAuthenticated.value && toValue(entityId) != null
   })
-  return computed(() => controller.value?.access?.includes('CURATE') ?? false)
+  return computed(() => isAuthenticated.value && (controller.value?.access?.includes('CURATE') ?? false))
 }

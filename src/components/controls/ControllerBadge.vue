@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import ControllerModal from './ControllerModal.vue'
 import { useControllerQuery } from '@/composables/controls/useControllerQuery'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
 const props = defineProps({
@@ -20,11 +21,14 @@ const props = defineProps({
 })
 
 const showModal = ref(false)
+// Anonymous users only ever see what is public, so the badge would tell them nothing
+const { isAuthenticated } = useAuthStore()
 // The badge shows the release alone; the controls, writes and teams are read when the details are opened
 const { controller: releaseController, loading, refetch: refetchRelease } = useControllerQuery({
   entityLabel: () => props.entityLabel,
   entityId: () => props.entityId,
-  query: CONTROLLER_RELEASE_QUERY
+  query: CONTROLLER_RELEASE_QUERY,
+  enabled: isAuthenticated
 })
 // the latest writes, until all of them are asked for
 const allWrites = ref(false)
@@ -51,7 +55,7 @@ const handleReleaseUpdated = async () => {
 </script>
 
 <template>
-  <div class="controller-badge-container" >
+  <div v-if="isAuthenticated" class="controller-badge-container" >
     <button
       @click="openModal"
       class="controller-badge"

@@ -1,15 +1,17 @@
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import USER_ACCESS_QUERY from '@/graphql/account/userAccess.graphql'
 
+// options are useQuery's; enabled may be a ref or getter, such as whether anyone is signed in
 export function useUserAccess(options= {} ) {
   const { result, loading, error , onResult, onError, refetch } = useQuery(
       USER_ACCESS_QUERY,
       {},
-      {
+      () => ({
         fetchPolicy: "cache-and-network",
-        ...options
-      }
+        ...options,
+        enabled: toValue(options.enabled ?? true)
+      })
   )
 
   const userAccess = computed(() => result.value?.accountsUserAccess?.result || null)

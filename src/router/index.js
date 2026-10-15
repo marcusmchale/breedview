@@ -69,7 +69,8 @@ const routes = [
     name: 'Programs',
     component: ProgramsPage,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Programs'
     }
   },
@@ -108,7 +109,8 @@ const routes = [
     name: 'Regions',
     component: RegionManagement,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Regions'
     }
   },
@@ -117,7 +119,8 @@ const routes = [
     name: 'Arrangements',
     component: ArrangementManagement,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Arrangements'
     }
   },
@@ -126,7 +129,8 @@ const routes = [
     name: 'Blocks',
     component: BlockManagement,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Blocks'
     }
   },
@@ -135,7 +139,8 @@ const routes = [
     name: 'Datasets',
     component: DatasetManagement,
     meta: {
-      requiresAuth: true,
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
       title: 'Datasets'
     }
   },
@@ -227,6 +232,17 @@ router.beforeEach(async (to, from, next) => {
   }
 
   const { authenticate } = useAuthStore()
+
+  // Routes open to anonymous users still learn who is signed in, for the navigation and what the page offers
+  if (to.meta.allowAnonymous) {
+    try {
+      await authenticate()
+    } catch (error) {
+      console.log('Auth check failed on an open route:', error)
+    }
+    next()
+    return
+  }
 
   // Handle protected routes
   if (to.meta.requiresAuth) {

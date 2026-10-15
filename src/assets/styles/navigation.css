@@ -57,7 +57,8 @@
   font-weight: bold;
 }
 
-.nav-logout {
+.nav-logout,
+.nav-login {
   background-color: rgba(255, 255, 255, 0.2);
   color: white;
   border: none;
@@ -67,7 +68,12 @@
   transition: background-color 0.2s;
 }
 
-.nav-logout:hover:not(:disabled) {
+.nav-login {
+  text-decoration: none;
+}
+
+.nav-logout:hover:not(:disabled),
+.nav-login:hover {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
@@ -91,7 +97,8 @@
     font-size: 0.9rem;
   }
   
-  .nav-logout {
+  .nav-logout,
+  .nav-login {
     padding: 0.5rem;
     font-size: 0.9rem;
   }

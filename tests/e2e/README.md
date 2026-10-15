@@ -75,6 +75,12 @@ Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL`
   The admin account sees "Create New Program" but no program edits until the test grants it curate access to the
   migration team (`E2E_CURATE_TEAM`, default 2); the grant is removed afterwards.
 
+- `anonymousAccess.test.mjs`: someone not signed in can open the programs, regions, arrangements, blocks and
+  datasets pages and sees what is public there, with placeholders, no controller badges and no write actions;
+  other pages send them to log in. No request on those pages fails apart from the sign-in check, and the ontology
+  is readable in its published and referential views but not the editorial one. The public entities come from `lib/partialAccess.mjs`, which releases the
+  Study A study, its dataset 6, field Field A and location Field A to the public and the Variety A tree to registered users.
+
 ## Adding a test
 
 Copy the shape of `invitation.test.mjs`: launch a browser in `before`, use the helpers, assert on what the page shows,

@@ -1,5 +1,6 @@
-// A registered account in no team, and a few dev data migration entities released to REGISTERED, so that what a
-// user outside the teams sees can be checked: readable entities, hidden ones between them, and placeholders.
+// A registered account in no team, and a few dev data migration entities released to registered users or the
+// public, so that what a user outside the teams, or an anonymous one, sees can be checked: readable entities, hidden
+// ones between them, and placeholders.
 // The ids are those of the dev database restored from migration.dump, where everything belongs to the
 // "Hidden Team" team (id 2), which the admin account administers.
 import { config, login, logout, register, graphql, waitForMail, verifyEmail, flat } from './app.mjs'
@@ -7,12 +8,26 @@ import { config, login, logout, register, graphql, waitForMail, verifyEmail, fla
 export const partialUser = process.env.E2E_PARTIAL_USER || 'partial1'
 export const partialEmail = `breedview-${partialUser}@${config.mailDomain}`
 
-// Released to registered users; each readable entity is separated from the next by a hidden one
+// Released by level; each readable entity is separated from the next by a hidden one. Anonymous users see the
+// public ones only, so the tree is hidden from them and its field holds nothing they can see.
+export const releasedTo = {
+  PUBLIC: {
+    Study: [4],            // Study A, below the private trial "Trial A" (2) and program "dev data" (1)
+    Dataset: [6],          // Factor A, in Study A, with records for the trees of field Field A
+    Unit: [14761],         // field Field A
+    Location: [81]         // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
+  },
+  REGISTERED: {
+    Unit: [17156]          // one Variety A tree in Field A's private "Block 1" (17560)
+  }
+}
+
+// Everything registered users can read
 export const released = {
-  Study: [4],              // Study A, below the private trial "Trial A" (2) and program "dev data" (1)
-  Dataset: [6],            // Factor A, in Study A, with records for the trees of field Field A
-  Unit: [14761, 17156],    // field Field A, and one Variety A tree in its private "Block 1" (17560)
-  Location: [81]           // Field A, below the private Subregion (82) and Region (85), in the public Country (73)
+  Study: [4],
+  Dataset: [6],
+  Unit: [14761, 17156],
+  Location: [81]
 }
 
 // Kept private: the test relies on them being hidden
@@ -47,16 +62,18 @@ async function setRelease(page, label, ids, release) {
   if (payload.status !== 'SUCCESS') throw new Error(`release ${label} ${ids} as ${release}: ${JSON.stringify(payload.errors)}`)
 }
 
-// Release the entities above, as the admin, where they are not released yet; refuse if a hidden one is released
+// Release the entities above, as the admin, where they are not released as listed; refuse if a hidden one is released
 export async function ensureReleases(page) {
   for (const [label, ids] of Object.entries(hidden)) {
     const current = await releases(page, label, ids)
     if (current.some((r) => r !== 'PRIVATE')) throw new Error(`${label} ${ids} should be private, but are ${current}`)
   }
-  for (const [label, ids] of Object.entries(released)) {
-    const current = await releases(page, label, ids)
-    const toRelease = ids.filter((_, i) => current[i] === 'PRIVATE')
-    if (toRelease.length) await setRelease(page, label, toRelease, 'REGISTERED')
+  for (const [level, entities] of Object.entries(releasedTo)) {
+    for (const [label, ids] of Object.entries(entities)) {
+      const current = await releases(page, label, ids)
+      const toRelease = ids.filter((_, i) => current[i] !== level)
+      if (toRelease.length) await setRelease(page, label, toRelease, level)
+    }
   }
 }
 
@@ -99,7 +116,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     } else {
       await loginPartial(page); await logout(page)
       await login(page, config.adminUser, config.adminPassword); await ensureReleases(page); await logout(page)
-      console.log(`${partialUser} / ${config.password} is ready, with ${JSON.stringify(released)} released to registered users`)
+      console.log(`${partialUser} / ${config.password} is ready, with ${JSON.stringify(releasedTo)} released`)
     }
   } finally {
     await browser.close()

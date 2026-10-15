@@ -11,7 +11,7 @@ const router = useRouter()
 const route = useRoute()
 
 const { fetchCsrfToken, clearCsrfToken } = useCsrf()
-const { clearAuthState } = useAuthStore()
+const { clearAuthState, isAuthenticated } = useAuthStore()
 
 // Get Apollo client once at setup
 const { client } = useApolloClient()
@@ -92,21 +92,24 @@ onMounted(async () => {
         </div>
 
         <div class="nav-menu">
-          <router-link to="/affiliations" class="nav-link" active-class="active">
-            Affiliations
-          </router-link>
-          <router-link to="/people" class="nav-link" active-class="active">
-            People
-          </router-link>
-          <router-link to="/transfers" class="nav-link" active-class="active">
-            Transfers
-          </router-link>
-          <router-link to="/ontology" class="nav-link" active-class="active">
-            Ontology
-          </router-link>
-          <router-link to="/germplasm" class="nav-link" active-class="active">
-            Germplasm
-          </router-link>
+          <!-- anonymous users see only the pages open to them (allowAnonymous in the router) -->
+          <template v-if="isAuthenticated">
+            <router-link to="/affiliations" class="nav-link" active-class="active">
+              Affiliations
+            </router-link>
+            <router-link to="/people" class="nav-link" active-class="active">
+              People
+            </router-link>
+            <router-link to="/transfers" class="nav-link" active-class="active">
+              Transfers
+            </router-link>
+            <router-link to="/ontology" class="nav-link" active-class="active">
+              Ontology
+            </router-link>
+            <router-link to="/germplasm" class="nav-link" active-class="active">
+              Germplasm
+            </router-link>
+          </template>
           <router-link to="/regions" class="nav-link" active-class="active">
             Regions
           </router-link>
@@ -122,15 +125,20 @@ onMounted(async () => {
           <router-link to="/datasets" class="nav-link" active-class="active">
             Datasets
           </router-link>
-          <router-link to="/analysis" class="nav-link" active-class="active">
-            Analysis
+          <template v-if="isAuthenticated">
+            <router-link to="/analysis" class="nav-link" active-class="active">
+              Analysis
+            </router-link>
+            <router-link to="/profile" class="nav-link" active-class="active">
+              Profile
+            </router-link>
+            <button @click="logout" class="nav-logout" :disabled="logoutLoading">
+              {{ logoutLoading ? 'Logging out...' : 'Logout' }}
+            </button>
+          </template>
+          <router-link v-else :to="{ name: 'Login', query: { redirect: route.fullPath } }" class="nav-login">
+            Log in
           </router-link>
-          <router-link to="/profile" class="nav-link" active-class="active">
-            Profile
-          </router-link>
-          <button @click="logout" class="nav-logout" :disabled="logoutLoading">
-            {{ logoutLoading ? 'Logging out...' : 'Logout' }}
-          </button>
         </div>
       </div>
     </nav>

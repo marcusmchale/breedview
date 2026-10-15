@@ -117,6 +117,27 @@ async function connectPage(port) {
       }
       return [...requests.values()].filter((r) => r.ms != null)
     },
+    // GraphQL requests since a mark that returned errors, at the top level or in their payload, as "operation: messages"
+    graphqlErrors: async (since = 0) => {
+      const operations = new Map()
+      for (const event of events.slice(since)) {
+        const p = event.params
+        if (event.method === 'Network.requestWillBeSent' && p.request?.url?.includes('/graphql') && p.request.postData) {
+          let op = '?'
+          try { const body = JSON.parse(p.request.postData); op = body.operationName || (body.query || '').match(/(query|mutation)\s+(\w+)/)?.[2] || '?' } catch { /* not JSON */ }
+          operations.set(p.requestId, op)
+        }
+      }
+      const failures = []
+      for (const [requestId, op] of operations) {
+        let json
+        try { json = JSON.parse((await send('Network.getResponseBody', { requestId })).body) } catch { continue }
+        const payload = json.data ? Object.values(json.data)[0] : null
+        const messages = [...(json.errors ?? []), ...(payload?.errors ?? [])].map((e) => e.message)
+        if (messages.length) failures.push(`${op}: ${[...new Set(messages)].join('; ')}`)
+      }
+      return [...new Set(failures)]
+    },
     consoleErrors: (since = 0) => events.slice(since)
       .filter((e) => e.method === 'Runtime.exceptionThrown' || (e.method === 'Runtime.consoleAPICalled' && e.params.type === 'error'))
       .map((e) => e.method === 'Runtime.exceptionThrown' ? e.params.exceptionDetails.exception?.description : e.params.args.map((a) => a.value ?? a.description).join(' ')),
