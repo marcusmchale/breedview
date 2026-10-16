@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 
 const props = defineProps({
   grouping: {
@@ -9,6 +10,10 @@ const props = defineProps({
   typeName: {
     type: String,
     required: true
+  },
+  extent: {
+    type: String,
+    default: null
   },
   editable: {
     type: Boolean,
@@ -38,6 +43,14 @@ const scopeCount = computed(() => {
         <h4>{{ grouping.name }}</h4>
         <span class="scope-badge" :class="grouping.scope.toLowerCase()">
           {{ scopeLabel }}
+        </span>
+        <span
+          v-if="extent"
+          class="extent-badge"
+          :class="extent.toLowerCase()"
+          :title="RECORD_GROUP_EXTENT_DESCRIPTIONS[extent]"
+        >
+          {{ extentLabel(extent) }}
         </span>
       </div>
       <div v-if="editable" class="card-actions">
@@ -89,6 +102,22 @@ const scopeCount = computed(() => {
   font-size: 0.75rem;
   font-weight: 600;
   color: white;
+}
+
+.extent-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.extent-badge.shared {
+  background: #607d8b;
+}
+
+.extent-badge.within_unit {
+  background: #ff9800;
 }
 
 .scope-badge.study_wide {

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import DatasetScopeManager from './DatasetScopeManager.vue'
+import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 
 const props = defineProps({
   grouping: {
@@ -52,6 +53,10 @@ watch(
     errors.value = {}
   },
   { immediate: true }
+)
+
+const selectedType = computed(() =>
+  props.recordGroupTypes.find((t) => t.id === formData.value.typeId) ?? null
 )
 
 const isDatasetScoped = computed(() => formData.value.scope === 'DATASET_SCOPED')
@@ -122,10 +127,17 @@ const handleScopesUpdate = (scopes) => {
             :key="type.id"
             :value="type.id"
           >
-            {{ type.name }}
+            {{ type.name }}{{ type.extent ? ` (${extentLabel(type.extent)})` : '' }}
           </option>
         </select>
         <span v-if="errors.typeId" class="error-text">{{ errors.typeId }}</span>
+        <p v-if="selectedType?.extent" class="extent-info">
+          <span class="extent-badge" :class="selectedType.extent.toLowerCase()">{{ extentLabel(selectedType.extent) }}</span>
+          {{ RECORD_GROUP_EXTENT_DESCRIPTIONS[selectedType.extent] }}
+          <template v-if="selectedType.extent === 'WITHIN_UNIT'">
+            In analysis, combine them with a term's replicate aggregation, or keep each as an observation with a record group dimension.
+          </template>
+        </p>
       </div>
 
       <div class="form-group">
@@ -266,6 +278,30 @@ const handleScopesUpdate = (scopes) => {
 .radio-label span:first-of-type {
   font-weight: 500;
   color: #333;
+}
+
+.extent-info {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.extent-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.extent-badge.shared {
+  background: #607d8b;
+}
+
+.extent-badge.within_unit {
+  background: #ff9800;
 }
 
 .help-text {
