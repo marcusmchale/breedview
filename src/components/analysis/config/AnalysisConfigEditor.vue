@@ -109,7 +109,7 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
       <p v-if="requestError" class="message error">{{ requestError }}</p>
       <p v-for="(m, i) in unpathed" :key="i" class="message" :class="m.severity ?? 'error'">
         <strong>{{ m.code }}</strong>: {{ m.message }}
-        <span v-if="messageInfo(m.code).hint" class="hint">{{ messageInfo(m.code).hint }}</span>
+        <span v-if="messageInfo(m.code, m).hint" class="hint">{{ messageInfo(m.code, m).hint }}</span>
       </p>
     </div>
 

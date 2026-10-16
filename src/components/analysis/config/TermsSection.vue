@@ -2,7 +2,12 @@
 import { computed, ref } from 'vue'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { TERM_TYPE_LABELS, createTerm, removeTermReferences, termKey } from '@/composables/analysis/useAnalysisForm'
-import { isAnalysableScale, isGroupingConfigured, requiredGrouping } from '@/composables/analysis/useTermRules'
+import {
+  isAnalysableScale,
+  isGroupingConfigured,
+  isWithinUnitDimension,
+  requiredGrouping
+} from '@/composables/analysis/useTermRules'
 import TermEditor from '@/components/analysis/config/TermEditor.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
 
@@ -48,7 +53,12 @@ const recordGroupTerms = computed(() =>
     .filter((d) => d.name)
     .map((d) => {
       const ref = { type: 'RECORD_GROUP', recordGroupDimension: d.name }
-      return { ref, label: d.name, disabled: isUsed(ref), reason: isUsed(ref) ? 'Already added' : '' }
+      let reason = ''
+      if (isUsed(ref)) reason = 'Already added'
+      else if (isWithinUnitDimension(d, data.groupingsById)) {
+        reason = 'Within-unit groupings (replicates) can\'t be terms; set a replicate aggregation on concept terms instead'
+      }
+      return { ref, label: d.name, disabled: !!reason, reason }
     })
 )
 

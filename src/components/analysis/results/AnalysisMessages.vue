@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { exclusionMatchCount, messageDatasetIndex, messageInfo } from '@/composables/analysis/useAnalysisMessages'
+import { exclusionMatchCount, messageDatasetIndex, messageInfo, messageVariant } from '@/composables/analysis/useAnalysisMessages'
 import { inputPathToFormPath } from '@/composables/analysis/useAnalysisForm'
 import { datasetName } from '@/composables/analysis/useAnalysisNames'
 
@@ -20,8 +20,8 @@ const emit = defineEmits(['exclude-records', 'remove-dataset', 'edit'])
 const groups = computed(() => {
   const out = new Map()
   const add = (m, severity) => {
-    const key = `${severity}:${m.code}`
-    if (!out.has(key)) out.set(key, { code: m.code, severity, info: messageInfo(m.code), messages: [] })
+    const key = `${severity}:${m.code}:${messageVariant(m)}`
+    if (!out.has(key)) out.set(key, { key, code: m.code, severity, info: messageInfo(m.code, m), messages: [] })
     out.get(key).messages.push(m)
   }
   props.errors.forEach((m) => add(m, 'error'))
@@ -53,7 +53,7 @@ const countLabel = (m) => {
 
 <template>
   <div v-if="groups.length" class="analysis-messages">
-    <div v-for="group in groups" :key="`${group.severity}:${group.code}`" class="message" :class="group.severity">
+    <div v-for="group in groups" :key="group.key" class="message" :class="group.severity">
       <div class="message-header">
         <span class="icon" aria-hidden="true">{{ group.severity === 'error' ? '✕' : '!' }}</span>
         <strong>{{ group.code }}</strong>

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { renameDimensionReferences } from '@/composables/analysis/useAnalysisForm'
 import { datasetName, groupingName, studyName } from '@/composables/analysis/useAnalysisNames'
+import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 import RecordGroupMemberSelect from '@/components/analysis/config/RecordGroupMemberSelect.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
 
@@ -71,6 +72,10 @@ const toggleGrouping = (g) => {
     d.levels.forEach((l) => (l.members = l.members.filter((m) => m.groupingId !== g.id)))
   } else {
     d.groupingIds = [...d.groupingIds, g.id]
+    // WITHIN_UNIT codes can't be members of shared levels
+    if (g.extent === 'WITHIN_UNIT') {
+      d.levels.forEach((l) => (l.members = l.members.filter((m) => m.groupingId !== g.id)))
+    }
   }
 }
 
@@ -81,11 +86,19 @@ const selectedGroupings = computed(() =>
   dimension.value.groupingIds.map((id) => data.groupingsById[id]).filter(Boolean)
 )
 
+const withinUnitSelected = computed(() => selectedGroupings.value.some((g) => g.extent === 'WITHIN_UNIT'))
+
 /* ---------- shared levels ---------- */
+
+// Only codes of SHARED groupings can be merged into shared levels
+const sharedGroupings = computed(() => selectedGroupings.value.filter((g) => g.extent !== 'WITHIN_UNIT'))
+const showSharedLevels = computed(
+  () => sharedGroupings.value.length > 0 || selectedGroupings.value.length === 0 || dimension.value.levels.length > 0
+)
 
 const addLevel = () => dimension.value.levels.push({ label: '', members: [] })
 const removeLevel = (i) => dimension.value.levels.splice(i, 1)
-const addMember = (level) => level.members.push({ groupingId: selectedGroupings.value[0]?.id ?? null, code: '', datasetId: null })
+const addMember = (level) => level.members.push({ groupingId: sharedGroupings.value[0]?.id ?? null, code: '', datasetId: null })
 const setMember = (level, i, value) => level.members.splice(i, 1, value)
 const removeMember = (level, i) => level.members.splice(i, 1)
 </script>
@@ -113,15 +126,27 @@ const removeMember = (level, i) => level.members.splice(i, 1)
           <input type="checkbox" :checked="isSelected(g.id)" :disabled="isDisabled(g)" @change="toggleGrouping(g)" />
           {{ g.name }}
           <span class="muted">{{ g.type?.name }} · {{ g.scope === 'DATASET_SCOPED' ? 'dataset-scoped' : 'study-wide' }}</span>
+          <span
+            class="extent-badge"
+            :class="{ 'within-unit': g.extent === 'WITHIN_UNIT' }"
+            :title="RECORD_GROUP_EXTENT_DESCRIPTIONS[g.extent]"
+          >
+            {{ extentLabel(g.extent).toLowerCase() }}
+          </span>
         </label>
       </div>
       <p v-for="id in unknownGroupingIds" :key="id" class="hint">
         {{ groupingName(id) }} (from the loaded analysis; select its study to edit it)
       </p>
+      <p v-if="withinUnitSelected" class="hint replicate-note">
+        Within-unit groupings hold replicates: this dimension keeps each replicate as its own observation, which suits
+        descriptive statistics, outlier detection, correlation and MDS of individual readings. It can't be used as a term
+        or in ANOVA. To count each unit once, set a replicate aggregation on the concept terms instead.
+      </p>
       <FieldErrors :path="`${path}.groupingIds`" prefix />
     </div>
 
-    <div class="field">
+    <div v-if="showSharedLevels" class="field">
       <span class="field-label">Shared levels</span>
       <p class="hint">
         By default, levels are nested: equal codes in different groupings or scopes are different levels. A shared level
@@ -135,7 +160,7 @@ const removeMember = (level, i) => level.members.splice(i, 1)
         <div v-for="(member, mi) in level.members" :key="mi" class="member-row">
           <RecordGroupMemberSelect
             :model-value="member"
-            :groupings="selectedGroupings"
+            :groupings="sharedGroupings"
             :codes-by-grouping="data.codesByGrouping"
             :dataset-ids="form.datasetIds"
             @update:model-value="setMember(level, mi, $event)"
@@ -143,11 +168,12 @@ const removeMember = (level, i) => level.members.splice(i, 1)
           <span v-if="member.datasetId" class="muted">{{ datasetName(member.datasetId) }}</span>
           <button type="button" class="btn-link danger" @click="removeMember(level, mi)">×</button>
         </div>
-        <button type="button" class="btn-link" :disabled="selectedGroupings.length === 0" @click="addMember(level)">
+        <button type="button" class="btn-link" :disabled="sharedGroupings.length === 0" @click="addMember(level)">
           + Add code
         </button>
         <FieldErrors :path="`${path}.levels.${li}`" prefix />
       </div>
+      <p v-if="withinUnitSelected && sharedGroupings.length" class="hint">Codes of within-unit groupings can't be shared.</p>
       <button type="button" class="btn-link" @click="addLevel">+ Add shared level</button>
     </div>
   </div>
@@ -177,6 +203,23 @@ const removeMember = (level, i) => level.members.splice(i, 1)
   align-items: center;
   gap: 6px;
   padding-left: 8px;
+}
+
+.extent-badge {
+  font-size: 0.7rem;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #eceff1;
+  color: #455a64;
+}
+
+.extent-badge.within-unit {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.replicate-note {
+  margin-top: 6px;
 }
 
 .level {

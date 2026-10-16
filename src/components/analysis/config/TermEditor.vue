@@ -65,9 +65,14 @@ const setAggregation = (value) => {
 
 const replicateAggregations = computed(() => allowedReplicateAggregations(term.value, scaleType.value))
 
-// Shown where the selected datasets' studies have a WITHIN_UNIT grouping, or when already set (e.g. a loaded analysis)
+// Shown where the selected datasets' studies have a WITHIN_UNIT grouping, when already set (e.g. a loaded analysis),
+// or when a message (e.g. DUPLICATE_OBSERVATION of replicates) points to it
 const replicatesVisible = computed(
-  () => replicateAggregations.value.length > 0 && (data.hasWithinUnitGroupings || !!term.value.replicateAggregation)
+  () =>
+    replicateAggregations.value.length > 0 &&
+    (data.hasWithinUnitGroupings ||
+      !!term.value.replicateAggregation ||
+      messagesAt(`${path.value}.replicateAggregation`, { prefix: true }).length > 0)
 )
 
 const setReplicateAggregation = (value) => {

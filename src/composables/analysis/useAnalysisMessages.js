@@ -31,10 +31,38 @@ export const MESSAGE_CODES = {
   MISSING_VALUES: { hint: 'Some observations lack a value for the term.' },
   DATASET_FULLY_EXCLUDED: { hint: 'The dataset contributed no observations.' },
   RECORD_GROUP_LEVEL_UNMATCHED: { hint: 'A shared level member matched no records.' },
+  REPLICATES_POOLED: {
+    hint: 'Replicates were pooled by the term\'s aggregation, so units and dates with more replicates weigh more. ' +
+      'Set a replicate aggregation to combine each reading first.'
+  },
   MODEL_NOT_CONVERGED: { hint: 'The model did not converge; interpret the result with caution.' }
 }
 
-export const messageInfo = (code) => MESSAGE_CODES[code] ?? {}
+// Variants of a code, told apart by the message path
+const MESSAGE_VARIANTS = {
+  'DUPLICATE_OBSERVATION:replicates': {
+    hint: 'These values are replicates of the same reading. Set a replicate aggregation on the term, or add a record ' +
+      'group dimension to analyse each replicate.',
+    excludeRecords: true
+  }
+}
+
+const lastPathPart = (message) => {
+  const path = message?.path ?? []
+  return path.length ? String(path[path.length - 1]) : null
+}
+
+/** Variant of a message's code, e.g. 'replicates' for duplicates that are only replicates, or ''. */
+export function messageVariant(message) {
+  if (message?.code === 'DUPLICATE_OBSERVATION' && lastPathPart(message) === 'replicateAggregation') return 'replicates'
+  return ''
+}
+
+/** Suggested actions for a message code; pass the message to tell apart variants of the code. */
+export const messageInfo = (code, message = null) => {
+  const variant = message ? messageVariant({ ...message, code }) : ''
+  return (variant && MESSAGE_VARIANTS[`${code}:${variant}`]) || MESSAGE_CODES[code] || {}
+}
 
 /** Dataset ID a message refers to, from its path (e.g. ["datasetIds", "1"]). */
 export function messageDatasetIndex(message) {
