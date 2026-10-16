@@ -58,6 +58,50 @@ export function allowedAggregations(term, scaleType) {
   })
 }
 
+export const REPLICATE_AGGREGATIONS = ['MEAN', 'MEDIAN', 'MIN', 'MAX', 'MODE']
+
+// Window presets for combining replicates; '' is the exact start and end
+export const REPLICATE_WINDOW_PRESETS = [
+  { value: '', label: 'Same start and end' },
+  { value: 'PT5M', label: 'Within 5 minutes' },
+  { value: 'PT1H', label: 'Within 1 hour' },
+  { value: 'P1D', label: 'Within 1 day' }
+]
+
+export const REPLICATE_WINDOW_UNITS = [
+  { value: 'M', label: 'minutes', toIso: (n) => `PT${n}M` },
+  { value: 'H', label: 'hours', toIso: (n) => `PT${n}H` },
+  { value: 'D', label: 'days', toIso: (n) => `P${n}D` }
+]
+
+/** {n, unit} of a simple ISO duration such as PT5M, PT2H or P3D, or null. */
+export function parseReplicateWindow(window) {
+  const match = /^P(?:(\d+)D|T(\d+)([MH]))$/.exec(window ?? '')
+  if (!match) return null
+  return match[1] ? { n: Number(match[1]), unit: 'D' } : { n: Number(match[2]), unit: match[3] }
+}
+
+export function replicateWindowLabel(window) {
+  if (!window) return 'same time'
+  const preset = REPLICATE_WINDOW_PRESETS.find((p) => p.value === window)
+  if (preset) return preset.label.toLowerCase()
+  const parsed = parseReplicateWindow(window)
+  if (!parsed) return `within ${window}`
+  const unit = REPLICATE_WINDOW_UNITS.find((u) => u.value === parsed.unit).label
+  return `within ${parsed.n} ${parsed.n === 1 ? unit.slice(0, -1) : unit}`
+}
+
+/** Aggregations that can combine a concept term's replicates; none with a COUNT aggregation. */
+export function allowedReplicateAggregations(term, scaleType) {
+  if (!isConceptTerm(term) || term.aggregation === 'COUNT') return []
+  const allowed = new Set(allowedAggregations(term, scaleType))
+  return REPLICATE_AGGREGATIONS.filter((a) => allowed.has(a))
+}
+
+/** Whether a record group dimension uses a WITHIN_UNIT grouping, keeping each replicate as an observation. */
+export const isWithinUnitDimension = (dimension, groupingsById) =>
+  (dimension?.groupingIds ?? []).some((id) => groupingsById[id]?.extent === 'WITHIN_UNIT')
+
 export const canBin = (term, scaleType) =>
   isConceptTerm(term) && BINNABLE_SCALES.has(scaleType) && term.aggregation !== 'COUNT'
 
@@ -113,7 +157,7 @@ export function categoricalTerms(form, conceptsById) {
  * Non-blocking hints about requirements of the selected analysis type.
  * Returns a list of strings.
  */
-export function analysisHints(form, conceptsById) {
+export function analysisHints(form, conceptsById, groupingsById = {}) {
   const hints = []
   const conceptTerms = form.terms.filter(isConceptTerm)
   const repr = (t) => effectiveRepresentation(t, conceptsById[t.reference.conceptId]?.scaleType)
@@ -126,6 +170,12 @@ export function analysisHints(form, conceptsById) {
       if (form.terms.length < 2) hints.push('ANOVA needs at least one term besides the response.')
       if (form.terms.some((t) => t.effect === 'RANDOM' && repr(t) === 'CONTINUOUS')) {
         hints.push('Random terms must be categorical.')
+      }
+      if (form.grouping.recordGroups.some((d) => isWithinUnitDimension(d, groupingsById))) {
+        hints.push(
+          'ANOVA can\'t use a record group dimension of within-unit groupings, as replicates would count as independent ' +
+            'observations. Remove it and set a replicate aggregation on the terms instead.'
+        )
       }
       break
     case 'DESCRIPTIVE_STATISTICS':

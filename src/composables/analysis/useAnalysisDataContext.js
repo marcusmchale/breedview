@@ -101,6 +101,7 @@ export function useAnalysisDataContext(form) {
       const entry = map.get(d.concept.id) ?? {
         id: d.concept.id,
         name: d.concept.name,
+        kind: d.concept.__typename ?? null,
         scaleType: d.concept.scale?.scaleType ?? null,
         categories: d.concept.scale?.categories ?? [],
         datasetIds: []
@@ -150,12 +151,17 @@ export function useAnalysisDataContext(form) {
       (studiesById.value[studyId]?.groupings ?? []).map((g) => ({
         ...g,
         studyId,
-        studyName: studiesById.value[studyId]?.name
+        studyName: studiesById.value[studyId]?.name,
+        // Groupings whose type has no extent are treated as SHARED
+        extent: g.type?.extent ?? 'SHARED'
       }))
     )
   )
 
   const groupingsById = computed(() => Object.fromEntries(groupings.value.map((g) => [g.id, g])))
+
+  // Replicates are possible only where a study of the selected datasets has a WITHIN_UNIT grouping
+  const hasWithinUnitGroupings = computed(() => groupings.value.some((g) => g.extent === 'WITHIN_UNIT'))
 
   /**
    * Codes present for each grouping, as {code, datasetId}.
@@ -211,6 +217,7 @@ export function useAnalysisDataContext(form) {
     valueSamples,
     groupings,
     groupingsById,
+    hasWithinUnitGroupings,
     codesByGrouping,
     blockIds,
     locations

@@ -87,6 +87,7 @@ export const createTerm = (reference) => ({
   levelOrder: null,
   transformations: [],
   aggregation: null,
+  replicateAggregation: null,
   effect: null,
   randomSlopeTerms: []
 })
@@ -181,6 +182,11 @@ const termInput = (term, analysisType) => {
   assignIf(out, 'levelOrder', term.levelOrder ? [...term.levelOrder] : null, nonEmpty(term.levelOrder))
   assignIf(out, 'transformations', [...(term.transformations ?? [])], nonEmpty(term.transformations))
   assignIf(out, 'aggregation', term.aggregation)
+  if (term.replicateAggregation?.aggregation) {
+    const replicate = { aggregation: term.replicateAggregation.aggregation }
+    assignIf(replicate, 'window', term.replicateAggregation.window)
+    out.replicateAggregation = replicate
+  }
   if (analysisType === 'ANOVA') {
     assignIf(out, 'effect', term.effect)
     assignIf(out, 'randomSlopeTerms', (term.randomSlopeTerms ?? []).map(referenceInput), nonEmpty(term.randomSlopeTerms))
@@ -318,6 +324,9 @@ const termFromOutput = (t) => ({
   levelOrder: t.levelOrder ? [...t.levelOrder] : null,
   transformations: [...(t.transformations ?? [])],
   aggregation: t.aggregation ?? null,
+  replicateAggregation: t.replicateAggregation
+    ? { aggregation: t.replicateAggregation.aggregation, window: t.replicateAggregation.window ?? null }
+    : null,
   effect: t.effect ?? null,
   randomSlopeTerms: (t.randomSlopeTerms ?? []).map(toReference)
 })

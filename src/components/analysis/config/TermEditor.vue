@@ -1,11 +1,14 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { TERM_TYPE_LABELS, createEmptyBinning, sameTerm } from '@/composables/analysis/useAnalysisForm'
 import {
+  REPLICATE_WINDOW_PRESETS,
+  REPLICATE_WINDOW_UNITS,
   TRANSFORMATIONS,
   TRANSFORMATION_HINTS,
   allowedAggregations,
+  allowedReplicateAggregations,
   allowedRepresentations,
   canBin,
   canOrderLevels,
@@ -14,6 +17,8 @@ import {
   effectiveRepresentation,
   isConceptTerm,
   knownLevels,
+  parseReplicateWindow,
+  replicateWindowLabel,
   showsEffect
 } from '@/composables/analysis/useTermRules'
 import { termLabel } from '@/composables/analysis/useAnalysisNames'
@@ -52,8 +57,64 @@ const setAggregation = (value) => {
     t.binning = null
     t.representation = null
     t.levelOrder = null
+    t.replicateAggregation = null
   }
 }
+
+/* ---------- replicate aggregation ---------- */
+
+const replicateAggregations = computed(() => allowedReplicateAggregations(term.value, scaleType.value))
+
+// Shown where the selected datasets' studies have a WITHIN_UNIT grouping, or when already set (e.g. a loaded analysis)
+const replicatesVisible = computed(
+  () => replicateAggregations.value.length > 0 && (data.hasWithinUnitGroupings || !!term.value.replicateAggregation)
+)
+
+const setReplicateAggregation = (value) => {
+  const t = term.value
+  t.replicateAggregation = value ? { aggregation: value, window: t.replicateAggregation?.window ?? null } : null
+}
+
+const isPresetWindow = (window) => REPLICATE_WINDOW_PRESETS.some((p) => p.value === (window ?? ''))
+const customWindow = ref(!isPresetWindow(term.value.replicateAggregation?.window))
+const customAmount = ref(parseReplicateWindow(term.value.replicateAggregation?.window)?.n ?? 10)
+const customUnit = ref(parseReplicateWindow(term.value.replicateAggregation?.window)?.unit ?? 'M')
+
+watch(
+  () => term.value.replicateAggregation?.window,
+  (window) => {
+    if (!isPresetWindow(window)) customWindow.value = true
+    const parsed = parseReplicateWindow(window)
+    if (parsed) {
+      customAmount.value = parsed.n
+      customUnit.value = parsed.unit
+    }
+  }
+)
+
+const setWindowChoice = (value) => {
+  if (value === 'custom') {
+    customWindow.value = true
+    applyCustomWindow()
+  } else {
+    customWindow.value = false
+    term.value.replicateAggregation.window = value || null
+  }
+}
+
+const applyCustomWindow = () => {
+  const n = Math.floor(Number(customAmount.value))
+  const unit = REPLICATE_WINDOW_UNITS.find((u) => u.value === customUnit.value)
+  // A window must be longer than zero
+  term.value.replicateAggregation.window = n > 0 && unit ? unit.toIso(n) : null
+}
+
+// With a variable term, factor records describe the observations rather than forming them
+const factorDescribesVariables = computed(
+  () =>
+    concept.value?.kind === 'Factor' &&
+    form.terms.some((t) => isConceptTerm(t) && data.conceptsById[t.reference.conceptId]?.kind === 'Variable')
+)
 
 /* ---------- binning ---------- */
 
@@ -141,7 +202,12 @@ const setEffect = (value) => {
 const summary = computed(() => {
   const t = term.value
   const parts = [representation.value.toLowerCase()]
-  if (t.aggregation && t.aggregation !== 'NONE') parts.push(t.aggregation.toLowerCase())
+  const ra = t.replicateAggregation
+  if (ra?.aggregation) {
+    const window = ra.window ? ` ${replicateWindowLabel(ra.window)}` : ''
+    parts.push(`${ra.aggregation.toLowerCase()} of replicates${window}`)
+  }
+  if (t.aggregation && t.aggregation !== 'NONE') parts.push(`${ra?.aggregation ? 'then ' : ''}${t.aggregation.toLowerCase()}`)
   if (t.binning) parts.push(`${t.binning.labels.length} bins`)
   if (t.transformations.length) parts.push(t.transformations.join(' → ').toLowerCase())
   if (effectVisible.value) parts.push((t.effect ?? 'FIXED').toLowerCase())
@@ -193,6 +259,43 @@ const summary = computed(() => {
           <FieldErrors :path="`${path}.aggregation`" />
         </div>
 
+        <div v-if="replicatesVisible" :id="`${path}.replicateAggregation`" class="field">
+          <label>Replicates</label>
+          <select
+            :value="term.replicateAggregation?.aggregation ?? ''"
+            @change="setReplicateAggregation($event.target.value)"
+          >
+            <option value="">None (each replicate is a value)</option>
+            <option v-for="a in replicateAggregations" :key="a" :value="a">{{ a.toLowerCase() }}</option>
+          </select>
+          <template v-if="term.replicateAggregation">
+            <select
+              class="window-select"
+              :value="customWindow ? 'custom' : term.replicateAggregation.window ?? ''"
+              @change="setWindowChoice($event.target.value)"
+            >
+              <option v-for="p in REPLICATE_WINDOW_PRESETS" :key="p.value" :value="p.value">{{ p.label }}</option>
+              <option value="custom">Custom window…</option>
+            </select>
+            <div v-if="customWindow" class="window-custom">
+              <span>Within</span>
+              <input v-model.number="customAmount" type="number" min="1" step="1" @change="applyCustomWindow" />
+              <select v-model="customUnit" @change="applyCustomWindow">
+                <option v-for="u in REPLICATE_WINDOW_UNITS" :key="u.value" :value="u.value">{{ u.label }}</option>
+              </select>
+            </div>
+          </template>
+          <p class="hint">
+            Combines the replicate readings of each unit (codes of within-unit groupings) into one value before the
+            aggregation, so units and dates count once however many replicates they have.
+            <template v-if="term.replicateAggregation?.window">
+              A reading starts at its first record and takes in records up to the window later; time bins still split
+              readings.
+            </template>
+          </p>
+          <FieldErrors :path="`${path}.replicateAggregation`" prefix />
+        </div>
+
         <div v-if="effectVisible" class="field">
           <label>Effect</label>
           <select :value="term.effect ?? ''" @change="setEffect($event.target.value)">
@@ -207,6 +310,10 @@ const summary = computed(() => {
           <FieldErrors :path="`${path}.effect`" />
         </div>
       </div>
+
+      <p v-if="factorDescribesVariables" class="hint">
+        Factors apply to the units they were recorded on and their descendants, and, without a date, to every time bin.
+      </p>
 
       <div v-if="effectVisible && term.effect === 'RANDOM'" class="field">
         <span class="field-label">Random slopes</span>
@@ -331,6 +438,22 @@ const summary = computed(() => {
   gap: 6px;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.window-select {
+  margin-top: 4px;
+}
+
+.window-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.window-custom input {
+  width: 70px;
 }
 
 .level-list {

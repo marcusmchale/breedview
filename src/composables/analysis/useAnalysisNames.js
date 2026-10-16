@@ -165,7 +165,9 @@ export function recordGroupAssignmentLabel(a) {
   if (!a) return ''
   if (a.shared) return a.level
   const scope = (a.scopeDatasetIds ?? []).map(datasetName).join(', ')
-  return `${groupingName(a.groupingId)}: ${a.code}${scope ? ` (${scope})` : ''}`
+  // unitId is set for WITHIN_UNIT groupings, whose codes (e.g. replicates) only mean something within a unit
+  const unit = a.unitId != null ? ` of ${unitName(a.unitId)}` : ''
+  return `${groupingName(a.groupingId)}: ${a.code}${unit}${scope ? ` (${scope})` : ''}`
 }
 
 // Level keys are composite only when no structured group is available; split for display
@@ -229,6 +231,7 @@ export function collectIds({ groups = [], levels = [] }) {
     if (g.germplasmId != null) ids.germplasm.add(g.germplasmId)
     if (g.unitId != null) ids.unit.add(g.unitId)
     if (g.studyId != null) ids.study.add(g.studyId)
+    for (const r of g.recordGroups ?? []) if (r.unitId != null) ids.unit.add(r.unitId)
   }
   for (const l of levels) {
     if (l.term.type === 'GERMPLASM') ids.germplasm.add(l.level)

@@ -44,7 +44,7 @@ const messages = computed(() => (submitted.value ? submitErrors.value : [...subm
 const { messagesAt, unpathed, exclusionFeedback } = useAnalysisMessages(messages, () => props.form.analysisType)
 
 const blocking = computed(() => blockingProblems(props.form))
-const hints = computed(() => analysisHints(props.form, data.conceptsById).filter((h) => !blocking.value.includes(h)))
+const hints = computed(() => analysisHints(props.form, data.conceptsById, data.groupingsById).filter((h) => !blocking.value.includes(h)))
 
 const submit = async () => {
   if (blocking.value.length > 0 || submitLoading.value) return
