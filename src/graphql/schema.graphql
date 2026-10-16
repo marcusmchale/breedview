@@ -797,6 +797,14 @@ input AnalysisTermInput {
   """
   aggregation: TermAggregation
 
+  """
+  Combines the replicates of each reading before the term's aggregation.
+  
+  Without it, replicates in one observation are duplicates,
+  which fail under NONE or are pooled by the term's aggregation.
+  """
+  replicateAggregation: ReplicateAggregationInput
+
   """Statistical effect of the term when a statistical model is used."""
   effect: TermEffect
 
@@ -819,6 +827,25 @@ input InteractionTermInput {
   by the selected analysis.
   """
   terms: [AnalysisTermReferenceInput!]!
+}
+
+"""
+Combines the replicates of each reading before a term's aggregation.
+
+Replicates are records of the same base unit with codes of the same
+WITHIN_UNIT record groupings and scopes. A reading is the replicates with the
+same start and end or, with a window, those within the window of the reading's
+first record (by start, or end without a start). Readings never span observations,
+so time bins (grouping.time) still separate them.
+"""
+input ReplicateAggregationInput {
+  """MEAN, MEDIAN, MIN, MAX or MODE; NONE, SUM and COUNT are not accepted."""
+  aggregation: TermAggregation!
+
+  """
+  ISO 8601 duration a reading spans from its first record, e.g. PT5M or P1D.
+  """
+  window: String
 }
 
 input LayoutInput {
@@ -1505,6 +1532,7 @@ input DesignInput {
 
 input RecordGroupTypeInput {
   name: String!
+  extent: RecordGroupExtent!
   description: String
   abbreviation: String
   synonyms: [String!]
@@ -1712,6 +1740,7 @@ input DesignUpdate {
 input RecordGroupTypeUpdate {
   id: ID!
   name: String
+  extent: RecordGroupExtent!
   description: String
   abbreviation: String
   synonyms: [String!]
@@ -2673,7 +2702,7 @@ type AnalysisRecordGroupAssignment {
   Identifier of the level, unique within the dimension.
   
   The label of a shared level, otherwise an identifier
-  composed of grouping, scope and code.
+  composed of grouping, scope, code and, for WITHIN_UNIT groupings, the base unit.
   """
   level: String!
 
@@ -2692,6 +2721,11 @@ type AnalysisRecordGroupAssignment {
 
   """Code of a nested level."""
   code: String
+
+  """
+  Base unit of a nested level of a WITHIN_UNIT grouping, whose codes are only comparable within a unit.
+  """
+  unitId: ID
 }
 
 type MDSConfig {
@@ -2814,6 +2848,12 @@ type AnalysisTerm {
   """
   aggregation: TermAggregation
 
+  """
+  Combines the replicates of a reading (codes of WITHIN_UNIT record groupings)
+  before the term's aggregation.
+  """
+  replicateAggregation: ReplicateAggregation
+
   """Statistical effect of the term when a statistical model is used."""
   effect: TermEffect
 
@@ -2841,6 +2881,17 @@ type AnalysisTermReference {
 type InteractionTerm {
   """Terms participating in the interaction."""
   terms: [AnalysisTermReference!]!
+}
+
+"""Combines the replicates of each reading before a term's aggregation."""
+type ReplicateAggregation {
+  aggregation: TermAggregation!
+
+  """
+  ISO 8601 duration a reading spans from its first record, e.g. PT5M or P1D.
+  Null when the replicates of a reading have the same start and end.
+  """
+  window: String
 }
 
 type Layout {
@@ -3422,6 +3473,18 @@ enum AxisType {
   CARTESIAN
 }
 
+"""Whether the codes of a record group type are meaningful across units."""
+enum RecordGroupExtent {
+  """A code names a group of many units, e.g. a block, batch or session."""
+  SHARED
+
+  """
+  A code only distinguishes records of one unit at one time, e.g. replicate readings or subsamples.
+  In analysis such codes are nested in the unit, and can be collapsed by a term's replicateAggregation.
+  """
+  WITHIN_UNIT
+}
+
 enum ObservationMethodType {
   MEASUREMENT
   COUNTING
@@ -3960,9 +4023,10 @@ type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & 
   abbreviation: String
   synonyms: [String!]
   references: [ReferenceInterface!]
-  parents: [Design!]
-  children: [Design!]
+  parents: [RecordGroupType!]
+  children: [RecordGroupType!]
   terms: [Term!]
+  extent: RecordGroupExtent!
 }
 
 union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType
