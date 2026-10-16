@@ -277,6 +277,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
                 :label="field.label"
                 :validation="field.validation"
                 :options="field.options"
+                :help="field.help"
               />
 
               <!-- Ordered multiselect (selection-order preserved) -->

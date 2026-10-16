@@ -1,3 +1,5 @@
+import { RECORD_GROUP_EXTENT_HELP, RECORD_GROUP_EXTENT_LABELS } from './recordGroupExtent'
+
 const processIdArray = (ids) => {
   if (!ids || ids.length === 0) return undefined
   return ids
@@ -40,6 +42,11 @@ const AXES_OPTIONS = [
   { label: 'Ordinal', value: 'ORDINAL' },
   { label: 'Coordinate', value: 'COORDINATE' },
   { label: 'Cartesian', value: 'CARTESIAN' }
+]
+
+const RECORD_GROUP_EXTENT_OPTIONS = [
+  { label: '', value: null },
+  ...Object.entries(RECORD_GROUP_EXTENT_LABELS).map(([value, label]) => ({ label, value }))
 ]
 
 // Shared base fields present on every type
@@ -594,6 +601,10 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
     fields: [
       nameField,
       descriptionField,
+      {
+        type: 'enumselect', name: 'extent', label: 'Extent', validation: 'required',
+        options: RECORD_GROUP_EXTENT_OPTIONS, help: RECORD_GROUP_EXTENT_HELP
+      },
       multi('parentIds', 'Parent Record Group Types', 'RecordGroupType'),
       multi('childIds', 'Child Record Group Types', 'RecordGroupType', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
@@ -602,6 +613,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       recordGroupType: {
         name: formData.name,
         description: formData.description || undefined,
+        extent: formData.extent,
         referenceIds: referenceIds?.length ? referenceIds : undefined,
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
@@ -613,6 +625,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         id: entry.id,
         name: formData.name,
         description: formData.description || undefined,
+        extent: formData.extent,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],

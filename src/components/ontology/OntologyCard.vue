@@ -1,6 +1,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { extentLabel } from '@/composables/ontology/recordGroupExtent'
 
 const props = defineProps({
   entry: {
@@ -29,6 +30,7 @@ const displayFields = computed(() => {
     { label: 'Scale Type', value: e.scaleType },
     { label: 'Observation Type', value: e.observationType },
     { label: 'Control Type', value: e.controlType },
+    { label: 'Extent', value: e.extent && extentLabel(e.extent) },
   ].filter(f => f.value)
 })
 
