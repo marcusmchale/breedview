@@ -437,6 +437,13 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                 >
                   {{ header.column.columnDef.meta.grouping.scope === 'DATASET_SCOPED' ? 'DS' : 'SW' }}
                 </span>
+                <span
+                  v-if="header.column.columnDef.meta?.type === 'grouping' && header.column.columnDef.meta.grouping.extent === 'WITHIN_UNIT'"
+                  class="grouping-badge WITHIN_UNIT"
+                  title="Within unit: codes tell apart the readings of one unit, e.g. replicates"
+                >
+                  WU
+                </span>
               </div>
             </th>
           </tr>
@@ -690,6 +697,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   color: #1565c0;
 }
 .grouping-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
+.grouping-badge.WITHIN_UNIT { background: #f3e5f5; color: #6a1b9a; }
 
 /* DATASET_SCOPED section headers */
 .section-header td {

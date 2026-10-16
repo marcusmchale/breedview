@@ -60,7 +60,7 @@ export function useDatasetCurationTable() {
   const activeSubmissions = ref({})
 
   // ---- Record groupings ----
-  // [{ key, id, name, scope, studyId }] - one column per grouping (groupings belong to one study)
+  // [{ key, id, name, scope, extent, studyId }] - one column per grouping (groupings belong to one study)
   const groupingColumns = ref([])
   // { [datasetId]: studyId }
   const datasetStudyIds = ref({})
@@ -83,21 +83,29 @@ export function useDatasetCurationTable() {
     const columns = new Map()
     Object.entries(groupingsByStudy || {}).forEach(([studyId, groupings]) => {
       (groupings || []).forEach((g) => {
-        columns.set(String(g.id), { key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, studyId })
+        columns.set(String(g.id), {
+          key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, extent: g.type?.extent ?? 'SHARED', studyId
+        })
       })
     })
-    // Records may reference groupings not returned for the loaded studies: show read-only
+    // Records may reference groupings not returned for the loaded studies: show read-only, treated as SHARED
     datasets.forEach((d) => (d.records || []).forEach((r) => (r.groups || []).forEach((g) => {
       if (g?.id != null && !columns.has(String(g.id))) {
-        columns.set(String(g.id), { key: groupingKey(g.id), id: g.id, name: `Grouping ${g.id}`, scope: null, studyId: null })
+        columns.set(String(g.id), {
+          key: groupingKey(g.id), id: g.id, name: `Grouping ${g.id}`, scope: null, extent: 'SHARED', studyId: null
+        })
       }
     })))
     return [...columns.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  // Row sections, split by DATASET_SCOPED grouping values
+  // Row sections, split by the values of DATASET_SCOPED groupings with SHARED extent.
+  // WITHIN_UNIT codes (replicates) only mean something within a unit, so they stay ordinary columns.
   const datasetScopedColumns = computed(() =>
-    groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED')
+    groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED' && c.extent === 'SHARED')
+  )
+  const withinUnitColumns = computed(() =>
+    groupingColumns.value.filter((c) => c.extent === 'WITHIN_UNIT')
   )
 
   const getRowSectionKey = (row) =>
@@ -305,7 +313,15 @@ export function useDatasetCurationTable() {
         const sb = getRowSectionKey(b)
         if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
         if (a.unitId !== b.unitId) return String(a.unitId).localeCompare(String(b.unitId))
-        return (a.startTime || '').localeCompare(b.startTime || '')
+        const byTime = (a.startTime || '').localeCompare(b.startTime || '')
+          || (a.endTime || '').localeCompare(b.endTime || '')
+        if (byTime) return byTime
+        // A unit's replicates stay together, in code order
+        for (const c of withinUnitColumns.value) {
+          const byCode = normalizeCode(a[c.key]).localeCompare(normalizeCode(b[c.key]), undefined, { numeric: true })
+          if (byCode) return byCode
+        }
+        return 0
       })
 
       // Initialize column status for each dataset

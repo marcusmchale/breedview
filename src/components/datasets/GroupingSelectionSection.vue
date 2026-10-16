@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 
 const props = defineProps({
   groupings: { type: Array, default: () => [] },
@@ -73,6 +74,9 @@ const datasetLabel = (grouping, ds) => {
         <span class="grouping-name">{{ g.name }}</span>
         <span class="scope-badge" :class="g.scope">{{ scopeLabel(g.scope) }}</span>
         <span v-if="g.type" class="grouping-type">{{ g.type.name }}</span>
+        <span v-if="g.type?.extent === 'WITHIN_UNIT'" class="extent-badge" :title="RECORD_GROUP_EXTENT_DESCRIPTIONS.WITHIN_UNIT">
+          {{ extentLabel(g.type.extent) }}
+        </span>
       </label>
     </div>
 
@@ -144,6 +148,7 @@ const datasetLabel = (grouping, ds) => {
 .grouping-type { font-size: 0.8rem; color: #666; }
 .scope-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: #e3f2fd; color: #1565c0; }
 .scope-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
+.extent-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: #f3e5f5; color: #6a1b9a; }
 .scope-config-card { border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
 .scope-config-title { font-weight: 500; margin-bottom: 8px; }
 .radio-label { display: flex; align-items: center; gap: 6px; margin: 4px 0; cursor: pointer; }
