@@ -161,12 +161,13 @@ export function positionLabel(position) {
   return parts.join(' · ')
 }
 
-export function recordGroupAssignmentLabel(a) {
+/** shownUnitId: a unit the label already names, e.g. the observation's own, so it isn't repeated */
+export function recordGroupAssignmentLabel(a, shownUnitId = null) {
   if (!a) return ''
   if (a.shared) return a.level
   const scope = (a.scopeDatasetIds ?? []).map(datasetName).join(', ')
   // unitId is set for WITHIN_UNIT groupings, whose codes (e.g. replicates) only mean something within a unit
-  const unit = a.unitId != null ? ` of ${unitName(a.unitId)}` : ''
+  const unit = a.unitId != null && String(a.unitId) !== String(shownUnitId) ? ` of ${unitName(a.unitId)}` : ''
   return `${groupingName(a.groupingId)}: ${a.code}${unit}${scope ? ` (${scope})` : ''}`
 }
 
@@ -219,7 +220,7 @@ export function groupLabel(group) {
   if (group.time) parts.push(group.time)
   if (group.position) parts.push(positionLabel(group.position))
   if (group.studyId != null) parts.push(studyName(group.studyId))
-  for (const r of group.recordGroups ?? []) parts.push(`${r.dimension}: ${recordGroupAssignmentLabel(r)}`)
+  for (const r of group.recordGroups ?? []) parts.push(`${r.dimension}: ${recordGroupAssignmentLabel(r, group.unitId)}`)
   return parts.join(' · ')
 }
 
