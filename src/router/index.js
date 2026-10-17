@@ -15,6 +15,7 @@ import PeoplePage from '@/components/people/PeoplePage.vue'
 import ProfilePage from '@/components/user/ProfilePage.vue'
 import OrcidCallbackPage from '@/components/user/OrcidCallbackPage.vue'
 import AccessControlPage from '@/components/controls/AccessControlPage.vue'
+import PrivacyNoticePage from '@/components/user/PrivacyNoticePage.vue'
 
 const routes = [
   {
@@ -112,9 +113,19 @@ const routes = [
     name: 'People',
     component: PeoplePage,
     meta: {
-      // anyone may read what has been released to the public; signing in shows more
-      allowAnonymous: true,
+      // People are not listed publicly: signed-out visitors see Persons only where they are credited, by attribution
+      // (breedgraph docs/person.md §3), and the API refuses them the people queries
+      requiresAuth: true,
       title: 'People'
+    }
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: PrivacyNoticePage,
+    meta: {
+      allowAnonymous: true,
+      title: 'Privacy notice'
     }
   },
   {

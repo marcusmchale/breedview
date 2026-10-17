@@ -190,6 +190,12 @@ const closeModal = () => {
             </label>
           </div>
 
+          <p v-if="!isUpdate && release && release !== 'PRIVATE'" class="help-text release-note">
+            Released {{ release === 'PUBLIC' ? 'to everyone' : 'to registered users' }}, the name, institution and
+            ORCID iD are shown where this person is credited, with the organisation holding the record. Teams, basis
+            and the rest stay with the teams that control it.
+          </p>
+
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
             <template v-if="missingLegalEntity">

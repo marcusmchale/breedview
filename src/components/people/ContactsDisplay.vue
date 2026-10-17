@@ -4,10 +4,10 @@ import PersonDisplay from './PersonDisplay.vue'
 import ContactPersonModal from './ContactPersonModal.vue'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useMutateContacts } from '@/composables/people/mutateContacts'
-import { personForm } from '@/composables/people/personDisplay'
+import { personNamed } from '@/composables/people/personDisplay'
 
-// The contacts of a Program or Trial, with "Contact" for each readable one and
-// "Remove me" for the viewer's own Person.
+// The contacts of a Program or Trial, with "Contact" for each readable one, for signed-in users (only they can send
+// messages), and "Remove me" for the viewer's own Person.
 const props = defineProps({
   contacts: {
     type: Array,
@@ -30,7 +30,7 @@ const props = defineProps({
 
 const emit = defineEmits(['changed'])
 
-const { currentUserId } = useAuthStore()
+const { currentUserId, isAuthenticated } = useAuthStore()
 const { removeSelfAsContact, removeSelfAsContactLoading } = useMutateContacts()
 
 const messageTarget = ref(null)
@@ -42,7 +42,7 @@ const contacts = computed(() => (props.contacts ?? []).filter(Boolean))
 const isSelf = (contact) =>
   contact.linkedUser && String(contact.linkedUser.id) === String(currentUserId.value)
 
-const canMessage = (contact) => personForm(contact) === 'full' && !isSelf(contact)
+const canMessage = (contact) => isAuthenticated.value && personNamed(contact) && !isSelf(contact)
 
 const handleRemoveSelf = async () => {
   errorMessage.value = ''

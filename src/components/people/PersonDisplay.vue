@@ -1,9 +1,11 @@
 <script setup>
 import { computed } from 'vue'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
-import { personForm, personLabel, orcidUrl } from '@/composables/people/personDisplay'
+import PersonAttribution from './PersonAttribution.vue'
+import { personForm, personNamed, orcidUrl } from '@/composables/people/personDisplay'
 
-// Inline credit for a Person in any of its forms: full ("Name (Institution)"), restricted or erased.
+// Inline credit for a Person in any of its forms: full or attribution ("Name (Institution)"), restricted or erased,
+// opening who they are and who holds the record (PersonAttribution).
 const props = defineProps({
   person: {
     type: Object,
@@ -21,15 +23,15 @@ const props = defineProps({
 })
 
 const form = computed(() => personForm(props.person))
-const label = computed(() => personLabel(props.person))
+const named = computed(() => personNamed(props.person))
 const orcidLink = computed(() => orcidUrl(props.person?.orcid))
 </script>
 
 <template>
   <span class="person-display" :class="`person-${form}`" :title="form === 'restricted' ? 'You do not have access to this person record' : null">
-    <span class="person-label">{{ label }}</span>
+    <PersonAttribution :person="person" />
     <a
-      v-if="showOrcid && form === 'full' && orcidLink"
+      v-if="showOrcid && named && orcidLink"
       :href="orcidLink"
       target="_blank"
       rel="noopener"
@@ -51,12 +53,6 @@ const orcidLink = computed(() => orcidUrl(props.person?.orcid))
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.person-restricted .person-label,
-.person-erased .person-label {
-  font-style: italic;
-  color: #666;
 }
 
 .orcid-link {

@@ -6,7 +6,7 @@ query accountsInvitations {
                 id
                 email
                 teams { team { id name fullname } access }
-                person { id name institution restricted erased }
+                person { id view name institution restricted erased }
                 createdAt
                 expiresAt
             }

@@ -63,7 +63,8 @@ defineExpose({ complete, termsVersion })
           :disabled="disabled"
         />
         <p class="help-text">
-          A role address for requests about personal data, not a person's own address.
+          A role address for requests about personal data, not a person's own address. The legal name and this
+          address are shown publicly with the person records the team tree holds, so the people credited can reach you.
         </p>
       </div>
 

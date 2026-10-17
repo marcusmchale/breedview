@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
-import { personForm, personLabel, personTeamNames } from '@/composables/people/personDisplay'
+import { personNamed, personLabel, personTeamNames } from '@/composables/people/personDisplay'
 
-// Pick Persons the user can read. v-model is a list of ids (multiple) or a single id.
-// Restricted and erased Persons cannot be picked.
+// Pick Persons the user can see in full or by attribution. v-model is a list of ids (multiple) or a single id.
+// Restricted and erased Persons cannot be picked. Whether a Person is linked to an account is known in the full view
+// only (Person.linked), so a Person seen by attribution counts as not known to be linked.
 const model = defineModel({
   type: [Array, String, Number],
   default: null
@@ -15,7 +16,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  // Only Persons linked to an account, e.g. for contacts
+  // Only Persons known to be linked to an account, e.g. for contacts
   linkedOnly: {
     type: Boolean,
     default: false
@@ -39,11 +40,13 @@ const filter = ref('')
 
 const { people, peopleLoading, peopleError } = usePeopleQuery()
 
+const isLinked = (person) => person.linked === true || !!person.linkedUser
+
 const candidates = computed(() =>
   people.value.filter(person => {
-    if (personForm(person) !== 'full') return false
-    if (props.linkedOnly && !person.linkedUser) return false
-    if (props.excludeLinked && person.linkedUser) return false
+    if (!personNamed(person)) return false
+    if (props.linkedOnly && !isLinked(person)) return false
+    if (props.excludeLinked && isLinked(person)) return false
     const text = filter.value.trim().toLowerCase()
     if (!text) return true
     return personLabel(person).toLowerCase().includes(text) ||
@@ -107,7 +110,7 @@ const unlistedSelected = computed(() =>
         <span v-if="personTeamNames(person).length" class="person-teams">
           {{ personTeamNames(person).join(', ') }}
         </span>
-        <span v-if="person.linkedUser" class="person-linked" title="Linked to an account">linked</span>
+        <span v-if="isLinked(person)" class="person-linked" title="Linked to an account">linked</span>
       </li>
     </ul>
 

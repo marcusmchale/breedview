@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useMutation } from '@vue/apollo-composable'
 import CREATE_ACCOUNT from '../../graphql/account/createAccount.graphql'
 import { useInvitationPreviewQuery } from '@/composables/account/invitationPreviewQuery'
+import { usePrivacyNotice } from '@/composables/system/usePrivacyNotice'
 
 const props = defineProps({
   // From the invitation link, /register?token=...
@@ -19,9 +20,7 @@ const error = ref('')
 const success = ref('')
 const formValues = ref({})
 const showPrivacyModal = ref(false)
-const privacyHtml = ref('')
-const privacyLoading = ref(false)
-const privacyError = ref(false)
+const { html: privacyHtml, loading: privacyLoading, error: privacyError, load: loadPrivacyNotice } = usePrivacyNotice()
 
 const {
   invitation,
@@ -53,38 +52,9 @@ onError((err) => {
 })
 
 // Load privacy notice when modal opens
-watch(showPrivacyModal, async (isOpen) => {
-  if (isOpen && !privacyHtml.value) {
-    privacyLoading.value = true
-    privacyError.value = false
-    try {
-      const response = await fetch('/privacy_notice.md')
-      const markdown = await response.text()
-      privacyHtml.value = parseMarkdown(markdown)
-    } catch (e) {
-      console.error('Failed to load privacy notice:', e)
-      privacyError.value = true
-    } finally {
-      privacyLoading.value = false
-    }
-  }
+watch(showPrivacyModal, (isOpen) => {
+  if (isOpen) loadPrivacyNotice()
 })
-
-// Simple markdown to HTML parser
-const parseMarkdown = (md) => {
-  return md
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-    .replace(/^\* (.*$)/gim, '<li>$1</li>')
-    .replace(/^- (.*$)/gim, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    .replace(/^---$/gim, '<hr>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[hulo]|<li|<hr)/gim, '<p>')
-}
 
 const submitHandler = async (formData) => {
   error.value = ''

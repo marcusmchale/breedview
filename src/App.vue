@@ -110,7 +110,7 @@ onMounted(async () => {
           <router-link v-if="isAuthenticated" to="/ontology" class="nav-link" active-class="active">
             Ontology
           </router-link>
-          <router-link to="/people" class="nav-link" active-class="active">
+          <router-link v-if="isAuthenticated" to="/people" class="nav-link" active-class="active">
             People
           </router-link>
           <router-link v-if="isAuthenticated" to="/access" class="nav-link" active-class="active">
@@ -135,6 +135,10 @@ onMounted(async () => {
     <main class="main-content">
       <router-view></router-view>
     </main>
+
+    <footer v-if="!hideNavigation" class="app-footer">
+      <router-link to="/privacy">Privacy notice</router-link>
+    </footer>
   </div>
 </template>
 
@@ -160,6 +164,17 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+}
+
+.app-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #eee;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.app-footer a {
+  color: #666;
 }
 
 @media (max-width: 768px) {

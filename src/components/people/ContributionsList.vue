@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { contributionLabel } from '@/composables/people/personDisplay'
+import PersonAttribution from './PersonAttribution.vue'
 
-// Who contributed to a record and how: "Name (Institution) — Investigation, Data curation"
+// Who contributed to a record and how: "Name (Institution) — Investigation, Data curation", each name opening who
+// they are and who holds the record about them (PersonAttribution)
 const props = defineProps({
   contributions: {
     type: Array,
@@ -15,15 +16,16 @@ const props = defineProps({
 })
 
 const shown = computed(() => (props.contributions ?? []).filter((c) => c?.person))
+const roleNames = (contribution) => (contribution.roles ?? []).map((role) => role?.name).filter(Boolean).join(', ')
 </script>
 
 <template>
-  <p v-if="shown.length" class="contributions-list">
+  <div v-if="shown.length" class="contributions-list">
     <strong>{{ label }}:</strong>{{ " " }}
     <span v-for="(contribution, i) in shown" :key="contribution.person.id">
-      {{ contributionLabel(contribution) }}<template v-if="i < shown.length - 1">; </template>
+      <PersonAttribution :person="contribution.person" /><template v-if="roleNames(contribution)"> — {{ roleNames(contribution) }}</template><template v-if="i < shown.length - 1">; </template>
     </span>
-  </p>
+  </div>
 </template>
 
 <style scoped>

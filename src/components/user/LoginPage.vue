@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useMutation } from '@vue/apollo-composable'
+import { useMutation, useApolloClient } from '@vue/apollo-composable'
 import { useRouter, useRoute } from 'vue-router'
 import RequestPasswordReset from './RequestPasswordReset.vue'
 import RegistrationPage from './RegistrationPage.vue'
@@ -85,6 +85,7 @@ const showRequestReset = ref(false)
 const showRegistration = ref(false)
 
 const { mutate, loading, onError } = useMutation(LOGIN_MUTATION)
+const { client } = useApolloClient()
 
 onError((err) => {
   console.error('Login error:', err)
@@ -102,6 +103,8 @@ const submitHandler = async (formData) => {
     const response = await mutate(variables)
 
     if (response?.data?.accountsLogin?.status === 'SUCCESS') {
+      // The cache holds what was read signed out (Persons by attribution, placeholders): read it again as the account
+      await client.clearStore()
       await router.push('/')
     } else {
       error.value = response?.data?.accountsLogin?.errors?.[0]?.message || 'Login failed. Please check your credentials.'

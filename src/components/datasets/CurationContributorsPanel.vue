@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
 import { personLabel } from '@/composables/people/personDisplay'
 import ContributionsField from '@/components/people/ContributionsField.vue'
@@ -22,7 +23,9 @@ const open = ref(false)
 // the dataset whose contributions are being edited
 const editing = ref(null)
 
-const { people } = usePeopleQuery()
+// Listing people needs an account; signed out, the loaded datasets' own Persons name the contributors
+const { isAuthenticated } = useAuthStore()
+const { people } = usePeopleQuery(null, { enabled: isAuthenticated })
 const { entries: roles } = useOntologyEntriesQuery({ labels: ['ROLE'], view: 'PUBLISHED' })
 
 const personName = (dataset, id) => {

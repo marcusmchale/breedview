@@ -3,7 +3,8 @@ import { useQuery } from '@vue/apollo-composable'
 
 import PEOPLE_QUERY from '@/graphql/people/people.graphql'
 
-// Persons the user can read, optionally by exact name (case insensitive on the API)
+// Persons the user sees in full or by attribution, optionally by exact name (case insensitive on the API).
+// Needs an account: pass enabled where signed-out visitors may be
 export function usePeopleQuery(name = null, { enabled = true } = {}) {
   const {
     result,

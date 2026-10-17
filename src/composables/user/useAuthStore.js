@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { checkAuthentication } from './useAuthentication'
+import apolloClient from '../../graphql/apollo'
 
 
 // Global reactive state - only public data
@@ -29,6 +30,7 @@ export function useAuthStore() {
       isLoading.value = true
       error.value = null
       
+      const wasAuthenticated = isAuthenticated.value
       const authResult = await checkAuthentication()
       console.log("Authentication", authResult.isAuthenticated ? "success" : "failed")
       lastAuthCheck.value = now
@@ -41,6 +43,8 @@ export function useAuthStore() {
         // Clear any cached data on auth failure
         clearAuthState()
         error.value = authResult.error
+        // The session ended (e.g. expired): the cache holds what the account could read, such as full Person records
+        if (wasAuthenticated) await apolloClient.clearStore()
         return false
       }
     } catch (err) {

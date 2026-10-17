@@ -1,15 +1,21 @@
-// How a Person appears to the viewer: full record, restricted (id only) or erased (tombstone)
+// How a Person appears to the viewer (Person.view, breedgraph docs/person.md §3): its full record, its attribution
+// (name, institution, ORCID iD) for those reading it by release only, restricted (id only) or erased (tombstone)
 export function personForm(person) {
   if (!person) return 'missing'
   if (person.erased) return 'erased'
-  if (person.restricted) return 'restricted'
+  if (person.restricted || person.view === 'RESTRICTED') return 'restricted'
+  if (person.view === 'ATTRIBUTION') return 'attribution'
   return 'full'
 }
+
+// Whether the viewer can tell who the Person is: its full record or its attribution
+export const personNamed = (person) => ['full', 'attribution'].includes(personForm(person))
 
 // Text to credit a Person with, e.g. "Name (Institution)"
 export function personLabel(person) {
   switch (personForm(person)) {
     case 'full':
+    case 'attribution':
       return person.institution ? `${person.name} (${person.institution})` : person.name
     case 'restricted':
       return `Restricted person #${person.id}`
@@ -26,6 +32,10 @@ export function writerLabel({ user, person }) {
   if (person) return personLabel(person)
   return 'An account without a Person record'
 }
+
+// The legal entity holding a Person record (its data controller), shown with every Person so anyone credited can tell
+// who holds the record about them: { legalName, privacyContact }, or null when it can't be told
+export const dataController = (person) => (person?.erased ? null : person?.dataController ?? null)
 
 export function orcidUrl(orcid) {
   if (!orcid) return null
@@ -49,12 +59,6 @@ export function teamReferenceName({ team, standIn }, { full = false } = {}) {
 /** The names of a Person's teams as the viewer may see them */
 export function personTeamNames(person, options = {}) {
   return (person?.teams ?? []).map((reference) => teamReferenceName(reference, options))
-}
-
-// A contribution as credited, e.g. "Name (Institution) — Investigation, Data curation"
-export function contributionLabel({ person, roles }) {
-  const names = (roles ?? []).map((role) => role?.name).filter(Boolean)
-  return names.length ? `${personLabel(person)} — ${names.join(', ')}` : personLabel(person)
 }
 
 // Contributions as read ({ person, roles }) to their input ({ personId, roleIds }); a Person the API could not

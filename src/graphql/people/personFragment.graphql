@@ -1,15 +1,18 @@
 fragment PersonFields on Person {
     id
+    view
     name
     institution
     teams { team { id name fullname } standIn }
     basis
     informedAttestation
     orcid
+    linked
     linkedUser { id name fullname }
     recordedBy { id name fullname }
     recordedAt
     erased
     erasedAt
     restricted
+    dataController { legalName privacyContact }
 }

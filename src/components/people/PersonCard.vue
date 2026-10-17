@@ -1,9 +1,13 @@
 <script setup>
 import { computed } from 'vue'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
-import { personForm, personLabel, orcidUrl, personTeamNames } from '@/composables/people/personDisplay'
+import { personForm, personLabel, orcidUrl, personTeamNames, dataController } from '@/composables/people/personDisplay'
 import { useEntityAccess } from '@/composables/controls/useWriteAccess'
 import { useAuthStore } from '@/composables/user/useAuthStore'
+
+// A Person as the viewer sees it (breedgraph docs/person.md §3): the full record to read affiliates of a controlling
+// team and the linked user; name, institution and ORCID iD to those reading it by release only; or its id. Each names
+// the legal entity holding the record.
 
 const props = defineProps({
   person: {
@@ -22,9 +26,10 @@ defineEmits(['edit', 'erase'])
 const form = computed(() => personForm(props.person))
 const orcidLink = computed(() => orcidUrl(props.person.orcid))
 const teamNames = computed(() => personTeamNames(props.person, { full: true }))
+const holder = computed(() => dataController(props.person))
 
 // As the backend allows: curators edit, admins of the controlling teams erase, and the linked user does both
-const { currentUserId } = useAuthStore()
+const { currentUserId, isAuthenticated } = useAuthStore()
 const access = useEntityAccess({ entityLabel: 'PERSON', entityId: () => props.person.id })
 const isSubject = computed(() => currentUserId.value != null && String(props.person.linkedUser?.id) === String(currentUserId.value))
 const canEdit = computed(() => props.editable && (isSubject.value || access.value.includes('CURATE')))
@@ -50,14 +55,15 @@ const basisLabel = computed(() => ({
     </div>
 
     <div v-if="form === 'restricted'" class="card-body text-muted">
-      You do not have read access to this record. The badge shows which teams control it.
+      You do not have read access to this record.
+      <template v-if="isAuthenticated">The badge shows which teams control it.</template>
     </div>
 
     <div v-else-if="form === 'erased'" class="card-body text-muted">
-      Erased {{ formatDate(person.erasedAt) }}. Contributions stay attributed to this id.
+      Erased<template v-if="person.erasedAt"> {{ formatDate(person.erasedAt) }}</template>. Contributions stay attributed to this id.
     </div>
 
-    <div v-else class="card-body">
+    <div v-if="form !== 'erased'" class="card-body">
       <dl class="details">
         <template v-if="teamNames.length">
           <dt>Teams</dt>
@@ -67,13 +73,15 @@ const basisLabel = computed(() => ({
           <dt>ORCID iD</dt>
           <dd><a :href="orcidLink" target="_blank" rel="noopener">{{ orcidLink }}</a></dd>
         </template>
-        <dt>Account</dt>
-        <dd>
-          <template v-if="person.linkedUser">
-            linked to {{ person.linkedUser.fullname || person.linkedUser.name }}
-          </template>
-          <span v-else class="text-muted">not linked</span>
-        </dd>
+        <!-- whether an account is linked, in the full record only: the account itself may be hidden (accounts are private) -->
+        <template v-if="form === 'full' && person.linked != null">
+          <dt>Account</dt>
+          <dd>
+            <template v-if="person.linkedUser">linked to {{ person.linkedUser.fullname || person.linkedUser.name }}</template>
+            <template v-else-if="person.linked">linked</template>
+            <span v-else class="text-muted">not linked</span>
+          </dd>
+        </template>
         <template v-if="person.basis">
           <dt>Lawful basis</dt>
           <dd>{{ basisLabel }}</dd>
@@ -85,9 +93,16 @@ const basisLabel = computed(() => ({
             <template v-if="person.recordedBy">by {{ person.recordedBy.fullname || person.recordedBy.name }}</template>
           </dd>
         </template>
+        <template v-if="holder">
+          <dt>Held by</dt>
+          <dd>
+            {{ holder.legalName }}
+            <span class="text-muted">(privacy contact <a :href="`mailto:${holder.privacyContact}`">{{ holder.privacyContact }}</a>)</span>
+          </dd>
+        </template>
       </dl>
 
-      <div v-if="canEdit || canErase" class="card-actions">
+      <div v-if="form !== 'restricted' && (canEdit || canErase)" class="card-actions">
         <button v-if="canEdit" class="btn btn-secondary btn-small" @click="$emit('edit', person)">Edit</button>
         <button v-if="canErase" class="btn btn-danger btn-small" @click="$emit('erase', person)">Erase</button>
       </div>
