@@ -55,10 +55,10 @@ watch(block, (newBlock) => {
 <template>
   <div class="unit-tree">
     <div v-if="blockLoading" class="loading">
-      Loading block structure...
+      Loading units...
     </div>
     <div v-else-if="blockError" class="error">
-      Error loading block: {{ blockError.message }}
+      Error loading the unit graph: {{ blockError.message }}
     </div>
     <div v-else-if="block">
       <UnitTreeNode

@@ -9,7 +9,7 @@ const browser = await launchBrowser()
 const page = browser.page
 try {
   await login(page, config.adminUser, config.adminPassword)
-  await page.goto(`${config.appUrl}/blocks`)
+  await page.goto(`${config.appUrl}/locations?tab=units`)
   await page.waitFor(`document.querySelector('.regions-tree .location-node')`, 30000)
   await page.sleep(1000)
   for (let depth = 0; depth < 5; depth++) {

@@ -85,8 +85,8 @@ test('controllers: a hidden program has a placeholder controller, whom to ask wi
   await page.evaluate(`document.querySelector('.modal-close').click()`)
 })
 
-test('regions: readable locations joined past hidden ones, a hidden root as a placeholder', async () => {
-  await page.goto(`${config.appUrl}/regions`)
+test('locations: readable locations joined past hidden ones, a hidden root as a placeholder', async () => {
+  await page.goto(`${config.appUrl}/locations`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
   await expandAll('.location-header .expand-btn:not(.expanded)')
   const childrenOf = (name) => page.evaluate(`[...[...document.querySelectorAll('.location-node')].find((e) => e.querySelector('.location-name').innerText.trim() === ${JSON.stringify(name)})
@@ -104,8 +104,8 @@ test('regions: readable locations joined past hidden ones, a hidden root as a pl
   assert.ok(!(await page.evaluate(`!!document.querySelector('.leaflet-pm-toolbar')?.offsetParent`)), 'no drawing tools on the map')
 })
 
-test('blocks: the readable trees under a placeholder for their hidden block root, hidden units between skipped', async () => {
-  await page.goto(`${config.appUrl}/blocks`)
+test('units: the readable trees under a placeholder for their hidden unit graph root, hidden units between skipped', async () => {
+  await page.goto(`${config.appUrl}/locations?tab=units`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
   await expandAll('.location-header .expand-btn:not(.expanded)')
   await page.evaluate(`[...document.querySelectorAll('.location-name')].find((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)}).click()`)
@@ -124,7 +124,7 @@ test('blocks: the readable trees under a placeholder for their hidden block root
   assert.deepEqual(Object.fromEntries(germplasm)[e.tree_registered.name], 'REDACTED', 'a tree of hidden germplasm shows it as a placeholder')
   assert.deepEqual(Object.fromEntries(germplasm)[e.tree_public.name], e.crop_leaf.name)
   await page.evaluate(`[...document.querySelectorAll('.tree-node .node-header')].find((h) => h.querySelector('.node-name').innerText.trim() === ${JSON.stringify(e.tree_public.name)}).click()`)
-  await page.waitFor(`document.querySelector('.details-card h2')?.innerText.trim() === ${JSON.stringify(e.tree_public.name)}`, 30000)
+  await page.waitFor(`document.querySelector('.location-units-panel .details-card h2')?.innerText.trim() === ${JSON.stringify(e.tree_public.name)}`, 30000)
   await page.sleep(1000)
   assert.deepEqual(await writeActions(), [], 'no unit or position actions')
 })

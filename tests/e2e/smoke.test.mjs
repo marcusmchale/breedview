@@ -11,7 +11,7 @@ after(async () => { await logout(page); await browser?.close() })
 
 const pages = [
   ['/people', 'People'], ['/access', 'Control transfers'],
-  ['/ontology', ''], ['/germplasm', ''], ['/regions', ''], ['/arrangements', ''], ['/blocks', 'Select a location'],
+  ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'],
   ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree']
 ]
 

@@ -22,7 +22,7 @@ test('the navigation offers the open pages and a way to log in', async () => {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['People', 'Germplasm', 'Regions', 'Arrangements', 'Blocks', 'Programs', 'Datasets', 'Log in'])
+  assert.deepEqual(links, ['Programs', 'Locations', 'Germplasm', 'People', 'Log in'])
 })
 
 test('pages that need an account still send anonymous users to log in', async () => {
@@ -49,9 +49,9 @@ test('programs: the public studies below placeholders, without badges or write a
   assert.deepEqual(await failedRequests(mark), [])
 })
 
-test('blocks: the public tree under a placeholder for its hidden block root, without the registered one', async () => {
+test('units: the public tree under a placeholder for its hidden unit graph root, without the registered one', async () => {
   const mark = page.mark()
-  await page.goto(`${config.appUrl}/blocks`)
+  await page.goto(`${config.appUrl}/locations?tab=units`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
   await page.evaluate(`document.querySelectorAll('.location-header .expand-btn:not(.expanded)').forEach((e) => e.click())`)
   await page.waitFor(`[...document.querySelectorAll('.location-name')].some((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)})`, 30000)
@@ -69,8 +69,8 @@ test('blocks: the public tree under a placeholder for its hidden block root, wit
   assert.deepEqual(await failedRequests(mark), [], 'the location and unit types come from the published ontology')
 })
 
-test('regions, arrangements and datasets: no request fails', async () => {
-  for (const route of ['regions', 'arrangements', 'datasets']) {
+test('locations and programs: no request fails', async () => {
+  for (const route of ['locations', 'programs']) {
     const mark = page.mark()
     await page.goto(`${config.appUrl}/${route}`)
     await page.sleep(4000)

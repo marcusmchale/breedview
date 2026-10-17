@@ -56,18 +56,18 @@ const handleArrangementClick = (arrangement) => {
         class="btn btn-sm btn-add-layout"
         title="New layout tree"
       >
-        + New Layout
+        + New layout tree
       </button>
     </div>
 
     <div v-if="arrangementsLoading" class="loading">
-      Loading arrangements...
+      Loading layout trees...
     </div>
     <div v-else-if="arrangementsError" class="error">
-      Error loading arrangements!
+      Error loading layout trees!
     </div>
     <div v-else-if="arrangements.length === 0" class="empty-state">
-      No arrangements at this location
+      No layout trees at this location
     </div>
     <div v-else class="layouts-list">
       <div

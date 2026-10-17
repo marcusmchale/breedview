@@ -59,18 +59,18 @@ const handleBlockClick = (block) => {
         class="btn btn-sm btn-add-unit"
         title="New unit graph"
       >
-        + New Block
+        + New unit graph
       </button>
     </div>
 
     <div v-if="blocksLoading" class="loading">
-      Loading blocks...
+      Loading unit graphs...
     </div>
     <div v-else-if="blocksError" class="error">
-      Error loading blocks!
+      Error loading unit graphs!
     </div>
     <div v-else-if="blocks.length === 0" class="empty-state">
-      No blocks at this location
+      No unit graphs at this location
     </div>
     <div v-else class="blocks-list">
       <div

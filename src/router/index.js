@@ -9,9 +9,7 @@ import OntologyManagementPage from '../components/ontology/OntologyManagementPag
 import CommitHistoryPage from '@/components/ontology/CommitHistoryPage.vue'
 import OntologyRolePage from '@/components/user/OntologyRolePage.vue'
 import GermplasmManagement from '@/components/germplasm/GermplasmManagement.vue'
-import RegionManagement from '@/components/locations/LocationsPage.vue'
-import ArrangementManagement from "@/components/layouts/ArrangementManagement.vue";
-import BlockManagement from '@/components/units/BlockManagement.vue'
+import LocationsPage from '@/components/locations/LocationsPage.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'
 import ProfilePage from '@/components/user/ProfilePage.vue'
@@ -85,33 +83,13 @@ const routes = [
     }
   },
   {
-    path: '/regions',
-    name: 'Regions',
-    component: RegionManagement,
+    path: '/locations',
+    name: 'Locations',
+    component: LocationsPage,
     meta: {
       // anyone may read what has been released to the public; signing in shows more
       allowAnonymous: true,
-      title: 'Regions'
-    }
-  },
-  {
-    path: '/arrangements',
-    name: 'Arrangements',
-    component: ArrangementManagement,
-    meta: {
-      // anyone may read what has been released to the public; signing in shows more
-      allowAnonymous: true,
-      title: 'Arrangements'
-    }
-  },
-  {
-    path: '/blocks',
-    name: 'Blocks',
-    component: BlockManagement,
-    meta: {
-      // anyone may read what has been released to the public; signing in shows more
-      allowAnonymous: true,
-      title: 'Blocks'
+      title: 'Locations'
     }
   },
   {

@@ -93,31 +93,23 @@ onMounted(async () => {
 
         <div class="nav-menu">
           <!-- anonymous users see only the pages open to them (allowAnonymous in the router) -->
-          <router-link to="/people" class="nav-link" active-class="active">
-            People
+          <router-link to="/programs" class="nav-link" active-class="active">
+            Programs
           </router-link>
-          <template v-if="isAuthenticated">
-            <router-link to="/access" class="nav-link" active-class="active">
-              Access control
-            </router-link>
-            <router-link to="/ontology" class="nav-link" active-class="active">
-              Ontology
-            </router-link>
-          </template>
+          <router-link to="/locations" class="nav-link" active-class="active">
+            Locations
+          </router-link>
           <router-link to="/germplasm" class="nav-link" active-class="active">
             Germplasm
           </router-link>
-          <router-link to="/regions" class="nav-link" active-class="active">
-            Regions
+          <router-link v-if="isAuthenticated" to="/ontology" class="nav-link" active-class="active">
+            Ontology
           </router-link>
-          <router-link to="/arrangements" class="nav-link" active-class="active">
-            Arrangements
+          <router-link to="/people" class="nav-link" active-class="active">
+            People
           </router-link>
-          <router-link to="/blocks" class="nav-link" active-class="active">
-            Blocks
-          </router-link>
-          <router-link to="/programs" class="nav-link" active-class="active">
-            Programs
+          <router-link v-if="isAuthenticated" to="/access" class="nav-link" active-class="active">
+            Access control
           </router-link>
           <template v-if="isAuthenticated">
             <router-link to="/analysis" class="nav-link" active-class="active">

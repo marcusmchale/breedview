@@ -1,11 +1,16 @@
 <script setup>
 
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import LocationMap from './LocationMap.vue'
 import LocationTree from './LocationTree.vue'
 import LocationCard from './LocationCard.vue'
 import CreateLocationTreeModal from "@/components/locations/createLocationTreeModal.vue";
+import LocationLayoutsPanel from '@/components/layouts/LocationLayoutsPanel.vue'
+import LocationUnitsPanel from '@/components/units/LocationUnitsPanel.vue'
+import { useLayoutRootsQuery } from '@/composables/layouts/layoutRootsQuery'
+import { useUnitRootsQuery } from '@/composables/units/unitRootsQuery'
 
 import { useMutateLocations } from "@/composables/locations/mutateLocations";
 import { useLocationTreeQueries } from "@/composables/locations/locationTreeQueries";
@@ -17,8 +22,23 @@ const {
   updateLocationLoading
 } = useMutateLocations()
 
+const route = useRoute()
+const router = useRouter()
+
 const enableCountries = ref(false)
-const displayedLocationId = ref(null)
+// ?location=<id> opens a location's card and content, e.g. from a link elsewhere; ?tab=units its units
+const displayedLocationId = ref(route.query.location ? String(route.query.location) : null)
+const contentTab = ref(route.query.tab === 'units' ? 'units' : 'layouts')
+watch([displayedLocationId, contentTab], ([location, tab]) => {
+  const query = location ? { location, ...(tab === 'units' ? { tab } : {}) } : {}
+  if (query.location !== route.query.location || query.tab !== route.query.tab) router.replace({ query })
+})
+
+// The tab counts: the layout trees and unit graphs at the location (the panels' own root queries, from the cache)
+const { arrangements: layoutRoots } = useLayoutRootsQuery(displayedLocationId)
+const { blocks: unitRoots } = useUnitRootsQuery({
+  locationIds: computed(() => (displayedLocationId.value ? [displayedLocationId.value] : []))
+})
 // drawing sets the selected location's coordinates, so the tools are offered only to those who can change it
 const canCreate = useCanCreate()
 const canCurateDisplayed = useCanCurate({ entityLabel: 'LOCATION', entityId: displayedLocationId })
@@ -110,11 +130,10 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 <template>
 
 
-  <title>Regions</title>
   <div class="regions-management">
     <div class="regions-header">
       <button v-if="canCreate" @click="openCreateRegionModal" class="btn btn-primary">
-        Register New Region
+        Register a location tree
       </button>
     </div>
     <div class="regions-content">
@@ -147,6 +166,20 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
           @save-coordinates="handleSaveDrawnCoordinates"
           @discard-drawing="discardDrawing"
         />
+      </div>
+
+      <!-- What is at the selected location: only the open tab's content is loaded -->
+      <div v-if="displayedLocationId" class="location-content">
+        <div class="content-tabs" role="tablist">
+          <button class="content-tab" role="tab" :class="{ active: contentTab === 'layouts' }" @click="contentTab = 'layouts'">
+            Layouts ({{ layoutRoots.length }})
+          </button>
+          <button class="content-tab" role="tab" :class="{ active: contentTab === 'units' }" @click="contentTab = 'units'">
+            Units ({{ unitRoots.length }})
+          </button>
+        </div>
+        <LocationLayoutsPanel v-if="contentTab === 'layouts'" :location-id="displayedLocationId" />
+        <LocationUnitsPanel v-else :location-id="displayedLocationId" />
       </div>
     </div>
 
@@ -208,6 +241,30 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 
 .card-panel {
   width: 100%;
+}
+
+.content-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.content-tab {
+  padding: 10px 18px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  background: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.content-tab.active {
+  color: #212529;
+  border-bottom-color: #4caf50;
 }
 
 </style>
