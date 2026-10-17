@@ -12,7 +12,9 @@ const props = defineProps({
   pageSummary: { type: String, default: '' },
   filterSummary: { type: String, default: '' },
   // true while the table holds unsaved changes, which a new page would discard
-  pagingLocked: { type: Boolean, default: false }
+  pagingLocked: { type: Boolean, default: false },
+  // more optional columns of the loaded datasets, [{ key, label }], shown until hidden
+  extraColumns: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['back', 'export', 'update:columnVisibility', 'update:page'])
@@ -27,6 +29,8 @@ const OPTIONAL_COLUMNS = [
   { key: 'locationName', label: 'Location' },
   { key: 'locationId', label: 'L. ID' }
 ]
+
+const columnsOffered = computed(() => [...OPTIONAL_COLUMNS, ...props.extraColumns])
 
 const updateVisibility = (key, value) => {
   emit('update:columnVisibility', { ...props.columnVisibility, [key]: value })
@@ -72,10 +76,10 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
     <details class="column-toggles">
       <summary class="btn btn-secondary btn-sm">Columns</summary>
       <div class="column-menu">
-        <label v-for="c in OPTIONAL_COLUMNS" :key="c.key">
+        <label v-for="c in columnsOffered" :key="c.key">
           <input
             type="checkbox"
-            :checked="columnVisibility[c.key]"
+            :checked="columnVisibility[c.key] !== false"
             @change="updateVisibility(c.key, $event.target.checked)"
           /> {{ c.label }}
         </label>

@@ -87,30 +87,45 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
   watch(pageUnitIds, (list) => { if (list.length === 0) datasets.value = [] })
   const shownRecords = computed(() => datasets.value.reduce((n, d) => n + d.records.length, 0))
 
+  // Factors selected with variables describe the variables' units from those units or their ancestors, so every
+  // record of the factors is read, whatever the narrowing: a plot's factor is outside a narrowing to its trees, and an
+  // undated one outside any time window. Factor datasets are small (a record per unit, not per reading).
+  const isFactor = (dataset) => dataset.concept?.__typename === 'Factor'
+  const factorsApply = computed(() => datasets.value.some(isFactor) && datasets.value.some((d) => !isFactor(d)))
+  const factorDatasetIds = computed(() => (factorsApply.value ? datasets.value.filter(isFactor).map((d) => d.id) : []))
+  const { datasets: factorDatasets } = useDatasetsQuery({
+    datasetIds: () => (factorDatasetIds.value.length > 0 ? factorDatasetIds.value : null)
+  })
+
   // The page's units, once each, for their germplasm and positions, and the ancestors of those with no position up to
-  // one that has one (usually a field: the trees and plots in it are not positioned themselves)
+  // one that has one (usually a field: the trees and plots in it are not positioned themselves). With factors applied,
+  // every ancestor, for the factors recorded on them.
   const { units: pageUnits } = useUnitsQuery({ unitIds: pageUnitIds })
   const { resolveClient } = useApolloClient()
   const unitsById = ref({})
-  const unpositionedParents = (units, known) => [...new Set(units
-    .filter((unit) => !unit.positions?.length)
+  const parentsToRead = (units, known, all) => [...new Set(units
+    .filter((unit) => all || !unit.positions?.length)
     .flatMap((unit) => (unit.parents ?? []).map((parent) => String(parent.id)))
     .filter((id) => !known[id]))]
-  watch(pageUnits, async (units) => {
+  // a later walk (new units, or factors now known to apply) supersedes one still running
+  let walk = 0
+  watch([pageUnits, factorsApply], async ([units, all]) => {
+    const current = ++walk
     const known = Object.fromEntries((units ?? []).filter(Boolean).map((unit) => [String(unit.id), unit]))
     unitsById.value = { ...known }
-    let frontier = unpositionedParents(Object.values(known), known)
+    let frontier = parentsToRead(Object.values(known), known, all)
     try {
       for (let depth = 0; depth < 20 && frontier.length > 0; depth++) {
         const { data } = await resolveClient().query({ query: UNITS_QUERY, variables: { unitIds: frontier } })
+        if (current !== walk) return
         const ancestors = (data?.unitsUnits?.result ?? []).filter(Boolean)
         ancestors.forEach((unit) => { known[String(unit.id)] = unit })
-        frontier = unpositionedParents(ancestors, known)
+        frontier = parentsToRead(ancestors, known, all)
       }
     } catch (error) {
       console.warn('Could not read the ancestors of the page\'s units', error)
     }
-    unitsById.value = known
+    if (current === walk) unitsById.value = known
   }, { immediate: true })
 
   const pageSummary = computed(() => {
@@ -135,6 +150,7 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
     allUnitIds,
     totalRecords,
     datasets,
+    factorDatasets,
     unitsById,
     datasetsLoading,
     datasetsError

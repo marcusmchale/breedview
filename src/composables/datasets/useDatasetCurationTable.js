@@ -6,6 +6,7 @@ import { useDatetimeUtils } from '@/composables/parsers/partialDatetime'
 import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
+import { timeSpan, codeKey, lineage, describingRecords } from './factorApplication'
 
 import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
@@ -88,7 +89,9 @@ export function useDatasetCurationTable() {
     Object.entries(groupingsByStudy || {}).forEach(([studyId, groupings]) => {
       (groupings || []).forEach((g) => {
         columns.set(String(g.id), {
-          key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, extent: g.extent ?? 'SHARED', studyId
+          key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, extent: g.extent ?? 'SHARED', studyId,
+          // the datasets within which codes of a DATASET_SCOPED grouping are comparable
+          datasetScopes: (g.dataset_scopes ?? []).map((scope) => (scope.datasetIds ?? []).map(String))
         })
       })
     })
@@ -725,6 +728,127 @@ export function useDatasetCurationTable() {
     applyUnitDetails()
   }
 
+  /* ---------- the factors applied to variable rows (see factorApplication.js) ---------- */
+
+  // Every record of the selected factors, from the API: a factor recorded on a plot describes the trees below it,
+  // whose rows can be on other pages. The page's own factor rows stand in for their records, with their edits.
+  const factorRecords = ref([])
+
+  const setFactorRecords = (datasets) => {
+    factorRecords.value = (datasets ?? [])
+      .filter((dataset) => dataset.concept?.__typename === 'Factor')
+      .flatMap((dataset) => (dataset.records ?? []).filter((record) => record.unit?.id != null).map((record) => ({
+        recordId: record.id,
+        datasetId: dataset.id,
+        conceptId: dataset.concept.id,
+        unitId: String(record.unit.id),
+        unitName: record.unit.name || `Unit ${record.unit.id}`,
+        start: record.start || null,
+        end: record.end || null,
+        codes: recordGroupCodes(record),
+        value: record.value ?? ''
+      })))
+  }
+
+  const isFactor = (concept) => concept?.__typename === 'Factor'
+  // A column per factor, when there are variables for it to describe
+  const appliedFactors = computed(() => {
+    const concepts = getConcepts.value
+    return concepts.some((c) => !isFactor(c)) ? concepts.filter(isFactor) : []
+  })
+  const appliedKey = (conceptId) => `applied_${conceptId}`
+  const appliedConceptId = (columnKey) =>
+    (typeof columnKey === 'string' && columnKey.startsWith('applied_') ? columnKey.slice('applied_'.length) : null)
+
+  // { [conceptId]: { [unitId]: [record] } } with each record's span and code keys
+  const factorIndex = computed(() => {
+    const factorIds = new Set(appliedFactors.value.map((c) => String(c.id)))
+    const index = {}
+    const add = (conceptId, record) => {
+      const codeKeys = {}
+      groupingColumns.value.forEach((c) => {
+        const code = normalizeCode(record.codes[c.id])
+        if (code) codeKeys[c.id] = codeKey(c, code, record.datasetId, record.unitId)
+      })
+      const byUnit = (index[conceptId] ??= {})
+      ;(byUnit[record.unitId] ??= []).push({ ...record, span: timeSpan(record.start, record.end), codeKeys })
+    }
+    if (factorIds.size === 0) return index
+
+    // the page's factor rows, as edited; records marked for deletion describe nothing
+    const onPage = new Set()
+    tableData.value.forEach((row, rowIndex) => {
+      if (row._kind !== 'factor') return
+      factorIds.forEach((conceptId) => {
+        const metadata = cellMetadata.value[`${row._rowId}-${conceptId}`]
+        if (metadata?.recordId != null) onPage.add(String(metadata.recordId))
+        const value = String(row[`concept_${conceptId}`] ?? '').trim()
+        if (!value || isMarkedForDeletion(rowIndex, conceptId)) return
+        add(conceptId, {
+          recordId: metadata?.recordId ?? null,
+          datasetId: metadata?.datasetId ?? conceptData.value[conceptId]?.datasetIds[0],
+          unitId: String(row.unitId),
+          unitName: row.unitLabel,
+          start: rowTime(row.startTime),
+          end: rowTime(row.endTime),
+          codes: Object.fromEntries(groupingColumns.value.map((c) => [c.id, row[c.key]])),
+          value
+        })
+      })
+    })
+    factorRecords.value.forEach((record) => {
+      if (factorIds.has(String(record.conceptId)) && !onPage.has(String(record.recordId))) add(String(record.conceptId), record)
+    })
+    return index
+  })
+
+  // Lineages by unit, for the page's units as loaded: reading unitDetails here re-renders the cells when they change
+  const lineageCaches = new WeakMap()
+  const unitLineage = (unitId) => {
+    const units = unitDetails.value
+    if (!lineageCaches.has(units)) lineageCaches.set(units, new Map())
+    const cache = lineageCaches.get(units)
+    const id = String(unitId)
+    if (!cache.has(id)) cache.set(id, lineage(id, units))
+    return cache.get(id)
+  }
+
+  const describedTimes = (records) => {
+    const times = records.filter((r) => r.start || r.end).map((r) => (r.start && r.end && r.start !== r.end ? `${r.start} to ${r.end}` : r.start || r.end))
+    if (times.length === 0) return 'all times'
+    const undated = records.length > times.length ? ', and undated' : ''
+    return `${[...new Set(times)].join(', ')}${undated} (overlapping this row's time; an analysis takes the time bin a record falls in)`
+  }
+
+  /**
+   * The value of a factor describing a variable row, and where it comes from: { value, title }, or null.
+   * Records of the same unit describing the row are all given, their values joined.
+   */
+  const getAppliedFactor = (row, conceptId) => {
+    if (!row || row._kind === 'factor') return null
+    const recordsByUnit = factorIndex.value[String(conceptId)]
+    if (!recordsByUnit) return null
+    const datasetIds = [...(rowMetadata.value[row._rowId]?.datasetIds ?? [])]
+    const codeKeys = {}
+    groupingColumns.value.forEach((c) => {
+      const code = normalizeCode(row[c.key])
+      if (code) codeKeys[c.id] = new Set(datasetIds.map((datasetId) => codeKey(c, code, datasetId, row.unitId)))
+    })
+    const found = describingRecords(
+      { span: timeSpan(rowTime(row.startTime), rowTime(row.endTime)), codeKeys },
+      recordsByUnit,
+      unitLineage(row.unitId)
+    )
+    if (!found) return null
+    const { records } = found
+    const unitName = records[0].unitName
+    const own = String(found.unitId) === String(row.unitId)
+    return {
+      value: [...new Set(records.map((r) => r.value))].join(', '),
+      title: `From ${own ? 'this unit' : unitName}, ${describedTimes(records)}`
+    }
+  }
+
   // A row's time as shown, or null when empty: an unchanged time is sent back exactly as the API gave it
   const rowTime = (value) => String(value ?? '').trim() || null
 
@@ -1084,7 +1208,8 @@ export function useDatasetCurationTable() {
 
     rows.forEach(row => {
       const values = visibleColumns.map(col => {
-        let value = row[col.id] ?? ''
+        const applied = appliedConceptId(col.id)
+        let value = (applied ? getAppliedFactor(row, applied)?.value : row[col.id]) ?? ''
         // Escape quotes and wrap in quotes if contains comma
         if (typeof value === 'string') {
           value = value.replace(/"/g, '""')
@@ -1162,6 +1287,7 @@ export function useDatasetCurationTable() {
     pendingSubmissions.value = {}
     groupingColumns.value = []
     datasetStudyIds.value = {}
+    factorRecords.value = []
 
     // Stop any active polling
     Object.values(activeSubmissions.value).forEach(sub => {
@@ -1203,6 +1329,11 @@ export function useDatasetCurationTable() {
     hasValueChanged,
     hasRowTimesChanged,
     setUnitDetails,
+    // Factors applied to variable rows
+    setFactorRecords,
+    appliedFactors,
+    appliedKey,
+    getAppliedFactor,
     lastSavedAt,
     hasRowGroupsChanged,
     getCellReferences,

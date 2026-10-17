@@ -37,7 +37,7 @@ const props = defineProps({
 const emit = defineEmits(['back', 'submit', 'has-unsaved-changes'])
 
 // Datasets with their records, a page of units at a time under the selection's narrowing, so every row is complete
-const { page, pageCount, pageSummary, datasets, unitsById, datasetsLoading, datasetsError } = useDatasetRecordPages({
+const { page, pageCount, pageSummary, datasets, factorDatasets, unitsById, datasetsLoading, datasetsError } = useDatasetRecordPages({
   datasetIds: () => props.datasetIds,
   filters: () => props.filters,
   pageSize: () => props.pageSize
@@ -63,11 +63,16 @@ const {
   submitAllChanges, exportToCSV, getDatasetStatus, cleanup,
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
-  getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt
+  getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt,
+  setFactorRecords, appliedFactors, appliedKey, getAppliedFactor
 } = useDatasetCurationTable()
 
 // The units' germplasm and location fill their columns whenever the page's units arrive
 watch(unitsById, (units) => setUnitDetails(units), { immediate: true })
+// and every record of the selected factors, the factors applied to the variable rows
+watch(factorDatasets, (list) => setFactorRecords(list), { immediate: true })
+const appliedHeader = (concept) => `${concept.name || `Concept ${concept.id}`} (applied)`
+const appliedColumns = computed(() => appliedFactors.value.map((c) => ({ key: appliedKey(c.id), label: appliedHeader(c) })))
 
 // Study groupings (studies derived from the selected datasets)
 const { fetchGroupings, loading: groupingsLoading } = useStudiesGroupings()
@@ -164,6 +169,7 @@ const columns = computed(() => {
     }))
   })
 
+  const applied = new Set(appliedFactors.value.map((c) => c.id))
   getConcepts.value.forEach(concept => {
     const columnKey = `concept_${concept.id}`
     cols.push(columnHelper.accessor(columnKey, {
@@ -175,6 +181,14 @@ const columns = computed(() => {
         concept, conceptId: concept.id, width: '150px'
       }
     }))
+    // beside a factor, the value describing each variable row (read-only: edit it in the factor rows)
+    if (applied.has(concept.id)) {
+      cols.push(columnHelper.accessor((row) => getAppliedFactor(row, concept.id)?.value ?? '', {
+        id: appliedKey(concept.id),
+        header: () => appliedHeader(concept),
+        meta: { type: 'applied', appliedConceptId: concept.id, width: '150px' }
+      }))
+    }
   })
 
   cols.push(columnHelper.display({
@@ -398,6 +412,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       :page-summary="pageSummary"
       :filter-summary="filterSummary"
       :paging-locked="hasUnsavedChanges || isSubmitting"
+      :extra-columns="appliedColumns"
       @back="handleBack"
       @export="handleExport"
       @update:column-visibility="columnVisibility = $event"
@@ -553,6 +568,13 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                   @unmark-for-deletion="unmarkRecordForDeletion"
                 />
 
+                <!-- the factor describing a variable row, and where it comes from -->
+                <span
+                  v-else-if="cell.column.columnDef.meta?.type === 'applied'"
+                  class="applied-factor"
+                  :title="getAppliedFactor(row.original, cell.column.columnDef.meta.appliedConceptId)?.title"
+                >{{ getAppliedFactor(row.original, cell.column.columnDef.meta.appliedConceptId)?.value }}</span>
+
                 <!-- a factor record without a start or end describes every time -->
                 <span
                   v-else-if="row.original._kind === 'factor' && TIME_COLUMNS.has(cell.column.id) && !cell.getValue()"
@@ -649,9 +671,17 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   height: 33px;
 }
 
-.curation-table tbody tr.applies-to-all {
+/* a factor record's empty time or code: it applies to all of them */
+.applies-to-all {
   color: #999;
   font-style: italic;
+}
+
+/* a factor describing a variable row, read-only; the title says where it comes from */
+.applied-factor {
+  color: #5a4a8a;
+  font-style: italic;
+  cursor: help;
 }
 
 .section-header td {

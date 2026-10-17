@@ -330,6 +330,50 @@ test('curation: factor records come first, apart from the variable records, for 
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 
+test('curation: each variable row shows the factor applied to it, from its unit or the nearest one above with a record', async () => {
+  const mark = page.mark()
+  await loadCuration([r.concepts.height.name], null, [r.datasets.factor.concept_name])
+  // the Light record of each plot, and the parents of every unit, from the API
+  const factor = (await graphql(page, 'query ($ids: [ID!]) { datasets(ids: $ids) { result { records { unit { id name } value start end } } } }',
+    { ids: [String(r.datasets.factor.id)] })).result[0]
+  const lightOf = Object.fromEntries(factor.records.map((record) => [String(record.unit.id), record]))
+  assert.ok(factor.records.every((record) => !record.start && !record.end), 'the Light records are undated')
+  const units = (await graphql(page, 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { id parents { id } } } }',
+    { ids: Object.values(r.units).map(String) })).result
+  const parentsOf = Object.fromEntries(units.map((u) => [String(u.id), u.parents.map((p) => String(p.id))]))
+  const expected = (unitId) => {
+    if (lightOf[unitId]) return { value: lightOf[unitId].value, title: 'From this unit, all times' }
+    const plot = (parentsOf[unitId] ?? []).find((id) => lightOf[id])
+    return plot ? { value: lightOf[plot].value, title: `From ${lightOf[plot].unit.name}, all times` } : { value: '', title: '' }
+  }
+
+  const header = `${r.datasets.factor.concept_name} (applied)`
+  const rows = await page.evaluate(`(() => {
+    const headers = [...document.querySelectorAll('.curation-table thead th .header-text')].map((h) => h.textContent.trim())
+    const unitIdAt = headers.indexOf('Unit ID'), appliedAt = headers.indexOf(${q(header)})
+    if (appliedAt < 0) return null
+    return [...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')].map((tr) => {
+      const cells = tr.querySelectorAll('td'), applied = cells[appliedAt]?.querySelector('.applied-factor')
+      return { unitId: cells[unitIdAt]?.textContent.trim(), value: applied?.textContent.trim() ?? '', title: applied?.title ?? '' }
+    })
+  })()`)
+  assert.ok(rows, `the table has a ${header} column`)
+  // the factor rows come first, and describe no variable row
+  const factorRows = rows.slice(0, r.datasets.factor.record_count)
+  assert.ok(factorRows.every((row) => row.value === ''), `factor rows have no applied value: ${q(factorRows)}`)
+  const variableRows = rows.slice(r.datasets.factor.record_count)
+  assert.ok(variableRows.length >= 20, `enough variable rows are shown to check: ${variableRows.length}`)
+  for (const row of variableRows) {
+    assert.deepEqual({ value: row.value, title: row.title }, expected(row.unitId), `unit ${row.unitId}`)
+  }
+  assert.ok(variableRows.some((row) => row.value), 'some variable rows are described by a plot\'s Light')
+
+  await page.evaluate(`document.querySelector('.column-toggles summary').click()`)
+  const offered = await page.evaluate(`[...document.querySelectorAll('.column-menu label')].map((l) => l.textContent.trim())`)
+  assert.ok(offered.includes(header), `the ${header} column can be hidden: ${q(offered)}`)
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
 /* ---------- analysis ---------- */
 
 const viewStatus = `document.querySelector('.submission-view .title-row .status-badge:not(.running)')`
