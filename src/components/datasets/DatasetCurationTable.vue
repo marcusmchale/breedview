@@ -96,7 +96,7 @@ const contributorRows = computed(() =>
   Object.entries(datasetContributors.value).map(([datasetId, entry]) => ({
     id: datasetId,
     label: datasetLabel(datasetId),
-    ids: entry.ids,
+    contributions: entry.contributions,
     people: entry.people,
     canEdit: canEditContributors(datasetId),
     changed: hasContributorsChanged(datasetId)
@@ -408,7 +408,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       v-if="!tableLoading && !datasetsLoading && contributorRows.length"
       :datasets="contributorRows"
       :disabled="isSubmitting"
-      @update="setContributors($event.datasetId, $event.ids)"
+      @update="setContributors($event.datasetId, $event.contributions)"
     />
 
     <div v-if="tableLoading || datasetsLoading || groupingsLoading" class="loading-state">

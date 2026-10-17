@@ -16,7 +16,7 @@ import ReferencesModal from '@/components/references/ReferencesModal.vue'
 import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
 
 import ControlSelector from "@/components/controls/ControlSelector.vue";
-import PersonPicker from "@/components/people/PersonPicker.vue";
+import ContributionsField from "@/components/people/ContributionsField.vue";
 
 const props = defineProps({
   visible: {
@@ -55,8 +55,8 @@ const selectedControlTeamId = ref(null)
 const selectedRelease = ref(null)
 const errorMessage = ref('')
 
-// Persons credited as contributors on every dataset submitted from this table
-const selectedContributorIds = ref([])
+// Persons credited, with their roles, on every dataset submitted from this table: [{ personId, roleIds }]
+const contributions = ref([])
 const showContributors = ref(false)
 
 const handleControlTeamError = (error) => {
@@ -499,7 +499,7 @@ const confirmClose = () => {
 // Submit handler
 const handleSubmit = async () => {
   hasAttemptedSubmit.value = true;
-  await submitAllColumns(selectedControlTeamId, selectedRelease, selectedContributorIds.value)
+  await submitAllColumns(selectedControlTeamId, selectedRelease, contributions.value)
 };
 
 // Submission completes asynchronously via polling - react when all columns succeed
@@ -886,17 +886,17 @@ const getFileReferenceDisplay = (value) => {
               :disabled="isSubmitting || allSubmitted"
               @click="showContributors = !showContributors"
             >
-              Contributors ({{ selectedContributorIds.length }})
+              Contributors ({{ contributions.length }})
             </button>
             <div v-if="showContributors" class="contributors-panel">
               <p class="contributors-help">
-                People credited for these datasets. Only person records you can read are listed;
+                People credited for these datasets, with their roles. Only person records you can read are listed;
                 add new people on the People page.
               </p>
-              <PersonPicker
-                v-model="selectedContributorIds"
+              <ContributionsField
+                v-model="contributions"
+                kind="dataset"
                 :disabled="isSubmitting || allSubmitted"
-                empty-text="No person records available to credit."
               />
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { contributionsInput, contributionsKey } from '@/composables/people/personDisplay'
 import { ref, computed } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateDatasets } from './mutateDatasets'
@@ -34,7 +35,8 @@ export function useDatasetCurationTable() {
   // Controller data: { [datasetId]: { canEdit, controller } }
   const datasetControllers = ref({})
 
-  // Contributors of each dataset: { [datasetId]: { originalIds, ids, people } }, people being the Persons as loaded
+  // Contributors of each dataset: { [datasetId]: { original, contributions, people } }: the contributions as loaded
+  // (their key), as edited ([{ personId, roleIds }]), and the Persons as loaded
   const datasetContributors = ref({})
 
   // Records marked for deletion: { [datasetId]: Set<recordId> }
@@ -197,14 +199,12 @@ export function useDatasetCurationTable() {
       const datasetIds = datasets.map(d => d.id)
       await fetchControllers(datasetIds)
 
-      // Contributors, as loaded, so changes to them can be told apart and submitted. Their roles are kept as loaded,
-      // as saving replaces the dataset's contributions; there is no role picker here yet
+      // Contributions as loaded ({ personId, roleIds }), so changes to them can be told apart and submitted: saving
+      // replaces the dataset's contributions
       datasets.forEach(dataset => {
-        const contributions = (dataset.contributions ?? []).filter(c => c.person)
-        const people = contributions.map(c => c.person)
-        const ids = people.map(person => String(person.id))
-        const roleIds = Object.fromEntries(contributions.map(c => [String(c.person.id), (c.roles ?? []).map(r => r.id)]))
-        datasetContributors.value[dataset.id] = { originalIds: ids, ids: [...ids], people, roleIds }
+        const contributions = contributionsInput(dataset.contributions)
+        const people = (dataset.contributions ?? []).map(c => c?.person).filter(Boolean)
+        datasetContributors.value[dataset.id] = { original: contributionsKey(contributions), contributions, people }
       })
 
       // Build concept data map
@@ -746,21 +746,19 @@ export function useDatasetCurationTable() {
    */
   /* ---------- contributors ---------- */
 
-  const sortedIds = (ids) => [...new Set((ids ?? []).map(String))].sort().join(',')
-
   const hasContributorsChanged = (datasetId) => {
     const entry = datasetContributors.value[datasetId]
-    return !!entry && sortedIds(entry.ids) !== sortedIds(entry.originalIds)
+    return !!entry && contributionsKey(entry.contributions) !== entry.original
   }
 
   // Contributors can be changed by whoever can curate the dataset, while it is not being saved
   const canEditContributors = (datasetId) =>
     !isSubmitting.value && !activeSubmissions.value[datasetId] && !!datasetControllers.value[datasetId]?.canEdit
 
-  const setContributors = (datasetId, ids) => {
+  const setContributors = (datasetId, contributions) => {
     const entry = datasetContributors.value[datasetId]
     if (!entry || !canEditContributors(datasetId)) return
-    entry.ids = (ids ?? []).map(String)
+    entry.contributions = contributions ?? []
   }
 
   const hasUnsavedChanges = computed(() => {
@@ -902,17 +900,14 @@ export function useDatasetCurationTable() {
 
           // Then, handle updates to records and contributors in one submission
           const { updates, indexMapping, conceptId } = prepareDatasetUpdates(datasetId)
-          const contributorIds = hasContributorsChanged(datasetId)
-            ? [...datasetContributors.value[datasetId].ids]
+          const contributions = hasContributorsChanged(datasetId)
+            ? datasetContributors.value[datasetId].contributions.map(({ personId, roleIds }) => ({ personId, roleIds: [...(roleIds ?? [])] }))
             : null
-          if (updates.length > 0 || contributorIds) {
-            const roleIds = datasetContributors.value[datasetId]?.roleIds ?? {}
+          if (updates.length > 0 || contributions) {
             const result = await updateDataset({
               id: datasetId,
               records: updates,
-              ...(contributorIds
-                ? { contributions: contributorIds.map(personId => ({ personId, roleIds: roleIds[personId] ?? [] })) }
-                : {})
+              ...(contributions ? { contributions } : {})
             })
 
             if (result?.status === 'SUCCESS' || result?.result) {
@@ -920,7 +915,7 @@ export function useDatasetCurationTable() {
               const submissionId = result.result
               if (submissionId) {
                 // Store the mapping for error handling when polling completes
-                pendingSubmissions.value[datasetId] = { indexMapping, conceptId, updates, contributorIds }
+                pendingSubmissions.value[datasetId] = { indexMapping, conceptId, updates, contributions }
                 startSubmissionPolling(datasetId, submissionId)
               }
             } else {
@@ -1017,12 +1012,12 @@ export function useDatasetCurationTable() {
 
     const onSubmissionComplete = ({ status, errors, itemErrors }) => {
       const pending = pendingSubmissions.value[datasetId]
-      const { indexMapping, conceptId, updates, contributorIds } = pending || {}
+      const { indexMapping, conceptId, updates, contributions } = pending || {}
 
       if (status === 'COMPLETED') {
         // The saved contributors are the new baseline
-        if (contributorIds && datasetContributors.value[datasetId]) {
-          datasetContributors.value[datasetId].originalIds = [...contributorIds]
+        if (contributions && datasetContributors.value[datasetId]) {
+          datasetContributors.value[datasetId].original = contributionsKey(contributions)
         }
         rebaselineUpdates({ updates, indexMapping, conceptId })
         if (updates && updates.length > 0) {

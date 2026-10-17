@@ -1,13 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
+import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
 import { personLabel } from '@/composables/people/personDisplay'
-import PersonPicker from '@/components/people/PersonPicker.vue'
+import ContributionsField from '@/components/people/ContributionsField.vue'
 
 /**
- * The contributors of the loaded datasets, credited by name, with a picker for each dataset
- * the user can curate. Changes are saved with the table's other changes.
- * datasets: [{ id, label, ids, people, canEdit, changed }], people being the Persons as loaded
+ * The contributors of the loaded datasets, credited by name with their roles, and edited for each dataset the user
+ * can curate. Changes are saved with the table's other changes.
+ * datasets: [{ id, label, contributions, people, canEdit, changed }], contributions being [{ personId, roleIds }]
+ * and people the Persons as loaded
  */
 const props = defineProps({
   datasets: { type: Array, default: () => [] },
@@ -17,23 +19,26 @@ const props = defineProps({
 const emit = defineEmits(['update'])
 
 const open = ref(false)
-// the dataset whose picker is open
+// the dataset whose contributions are being edited
 const editing = ref(null)
 
 const { people } = usePeopleQuery()
+const { entries: roles } = useOntologyEntriesQuery({ labels: ['ROLE'], view: 'PUBLISHED' })
 
-const findPerson = (dataset, id) =>
-  people.value.find((person) => String(person.id) === String(id)) ??
-  dataset.people.find((person) => String(person.id) === String(id))
+const personName = (dataset, id) => {
+  const person = people.value.find((p) => String(p.id) === String(id)) ??
+    dataset.people.find((p) => String(p.id) === String(id))
+  return person ? personLabel(person) : `Person #${id}`
+}
+const roleName = (id) => roles.value?.find((r) => String(r.id) === String(id))?.name ?? `Role ${id}`
 
-const names = (dataset) =>
-  dataset.ids.map((id) => {
-    const person = findPerson(dataset, id)
-    return person ? personLabel(person) : `Person #${id}`
-  })
+const credits = (dataset) =>
+  dataset.contributions.map(({ personId, roleIds }) =>
+    roleIds?.length ? `${personName(dataset, personId)} — ${roleIds.map(roleName).join(', ')}` : personName(dataset, personId)
+  )
 
 const changedCount = computed(() => props.datasets.filter((d) => d.changed).length)
-const total = computed(() => props.datasets.reduce((count, d) => count + d.ids.length, 0))
+const total = computed(() => props.datasets.reduce((count, d) => count + d.contributions.length, 0))
 
 const toggleEdit = (id) => {
   editing.value = editing.value === id ? null : id
@@ -47,7 +52,7 @@ const toggleEdit = (id) => {
     </button>
 
     <div v-if="open" class="contributors-list">
-      <p class="hint">People credited for each loaded dataset. Only person records you can read are listed to pick from.</p>
+      <p class="hint">People credited for each loaded dataset, with their roles. Only person records you can read are listed to pick from.</p>
       <div
         v-for="dataset in datasets"
         :key="dataset.id"
@@ -57,7 +62,7 @@ const toggleEdit = (id) => {
         <div class="dataset-row">
           <span class="dataset-label">{{ dataset.label }}</span>
           <span class="names">
-            <template v-if="dataset.ids.length">{{ names(dataset).join(', ') }}</template>
+            <template v-if="dataset.contributions.length">{{ credits(dataset).join('; ') }}</template>
             <span v-else class="text-muted">No contributors</span>
           </span>
           <span v-if="dataset.changed" class="changed-mark">changed</span>
@@ -73,11 +78,12 @@ const toggleEdit = (id) => {
           <span v-else class="text-muted read-only">read only</span>
         </div>
         <div v-if="editing === dataset.id" class="picker">
-          <PersonPicker
-            :model-value="dataset.ids"
+          <ContributionsField
+            :model-value="dataset.contributions"
+            kind="dataset"
+            :people="dataset.people"
             :disabled="disabled"
-            empty-text="No person records available to credit."
-            @update:model-value="emit('update', { datasetId: dataset.id, ids: $event })"
+            @update:model-value="emit('update', { datasetId: dataset.id, contributions: $event })"
           />
         </div>
       </div>
