@@ -73,7 +73,7 @@ const formatDate = (dateString) => {
   </div>
   <div class="history-list">
     <div
-      v-for="(pos, index) in positions"
+      v-for="(pos, index) in positionsSorted"
       :key="index"
       class="history-item"
   >
