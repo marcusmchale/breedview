@@ -32,7 +32,9 @@ const selectedProgram = ref(null)
 const selectedTrial = ref(null)
 const emptySelection = () => ({
   studyIds: [...props.initialStudyIds],
-  conceptIds: [],
+  // the concepts to curate: variables (observations) and factors (what describes them), either may be empty
+  variableIds: [],
+  factorIds: [],
   // narrowing of the records: units (with everything below them) and a time window
   unitIds: [],
   start: '',
@@ -72,16 +74,19 @@ watch(() => selectionData.value.studyIds, async (newStudyIds) => {
 }, { immediate: true })
 
 // Concept options for multiselect
-const conceptOptions = computed(() => {
-  return availableConcepts.value.map(concept => ({
-    label: concept.name || `Concept ${concept.id}`,
-    value: concept.id
-  }))
-})
+// A dataset's concept is a Factor or a Variable, by its type
+const isFactor = (concept) => concept?.__typename === 'Factor'
+const optionsOf = (concepts) => concepts.map((concept) => ({
+  label: concept.name || `Concept ${concept.id}`,
+  value: concept.id
+}))
+const variableOptions = computed(() => optionsOf(availableConcepts.value.filter((c) => !isFactor(c))))
+const factorOptions = computed(() => optionsOf(availableConcepts.value.filter(isFactor)))
+const conceptIds = computed(() => [...selectionData.value.variableIds, ...selectionData.value.factorIds])
 
 // Summaries of the datasets the selection will load
 const selectedSummaries = computed(() =>
-  summaries.value.filter((s) => selectionData.value.conceptIds.includes(s.concept?.id))
+  summaries.value.filter((s) => conceptIds.value.includes(s.concept?.id))
 )
 
 // What the selected datasets hold, so the user can judge whether to narrow them
@@ -131,7 +136,7 @@ const studyNameOf = useCachedName('Study')
 // Can proceed to table
 const canLoadTable = computed(() => {
   return selectionData.value.studyIds.length > 0 &&
-         selectionData.value.conceptIds.length > 0
+         conceptIds.value.length > 0
 })
 
 // Study hierarchy navigation
@@ -173,7 +178,7 @@ const isSelectable = (node) => {
 // Load table
 const handleLoadTable = () => {
   if (canLoadTable.value) {
-    const datasetIds = getDatasetIdsForConcepts(selectionData.value.conceptIds)
+    const datasetIds = getDatasetIdsForConcepts(conceptIds.value)
     const datasetStudyIds = Object.fromEntries(
       summaries.value
         .filter((s) => datasetIds.includes(s.id))
@@ -230,19 +235,28 @@ defineExpose({ reset })
         validation="required"
       />
 
-      <!-- Concept Multi-Select -->
+      <!-- The concepts of the studies' datasets: variables and factors apart -->
       <FormKit
         type="select"
-        name="conceptIds"
-        label="Concepts:"
-        help="Select concepts to display (based on available datasets)"
-        :options="conceptOptions"
-        :disabled="summariesLoading || conceptOptions.length === 0"
+        name="variableIds"
+        label="Variables:"
+        help="The observations to curate"
+        :options="variableOptions"
+        :disabled="summariesLoading || variableOptions.length === 0"
         multiple
-        validation="required"
+      />
+      <FormKit
+        v-if="factorOptions.length > 0"
+        type="select"
+        name="factorIds"
+        label="Factors:"
+        help="A factor describes the unit it is recorded on and the units below it; without a start or end it applies to all of the unit's observations."
+        :options="factorOptions"
+        :disabled="summariesLoading"
+        multiple
       />
 
-      <p v-if="selectionData.studyIds.length > 0 && conceptOptions.length === 0 && !summariesLoading" class="no-concepts-msg">
+      <p v-if="selectionData.studyIds.length > 0 && availableConcepts.length === 0 && !summariesLoading" class="no-concepts-msg">
         No datasets found for the selected studies.
       </p>
 

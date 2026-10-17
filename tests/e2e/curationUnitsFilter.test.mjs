@@ -39,10 +39,10 @@ test('the units filter offers the units the selected datasets have records for',
   await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.trim().startsWith('1 selected')`)
   await page.click('.btn-done')
   await page.waitFor(`!document.querySelector('.options-list')`)
-  await page.waitFor(`document.querySelector('select[name=conceptIds] option')`, 120000)
+  await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 120000)
   // the first concept; the roots of the units filter are read as soon as datasets are selected
   let mark = page.mark()
-  await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); s.options[0].selected = true; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await page.evaluate(`(() => { const s = document.querySelector('select[name=variableIds]'); s.options[0].selected = true; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`)
   const hint = (await page.text('.datasets-hint')).trim()
   const records = Number(hint.match(/with ([\d,]+) records/)[1].replace(/,/g, ''))

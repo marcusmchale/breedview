@@ -201,8 +201,8 @@ async function pickStudy() {
   await page.waitFor(`!document.querySelector('.options-list')`)
 }
 
-// open the curation table of the replicates study for some concepts, narrowed to the records of one day
-async function loadCuration(concepts, day) {
+// open the curation table of the replicates study for some variables (and factors), narrowed to the records of one day
+async function loadCuration(concepts, day, factors = []) {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
@@ -210,11 +210,16 @@ async function loadCuration(concepts, day) {
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await pickStudy()
-  await page.waitFor(`document.querySelector('select[name=conceptIds] option')`, 60000)
-  await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); for (const o of s.options) o.selected = ${q(concepts)}.includes(o.innerText.trim()); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 60000)
+  for (const [name, wanted] of [['variableIds', concepts], ['factorIds', factors]]) {
+    if (!wanted.length) continue
+    await page.evaluate(`(() => { const s = document.querySelector('select[name=${name}]'); for (const o of s.options) o.selected = ${q(wanted)}.includes(o.innerText.trim()); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  }
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`, 30000)
-  await page.type('.record-filters input[name=start]', day)
-  await page.type('.record-filters input[name=end]', day)
+  if (day) {
+    await page.type('.record-filters input[name=start]', day)
+    await page.type('.record-filters input[name=end]', day)
+  }
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')`, 60000)
   await page.sleep(1000)
@@ -295,6 +300,18 @@ test('curation: records with a time of day show it as given and have nothing to 
   const headers = await page.evaluate(`[...document.querySelectorAll('.table-wrapper thead th')].map((e) => e.innerText.trim())`)
   const locations = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')].map((tr) => tr.querySelectorAll('td')[${headers.indexOf('Location')}]?.innerText.trim())`)
   assert.ok(headers.includes('Location') && locations.every(Boolean), `every tree has its field's location: ${q(locations.slice(0, 3))}`)
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('curation: factor records come first, apart from the variable records, for all times and levels', async () => {
+  const mark = page.mark()
+  await loadCuration([r.concepts.height.name], null, [r.datasets.factor.concept_name])
+  const rows = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row)')].map((tr) =>
+    tr.classList.contains('section-header') ? { section: tr.innerText.trim() } : { cells: [...tr.querySelectorAll('td')].map((td) => td.innerText.trim()) })`)
+  assert.equal(rows[0].section, `Factor records (${r.datasets.factor.record_count} rows)`, 'the factor records are the first section')
+  const factorRows = rows.slice(1, 1 + r.datasets.factor.record_count)
+  assert.ok(factorRows.every((row) => row.cells && row.cells[2] === 'all times' && row.cells[3] === 'all times'), `undated factor records apply at all times: ${q(factorRows.slice(0, 2))}`)
+  assert.ok(rows[1 + r.datasets.factor.record_count].section, 'the variable records follow in their own section')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 

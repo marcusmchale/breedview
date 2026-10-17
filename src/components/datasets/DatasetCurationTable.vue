@@ -229,6 +229,7 @@ const editingGroupCell = ref(null) // { rowIndex, columnId }
 const editingGroupValue = ref('')
 
 const isGroupingColumn = (cell) => cell.column.columnDef.meta?.type === 'grouping'
+const TIME_COLUMNS = new Set(['startTime', 'endTime'])
 
 const isEditingGroupCell = (rowIndex, columnId) =>
   editingGroupCell.value?.rowIndex === rowIndex && editingGroupCell.value?.columnId === columnId
@@ -522,7 +523,9 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                     class="group-cell-display"
                     @click="startGroupEdit(row.index, cell.column.id, cell.getValue())"
                   >
-                    {{ cell.getValue() }}
+                    <template v-if="cell.getValue()">{{ cell.getValue() }}</template>
+                    <!-- a factor record without a code describes every level of the grouping -->
+                    <span v-else-if="row.original._kind === 'factor'" class="applies-to-all">all levels</span>
                   </div>
                 </template>
 
@@ -550,6 +553,11 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                   @unmark-for-deletion="unmarkRecordForDeletion"
                 />
 
+                <!-- a factor record without a start or end describes every time -->
+                <span
+                  v-else-if="row.original._kind === 'factor' && TIME_COLUMNS.has(cell.column.id) && !cell.getValue()"
+                  class="applies-to-all"
+                >all times</span>
                 <template v-else>{{ cell.getValue() }}</template>
               </td>
             </tr>
@@ -641,7 +649,12 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   height: 33px;
 }
 
-.curation-table tbody tr.section-header td {
+.curation-table tbody tr.applies-to-all {
+  color: #999;
+  font-style: italic;
+}
+
+.section-header td {
   height: 33px;
 }
 

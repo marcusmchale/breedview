@@ -43,9 +43,9 @@ try {
   await page.evaluate(`[...document.querySelectorAll('.options-list .option-checkbox')][${pick}].click()`)
   await page.sleep(300)
   await page.evaluate(`document.querySelector('.btn-done').click()`)
-  const summariesMs = await page.waitFor(`document.querySelector('select[name=conceptIds] option')`, 120000)
+  const summariesMs = await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 120000)
   console.log(`study ${labels[pick]}: summaries in ${summariesMs} ms`, JSON.stringify(page.graphql(mark).map((r) => ({ op: r.op, ms: r.ms, kB: Math.round(r.bytes / 1024) }))))
-  await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); [...s.options].forEach((o) => { o.selected = o.text.trim() === ${JSON.stringify(CONCEPT)} }); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await page.evaluate(`(() => { const s = document.querySelector('select[name=variableIds]'); [...s.options].forEach((o) => { o.selected = o.text.trim() === ${JSON.stringify(CONCEPT)} }); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.sleep(300)
   // the record filters appear once datasets are selected
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`)

@@ -116,15 +116,21 @@ export function useDatasetCurationTable() {
   )
 
   const sectionKey = (columns, row) => columns.map((c) => normalizeCode(row?.[c.key])).join('\u0000')
-  const getRowSectionKey = (row) => sectionKey(datasetScopedColumns.value, row)
+  const hasFactorRows = computed(() => tableData.value.some((row) => row._kind === 'factor'))
+  // Factor rows form one section, before the variable rows' sections
+  const getRowSectionKey = (row) =>
+    (row?._kind === 'factor' ? '\u0001factor' : sectionKey(datasetScopedColumns.value, row))
 
-  const getRowSectionLabel = (row) =>
-    datasetScopedColumns.value
+  const getRowSectionLabel = (row) => {
+    if (row?._kind === 'factor') return 'Factor records'
+    if (datasetScopedColumns.value.length === 0) return 'Variable records'
+    return datasetScopedColumns.value
       .map((c) => `${c.name}: ${normalizeCode(row?.[c.key]) || '(none)'}`)
       .join(' · ')
+  }
 
   const rowSections = computed(() => {
-    if (datasetScopedColumns.value.length === 0) return []
+    if (datasetScopedColumns.value.length === 0 && !hasFactorRows.value) return []
     const sections = new Map()
     tableData.value.forEach((row, index) => {
       const key = getRowSectionKey(row)
@@ -223,6 +229,9 @@ export function useDatasetCurationTable() {
         const conceptId = dataset.concept?.id
         const datasetId = dataset.id
         if (conceptId == null) return
+        // Factor records describe a unit and the units below it (for every time when undated), not an observation:
+        // they never share a row with variable records
+        const kind = dataset.concept?.__typename === 'Factor' ? 'factor' : 'variable'
 
         const records = dataset.records || []
         records.forEach(record => {
@@ -234,7 +243,7 @@ export function useDatasetCurationTable() {
           const codes = recordGroupCodes(record)
           const groupSig = groupingColumns.value.map((c) => codes[c.id] ?? '').join('|')
           // Records with different group codes must not share a row
-          const rowKey = `${unitId}-${start || 'null'}-${end || 'null'}`
+          const rowKey = `${kind === 'factor' ? 'factor:' : ''}${unitId}-${start || 'null'}-${end || 'null'}`
             + (groupingColumns.value.length ? `-${groupSig}` : '')
 
           // Get or create the array of rows for this key
@@ -255,6 +264,7 @@ export function useDatasetCurationTable() {
               rowId,
               rowData: {
                 _rowId: rowId,
+                _kind: kind,
                 unitId: unitId,
                 unitLabel: record.unit?.name || `Unit ${unitId}`,
                 // as the API gives them, so that display and comparison use one form
@@ -319,6 +329,8 @@ export function useDatasetCurationTable() {
       }
 
       tableData.value = allRows.sort((a, b) => {
+        // Factor records first, in a section of their own
+        if (a._kind !== b._kind) return a._kind === 'factor' ? -1 : 1
         // Keep DATASET_SCOPED sections contiguous (by every candidate grouping, as tableData isn't set yet)
         const sa = sectionKey(sectionColumns.value, a)
         const sb = sectionKey(sectionColumns.value, b)
