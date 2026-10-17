@@ -4,7 +4,7 @@
 // combine replicates (the outcomes are the manifest's `expected.cases`), and the levels of a within-unit-graph
 // grouping named with their unit graph. Signed in as the writer, who curates the replicates study.
 // Needs the analysis worker (see README.md). Creates two draft record group types, which stay, and two groupings of
-// the replicates study, which are deleted afterwards.
+// the replicates study, which are deleted afterwards, and tries to delete one of the study's own groupings, which is refused.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -178,6 +178,21 @@ test('groupings: a new grouping asks for its extent, prefilled from its type\'s 
     await page.waitFor(`!${groupingCard(name)}`, 30000)
   }
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('groupings: a grouping with records in its groups is refused deletion, and stays', async () => {
+  const name = Object.keys(r.groupings)[0]
+  const mark = page.mark()
+  // the harness confirms the deletion and records the refusal's alert
+  await page.evaluate(`${groupingCard(name)}.querySelector('.card-actions button.delete').click()`)
+  for (let waited = 0; page.consoleErrors(mark).length === 0 && waited < 30000; waited += 200) await page.sleep(200)
+  assert.deepEqual(page.consoleErrors(mark), [
+    'alert: Failed to delete: Cannot delete a grouping that has records in its groups; remove its codes from those records first'
+  ])
+  await page.sleep(500)
+  assert.ok(await page.evaluate(`!!${groupingCard(name)}`), `${name} is still shown`)
+  const study = await graphql(page, 'query ($id: ID!) { programsStudy(id: $id) { result { groupings { name } } } }', { id: String(r.study.id) })
+  assert.ok(study.result.groupings.some((g) => g.name === name), `${name} is kept`)
 })
 
 /* ---------- curation ---------- */

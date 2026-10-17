@@ -94,7 +94,10 @@ const removeDimension = (i) => {
           path="grouping.time.binning"
           @update:model-value="form.grouping.time.binning = $event"
         />
-        <p class="hint">Records with no time are unassigned.</p>
+        <p class="hint">
+          A time stands for its whole period: by end, a record ending 2021-05-03 counts at the end of that day, and by
+          midpoint a record dated 2021 counts in July. Records with no time are unassigned.
+        </p>
       </template>
 
       <template v-if="key === 'germplasm' && form.grouping.germplasm">
