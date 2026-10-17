@@ -30,7 +30,7 @@ const displayFields = computed(() => {
     { label: 'Scale Type', value: e.scaleType },
     { label: 'Observation Type', value: e.observationType },
     { label: 'Control Type', value: e.controlType },
-    { label: 'Extent', value: e.extent && extentLabel(e.extent) },
+    { label: 'Default extent', value: e.defaultExtent && extentLabel(e.defaultExtent) },
   ].filter(f => f.value)
 })
 

@@ -152,8 +152,8 @@ export function useAnalysisDataContext(form) {
         ...g,
         studyId,
         studyName: studiesById.value[studyId]?.name,
-        // Groupings whose type has no extent are treated as SHARED
-        extent: g.type?.extent ?? 'SHARED'
+        // Groupings without an extent are treated as SHARED
+        extent: g.extent ?? 'SHARED'
       }))
     )
   )

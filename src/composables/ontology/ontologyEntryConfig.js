@@ -602,8 +602,8 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       nameField,
       descriptionField,
       {
-        type: 'enumselect', name: 'extent', label: 'Extent', validation: 'required',
-        options: RECORD_GROUP_EXTENT_OPTIONS, help: RECORD_GROUP_EXTENT_HELP
+        type: 'enumselect', name: 'defaultExtent', label: 'Default extent', options: RECORD_GROUP_EXTENT_OPTIONS,
+        help: `Prefills the extent of a new grouping of this type; each grouping sets its own. ${RECORD_GROUP_EXTENT_HELP}`
       },
       multi('parentIds', 'Parent Record Group Types', 'RecordGroupType'),
       multi('childIds', 'Child Record Group Types', 'RecordGroupType', true, 'children'),
@@ -613,7 +613,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       recordGroupType: {
         name: formData.name,
         description: formData.description || undefined,
-        extent: formData.extent,
+        defaultExtent: formData.defaultExtent || undefined,
         referenceIds: referenceIds?.length ? referenceIds : undefined,
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
@@ -625,7 +625,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         id: entry.id,
         name: formData.name,
         description: formData.description || undefined,
-        extent: formData.extent,
+        defaultExtent: formData.defaultExtent || undefined,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],

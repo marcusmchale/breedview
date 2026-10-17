@@ -77,5 +77,5 @@ fragment OntologyEntryFields on OntologyNodeInterface {
         factors { id versionId view name }
     }
     ... on LayoutType { axes }
-    ... on RecordGroupType { extent }
+    ... on RecordGroupType { defaultExtent }
 }

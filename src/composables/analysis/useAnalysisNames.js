@@ -33,7 +33,8 @@ const requested = {
 
 export function registerNames(kind, entries) {
   for (const entry of entries ?? []) {
-    if (entry?.id != null && entry.name != null) store[kind][entry.id] = entry.name
+    // A placeholder for a hidden entry is named REDACTED: leave it unnamed, so labels show its id
+    if (entry?.id != null && entry.name != null && entry.name !== 'REDACTED') store[kind][entry.id] = entry.name
   }
 }
 
@@ -166,7 +167,8 @@ export function recordGroupAssignmentLabel(a, shownUnitId = null) {
   if (!a) return ''
   if (a.shared) return a.level
   const scope = (a.scopeDatasetIds ?? []).map(datasetName).join(', ')
-  // unitId is set for WITHIN_UNIT groupings, whose codes (e.g. replicates) only mean something within a unit
+  // unitId is set for WITHIN_UNIT groupings, whose codes (e.g. replicates) only mean something within a unit, and for
+  // WITHIN_GRAPH groupings, where it is the unit graph's root: "Block 1 of ED1"
   const unit = a.unitId != null && String(a.unitId) !== String(shownUnitId) ? ` of ${unitName(a.unitId)}` : ''
   return `${groupingName(a.groupingId)}: ${a.code}${unit}${scope ? ` (${scope})` : ''}`
 }

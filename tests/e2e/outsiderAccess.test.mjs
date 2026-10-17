@@ -7,7 +7,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, flat } from './lib/app.mjs'
-import { entities as e, teams, concept } from './lib/fixture.mjs'
+import { entities as e, teams, concept, replicates } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => {
@@ -137,7 +137,9 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await page.waitFor(levelLoaded, 30000)
-  assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name].sort(), 'the hidden program is a placeholder')
+  // the replicates program is released to every registered account
+  assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name, replicates.program.name].sort(),
+    'the hidden program is a placeholder')
   await openOption('REDACTED')
   assert.deepEqual(await optionLabels(), ['REDACTED'], 'and so is its trial')
   await openOption('REDACTED')

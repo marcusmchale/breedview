@@ -444,6 +444,13 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                 >
                   WU
                 </span>
+                <span
+                  v-if="header.column.columnDef.meta?.type === 'grouping' && header.column.columnDef.meta.grouping.extent === 'WITHIN_GRAPH'"
+                  class="grouping-badge WITHIN_GRAPH"
+                  title="Within unit graph: codes group the units of one unit graph, e.g. the design blocks of a field"
+                >
+                  WG
+                </span>
               </div>
             </th>
           </tr>
@@ -698,6 +705,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 }
 .grouping-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
 .grouping-badge.WITHIN_UNIT { background: #f3e5f5; color: #6a1b9a; }
+.grouping-badge.WITHIN_GRAPH { background: #efebe9; color: #5d4037; }
 
 /* DATASET_SCOPED section headers */
 .section-header td {

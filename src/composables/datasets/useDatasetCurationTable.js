@@ -84,7 +84,7 @@ export function useDatasetCurationTable() {
     Object.entries(groupingsByStudy || {}).forEach(([studyId, groupings]) => {
       (groupings || []).forEach((g) => {
         columns.set(String(g.id), {
-          key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, extent: g.type?.extent ?? 'SHARED', studyId
+          key: groupingKey(g.id), id: g.id, name: g.name, scope: g.scope, extent: g.extent ?? 'SHARED', studyId
         })
       })
     })
@@ -99,10 +99,10 @@ export function useDatasetCurationTable() {
     return [...columns.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  // Row sections, split by the values of DATASET_SCOPED groupings with SHARED extent.
+  // Row sections, split by the values of DATASET_SCOPED groupings with SHARED or WITHIN_GRAPH extent.
   // WITHIN_UNIT codes (replicates) only mean something within a unit, so they stay ordinary columns.
   const datasetScopedColumns = computed(() =>
-    groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED' && c.extent === 'SHARED')
+    groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED' && c.extent !== 'WITHIN_UNIT')
   )
   const withinUnitColumns = computed(() =>
     groupingColumns.value.filter((c) => c.extent === 'WITHIN_UNIT')

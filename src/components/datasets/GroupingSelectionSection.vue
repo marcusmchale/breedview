@@ -74,8 +74,8 @@ const datasetLabel = (grouping, ds) => {
         <span class="grouping-name">{{ g.name }}</span>
         <span class="scope-badge" :class="g.scope">{{ scopeLabel(g.scope) }}</span>
         <span v-if="g.type" class="grouping-type">{{ g.type.name }}</span>
-        <span v-if="g.type?.extent === 'WITHIN_UNIT'" class="extent-badge" :title="RECORD_GROUP_EXTENT_DESCRIPTIONS.WITHIN_UNIT">
-          {{ extentLabel(g.type.extent) }}
+        <span v-if="g.extent && g.extent !== 'SHARED'" class="extent-badge" :title="RECORD_GROUP_EXTENT_DESCRIPTIONS[g.extent]">
+          {{ extentLabel(g.extent) }}
         </span>
       </label>
     </div>

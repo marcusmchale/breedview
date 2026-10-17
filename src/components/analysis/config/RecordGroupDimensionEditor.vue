@@ -90,7 +90,7 @@ const withinUnitSelected = computed(() => selectedGroupings.value.some((g) => g.
 
 /* ---------- shared levels ---------- */
 
-// Only codes of SHARED groupings can be merged into shared levels
+// Only codes of SHARED and WITHIN_GRAPH groupings can be merged into shared levels (merging a code across unit graphs)
 const sharedGroupings = computed(() => selectedGroupings.value.filter((g) => g.extent !== 'WITHIN_UNIT'))
 const showSharedLevels = computed(
   () => sharedGroupings.value.length > 0 || selectedGroupings.value.length === 0 || dimension.value.levels.length > 0
@@ -128,7 +128,7 @@ const removeMember = (level, i) => level.members.splice(i, 1)
           <span class="muted">{{ g.type?.name }} · {{ g.scope === 'DATASET_SCOPED' ? 'dataset-scoped' : 'study-wide' }}</span>
           <span
             class="extent-badge"
-            :class="{ 'within-unit': g.extent === 'WITHIN_UNIT' }"
+            :class="{ 'within-unit': g.extent === 'WITHIN_UNIT', 'within-graph': g.extent === 'WITHIN_GRAPH' }"
             :title="RECORD_GROUP_EXTENT_DESCRIPTIONS[g.extent]"
           >
             {{ extentLabel(g.extent).toLowerCase() }}
@@ -216,6 +216,11 @@ const removeMember = (level, i) => level.members.splice(i, 1)
 .extent-badge.within-unit {
   background: #f3e5f5;
   color: #6a1b9a;
+}
+
+.extent-badge.within-graph {
+  background: #efebe9;
+  color: #5d4037;
 }
 
 .replicate-note {

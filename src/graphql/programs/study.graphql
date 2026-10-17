@@ -16,6 +16,7 @@ query programsStudy($studyId: ID!) {
         id
         name
         scope
+        extent
         type { ...OntologyEntryFields }
         dataset_scopes { datasetIds }
       }

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import DatasetScopeManager from './DatasetScopeManager.vue'
-import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
+import { RECORD_GROUP_EXTENT_DESCRIPTIONS, RECORD_GROUP_EXTENT_LABELS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 
 const props = defineProps({
   grouping: {
@@ -25,10 +25,15 @@ const formData = ref({
   name: '',
   typeId: '',
   scope: 'STUDY_WIDE',
+  extent: '',
   dataset_scopes: []
 })
 
 const errors = ref({})
+
+// The extent the grouping was saved with, and whether the user has picked one (so the type's default doesn't replace it)
+const savedExtent = ref(null)
+const extentChosen = ref(false)
 
 // Initialize from props
 watch(
@@ -47,9 +52,12 @@ watch(
         name: '',
         typeId: '',
         scope: 'STUDY_WIDE',
+        extent: '',
         dataset_scopes: []
       }
     }
+    savedExtent.value = grouping?.extent ?? null
+    extentChosen.value = !!grouping?.extent
     errors.value = {}
   },
   { immediate: true }
@@ -58,6 +66,17 @@ watch(
 const selectedType = computed(() =>
   props.recordGroupTypes.find((t) => t.id === formData.value.typeId) ?? null
 )
+
+// A new grouping starts with its type's default extent, until the user picks one
+watch(selectedType, (type) => {
+  if (!extentChosen.value && type?.defaultExtent) formData.value.extent = type.defaultExtent
+})
+
+const chooseExtent = () => {
+  extentChosen.value = true
+}
+
+const extentChanged = computed(() => !!savedExtent.value && formData.value.extent !== savedExtent.value)
 
 const isDatasetScoped = computed(() => formData.value.scope === 'DATASET_SCOPED')
 
@@ -70,6 +89,10 @@ const validateForm = () => {
 
   if (!formData.value.typeId) {
     errors.value.typeId = 'Type is required'
+  }
+
+  if (!formData.value.extent) {
+    errors.value.extent = 'Extent is required'
   }
 
   return Object.keys(errors.value).length === 0
@@ -127,16 +150,32 @@ const handleScopesUpdate = (scopes) => {
             :key="type.id"
             :value="type.id"
           >
-            {{ type.name }}{{ type.extent ? ` (${extentLabel(type.extent)})` : '' }}
+            {{ type.name }}
           </option>
         </select>
         <span v-if="errors.typeId" class="error-text">{{ errors.typeId }}</span>
-        <p v-if="selectedType?.extent" class="extent-info">
-          <span class="extent-badge" :class="selectedType.extent.toLowerCase()">{{ extentLabel(selectedType.extent) }}</span>
-          {{ RECORD_GROUP_EXTENT_DESCRIPTIONS[selectedType.extent] }}
-          <template v-if="selectedType.extent === 'WITHIN_UNIT'">
-            In analysis, combine them with a term's replicate aggregation, or keep each as an observation with a record group dimension.
-          </template>
+      </div>
+
+      <div class="form-group">
+        <label>Extent *</label>
+        <div class="scope-options">
+          <label v-for="(label, value) in RECORD_GROUP_EXTENT_LABELS" :key="value" class="radio-label">
+            <input
+              v-model="formData.extent"
+              type="radio"
+              :value="value"
+              @change="chooseExtent"
+            />
+            <span>{{ label }}<template v-if="selectedType?.defaultExtent === value"> (the type's default)</template></span>
+            <span class="help-text">{{ RECORD_GROUP_EXTENT_DESCRIPTIONS[value] }}</span>
+          </label>
+        </div>
+        <span v-if="errors.extent" class="error-text">{{ errors.extent }}</span>
+        <p v-if="formData.extent === 'WITHIN_UNIT'" class="extent-info">
+          In analysis, combine them with a term's replicate aggregation, or keep each as an observation with a record group dimension.
+        </p>
+        <p v-if="extentChanged" class="extent-info">
+          Changing from {{ extentLabel(savedExtent).toLowerCase() }} changes how analysis groups the codes of this grouping's records, not the records themselves.
         </p>
       </div>
 
@@ -284,24 +323,6 @@ const handleScopesUpdate = (scopes) => {
   margin: 8px 0 0;
   font-size: 0.85rem;
   color: #666;
-}
-
-.extent-badge {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
-}
-
-.extent-badge.shared {
-  background: #607d8b;
-}
-
-.extent-badge.within_unit {
-  background: #ff9800;
 }
 
 .help-text {

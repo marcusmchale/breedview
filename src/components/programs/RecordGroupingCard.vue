@@ -116,6 +116,10 @@ const scopeCount = computed(() => {
   background: #607d8b;
 }
 
+.extent-badge.within_graph {
+  background: #8d6e63;
+}
+
 .extent-badge.within_unit {
   background: #ff9800;
 }
