@@ -305,8 +305,18 @@ const removeNodes = (nodes) => {
   commitSelection(internalSelectedIds.value.filter((id) => !drop.has(String(id))))
 }
 
-const selectAllDisplayed = () => {
-  addNodes(currentOptions.value)
+// What is listed at this level: the nodes that can be selected, and for each node that stands for what lies below it
+// (a program or a trial where only studies are selected), everything selectable below it, as its own tick selects
+const selectAllDisplayed = async () => {
+  const nodes = currentOptions.value
+  addNodes(nodes)
+  for (const node of nodes.filter((n) => selectsBelow(n))) {
+    const below = await loadGroupsBelow(node)
+    for (const group of below.groups) {
+      addNodes(group.nodes)
+      rememberGroup(node, group)
+    }
+  }
 }
 
 /* ---------- selection by type, over everything below the current node ---------- */
@@ -592,7 +602,7 @@ onBeforeUnmount(() => {
                 class="select-all-button"
                 @click.stop="selectAllDisplayed"
                 :disabled="!canSelectMore || currentOptions.length === 0"
-                title="Select what is listed at this level"
+                title="Select what is listed at this level, with everything selectable below what stands for it"
               >
                 Select shown
               </button>

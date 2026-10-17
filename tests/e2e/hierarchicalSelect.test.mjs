@@ -89,5 +89,22 @@ test('the studies picker of the analysis editor selects every study by type', as
   await page.click('.btn-done')
   await page.sleep(500)
   assert.deepEqual(await chips(), [`Study in ${trial} · ${studiesBelow} ×`], 'one group chip for the studies of the trial')
+
+  // at the programs, which cannot be selected themselves, "Select shown" selects every study below them
+  await page.evaluate(`document.querySelector('#analysis-data .tree-multi-picker .select-trigger').click()`)
+  await page.waitFor(`document.querySelector('.options-list .option-label')`)
+  await page.evaluate(`document.querySelector('.selection-summary .clear-all-button').click()`)
+  await page.sleep(300)
+  if (await page.exists('.breadcrumb button.breadcrumb-item')) {
+    await page.evaluate(`[...document.querySelectorAll('.breadcrumb button.breadcrumb-item')].at(0).click()`)
+    await page.sleep(500)
+  }
+  await page.waitFor(`!document.querySelector('.options-list .loading-state') && document.querySelector('.options-list .selects-below')`, 30000)
+  assert.equal(await page.exists('.breadcrumb'), false, 'the programs are listed')
+  await page.clickText('Select shown')
+  await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.trim().startsWith('${count} selected')`, 30000)
+  assert.ok(await page.evaluate(`[...document.querySelectorAll('.options-list .selects-below .option-checkbox')].every((c) => c.checked)`),
+    'every program shows as selected')
+  await page.click('.btn-done')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
