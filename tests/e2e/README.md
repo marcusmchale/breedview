@@ -77,7 +77,7 @@ run it while these tests rely on it, and restore the dump afterwards.
 npm run test:e2e                 # all tests, one file at a time
 node --test tests/e2e/invitation.test.mjs
 npm run perf:curation            # STUDY and CONCEPT (default: the manifest's perf); PAGE_SIZE, START and END narrow the records
-npm run perf:blocks              # FIELD (default: the manifest's perf.field, a field of 5,001 units)
+npm run perf:blocks              # FIELD (default: the manifest's perf.field, a field of 5,001 units): its Units tab on the Locations page
 npm run perf:analysis            # STUDY and CONCEPT (default: the manifest's perf): dataset selection in the analysis editor
 npm run perf:programs            # every study panel's dataset summary on the programs page, opened at once
 ```
@@ -92,21 +92,23 @@ What the API returns to each viewer under the read policy (placeholders, searche
 file downloads) is tested in breedgraph (`tests/breedgraph/e2e/*_read_api.py`). The tests here check what needs a
 browser: that the pages render it, which actions they offer, the modals and labels, and flows across pages.
 
-- `smoke.test.mjs`: every routed page renders for a signed-in user without console errors, and the dataset
-  submission opens for the first study.
+- `smoke.test.mjs`: every routed page renders for a signed-in user without console errors (the profile with its
+  Teams, access control, locations, programs with curation), and the dataset submission opens from the first study's
+  Datasets section on the programs page.
 - `invitation.test.mjs`: invite with a team offer, the emailed link, registration with the prefilled read-only email
-  and the accepted team, verification from the emailed link, login with the affiliation, and refusal of the used link.
+  and the accepted team, verification from the emailed link, login with the affiliation (shown under Teams on the
+  profile), and refusal of the used link.
 - `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
 - `curationUnitsFilter.test.mjs`: the units filter of the curation selection lists only units with records, with
   counts, level by level and by subject.
 - `outsiderAccess.test.mjs`: what the outsider sees: placeholders for the hidden program and trial above readable
-  studies, no write actions, stand-in teams and placeholder controllers in the controller modal, regions joined past
-  hidden locations, readable trees under a placeholder for their hidden block root, and the curation selection,
-  units filter and table with hidden units as placeholders.
+  studies, no write actions, stand-in teams and placeholder controllers in the controller modal, locations joined
+  past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units tab of the
+  Locations page), and the curation selection, units filter and table with hidden units as placeholders.
 - `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation, is sent to log in from
-  the others, and sees the public programs and blocks without controller badges or write actions; no request on the
+  the others, and sees the public programs and units without controller badges or write actions; no request on the
   open pages fails apart from the sign-in check.
 - `germplasmAccess.test.mjs`: the germplasm page draws, for each viewer, the entries the manifest says they can read.
 - `peopleAccess.test.mjs`: the people page lists the Persons each viewer can read, and the outsider their own private
@@ -117,7 +119,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   it: a record group type's optional default extent on its card and in its form; each grouping's extent badge; a new
   grouping's required extent, prefilled from its type's default and not replacing a choice, and the note when an edit
   changes it; curation of `same_time` and `width` sectioned by the shared plate only, with each tree's replicates
-  together in code order; every analysis outcome in the manifest's `expected.cases`, a failed analysis reopened at its
+  together in code order; times of day shown as given with nothing to save, and each tree's location from its field;
+  factor records in their own section first, at all times and levels; every analysis outcome in the manifest's `expected.cases`, a failed analysis reopened at its
   replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
   It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
   20 analyses.

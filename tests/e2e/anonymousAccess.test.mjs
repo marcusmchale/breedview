@@ -53,8 +53,13 @@ test('units: the public tree under a placeholder for its hidden unit graph root,
   const mark = page.mark()
   await page.goto(`${config.appUrl}/locations?tab=units`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
-  await page.evaluate(`document.querySelectorAll('.location-header .expand-btn:not(.expanded)').forEach((e) => e.click())`)
-  await page.waitFor(`[...document.querySelectorAll('.location-name')].some((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)})`, 30000)
+  // open the tree until the field is listed (a click while the tree first renders can be lost)
+  const fieldListed = `[...document.querySelectorAll('.location-name')].some((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)})`
+  for (let attempt = 0; attempt < 6 && !(await page.evaluate(fieldListed)); attempt++) {
+    await page.evaluate(`document.querySelectorAll('.location-header .expand-btn:not(.expanded)').forEach((e) => e.click())`)
+    await page.sleep(2000)
+  }
+  await page.waitFor(fieldListed, 30000)
   await page.evaluate(`[...document.querySelectorAll('.location-name')].find((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)}).click()`)
   await page.waitFor(`document.querySelector('.block-item')`, 30000)
   await page.click('.block-item')
