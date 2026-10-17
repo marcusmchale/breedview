@@ -1,4 +1,5 @@
 <script setup>
+import { periodStart } from '@/composables/parsers/partialDatetime'
 import { ref, computed } from 'vue'
 
 import ControllerBadge from "@/components/controls/ControllerBadge.vue";
@@ -68,9 +69,8 @@ const currentPosition = computed(() => {
   // Otherwise return the position with the most recent start date
   return unit.value.positions.reduce((latest, current) => {
     if (!latest) return current
-    const latestStart = latest.start ? new Date(latest.start) : new Date(0)
-    const currentStart = current.start ? new Date(current.start) : new Date(0)
-    return currentStart > latestStart ? current : latest
+    // partial times compared as the start of their periods
+    return (periodStart(current.start) ?? -Infinity) > (periodStart(latest.start) ?? -Infinity) ? current : latest
   }, null)
 })
 

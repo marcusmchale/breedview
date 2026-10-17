@@ -147,7 +147,7 @@ const submitAddPosition = async () => {
           type="text"
           name="end"
           label="End Date/Time (optional):"
-          help="YYYY-MM-DDTHH:mm or partial, e.g. YYYY or YYYY-MM"
+          help="YYYY-MM-DDTHH:mm or partial, e.g. YYYY or YYYY-MM. An end covers its whole period: an end of 2021-05-03 includes that day"
           validation="partialDateTime"
         />
       </div>

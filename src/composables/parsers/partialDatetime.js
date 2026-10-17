@@ -1,3 +1,26 @@
+// A partial time stands for its whole period (breedgraph front-end-changes §15): as a start, the start of its period;
+// as an end, the end of it. Both as comparable numbers (wall-clock times have no zone, so they are read as UTC).
+const PARTIAL = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2}))?)?)?)?)?$/
+
+const periodBounds = (value) => {
+  const match = PARTIAL.exec(String(value ?? '').trim())
+  if (!match) return null
+  const [, y, mo, d, h, mi, se] = match
+  const parts = [Number(y), mo ? Number(mo) - 1 : 0, d ? Number(d) : 1, h ? Number(h) : 0, mi ? Number(mi) : 0, se ? Number(se) : 0]
+  const start = Date.UTC(...parts)
+  // the next period of the same precision
+  const precision = [mo, d, h, mi, se].filter((p) => p !== undefined).length
+  const next = [...parts]
+  next[precision] += 1
+  return { start, end: Date.UTC(...next) }
+}
+
+/** The start of a partial time's period, or null */
+export const periodStart = (value) => periodBounds(value)?.start ?? null
+
+/** The end of a partial time's period (the start of the next one), or null: 2021 ends at 2022-01-01 */
+export const periodEnd = (value) => periodBounds(value)?.end ?? null
+
 
 export function useDatetimeUtils() {
   // Regex for numpy datetime64 compatible partial datetime
@@ -42,7 +65,9 @@ export function useDatetimeUtils() {
     if (/^\d{4}$/.test(value)) return 'Year';
     if (/^\d{4}-\d{2}$/.test(value)) return 'Month';
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Day';
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return 'Minute';
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(value)) return 'Hour';
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return 'Minute';
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(value)) return 'Second';
 
     return 'Unknown';
   };

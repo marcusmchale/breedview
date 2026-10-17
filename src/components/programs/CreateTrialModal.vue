@@ -169,7 +169,7 @@ const submitForm = async (values) => {
             type="text"
             name="end"
             label="End Date/Time"
-            help="YYYY-MM-DDTHH:mm or partial, e.g. YYYY or YYYY-MM"
+            help="YYYY-MM-DDTHH:mm or partial, e.g. YYYY or YYYY-MM. An end covers its whole period: an end of 2021-05-03 includes that day"
             validation="partialDateTime"
             placeholder="e.g. 2024-12-31"
           />

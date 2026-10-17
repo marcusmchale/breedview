@@ -1,4 +1,5 @@
 <script setup>
+import { periodStart, periodEnd } from '@/composables/parsers/partialDatetime'
 import { computed } from "vue";
 
 import { useMutatePositions } from "@/composables/units/mutatePositions";
@@ -24,41 +25,16 @@ const {
   removePositionError
 } = useMutatePositions({unitId: () => props.unitId} )
 
+// By start, then by end, each partial time as its period: a position ending 2021 runs through the year
 const positionsSorted = computed(() => {
+  const byNullLast = (a, b) => (a === null ? (b === null ? 0 : 1) : b === null ? -1 : a - b)
   return [...props.positions].sort((a, b) => {
-    const aStart = a.start ? new Date(a.start).getTime() : null
-    const bStart = b.start ? new Date(b.start).getTime() : null
-
-    // Both have a start date
-    if (aStart !== null && bStart !== null) {
-      if (aStart !== bStart) {
-        return aStart - bStart
-      }
-
-      // Same start: sort by end date
-      const aEnd = a.end ? new Date(a.end).getTime() : null
-      const bEnd = b.end ? new Date(b.end).getTime() : null
-
-      if (aEnd === null && bEnd === null) return 0
-      if (aEnd === null) return 1
-      if (bEnd === null) return -1
-
-      return aEnd - bEnd
-    }
-
-    // Started positions come before positions without a start
-    if (aStart !== null) return -1
-    if (bStart !== null) return 1
-
-    // Neither has a start: fall back to end date
-    const aEnd = a.end ? new Date(a.end).getTime() : null
-    const bEnd = b.end ? new Date(b.end).getTime() : null
-
-    if (aEnd === null && bEnd === null) return 0
-    if (aEnd === null) return 1
-    if (bEnd === null) return -1
-
-    return aEnd - bEnd
+    const aStart = periodStart(a.start)
+    const bStart = periodStart(b.start)
+    // started positions before those without a start
+    if ((aStart === null) !== (bStart === null)) return aStart === null ? 1 : -1
+    if (aStart !== bStart) return aStart - bStart
+    return byNullLast(periodEnd(a.end), periodEnd(b.end))
   })
 })
 

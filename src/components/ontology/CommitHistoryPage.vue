@@ -36,7 +36,8 @@ const formatVersion = (version) => {
 }
 
 const formatDate = (timestamp) => {
-  return new Date(timestamp).toISOString()
+  // server times carry an offset: show them in the viewer's local time
+  return new Date(timestamp).toLocaleString()
 }
 
 const hasPrior = computed(() => versionCursorHistory.value.length > 0)

@@ -280,7 +280,7 @@ defineExpose({ reset })
             name="end"
             label="To:"
             placeholder="e.g. 2015-12-31"
-            help="Records whose period starts on or before this time"
+            help="Records whose period starts on or before this time, which covers its whole period: To 2021-05-03 includes that day"
             validation="partialDatetime"
             :validation-messages="{ partialDatetime: 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM' }"
           />
