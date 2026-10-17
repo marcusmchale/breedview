@@ -77,6 +77,12 @@ test('the units filter offers the units the selected datasets have records for',
     await page.waitFor(levelLoaded, 60000)
   }
 
+  // a unit can be selected itself, so Select shown selects the listed units only, not what lies below them
+  await page.clickText('Select shown')
+  await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.trim().startsWith('${roots.length} selected')`, 30000)
+  await page.evaluate(`document.querySelector('.selection-summary .clear-all-button').click()`)
+  await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.trim().startsWith('0 selected')`)
+
   // by type over everything: the recorded units by subject, and no more of them than records
   mark = page.mark()
   await page.click('.select-by-type-button')
