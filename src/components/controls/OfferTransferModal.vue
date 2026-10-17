@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import ReadReleaseSelector from './ReadReleaseSelector.vue'
 import { useUserAccess } from '@/composables/user/useUserAccess'
-import { useOrganisationsQuery } from '@/composables/organisations/organisationsQuery'
+import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 
 // Offer control of one entity from the user's control teams to a recipient team.
@@ -30,7 +30,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'offered'])
 
 const { readTeams, writeTeams, adminTeams, curateTeams, adminTeamIds } = useUserAccess()
-const { organisations } = useOrganisationsQuery()
+const { teamRoots } = useTeamRootsQuery()
 const { offerTransfer, offerTransferLoading } = useMutateTransfers()
 
 const fromTeamIds = ref([])
@@ -40,11 +40,11 @@ const toTeamIds = ref([])
 const release = ref('PRIVATE')
 const errorMessage = ref('')
 
-// Teams the user can name as recipient: organisation roots visible to them, and their own teams
+// Teams the user can name as recipient: the root teams visible to them, and their own teams
 const recipientOptions = computed(() => {
   const byId = new Map()
-  for (const team of organisations.value) {
-    byId.set(String(team.id), { ...team, group: 'Organisations' })
+  for (const team of teamRoots.value) {
+    byId.set(String(team.id), { ...team, group: 'Root teams' })
   }
   for (const list of [adminTeams.value, curateTeams.value, writeTeams.value, readTeams.value]) {
     for (const team of list) {
@@ -146,7 +146,7 @@ const closeModal = () => {
           Offer control of this {{ entityLabel.toLowerCase() }} to another team. Admins of that team accept
           and choose which of their teams take control. Only this record moves, not others in its aggregate.
           <template v-if="isPerson">
-            A person record can only go to an organisation with a declared legal entity, which becomes its data controller.
+            A person record can only go to a team tree with a declared legal entity, which becomes its data controller.
           </template>
         </p>
 
@@ -169,7 +169,7 @@ const closeModal = () => {
                 </option>
               </optgroup>
             </select>
-            <p class="help-text">Often the root team of another organisation; its admins can assign control to a team below it.</p>
+            <p class="help-text">Often the root team of another team tree; its admins can assign control to a team below it.</p>
           </div>
 
           <div class="form-group">

@@ -4,8 +4,8 @@ import { FormKit } from "@formkit/vue";
 import { useSelectStudyQueries } from "@/composables/datasets/selectStudyQueries";
 import { useSelectLocationsQuery } from "@/composables/datasets/selectLocationsQueries";
 import { useSelectUnitsQuery } from "@/composables/datasets/selectUnitsQueries";
-import { useUnitsBySubject } from "@/composables/blocks/unitsBySubject";
-import { useLocationsByType } from "@/composables/regions/locationsByType";
+import { useUnitsBySubject } from "@/composables/units/unitsBySubject";
+import { useLocationsByType } from "@/composables/locations/locationsByType";
 import { useCachedName } from "@/composables/queryBase/cachedName";
 import { useSelectConceptsQuery } from "@/composables/datasets/selectConceptsQueries";
 import { useStudyQuery } from "@/composables/programs/studyQuery";
@@ -297,7 +297,7 @@ const closeModal = () => {
             type="hierarchical-multiselect"
             name="unitIds"
             label="Units:"
-            help="Select units from blocks at these locations"
+            help="Select units from the unit graphs at these locations"
             :value="selectionData.unitIds"
             :label-fn="unitNameOf"
             :rootNodes="blocks"

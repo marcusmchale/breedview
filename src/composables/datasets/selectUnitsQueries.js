@@ -1,13 +1,13 @@
-import { useBlocksQuery } from "@/composables/blocks/blocksQuery"
-import { useUnitsQuery } from "@/composables/blocks/unitsQuery"
-import { useUnitsLazyQuery } from "@/composables/blocks/unitsLazyQuery";
+import { useUnitRootsQuery } from "@/composables/units/unitRootsQuery"
+import { useUnitsQuery } from "@/composables/units/unitsQuery"
+import { useUnitsLazyQuery } from "@/composables/units/unitsLazyQuery";
 
 export function useSelectUnitsQuery({locationIds, unitIds}) {
     const {
         blocks,
         blocksLoading,
         blocksError
-    } = useBlocksQuery({locationIds: locationIds});
+    } = useUnitRootsQuery({locationIds: locationIds});
 
     const {
         units: selectedUnits,

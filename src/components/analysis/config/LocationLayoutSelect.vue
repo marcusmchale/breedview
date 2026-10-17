@@ -1,7 +1,7 @@
 <script setup>
 import { watch } from 'vue'
 import HierarchicalSelectDropdown from '@/components/customInputs/HierarchicalSelectDropdown.vue'
-import { useDefinePositionQueries } from '@/composables/blocks/definePositionQueries'
+import { useDefinePositionQueries } from '@/composables/units/definePositionQueries'
 import { registerNames } from '@/composables/analysis/useAnalysisNames'
 
 /** Selects a location and, optionally, a layout at it. Emits the selected layout for its axes. */

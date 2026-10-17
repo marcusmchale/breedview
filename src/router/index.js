@@ -11,9 +11,9 @@ import OntologyManagementPage from '../components/ontology/OntologyManagementPag
 import CommitHistoryPage from '@/components/ontology/CommitHistoryPage.vue'
 import OntologyRolePage from '@/components/user/OntologyRolePage.vue'
 import GermplasmManagement from '@/components/germplasm/GermplasmManagement.vue'
-import RegionManagement from '@/components/regions/RegionsManagement.vue'
-import ArrangementManagement from "@/components/arrangements/ArrangementManagement.vue";
-import BlockManagement from '@/components/blocks/BlockManagement.vue'
+import RegionManagement from '@/components/locations/LocationsPage.vue'
+import ArrangementManagement from "@/components/layouts/ArrangementManagement.vue";
+import BlockManagement from '@/components/units/BlockManagement.vue'
 import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'

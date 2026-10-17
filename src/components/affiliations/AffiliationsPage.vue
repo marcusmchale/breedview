@@ -112,13 +112,13 @@
 import { ref, watch, computed } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { useAuthStore } from '@/composables/user/useAuthStore'
-import ORGANISATIONS_QUERY from '../../graphql/organisations/organisations.graphql'
-import CREATE_ORGANISATION_MUTATION from '../../graphql/organisations/createOrganisation.graphql'
-import TeamNode from '../organisations/TeamNode.vue'
-import CreateTeamModal from '../organisations/CreateTeamModal.vue'
+import TEAMS_ROOTS_QUERY from '../../graphql/teams/teamsRoots.graphql'
+import CREATE_TEAM_MUTATION from '../../graphql/teams/createTeam.graphql'
+import TeamNode from '../teams/TeamNode.vue'
+import CreateTeamModal from '../teams/CreateTeamModal.vue'
 import RequestAffiliationModal from './RequestAffiliationModal.vue'
-import LegalEntityForm from '../organisations/LegalEntityForm.vue'
-import { useDataProcessingTermsQuery } from '@/composables/organisations/dataProcessingTermsQuery'
+import LegalEntityForm from '../teams/LegalEntityForm.vue'
+import { useDataProcessingTermsQuery } from '@/composables/teams/dataProcessingTermsQuery'
 
 // Get authentication data from the store
 const { currentUserId } = useAuthStore()
@@ -150,14 +150,14 @@ const showRequestAffiliationModal = ref(false)
 const selectedTeamForAffiliation = ref(null)
 
 // Use Apollo query for organisations (only if authenticated)
-const { result, loading: queryLoading, error: queryError, refetch } = useQuery(ORGANISATIONS_QUERY, {}, {
+const { result, loading: queryLoading, error: queryError, refetch } = useQuery(TEAMS_ROOTS_QUERY, {}, {
   fetchPolicy: 'network-only',
   errorPolicy: 'all',
   skip: computed(() => !currentUserId.value) // Skip query if not authenticated
 })
 
 // Use Apollo mutation for creating organisation
-const { mutate: createOrganisationMutation, loading: createOrgLoading, onError: onCreateOrgError, onDone: onCreateOrgDone } = useMutation(CREATE_ORGANISATION_MUTATION)
+const { mutate: createOrganisationMutation, loading: createOrgLoading, onError: onCreateOrgError, onDone: onCreateOrgDone } = useMutation(CREATE_TEAM_MUTATION)
 
 // Handle create organisation errors
 onCreateOrgError((error) => {

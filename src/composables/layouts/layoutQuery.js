@@ -1,0 +1,23 @@
+import { useItemQuery } from "@/composables/queryBase/itemBase";
+import LAYOUTS_QUERY from "@/graphql/layouts/layouts.graphql";
+
+export function useLayoutQuery(layoutId) {
+    const {
+        item: layout,
+        itemLoading: layoutLoading,
+        itemError: layoutError,
+        refetchItem: refetchLayout
+    } = useItemQuery( {
+        itemId: layoutId,
+        itemsQueryGraphql: LAYOUTS_QUERY,
+        queryName: 'layoutsLayouts',
+        variableName: 'layoutIds'
+    })
+
+    return {
+        layout,
+        layoutLoading,
+        layoutError,
+        refetchLayout
+    }
+}

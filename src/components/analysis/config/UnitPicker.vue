@@ -1,8 +1,8 @@
 <script setup>
 import { watch } from 'vue'
-import { useUnitsQuery } from '@/composables/blocks/unitsQuery'
-import { useUnitsLazyQuery } from '@/composables/blocks/unitsLazyQuery'
-import { useUnitsBySubject } from '@/composables/blocks/unitsBySubject'
+import { useUnitsQuery } from '@/composables/units/unitsQuery'
+import { useUnitsLazyQuery } from '@/composables/units/unitsLazyQuery'
+import { useUnitsBySubject } from '@/composables/units/unitsBySubject'
 import { registerNames, unitName } from '@/composables/analysis/useAnalysisNames'
 import TreeMultiPicker from '@/components/analysis/config/TreeMultiPicker.vue'
 

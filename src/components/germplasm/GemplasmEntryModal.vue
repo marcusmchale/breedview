@@ -8,9 +8,9 @@ import ControlSelector from '@/components/controls/ControlSelector.vue'
 import ReferencesModal from '@/components/references/ReferencesModal.vue'
 
 import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
-import { useRegionsQuery } from '@/composables/regions/regionsQuery'
-import { useLocationsLazyQuery } from '@/composables/regions/locationsLazyQuery'
-import { useLocationQuery } from '@/composables/regions/locationQuery'
+import { useLocationRootsQuery } from '@/composables/locations/locationRootsQuery'
+import { useLocationsLazyQuery } from '@/composables/locations/locationsLazyQuery'
+import { useLocationQuery } from '@/composables/locations/locationQuery'
 
 import { REFERENCE_TYPE_GROUPS } from '@/composables/references/referenceTypes'
 
@@ -88,7 +88,7 @@ const {
   childLocationsLoading,
   currentChildLocations
 } = (() => {
-  const { regions } = useRegionsQuery()
+  const { regions } = useLocationRootsQuery()
   const { locations: currentChildLocations, locationsLoading: childLocationsLoading, loadChildLocations } = useLocationsLazyQuery()
   return { regions, loadChildLocations, childLocationsLoading, currentChildLocations }
 })()

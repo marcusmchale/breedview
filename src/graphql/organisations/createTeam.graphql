@@ -1,8 +1,0 @@
-mutation teamsCreateTeam($team: TeamInput!) {
-    teamsCreateTeam(team: $team) {
-        status
-        errors {
-            message
-        }
-    }
-}

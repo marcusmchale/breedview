@@ -1,13 +1,13 @@
-import { useRegionsQuery } from "@/composables/regions/regionsQuery"
-import { useLocationsQuery } from "@/composables/regions/locationsQuery"
-import { useLocationsLazyQuery } from "@/composables/regions/locationsLazyQuery";
+import { useLocationRootsQuery } from "@/composables/locations/locationRootsQuery"
+import { useLocationsQuery } from "@/composables/locations/locationsQuery"
+import { useLocationsLazyQuery } from "@/composables/locations/locationsLazyQuery";
 
 export function useSelectLocationsQuery({locationIds}) {
     const {
         regions,
         regionsLoading,
         regionsError
-    } = useRegionsQuery();
+    } = useLocationRootsQuery();
 
     const {
         locations: selectedLocations,
