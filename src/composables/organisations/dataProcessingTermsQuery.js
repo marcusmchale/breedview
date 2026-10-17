@@ -8,7 +8,7 @@ import DATA_PROCESSING_TERMS_QUERY from '@/graphql/organisations/dataProcessingT
 export function useDataProcessingTermsQuery() {
   const { result, loading: termsLoading, error: termsError } = useQuery(DATA_PROCESSING_TERMS_QUERY)
 
-  const terms = computed(() => result.value?.organisationsDataProcessingTerms?.result ?? null)
+  const terms = computed(() => result.value?.teamsDataProcessingTerms?.result ?? null)
   const termsVersion = computed(() => terms.value?.version ?? null)
   const termsUrl = computed(() => terms.value?.url ?? null)
   const termsAvailable = computed(() => !!termsVersion.value)

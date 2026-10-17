@@ -28,7 +28,7 @@ export function useLocationMapQueries() {
     )
     const selectedLocation = computed(() => {
         if (locationId.value === null) return null
-        return locationResult.value?.regionsLocations?.result?.[0]
+        return locationResult.value?.locationsLocations?.result?.[0]
     })
 
     const childLocationIds = ref(null)
@@ -52,7 +52,7 @@ export function useLocationMapQueries() {
     const childLocations = computed( () => {
         if (!validChildLocationIds.value) return []
         if (validChildLocationIds.value.length === 0)  return []
-        return childLocationsResult?.value?.regionsLocations?.result
+        return childLocationsResult?.value?.locationsLocations?.result
     })
 
     //Fetch child locations
@@ -70,7 +70,7 @@ export function useLocationMapQueries() {
     const regionId = computed(() => {
         if (!selectedLocation.value) return null
         if (!selectedLocation.value.parent) return null  // the selected location is itself the country
-        return selectedLocation.value.region?.id ?? null
+        return selectedLocation.value.root?.id ?? null
     })
     const {
         result: regionResult
@@ -83,7 +83,7 @@ export function useLocationMapQueries() {
         if (!selectedLocation.value) return null
         if (!selectedLocation.value.parent) return selectedLocation.value
         if (regionId.value === null) return null
-        return regionResult.value?.regionsLocations?.result?.[0] ?? null
+        return regionResult.value?.locationsLocations?.result?.[0] ?? null
     })
 
     return {

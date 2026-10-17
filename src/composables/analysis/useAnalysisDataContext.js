@@ -191,7 +191,7 @@ export function useAnalysisDataContext(form) {
   const summariesForSelected = computed(() => summaries.value.filter((s) => datasetIds.value.includes(s.id)))
 
   const blockIds = computed(() => [
-    ...new Set(summariesForSelected.value.flatMap((s) => (s.blocks ?? []).map((b) => b.id)))
+    ...new Set(summariesForSelected.value.flatMap((s) => (s.unitRoots ?? []).map((b) => b.id)))
   ])
 
   const locations = computed(() => {

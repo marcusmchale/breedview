@@ -2,7 +2,7 @@
 query units (
     $unitIds: [ID!]
 ){
-    blocksUnits(
+    unitsUnits(
         ids: $unitIds
     ){
         status

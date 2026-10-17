@@ -12,13 +12,13 @@ export function useMutateLegalEntity() {
   // legalEntity: { legalName, privacyContact, termsVersion }
   const declareLegalEntity = async ({ teamId, legalEntity }) => {
     const response = await declareMutation({ teamId, legalEntity })
-    const payload = response?.data?.organisationsDeclareLegalEntity
+    const payload = response?.data?.teamsDeclareLegalEntity
     return payload ? { status: payload.status, errors: payload.errors } : noResponse
   }
 
   const withdrawLegalEntity = async (teamId) => {
     const response = await withdrawMutation({ teamId })
-    const payload = response?.data?.organisationsWithdrawLegalEntity
+    const payload = response?.data?.teamsWithdrawLegalEntity
     return payload ? { status: payload.status, errors: payload.errors } : noResponse
   }
 

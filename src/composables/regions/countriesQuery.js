@@ -13,7 +13,7 @@ export function useCountriesQuery(enableCountries = ref(false)) {
         if (!countriesResult.value) {
             return []
         }
-        const countries = [...countriesResult.value.regionsCountries.result]  // make shallow copy to sort
+        const countries = [...countriesResult.value.locationsCountries.result]  // make shallow copy to sort
         countries.sort((a, b) => a.name.localeCompare(b.name))
         return countries
     })

@@ -2,7 +2,7 @@
 query descendantsBySubject (
     $unitIds: [ID!]!
 ){
-    blocksDescendantsBySubject(
+    unitsDescendantsBySubject(
         unitIds: $unitIds
     ){
         status

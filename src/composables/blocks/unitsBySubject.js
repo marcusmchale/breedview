@@ -14,7 +14,7 @@ export function useUnitsBySubject() {
     const unitIds = (startNodes ?? []).map((node) => node.id).filter((id) => id != null)
     if (unitIds.length === 0) return []
     const { data } = await client.query({ query: DESCENDANTS_BY_SUBJECT_QUERY, variables: { unitIds }, fetchPolicy: 'cache-first' })
-    return (data?.blocksDescendantsBySubject?.result ?? []).map((group) => ({
+    return (data?.unitsDescendantsBySubject?.result ?? []).map((group) => ({
       key: group.subject?.id ?? 'none',
       label: group.subject?.name ?? 'No subject',
       nodes: group.units ?? []

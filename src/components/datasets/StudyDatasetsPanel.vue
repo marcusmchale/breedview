@@ -57,10 +57,10 @@
                 {{ dataset.locations.map(l => l.name).join(', ') }}
               </span>
             </div>
-            <div v-if="dataset.blocks?.length" class="detail-row">
+            <div v-if="dataset.unitRoots?.length" class="detail-row">
               <span class="label">Blocks:</span>
               <span class="value">
-                {{ dataset.blocks.map(b => b.name).join(', ') }}
+                {{ dataset.unitRoots.map(b => b.name).join(', ') }}
               </span>
             </div>
           </div>

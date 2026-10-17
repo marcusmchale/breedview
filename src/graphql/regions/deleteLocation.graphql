@@ -1,7 +1,7 @@
-mutation regionsDeleteLocation(
+mutation locationsDeleteLocation(
     $locationId: ID!
 ) {
-    regionsDeleteLocation(
+    locationsDeleteLocation(
         id: $locationId,
     ) {
         status

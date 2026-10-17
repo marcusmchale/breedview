@@ -1,9 +1,9 @@
-mutation arrangementsCreateLayout(
+mutation layoutsCreateLayout(
   $layout: LayoutInput!
   $controlTeamId: ID!
   $release: ReadRelease
 ) {
-  arrangementsCreateLayout(
+  layoutsCreateLayout(
     layout: $layout
     controlTeamId: $controlTeamId
     release: $release

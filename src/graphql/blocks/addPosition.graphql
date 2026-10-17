@@ -1,5 +1,5 @@
-mutation blocksAddPosition($unitId: ID!, $position: PositionInput!) {
-  blocksAddPosition(id: $unitId, position: $position) {
+mutation unitsAddPosition($unitId: ID!, $position: PositionInput!) {
+  unitsAddPosition(id: $unitId, position: $position) {
     status
     errors {
       message

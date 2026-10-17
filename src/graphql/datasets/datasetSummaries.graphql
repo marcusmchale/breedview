@@ -6,7 +6,7 @@ query DatasetsSummaries($studyId: ID!){
         concept { id versionId view name }
         subjects { id versionId view name }
         locations { id name }
-        blocks { id name }
+        unitRoots { id name }
         unit_count
         record_count
         start

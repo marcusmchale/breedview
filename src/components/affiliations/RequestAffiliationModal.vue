@@ -152,7 +152,7 @@ onDone((result) => {
     // Clear cache
     try {
       client.cache.evict({ fieldName: 'teams' })
-      client.cache.evict({ fieldName: 'organisations' })
+      client.cache.evict({ fieldName: 'teamsRoots' })
       client.cache.gc()
     } catch (error) {
       console.warn('Error clearing cache:', error)

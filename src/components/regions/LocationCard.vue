@@ -70,7 +70,7 @@ const displayFields = computed(() => {
   return [
     { label: 'Name', value: l.name },
     { label: 'Type', value: l.type?.name },
-    { label: 'Region', value: l.region?.name },
+    { label: 'Region', value: l.root?.name },
     { label: 'Parent', value: l.parent?.name },
     { label: 'Code', value: l.code },
     { label: 'Address', value: l.address },

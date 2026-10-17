@@ -89,8 +89,8 @@ const handleCancel = () => {
           <div v-if="ds.locations?.length" class="dataset-meta">
             Locations: {{ formatNames(ds.locations) }}
           </div>
-          <div v-if="ds.blocks?.length" class="dataset-meta">
-            Blocks: {{ formatNames(ds.blocks) }}
+          <div v-if="ds.unitRoots?.length" class="dataset-meta">
+            Blocks: {{ formatNames(ds.unitRoots) }}
           </div>
         </div>
       </label>

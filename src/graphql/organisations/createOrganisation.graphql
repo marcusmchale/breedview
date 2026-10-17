@@ -1,5 +1,5 @@
-mutation organisationsCreateTeam($team: TeamInput!) {
-    organisationsCreateTeam(team: $team) {
+mutation teamsCreateTeam($team: TeamInput!) {
+    teamsCreateTeam(team: $team) {
         status
         errors {
             message

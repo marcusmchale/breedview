@@ -1,5 +1,5 @@
-mutation organisationsWithdrawLegalEntity($teamId: ID!) {
-    organisationsWithdrawLegalEntity(teamId: $teamId) {
+mutation teamsWithdrawLegalEntity($teamId: ID!) {
+    teamsWithdrawLegalEntity(teamId: $teamId) {
         status
         errors {
             message

@@ -81,13 +81,13 @@ export function useAnalysisNames() {
   const ensureUnits = (ids) =>
     fetchMissing('unit', ids, async (client, missing) => {
       const { data } = await client.query({ query: UNITS_QUERY, variables: { unitIds: missing } })
-      registerNames('unit', data?.blocksUnits?.result)
+      registerNames('unit', data?.unitsUnits?.result)
     })
 
   const ensureLocations = (ids) =>
     fetchMissing('location', ids, async (client, missing) => {
       const { data } = await client.query({ query: LOCATIONS_QUERY, variables: { locationIds: missing } })
-      registerNames('location', data?.regionsLocations?.result)
+      registerNames('location', data?.locationsLocations?.result)
     })
 
   const ensureStudies = (ids) =>

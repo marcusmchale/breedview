@@ -15,7 +15,7 @@ export function useUnitsLazyQuery() {
     } = useItemsLazyQuery({
         itemsQueryGraphql: UNITS_QUERY,
         itemQueryFragment: UNIT_FRAGMENT,
-        queryName: 'blocksUnits',
+        queryName: 'unitsUnits',
         variableName: 'unitIds',
         typeName: 'Unit'
     })

@@ -37,7 +37,7 @@ const {
   locations: currentChildren
 } = useLocationUpdateQueries(
     {
-      regionId: props.location.region.id,
+      regionId: props.location.root.id,
       parentId: () => updateFormData.value.parentId
     }
 )

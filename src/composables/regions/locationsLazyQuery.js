@@ -15,7 +15,7 @@ export function useLocationsLazyQuery() {
     } = useItemsLazyQuery({
         itemsQueryGraphql: LOCATIONS_QUERY,
         itemQueryFragment: LOCATION_FRAGMENT,
-        queryName: 'regionsLocations',
+        queryName: 'locationsLocations',
         variableName: 'locationIds',
         typeName: 'Location'
     })

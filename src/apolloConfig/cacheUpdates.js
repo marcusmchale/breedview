@@ -264,8 +264,8 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
     }
 
     const updateLocationArrangements = ({itemCacheId, oldLocationId, newLocationId}) => {
-        const oldLocationArrangementsFieldname = `arrangements({"locationId":"${oldLocationId}"})`
-        const newLocationArrangementsFieldname = `arrangements({"locationId":"${newLocationId}"})`
+        const oldLocationArrangementsFieldname = `layoutsRoots({"locationId":"${oldLocationId}"})`
+        const newLocationArrangementsFieldname = `layoutsRoots({"locationId":"${newLocationId}"})`
         client.cache.modify({
             id: 'ROOT_QUERY',
             fields: {

@@ -31,12 +31,12 @@ onError((error) => {
 
 // Handle successful mutation
 onDone((result) => {
-  const response = result.data?.organisationsCreateTeam
+  const response = result.data?.teamsCreateTeam
   if (response?.status === 'SUCCESS') {
     // Clear cache and emit success
     try {
       client.cache.evict({ fieldName: 'teams' })
-      client.cache.evict({ fieldName: 'organisations' })
+      client.cache.evict({ fieldName: 'teamsRoots' })
       client.cache.gc()
     } catch (error) {
       console.warn('Error clearing cache:', error)

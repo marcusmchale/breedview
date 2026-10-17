@@ -91,7 +91,7 @@ const cache = new InMemoryCache({
           })
         },
         // units of an expanded block node are loaded in one query; each node then reads its own from the cache
-        blocksUnits: {
+        unitsUnits: {
           read: createPayloadByIdsReadPolicy({ typename: "Unit", payloadTypename: "UnitsPayload", idArgName: "ids" })
         },
       }

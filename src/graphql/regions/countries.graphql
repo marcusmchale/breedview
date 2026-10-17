@@ -1,5 +1,5 @@
-query regionsCountries {
-    regionsCountries {
+query locationsCountries {
+    locationsCountries {
         status
         result {
             name

@@ -1,5 +1,5 @@
-mutation blocksUpdateUnit($unit: UnitUpdate!) {
-  blocksUpdateUnit(unit: $unit) {
+mutation unitsUpdateUnit($unit: UnitUpdate!) {
+  unitsUpdateUnit(unit: $unit) {
     status
     errors {
       message

@@ -33,7 +33,7 @@ export function useBlocksQuery({locationIds}) {
         if (!blocksResult.value) {
             return []
         }
-        const blocks = [...blocksResult.value.blocks.result]
+        const blocks = [...blocksResult.value.unitsRoots.result]
         blocks.sort((a, b) => (a?.name || "").localeCompare(b?.name || "") || (a?.id - b?.id))
         return blocks
     })
@@ -43,17 +43,17 @@ export function useBlocksQuery({locationIds}) {
     })
 
     const updateCachedLocationBlocks = (result) => {
-        if (result?.data?.blocks?.status !== "SUCCESS") return
-        if (result?.data?.blocks?.result) {
+        if (result?.data?.unitsRoots?.status !== "SUCCESS") return
+        if (result?.data?.unitsRoots?.result) {
             client.cache.writeQuery({
                 query: UNITS_QUERY,
-                variables: {unitIds: result.data.blocks.result.map(unit => unit.id)},
+                variables: {unitIds: result.data.unitsRoots.result.map(unit => unit.id)},
                 data: {
-                    blocksUnits: {
+                    unitsUnits: {
                         __typename: "UnitsPayload",
-                        status: result.data.blocks.status,
-                        result: result.data.blocks.result,
-                        errors: result.data.blocks.errors
+                        status: result.data.unitsRoots.status,
+                        result: result.data.unitsRoots.result,
+                        errors: result.data.unitsRoots.errors
                     }
                 }
             })

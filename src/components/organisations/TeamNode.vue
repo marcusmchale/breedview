@@ -95,10 +95,10 @@ const handleDeleteTeam = async () => {
     console.log('Deleting team:', props.teamData.id)
     const response = await deleteTeamMutation({ teamId: props.teamData.id })
 
-    if (response?.data?.organisationsDeleteTeam?.status === 'SUCCESS') {
+    if (response?.data?.teamsDeleteTeam?.status === 'SUCCESS') {
       emit('team-deleted', props.teamData.id)
     } else {
-      deleteTeamError.value = response?.data?.organisationsDeleteTeam?.errors?.[0]?.message || 'Failed to delete team'
+      deleteTeamError.value = response?.data?.teamsDeleteTeam?.errors?.[0]?.message || 'Failed to delete team'
     }
   } catch (error) {
     deleteTeamError.value = error.message || 'An error occurred'

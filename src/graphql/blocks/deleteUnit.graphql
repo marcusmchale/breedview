@@ -1,7 +1,7 @@
-mutation blocksDeleteUnit(
+mutation unitsDeleteUnit(
     $unitId: ID!
 ) {
-    blocksDeleteUnit(
+    unitsDeleteUnit(
         id: $unitId,
     ) {
         status

@@ -30,8 +30,8 @@ export function useMutatePositions({ unitId }) {
             end
         }
         const response = await addPositionMutation({ unitId: toValue(unitId), position: positionData })
-        if (response?.data?.blocksAddPosition) {
-            const result = response.data.blocksAddPosition
+        if (response?.data?.unitsAddPosition) {
+            const result = response.data.unitsAddPosition
             if (result.status === "SUCCESS") {
                 addPositionToCache({
                     unitId: unitId,
@@ -62,8 +62,8 @@ export function useMutatePositions({ unitId }) {
         }
         const response = await removePositionMutation({unitId: toValue(unitId), position: positionData})
 
-        if (response?.data?.blocksRemovePosition) {
-            const result = response.data.blocksRemovePosition
+        if (response?.data?.unitsRemovePosition) {
+            const result = response.data.unitsRemovePosition
             if (result.status === "SUCCESS") {
                 removePositionFromCache({
                     unitId: toValue(unitId),

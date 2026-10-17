@@ -32,7 +32,7 @@ export function useArrangementsQuery(locationId) {
         if (!arrangementsResult.value) {
             return []
         }
-        const arrangements = [...arrangementsResult.value.arrangements.result ?? []]
+        const arrangements = [...arrangementsResult.value.layoutsRoots.result ?? []]
         arrangements.sort((a,b) => a?.name.localeCompare(b?.name))
         return arrangements
     })
@@ -42,17 +42,17 @@ export function useArrangementsQuery(locationId) {
     })
 
     const updateCachedLocationArrangements = (result) => {
-        if (result?.data?.arrangements?.status !== "SUCCESS") return
-        if (result?.data?.arrangements?.result) {
+        if (result?.data?.layoutsRoots?.status !== "SUCCESS") return
+        if (result?.data?.layoutsRoots?.result) {
             client.cache.writeQuery( {
                 query: LAYOUTS_QUERY,
-                variables: {layoutIds: result.data.arrangements.result.map(layout => layout.id)},
+                variables: {layoutIds: result.data.layoutsRoots.result.map(layout => layout.id)},
                 data: {
-                    arrangementsLayouts: {
+                    layoutsLayouts: {
                         __typename: "LayoutsPayload",
-                        status: result.data.arrangements.status,
-                        result: result.data.arrangements.result,
-                        errors: result.data.arrangements.errors
+                        status: result.data.layoutsRoots.status,
+                        result: result.data.layoutsRoots.result,
+                        errors: result.data.layoutsRoots.errors
                     }
                 }
             })

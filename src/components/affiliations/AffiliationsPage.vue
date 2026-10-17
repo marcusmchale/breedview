@@ -168,7 +168,7 @@ onCreateOrgError((error) => {
 
 // Handle successful create organisation
 onCreateOrgDone((result) => {
-  const response = result.data?.organisationsCreateTeam
+  const response = result.data?.teamsCreateTeam
   if (response?.status === 'SUCCESS') {
     createOrgSuccess.value = 'Organisation created successfully!'
     createOrgError.value = ''
@@ -199,7 +199,7 @@ watch([queryLoading, queryError, result], () => {
     return
   }
 
-  const organisationsData = result.value?.organisations
+  const organisationsData = result.value?.teamsRoots
 
   if (organisationsData?.status === 'SUCCESS' || organisationsData?.status === 'NOT_FOUND') {
     organisations.value = organisationsData.result || []

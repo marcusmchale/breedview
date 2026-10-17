@@ -54,8 +54,8 @@ export function useMutateLayouts() {
             release: toValue(release)
         })
 
-        if (response?.data?.arrangementsCreateLayout) {
-            const result = response.data.arrangementsCreateLayout
+        if (response?.data?.layoutsCreateLayout) {
+            const result = response.data.layoutsCreateLayout
             if (result.status === 'SUCCESS') {
                 reloadLayouts([layoutData.parentId])
             }
@@ -74,8 +74,8 @@ export function useMutateLayouts() {
 
     const updateLayout = async (layoutData) => {
         const response = await updateLayoutMutation({layout: layoutData})
-        if (response?.data?.arrangementsUpdateLayout) {
-            const result = response.data.arrangementsUpdateLayout
+        if (response?.data?.layoutsUpdateLayout) {
+            const result = response.data.layoutsUpdateLayout
             if (result.status === 'SUCCESS') {
                 updateCache(layoutData)
             }
@@ -95,8 +95,8 @@ export function useMutateLayouts() {
         const response = await deleteLayoutMutation({
             layoutId: layoutId
         })
-        if (response?.data?.arrangementsDeleteLayout) {
-            const result = response.data.arrangementsDeleteLayout
+        if (response?.data?.layoutsDeleteLayout) {
+            const result = response.data.layoutsDeleteLayout
             if (result.status === 'SUCCESS') {
                 deleteFromCache({id: layoutId})
             }

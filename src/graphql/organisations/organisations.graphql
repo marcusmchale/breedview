@@ -1,5 +1,5 @@
-query organisations {
-    organisations{
+query teamsRoots {
+    teamsRoots{
         status
         result {
             id

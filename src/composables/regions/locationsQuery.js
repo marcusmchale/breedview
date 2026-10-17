@@ -11,7 +11,7 @@ export function useLocationsQuery({locationIds}) {
     } = useItemsQuery({
         itemIds: locationIds,
         itemsQueryGraphql: LOCATIONS_QUERY,
-        queryName: 'regionsLocations',
+        queryName: 'locationsLocations',
         variableName: 'locationIds'
     })
 

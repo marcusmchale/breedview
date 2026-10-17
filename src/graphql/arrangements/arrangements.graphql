@@ -1,8 +1,8 @@
 #import "./layoutFragment.graphql"
-query arrangements (
+query layoutsRoots (
     $locationId: ID!
 ) {
-    arrangements (locationId: $locationId) {
+    layoutsRoots (locationId: $locationId) {
         status
         result {
             ...LayoutFields

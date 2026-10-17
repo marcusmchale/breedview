@@ -2,7 +2,7 @@
 query descendantsByType (
     $locationIds: [ID!]!
 ){
-    regionsDescendantsByType(
+    locationsDescendantsByType(
         locationIds: $locationIds
     ){
         status

@@ -12,7 +12,7 @@ export function useOrganisationsQuery() {
     refetch: refetchOrganisations
   } = useQuery(ORGANISATIONS_QUERY, {}, { fetchPolicy: 'cache-and-network' })
 
-  const organisations = computed(() => result.value?.organisations?.result ?? [])
+  const organisations = computed(() => result.value?.teamsRoots?.result ?? [])
 
   return {
     organisations,

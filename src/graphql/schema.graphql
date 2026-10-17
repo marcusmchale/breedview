@@ -91,10 +91,10 @@ Positions may represent geographic locations, layout coordinates,
 or both.
 """
 input PositionGroupingInput {
-  """ID of the Location in the Region hierarchy."""
+  """ID of the Location in the LocationTree hierarchy."""
   locationId: ID!
 
-  """Optional ID of the Layout in the Arrangement hierarchy."""
+  """Optional ID of the Layout in the LayoutTree hierarchy."""
   layoutId: ID
 
   """
@@ -581,11 +581,11 @@ input AnalysisExclusionInput {
 
 """A position criterion of an exclusion rule."""
 input PositionExclusionInput {
-  """ID of the Location in the Region hierarchy."""
+  """ID of the Location in the LocationTree hierarchy."""
   locationId: ID!
 
   """
-  ID of the Layout in the Arrangement hierarchy.
+  ID of the Layout in the LayoutTree hierarchy.
   
   When null, any position at the location matches.
   """
@@ -848,78 +848,12 @@ input ReplicateAggregationInput {
   window: String
 }
 
-input LayoutInput {
-  """ Location ID from Region, provide this only for the root layout in an arrangement 
-  """
-  locationId: ID
-
-  """ Ontology LayoutType identifier """
-  typeId: ID!
-
-  """ Axis labels """
-  axes: [String!]
-
-  """ Optional name for the layout """
-  name: String
-
-  """ Optional parent layout to construct multiplexed layout arrangements"""
-  parentId: ID
-
-  """ When parent is supplied, position according to parent layout axes must be provided.
-  """
-  position: [String]
-}
-
-input LayoutUpdate {
-  id: ID
-
-  """ Location ID from Region, provide this only for the root layout in an arrangement 
-  """
-  locationId: ID
-  typeId: ID
-  axes: [String!]
-  name: String
-  parentId: ID
-  position: [String]
-}
-
-input PositionInput {
-  """ID of Location in a Region"""
-  locationId: ID!
-
-  """ID of Layout in and Arrangement"""
-  layoutId: ID
-
-  """
-  Coordinates should be a list of values corresponding to the stored layout axes.
-  """
-  coordinates: [String]
-  start: DateTime
-  end: DateTime
-}
-
-input UnitInput {
-  """ID of Subject in the ontology"""
-  subjectId: ID!
-  germplasmId: ID
-  name: String
-  description: String
-
-  """IDs of parent Units, of which this unit forms a component"""
-  parentIds: [ID]
-
-  """IDs of child Units, which represent a component of this unit."""
-  childrenIds: [ID]
-}
-
-input UnitUpdate {
-  id: ID!
-  subjectId: ID
-  germplasmId: ID
-  name: String
-  description: String
-  parentIds: [ID!]
-  childrenIds: [ID!]
+"""
+A Person to credit, with the Role entries for what they did; roles may be left out and declared later.
+"""
+input ContributionInput {
+  personId: ID!
+  roleIds: [ID!]
 }
 
 input ControlledEntityInput {
@@ -938,7 +872,7 @@ input ControlTransferOffer {
   """
   fromTeamIds: [ID!]!
 
-  """The team offered control, e.g. the root of another organisation"""
+  """The team offered control, e.g. the root of another team tree"""
   recipientTeamId: ID!
 
   """
@@ -988,7 +922,7 @@ input DatasetInput {
   """ concept is either a Factor or Variable in the ontology """
   conceptId: ID!
   records: [RecordInput!]!
-  contributorIds: [ID!]
+  contributions: [ContributionInput!]
   referenceIds: [ID!]
 }
 
@@ -998,7 +932,7 @@ input DatasetUpdate {
   studyId: ID
   conceptId: ID
   records: [RecordUpdate!]!
-  contributorIds: [ID!]
+  contributions: [ContributionInput!]
   referenceIds: [ID!]
 }
 
@@ -1027,7 +961,7 @@ input GermplasmInput {
   description: String
   synonyms: [String!]
 
-  """Place of origin, a reference to a Location stored in Regions"""
+  """Place of origin, a reference to a Location stored in Location trees"""
   originId: ID
 
   """Time sourced from origin"""
@@ -1061,6 +995,91 @@ input GermplasmUpdate {
   controlMethodIds: [ID!]
   referenceIds: [ID!] = []
   sources: [GermplasmSourceRelationship!]
+}
+
+input LayoutInput {
+  """ Location ID from LocationTree, provide this only for the root layout in a layout tree 
+  """
+  locationId: ID
+
+  """ Ontology LayoutType identifier """
+  typeId: ID!
+
+  """ Axis labels """
+  axes: [String!]
+
+  """ Optional name for the layout """
+  name: String
+
+  """ Optional parent layout to construct multiplexed layout layout trees"""
+  parentId: ID
+
+  """ When parent is supplied, position according to parent layout axes must be provided.
+  """
+  position: [String]
+}
+
+input LayoutUpdate {
+  id: ID
+
+  """ Location ID from LocationTree, provide this only for the root layout in a layout tree 
+  """
+  locationId: ID
+  typeId: ID
+  axes: [String!]
+  name: String
+  parentId: ID
+  position: [String]
+}
+
+input GeoCoordinateInput {
+  """Latitude in degrees according to ISO 6709"""
+  latitude: Float!
+
+  """Longitude in degrees according to ISO 6709"""
+  longitude: Float!
+
+  """Meters above WGS84 reference ellipsoid"""
+  altitude: Float
+
+  """UncertaIDy in meters associated with these coordinates"""
+  uncertainty: Float
+
+  """Additional coordinate description"""
+  description: String
+}
+
+input LocationInput {
+  name: String!
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinateInput]
+
+  """ Ontology LocationType identifier """
+  typeId: ID!
+
+  """ A parent location, required unless a country (see countries) """
+  parentId: ID
+}
+
+input LocationUpdate {
+  id: ID!
+  name: String
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinateInput]
+
+  """ Ontology LocationType identifier """
+  typeId: ID
+
+  """ A parent location, required unless a country (see countries) """
+  parentId: ID
 }
 
 type Mutation {
@@ -1141,14 +1160,6 @@ type Mutation {
   A queued or running analysis is cancelled.
   """
   analysisDelete(id: ID!): BooleanPayload!
-  arrangementsCreateLayout(layout: LayoutInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
-  arrangementsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
-  arrangementsDeleteLayout(id: ID!): BooleanPayload!
-  blocksCreateUnit(unit: UnitInput!, controlTeamId: ID!, release: ReadRelease, position: PositionInput): BooleanPayload!
-  blocksUpdateUnit(unit: UnitUpdate!): BooleanPayload!
-  blocksDeleteUnit(id: ID!): BooleanPayload!
-  blocksAddPosition(id: ID!, position: PositionInput!): BooleanPayload!
-  blocksRemovePosition(id: ID!, position: PositionInput!): BooleanPayload!
   controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [ID!]!, release: ReadRelease!): BooleanPayload!
 
   """Offer control of controlled models to a recipient team"""
@@ -1184,6 +1195,12 @@ type Mutation {
   germplasmCreateEntry(entry: GermplasmInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload
   germplasmUpdateEntry(entry: GermplasmUpdate!): BooleanPayload
   germplasmDeleteEntry(id: ID!): BooleanPayload
+  layoutsCreateLayout(layout: LayoutInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+  layoutsUpdateLayout(layout: LayoutUpdate!): BooleanPayload!
+  layoutsDeleteLayout(id: ID!): BooleanPayload!
+  locationsCreateLocation(location: LocationInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
+  locationsUpdateLocation(location: LocationUpdate!): BooleanPayload!
+  locationsDeleteLocation(id: ID!): BooleanPayload!
   ontologyCreateTerm(term: TermInput!): BooleanPayload!
   ontologyCreateSubject(subject: SubjectInput!): BooleanPayload!
   ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
@@ -1197,6 +1214,7 @@ type Mutation {
   ontologyCreateEvent(event: EventInput!): BooleanPayload!
   ontologyCreateLocationType(locationType: LocationTypeInput!): BooleanPayload!
   ontologyCreateDesign(design: DesignInput!): BooleanPayload!
+  ontologyCreateRole(role: RoleInput!): BooleanPayload!
   ontologyCreateRecordGroupType(recordGroupType: RecordGroupTypeInput!): BooleanPayload!
   ontologyCreateLayoutType(layoutType: LayoutTypeInput!): BooleanPayload!
   ontologyUpdateTerm(term: TermUpdate!): BooleanPayload!
@@ -1212,29 +1230,20 @@ type Mutation {
   ontologyUpdateEvent(event: EventUpdate!): BooleanPayload!
   ontologyUpdateLocationType(locationType: LocationTypeUpdate!): BooleanPayload!
   ontologyUpdateDesign(design: DesignUpdate!): BooleanPayload!
+  ontologyUpdateRole(role: RoleUpdate!): BooleanPayload!
   ontologyUpdateRecordGroupType(recordGroupType: RecordGroupTypeUpdate!): BooleanPayload!
   ontologyUpdateLayoutType(layoutType: LayoutTypeUpdate!): BooleanPayload!
+
+  """ Lock entries so they stay stable, or unlock them; for ontology admins 
+  """
+  ontologyLockEntries(ids: [ID!]!): BooleanPayload!
+  ontologyUnlockEntries(ids: [ID!]!): BooleanPayload!
   ontologyDeprecateEntries(ids: [ID!]!): BooleanPayload!
   ontologyCancelDeprecateEntries(ids: [ID!]!): BooleanPayload!
   ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: ID, copyrightId: ID): BooleanPayload!
-  organisationsCreateTeam(team: TeamInput!): BooleanPayload!
-  organisationsDeleteTeam(id: ID!): BooleanPayload!
-  organisationsUpdateTeam(team: TeamUpdate!): BooleanPayload!
 
   """
-  Declare the legal entity responsible for an organisation, accepting the current data processing terms.
-  Only on the root team, by its admins. A new declaration replaces the current one, which is kept as history.
-  """
-  organisationsDeclareLegalEntity(teamId: ID!, legalEntity: LegalEntityInput!): BooleanPayload!
-
-  """
-  Withdraw the legal entity declared for an organisation, by admins of its root team.
-  Refused while the organisation controls any Person, including erased Persons. The declaration is kept as history.
-  """
-  organisationsWithdrawLegalEntity(teamId: ID!): BooleanPayload!
-
-  """
-  Record a Person. The organisation of the control team must have declared its legal entity,
+  Record a Person. The team tree of the control team must have declared its legal entity,
   and becomes the data controller for the record.
   """
   peopleCreatePerson(person: PersonInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
@@ -1330,9 +1339,26 @@ type Mutation {
 
   """ Request to make an archived file available for download """
   referencesRequestFileRetrieval(fileId: ID!): BooleanPayload!
-  regionsCreateLocation(location: LocationInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
-  regionsUpdateLocation(location: LocationUpdate!): BooleanPayload!
-  regionsDeleteLocation(id: ID!): BooleanPayload!
+  teamsCreateTeam(team: TeamInput!): BooleanPayload!
+  teamsDeleteTeam(id: ID!): BooleanPayload!
+  teamsUpdateTeam(team: TeamUpdate!): BooleanPayload!
+
+  """
+  Declare the legal entity responsible for a team tree, accepting the current data processing terms.
+  Only on the root team, by its admins. A new declaration replaces the current one, which is kept as history.
+  """
+  teamsDeclareLegalEntity(teamId: ID!, legalEntity: LegalEntityInput!): BooleanPayload!
+
+  """
+  Withdraw the legal entity declared for a team tree, by admins of its root team.
+  Refused while the team tree controls any Person, including erased Persons. The declaration is kept as history.
+  """
+  teamsWithdrawLegalEntity(teamId: ID!): BooleanPayload!
+  unitsCreateUnit(unit: UnitInput!, controlTeamId: ID!, release: ReadRelease, position: PositionInput): BooleanPayload!
+  unitsUpdateUnit(unit: UnitUpdate!): BooleanPayload!
+  unitsDeleteUnit(id: ID!): BooleanPayload!
+  unitsAddPosition(id: ID!, position: PositionInput!): BooleanPayload!
+  unitsRemovePosition(id: ID!, position: PositionInput!): BooleanPayload!
 }
 
 enum VersionChange {
@@ -1351,6 +1377,8 @@ input TermInput {
   References for additional details, (Reference ID) e.g. a link to another ontology.
   """
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
 
   """
   To establish a hierarchy and relationships among terms.
@@ -1371,6 +1399,7 @@ input TermInput {
   locationTypeIds: [ID!]
   layoutTypeIds: [ID!]
   designIds: [ID!]
+  roleIds: [ID!]
   recordGroupTypeIds: [ID!]
 }
 
@@ -1380,6 +1409,8 @@ input SubjectInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1393,6 +1424,8 @@ input TraitInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1405,6 +1438,8 @@ input ConditionInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1416,6 +1451,8 @@ input ScaleInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1433,6 +1470,8 @@ input CategoryInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1449,6 +1488,8 @@ input ObservationMethodInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1461,6 +1502,8 @@ input VariableInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1475,6 +1518,8 @@ input ControlMethodInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1487,6 +1532,8 @@ input FactorInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1501,6 +1548,8 @@ input EventInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   variableIds: [ID!]
@@ -1514,6 +1563,8 @@ input LocationTypeInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1525,6 +1576,21 @@ input DesignInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+}
+
+input RoleInput {
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1532,11 +1598,13 @@ input DesignInput {
 
 input RecordGroupTypeInput {
   name: String!
-  extent: RecordGroupExtent!
+  defaultExtent: RecordGroupExtent
   description: String
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1548,6 +1616,8 @@ input LayoutTypeInput {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1561,6 +1631,8 @@ input TermUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   subjectIds: [ID!]
@@ -1576,6 +1648,7 @@ input TermUpdate {
   locationTypeIds: [ID!]
   layoutTypeIds: [ID!]
   designIds: [ID!]
+  roleIds: [ID!]
 }
 
 input SubjectUpdate {
@@ -1585,6 +1658,8 @@ input SubjectUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1597,6 +1672,8 @@ input TraitUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1610,6 +1687,8 @@ input ConditionUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1623,6 +1702,8 @@ input ScaleUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1637,6 +1718,8 @@ input CategoryUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1650,6 +1733,8 @@ input ObservationMethodUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1663,6 +1748,8 @@ input VariableUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1678,6 +1765,8 @@ input ControlMethodUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1691,6 +1780,8 @@ input FactorUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1706,6 +1797,8 @@ input EventUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   variableIds: [ID!]
@@ -1720,6 +1813,8 @@ input LocationTypeUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1732,6 +1827,22 @@ input DesignUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
+  parentIds: [ID!]
+  childIds: [ID!]
+  termIds: [ID!]
+}
+
+input RoleUpdate {
+  id: ID!
+  name: String
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+  referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1740,11 +1851,13 @@ input DesignUpdate {
 input RecordGroupTypeUpdate {
   id: ID!
   name: String
-  extent: RecordGroupExtent!
+  defaultExtent: RecordGroupExtent
   description: String
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
@@ -1757,41 +1870,12 @@ input LayoutTypeUpdate {
   abbreviation: String
   synonyms: [String!]
   referenceIds: [ID!]
+  sourceUrl: String
+  sourceAttribution: String
   parentIds: [ID!]
   childIds: [ID!]
   termIds: [ID!]
   axes: [AxisType!]
-}
-
-input TeamInput {
-  """ Required name for the team """
-  name: String!
-
-  """ Optional full name for the team """
-  fullname: String
-
-  """ Optional parent team to extend an organisation"""
-  parentId: ID
-
-  """ Optional legal entity for a new organisation, i.e. without a parent """
-  legalEntity: LegalEntityInput
-}
-
-input LegalEntityInput {
-  legalName: String!
-
-  """ A role address for requests about personal data, not an individual's """
-  privacyContact: String!
-
-  """ The version of the data processing terms shown and accepted, see organisationsDataProcessingTerms 
-  """
-  termsVersion: String!
-}
-
-input TeamUpdate {
-  id: ID!
-  name: String
-  fullname: String
 }
 
 input PersonInput {
@@ -1838,6 +1922,10 @@ input ProgramInput {
   release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
   """
   contactIds: [ID!] = []
+
+  """ The Persons credited, with the roles they had; replaces all contributions on update 
+  """
+  contributions: [ContributionInput!]
   referenceIds: [ID!] = []
 }
 
@@ -1852,6 +1940,10 @@ input ProgramUpdate {
   release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
   """
   contactIds: [ID!]
+
+  """ The Persons credited, with the roles they had; replaces all contributions on update 
+  """
+  contributions: [ContributionInput!]
   referenceIds: [ID!]
 }
 
@@ -1868,6 +1960,10 @@ input TrialInput {
   release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
   """
   contactIds: [ID!] = []
+
+  """ The Persons credited, with the roles they had; replaces all contributions on update 
+  """
+  contributions: [ContributionInput!]
   referenceIds: [ID!] = []
 }
 
@@ -1884,6 +1980,10 @@ input TrialUpdate {
   release of this Program or Trial, and at least REGISTERED. Messages are sent through BreedGraph.
   """
   contactIds: [ID!]
+
+  """ The Persons credited, with the roles they had; replaces all contributions on update 
+  """
+  contributions: [ContributionInput!]
   referenceIds: [ID!]
 }
 
@@ -1929,6 +2029,7 @@ input GroupingInput {
   typeId: ID!
   name: String!
   scope: GroupingScope!
+  extent: RecordGroupExtent!
   dataset_scopes: [DatasetScopeInput!]
 }
 
@@ -1937,6 +2038,9 @@ input GroupingUpdate {
   typeId: ID!
   name: String!
   scope: GroupingScope!
+
+  """ Unchanged when omitted """
+  extent: RecordGroupExtent
   dataset_scopes: [DatasetScopeInput!]
 }
 
@@ -1966,11 +2070,19 @@ input ExternalDataReferenceInput {
   externalId: String
   format: DataFormat!
   schema: String
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
 input FileReferenceInput {
   description: String
   file: Upload!
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
 input DataFileReferenceInput {
@@ -1978,6 +2090,10 @@ input DataFileReferenceInput {
   file: Upload!
   format: DataFormat!
   schema: String
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
 input LegalReferenceUpdate {
@@ -2000,12 +2116,20 @@ input ExternalDataReferenceUpdate {
   externalId: String
   format: DataFormat!
   schema: String
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
 input FileReferenceUpdate {
   id: ID!
   description: String
   file: Upload
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
 input DataFileReferenceUpdate {
@@ -2014,56 +2138,80 @@ input DataFileReferenceUpdate {
   file: Upload
   format: DataFormat!
   schema: String
+
+  """ The Persons credited, with the roles they had; on update, replaces them all 
+  """
+  contributions: [ContributionInput!]
 }
 
-input GeoCoordinateInput {
-  """Latitude in degrees according to ISO 6709"""
-  latitude: Float!
-
-  """Longitude in degrees according to ISO 6709"""
-  longitude: Float!
-
-  """Meters above WGS84 reference ellipsoid"""
-  altitude: Float
-
-  """UncertaIDy in meters associated with these coordinates"""
-  uncertainty: Float
-
-  """Additional coordinate description"""
-  description: String
-}
-
-input LocationInput {
+input TeamInput {
+  """ Required name for the team """
   name: String!
 
-  """ Optional code for location, e.g. zip-code """
-  code: String
-  description: String
-  address: String
-  coordinates: [GeoCoordinateInput]
+  """ Optional full name for the team """
+  fullname: String
 
-  """ Ontology LocationType identifier """
-  typeId: ID!
-
-  """ A parent location, required unless a country (see countries) """
+  """ Optional parent team to extend a team tree"""
   parentId: ID
+
+  """ Optional legal entity for a new team tree, i.e. without a parent """
+  legalEntity: LegalEntityInput
 }
 
-input LocationUpdate {
+input LegalEntityInput {
+  legalName: String!
+
+  """ A role address for requests about personal data, not an individual's """
+  privacyContact: String!
+
+  """ The version of the data processing terms shown and accepted, see teamsDataProcessingTerms 
+  """
+  termsVersion: String!
+}
+
+input TeamUpdate {
   id: ID!
   name: String
+  fullname: String
+}
 
-  """ Optional code for location, e.g. zip-code """
-  code: String
+input PositionInput {
+  """ID of Location in a LocationTree"""
+  locationId: ID!
+
+  """ID of Layout in and LayoutTree"""
+  layoutId: ID
+
+  """
+  Coordinates should be a list of values corresponding to the stored layout axes.
+  """
+  coordinates: [String]
+  start: DateTime
+  end: DateTime
+}
+
+input UnitInput {
+  """ID of Subject in the ontology"""
+  subjectId: ID!
+  germplasmId: ID
+  name: String
   description: String
-  address: String
-  coordinates: [GeoCoordinateInput]
 
-  """ Ontology LocationType identifier """
-  typeId: ID
+  """IDs of parent Units, of which this unit forms a component"""
+  parentIds: [ID]
 
-  """ A parent location, required unless a country (see countries) """
-  parentId: ID
+  """IDs of child Units, which represent a component of this unit."""
+  childrenIds: [ID]
+}
+
+input UnitUpdate {
+  id: ID!
+  subjectId: ID
+  germplasmId: ID
+  name: String
+  description: String
+  parentIds: [ID!]
+  childrenIds: [ID!]
 }
 
 enum OntologyRole {
@@ -2403,10 +2551,10 @@ type UnitGrouping {
 }
 
 type PositionGrouping {
-  """ID of the Location in the Region hierarchy."""
+  """ID of the Location in the LocationTree hierarchy."""
   locationId: ID!
 
-  """ID of the Layout in the Arrangement hierarchy."""
+  """ID of the Layout in the LayoutTree hierarchy."""
   layoutId: ID
 
   """Layout axes used to define position groups."""
@@ -2702,7 +2850,8 @@ type AnalysisRecordGroupAssignment {
   Identifier of the level, unique within the dimension.
   
   The label of a shared level, otherwise an identifier
-  composed of grouping, scope, code and, for WITHIN_UNIT groupings, the base unit.
+  composed of grouping, scope, code and, for WITHIN_UNIT groupings, the base unit,
+  or for WITHIN_GRAPH groupings, the root of the base unit's graph.
   """
   level: String!
 
@@ -2723,7 +2872,8 @@ type AnalysisRecordGroupAssignment {
   code: String
 
   """
-  Base unit of a nested level of a WITHIN_UNIT grouping, whose codes are only comparable within a unit.
+  Base unit of a nested level of a WITHIN_UNIT grouping, whose codes are only comparable within a unit,
+  or the root of the base unit's graph for a WITHIN_GRAPH grouping, whose codes are only comparable within a graph.
   """
   unitId: ID
 }
@@ -2894,55 +3044,18 @@ type ReplicateAggregation {
   window: String
 }
 
-type Layout {
-  id: ID!
-  type: LayoutType
-  name: String
-  axes: [String!]
-  arrangement: Layout
-  parent: Layout
-
-  """Position within parent layout"""
-  position: [String!]
-  children: [Layout!]
-  location: Location
-}
-
 type Token {
   accessToken: String!
   tokenType: String!
 }
 
-type Position {
-  """ID of Location in a Region"""
-  location: Location!
-
-  """ID of Layout in and Arrangement"""
-  layout: Layout
-
-  """
-  Coordinates should be a list of values corresponding to the stored layout axes.
-  """
-  coordinates: [String]
-  start: DateTime
-  end: DateTime
-}
-
-type Unit {
-  id: ID!
-  subject: Subject
-  germplasm: GermplasmEntry
-  name: String
-  description: String
-  positions: [Position]
-  parents: [Unit]
-  children: [Unit]
-}
-
-""" Units below some units that share a subject, as id and name """
-type SubjectUnits {
-  subject: Subject
-  units: [Unit!]!
+"""
+A Person credited for a dataset, Program or Trial, with the roles they had.
+The roles are Role entries, declared rather than exhaustive: a contribution may have none.
+"""
+type Contribution {
+  person: Person
+  roles: [Role!]
 }
 
 enum ReadRelease {
@@ -3117,7 +3230,7 @@ type Dataset {
 
   """
   The dataset's records, in submission order. Without arguments, all of them.
-  unitIds narrows them to the records of those units and of every unit below the readable ones (a block or a plot
+  unitIds narrows them to the records of those units and of every unit below the readable ones (a unit graph or a plot
   selects what it contains; a hidden unit only its own records); start and end to records whose own period overlaps the window;
   offset and limit page through the result.
   """
@@ -3136,7 +3249,9 @@ type Dataset {
   """ What the records span, without reading them; null for a dataset the user cannot read 
   """
   dimensions: DatasetDimensions
-  contributors: [Person]
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
   references: [ReferenceInterface]
 }
 
@@ -3172,7 +3287,9 @@ type SubmittedRecord {
 type SubmittedData {
   conceptId: ID!
   records: [SubmittedRecord]
-  contributors: [Person]
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
   references: [ReferenceInterface]
 }
 
@@ -3202,7 +3319,7 @@ type DatasetSummary {
   concept: OntologyNodeInterface!
   subjects: [Subject]
   locations: [Location]
-  blocks: [Unit]
+  unitRoots: [Unit]
   unit_count: Int!
   record_count: Int!
   start: DateTime
@@ -3228,6 +3345,74 @@ type GermplasmEntry {
   references: [ReferenceInterface!]
   sources: [GermplasmRelationship!]
   sinks: [GermplasmRelationship!]
+}
+
+type Layout {
+  id: ID!
+  type: LayoutType
+  name: String
+  axes: [String!]
+  root: Layout
+  parent: Layout
+
+  """Position within parent layout"""
+  position: [String!]
+  children: [Layout!]
+  location: Location
+}
+
+type GeoCoordinate {
+  """Latitude in degrees according to ISO 6709"""
+  latitude: Float!
+
+  """Longitude in degrees according to ISO 6709"""
+  longitude: Float!
+
+  """Meters above WGS84 reference ellipsoid"""
+  altitude: Float
+
+  """Uncertainty in meters associated with these coordinates"""
+  uncertainty: Float
+
+  """Additional coordinate description"""
+  description: String
+}
+
+type Location {
+  """Stored Locations"""
+  id: ID!
+  name: String!
+  type: LocationType
+  code: String
+  synonyms: [String]
+  description: String
+  address: String
+  coordinates: [GeoCoordinate]
+
+  """ The root location for this location tree, for the root location this references itself. 
+  """
+  root: Location
+  parent: Location
+  children: [Location]
+}
+
+""" Locations below some locations that share a type, as id and name """
+type LocationTypeLocations {
+  type: LocationType
+  locations: [Location!]!
+}
+
+type LocationTemplate {
+  name: String!
+
+  """ Optional code for location, e.g. zip-code """
+  code: String
+  description: String
+  address: String
+  coordinates: [GeoCoordinate]
+
+  """ Ontology LocationType identifier """
+  typeId: ID!
 }
 
 type Version {
@@ -3278,7 +3463,7 @@ enum OntologyNodeLabel {
   TERM
 
   """
-  Subject entries describe Units (see Blocks) being observed in a study.
+  Subject entries describe Units (see Unit graphs) being observed in a study.
   These are linked to Unit and Trait.
   Examples: "Leaf", "Tree", "Field", "Rhizosphere"
   """
@@ -3372,14 +3557,14 @@ enum OntologyNodeLabel {
 
   """
   LocationType entries describe types of locations.
-  These are linked to Location (see Regions).
+  These are linked to Location (see Location trees).
   Examples: "Country", "State", "Field"
   """
   LOCATION_TYPE
 
   """
-  LayoutType entries describe types of arrangements.
-  These are linked to Layout (see Arrangements).
+  LayoutType entries describe types of layout trees.
+  These are linked to Layout (see Layout trees).
   Examples: "Grid", "Rows"
   """
   LAYOUT_TYPE
@@ -3392,6 +3577,13 @@ enum OntologyNodeLabel {
   DESIGN
 
   """
+  Role entries describe the role a Person had in a contribution.
+  Based on CRediT (Contributor Roles Taxonomy), extended where needed.
+  Examples: "Investigation", "Data curation"
+  """
+  ROLE
+
+  """
   A record group is a set of records associated by a common criterion arising from
   the execution, observation, processing, or organization of a study.
   These entries describe reusable types of record groups.
@@ -3400,7 +3592,7 @@ enum OntologyNodeLabel {
   Note: Record groups are intended for grouping records according to study-specific or
   process-specific contexts, such as replication or laboratory processing.
   Long-term shared entities and their relationships should instead be represented as
-  Units within Blocks. Likewise, factors in a study should be represented as records
+  Units within Unit graphs. Likewise, factors in a study should be represented as records
   in a dataset rather than as record groups.
   """
   RECORD_GROUP_TYPE
@@ -3473,16 +3665,30 @@ enum AxisType {
   CARTESIAN
 }
 
-"""Whether the codes of a record group type are meaningful across units."""
+"""
+How analysis groups records with the same code across units, set on each record grouping of a study.
+A code can mean the same on every unit (e.g. a canopy stratum "Lower"); the extent decides whether analysis uses that.
+"""
 enum RecordGroupExtent {
-  """A code names a group of many units, e.g. a block, batch or session."""
+  """
+  Records of different units with the same code are one group, a level that can be estimated across units,
+  e.g. a unit graph, batch, session or canopy stratum.
+  """
   SHARED
 
   """
-  A code only distinguishes records of one unit at one time, e.g. replicate readings or subsamples.
-  In analysis such codes are nested in the unit, and can be collapsed by a term's replicateAggregation.
+  Codes are nested in each record's unit: records of one unit with the same code at one time, or within the
+  replicate aggregation window, are one reading, e.g. replicate readings, subsamples or the branches of a tree.
+  A term's replicateAggregation combines them.
   """
   WITHIN_UNIT
+
+  """
+  Codes are nested in the root of each record unit's graph: records of units of one graph with the same
+  code are one group, a level that can be estimated across those units, e.g. the design blocks of a field,
+  whose names recur in other fields. Otherwise as SHARED.
+  """
+  WITHIN_GRAPH
 }
 
 enum ObservationMethodType {
@@ -3567,6 +3773,15 @@ interface OntologyNodeInterface {
   abbreviation: String
   synonyms: [String!]
 
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
+
   """
   External relationships attributes are also handled with versioned change tracking like intrinsic attributes.
   """
@@ -3601,6 +3816,7 @@ interface TermRelationships {
   locationTypes: [LocationType!]
   layoutTypes: [LayoutType!]
   designs: [Design!]
+  roles: [Role!]
 }
 
 type Term implements OntologyNodeInterface & OntologyRelationships & TermRelationships {
@@ -3612,6 +3828,15 @@ type Term implements OntologyNodeInterface & OntologyRelationships & TermRelatio
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Term!]
   children: [Term!]
@@ -3628,6 +3853,7 @@ type Term implements OntologyNodeInterface & OntologyRelationships & TermRelatio
   locationTypes: [LocationType!]
   layoutTypes: [LayoutType!]
   designs: [Design!]
+  roles: [Role!]
 }
 
 """Other nodes may all have a relationship to terms"""
@@ -3636,7 +3862,7 @@ interface RelatedToTerms {
 }
 
 """
-Subject entries describe Units (see Blocks) being observed in a study.
+Subject entries describe Units (see Unit graphs) being observed in a study.
 These are linked to Unit and Trait.
 Examples: "Leaf", "Tree", "Field", "Rhizosphere"
 """
@@ -3654,6 +3880,15 @@ type Subject implements OntologyNodeInterface & OntologyRelationships & RelatedT
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Subject!]
   children: [Subject!]
@@ -3682,6 +3917,15 @@ type Trait implements OntologyNodeInterface & OntologyRelationships & RelatedToT
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Trait!]
   children: [Trait!]
@@ -3709,6 +3953,15 @@ type Condition implements OntologyNodeInterface & OntologyRelationships & Relate
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Condition!]
   children: [Condition!]
@@ -3748,6 +4001,15 @@ type Scale implements OntologyNodeInterface & ScaleInterface & OntologyRelations
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   scaleType: ScaleType!
   parents: [Scale!]
@@ -3775,6 +4037,15 @@ type Category implements OntologyNodeInterface & OntologyRelationships & Related
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Category!]
   children: [Category!]
@@ -3805,6 +4076,15 @@ type ObservationMethod implements OntologyNodeInterface & ObservationMethodInter
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [ObservationMethod!]
   children: [ObservationMethod!]
@@ -3841,6 +4121,15 @@ type Variable implements OntologyNodeInterface & OntologyRelationships & Related
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Variable!]
   children: [Variable!]
@@ -3872,6 +4161,15 @@ type ControlMethod implements OntologyNodeInterface & ControlMethodInterface & O
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [ControlMethod!]
   children: [ControlMethod!]
@@ -3908,6 +4206,15 @@ type Factor implements OntologyNodeInterface & OntologyRelationships & RelatedTo
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Factor!]
   children: [Factor!]
@@ -3936,6 +4243,15 @@ type Event implements OntologyNodeInterface & OntologyRelationships & RelatedToT
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Event!]
   children: [Event!]
@@ -3946,7 +4262,7 @@ type Event implements OntologyNodeInterface & OntologyRelationships & RelatedToT
 
 """
 LocationType entries describe types of locations.
-These are linked to Location (see Regions).
+These are linked to Location (see Location trees).
 Examples: "Country", "State", "Field"
 """
 type LocationType implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
@@ -3958,6 +4274,15 @@ type LocationType implements OntologyNodeInterface & OntologyRelationships & Rel
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [LocationType!]
   children: [LocationType!]
@@ -3965,8 +4290,8 @@ type LocationType implements OntologyNodeInterface & OntologyRelationships & Rel
 }
 
 """
-LayoutType entries describe types of arrangements.
-These are linked to Layout (see Arrangements).
+LayoutType entries describe types of layout trees.
+These are linked to Layout (see Layout trees).
 Examples: "Grid", "Rows"
 """
 interface LayoutTypeInterface {
@@ -3982,6 +4307,15 @@ type LayoutType implements OntologyNodeInterface & LayoutTypeInterface & Ontolog
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   axes: [AxisType!]
   parents: [LayoutType!]
@@ -4003,6 +4337,15 @@ type Design implements OntologyNodeInterface & OntologyRelationships & RelatedTo
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [Design!]
   children: [Design!]
@@ -4010,8 +4353,37 @@ type Design implements OntologyNodeInterface & OntologyRelationships & RelatedTo
 }
 
 """
+Role entries describe the role a Person had in a contribution, e.g. to a dataset.
+They are based on CRediT (Contributor Roles Taxonomy), extended where needed.
+Examples: "Investigation", "Data curation"
+"""
+type Role implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
+  id: ID!
+  versionId: ID!
+  view: OntologyView!
+  phase: LifecyclePhase!
+  name: String!
+  description: String
+  abbreviation: String
+  synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
+  references: [ReferenceInterface!]
+  parents: [Role!]
+  children: [Role!]
+  terms: [Term!]
+}
+
+"""
 Record Group Type entries describe transient identifiers like replicate, batch
-to complement the more permanent identifiers in the block/unit structure
+to complement the more permanent identifiers in the unit graph/unit structure
 """
 type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms {
   id: ID!
@@ -4022,14 +4394,26 @@ type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & 
   description: String
   abbreviation: String
   synonyms: [String!]
+
+  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
+  """
+  sourceUrl: String
+  sourceAttribution: String
+
+  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """
+  locked: Boolean!
   references: [ReferenceInterface!]
   parents: [RecordGroupType!]
   children: [RecordGroupType!]
   terms: [Term!]
-  extent: RecordGroupExtent!
+
+  """ The extent a new grouping of this type starts with; each grouping sets its own 
+  """
+  defaultExtent: RecordGroupExtent
 }
 
-union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType | Role
 
 type OntologyRelationship {
   id: ID!
@@ -4055,93 +4439,6 @@ type Ontology {
   such as visualizations.
   """
   relationships: [OntologyRelationship!]!
-}
-
-enum Access {
-  READ
-  WRITE
-  ADMIN
-  CURATE
-}
-
-enum Authorisation {
-  REQUESTED
-  AUTHORISED
-  REVOKED
-}
-
-type Affiliation {
-  user: UserDisplay!
-  authorisation: Authorisation!
-  heritable: Boolean!
-}
-
-type Affiliations {
-  read: [Affiliation!]
-  write: [Affiliation!]
-  admin: [Affiliation!]
-  curate: [Affiliation!]
-}
-
-"""
-A reference to a team, as the viewer may see it: the team itself, or, when the team referred to is hidden from them,
-the nearest team they can see that includes it, at furthest its organisation's root (standIn). A stand-in says whom
-to ask for an affiliation to see more. It is a property of the reference, not of the team, so it is not on Team,
-which the client caches by id: the same team can be referred to as itself in one place and as a stand-in in another.
-"""
-type TeamReference {
-  team: Team!
-  standIn: Boolean!
-}
-
-type Team {
-  id: ID!
-  name: String!
-  fullname: String
-  parent: Team
-  children: [Team!]
-  affiliations: Affiliations
-  directAffiliations: Affiliations
-  inheritedAffiliations: Affiliations
-
-  """
-  The legal entity responsible for the organisation. Only declared on organisation roots
-  """
-  legalEntity: LegalEntity
-}
-
-"""
-The legal entity responsible for an organisation, declared on its root team by accepting the data processing terms.
-Required for the organisation to record Persons.
-"""
-type LegalEntity {
-  legalName: String!
-
-  """A role address for requests about personal data"""
-  privacyContact: String!
-
-  """The version of the data processing terms accepted"""
-  termsVersion: String!
-  declaredAt: DateTime
-
-  """Visible to admins of the team only"""
-  declaredBy: UserDisplay
-}
-
-"""The data processing terms accepted when declaring a legal entity"""
-type DataProcessingTerms {
-  """
-  Null when no terms are configured, in which case legal entities cannot be declared
-  """
-  version: String
-  url: String
-}
-
-type UserAccess {
-  read: [Team!]
-  write: [Team!]
-  admin: [Team!]
-  curate: [Team!]
 }
 
 enum QueryStatus {
@@ -4537,6 +4834,9 @@ type RecordGrouping {
   type: RecordGroupType!
   name: String!
   scope: GroupingScope!
+
+  """ How analysis groups records with the same code across units """
+  extent: RecordGroupExtent!
   dataset_scopes: [DatasetScope!]
 }
 
@@ -4546,6 +4846,9 @@ type Program {
   fullname: String
   description: String
   contacts: [Person]
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
   references: [ReferenceInterface]
   trials: [Trial]
 }
@@ -4558,6 +4861,9 @@ type Trial {
   start: DateTime
   end: DateTime
   contacts: [Person]
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
   references: [ReferenceInterface]
   studies: [Study]
 }
@@ -4584,21 +4890,21 @@ type Query {
   accountsUserAccess: UserAccessPayload!
 
   """
-  Get a list of organisation "root" teams.
-  These are top-level team in the organisation hierarchy.
-  Visibility of teams within an organisation is dependent on controls, read-release and affiliations.
-  Navigation of the organisation graph is achieved by resolvers on the parent/children attributes.
+  Get a list of team tree "root" teams.
+  These are the top-level teams of the team trees.
+  Visibility of teams within a team tree is dependent on controls, read-release and affiliations.
+  Navigation of the team tree graph is achieved by resolvers on the parent/children attributes.
   """
-  organisations: TeamsPayload!
+  teamsRoots: TeamsPayload!
 
   """
   Get a single team details
-  As with organisations, the organisation can be explored from this node.
+  As with team trees, the team tree can be explored from this node.
   """
-  organisationsTeam(id: ID!): TeamPayload!
+  teamsTeam(id: ID!): TeamPayload!
 
   """Get a multiple team details"""
-  organisationsTeams(ids: [ID!]): TeamsPayload!
+  teamsTeams(ids: [ID!]): TeamsPayload!
 
   """ What an invitation offers, for the registration form. Requires the token from the invitation link, not login 
   """
@@ -4628,7 +4934,7 @@ type Query {
 
   """ The current data processing terms, to show when declaring a legal entity 
   """
-  organisationsDataProcessingTerms: DataProcessingTermsPayload!
+  teamsDataProcessingTerms: DataProcessingTermsPayload!
 
   """Get the latest ontology version"""
   ontologyVersion: VersionPayload!
@@ -4690,51 +4996,53 @@ type Query {
   """
   ontologyAdmins: UsersPayload!
 
-  """Get a list of country templates for use in top level region creation"""
-  regionsCountries: LocationTemplatesPayload!
+  """
+  Get a list of country templates for use in top level location tree creation
+  """
+  locationsCountries: LocationTemplatesPayload!
 
   """
-  Get a list of region "root" locations.
-  These are all countries that form the top-level location in the region.
+  Get a list of location tree "root" locations.
+  These are all countries that form the top-level location in the location tree.
   """
-  regions: LocationsPayload!
+  locationsRoots: LocationsPayload!
 
   """ Get locations by locationId """
-  regionsLocations(ids: [ID!]!): LocationsPayload!
+  locationsLocations(ids: [ID!]!): LocationsPayload!
 
   """ Search for locations by ontology Location type """
-  regionsLocationsByType(locationTypeId: ID!): LocationsPayload!
+  locationsLocationsByType(locationTypeId: ID!): LocationsPayload!
 
   """
   Every readable location below the given locations, grouped by location type, as id and name.
   For selecting all the locations of a type at once.
   """
-  regionsDescendantsByType(locationIds: [ID!]!): LocationTypeLocationsPayload!
+  locationsDescendantsByType(locationIds: [ID!]!): LocationTypeLocationsPayload!
 
   """
-  Get a list of arrangement roots.
-  These are all layouts that form the top-level layout in an arrangement.
+  Get a list of layout tree roots.
+  These are all layouts that form the top-level layout in a layout tree.
   Optionally retrieve only those at a given location by supplying locationId.
   """
-  arrangements(locationId: ID!): LayoutsPayload!
+  layoutsRoots(locationId: ID!): LayoutsPayload!
 
   """ Get a layout details by ID """
-  arrangementsLayouts(ids: [ID!]): LayoutsPayload!
+  layoutsLayouts(ids: [ID!]): LayoutsPayload!
 
   """
-  Get a list of block "root" units.
-  These are top-level unit in the block hierarchy.
+  Get a list of unit graph "root" units.
+  These are the top-level units of the unit graphs.
   """
-  blocks(locationIds: [ID!]): UnitsPayload!
+  unitsRoots(locationIds: [ID!]): UnitsPayload!
 
   """ Get units by ID. """
-  blocksUnits(ids: [ID!]): UnitsPayload!
+  unitsUnits(ids: [ID!]): UnitsPayload!
 
   """
   Every readable unit below the given units, grouped by subject, as id and name.
   For selecting all the units of a subject at once, e.g. every tree of a field.
   """
-  blocksDescendantsBySubject(unitIds: [ID!]!): SubjectUnitsPayload!
+  unitsDescendantsBySubject(unitIds: [ID!]!): SubjectUnitsPayload!
 
   """ Get a list of all programs """
   programs: ProgramsPayload!
@@ -4854,6 +5162,9 @@ type FileReference implements ReferenceInterface {
   filename: String
   fileId: ID
   contentType: String
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
 }
 
 type ExternalDataReference implements ReferenceInterface {
@@ -4863,6 +5174,9 @@ type ExternalDataReference implements ReferenceInterface {
   externalId: String
   format: DataFormat
   schema: String
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
 }
 
 type DataFileReference implements ReferenceInterface {
@@ -4873,6 +5187,9 @@ type DataFileReference implements ReferenceInterface {
   contentType: String
   format: DataFormat
   schema: String
+
+  """ The Persons credited, with the roles they had """
+  contributions: [Contribution]
 }
 
 type FileSubmission {
@@ -4906,58 +5223,123 @@ type FileDownload {
 
 union ReferenceUnion = LegalReference | ExternalReference | ExternalDataReference | DataFileReference | FileReference
 
-type GeoCoordinate {
-  """Latitude in degrees according to ISO 6709"""
-  latitude: Float!
-
-  """Longitude in degrees according to ISO 6709"""
-  longitude: Float!
-
-  """Meters above WGS84 reference ellipsoid"""
-  altitude: Float
-
-  """Uncertainty in meters associated with these coordinates"""
-  uncertainty: Float
-
-  """Additional coordinate description"""
-  description: String
+enum Access {
+  READ
+  WRITE
+  ADMIN
+  CURATE
 }
 
-type Location {
-  """Stored Locations"""
+enum Authorisation {
+  REQUESTED
+  AUTHORISED
+  REVOKED
+}
+
+type Affiliation {
+  user: UserDisplay!
+  authorisation: Authorisation!
+  heritable: Boolean!
+}
+
+type Affiliations {
+  read: [Affiliation!]
+  write: [Affiliation!]
+  admin: [Affiliation!]
+  curate: [Affiliation!]
+}
+
+"""
+A reference to a team, as the viewer may see it: the team itself, or, when the team referred to is hidden from them,
+the nearest team they can see that includes it, at furthest its team tree's root (standIn). A stand-in says whom
+to ask for an affiliation to see more. It is a property of the reference, not of the team, so it is not on Team,
+which the client caches by id: the same team can be referred to as itself in one place and as a stand-in in another.
+"""
+type TeamReference {
+  team: Team!
+  standIn: Boolean!
+}
+
+type Team {
   id: ID!
   name: String!
-  type: LocationType
-  code: String
-  synonyms: [String]
-  description: String
-  address: String
-  coordinates: [GeoCoordinate]
+  fullname: String
+  parent: Team
+  children: [Team!]
+  affiliations: Affiliations
+  directAffiliations: Affiliations
+  inheritedAffiliations: Affiliations
 
-  """ The root location for this region, for the root location this references itself. 
   """
-  region: Location
-  parent: Location
-  children: [Location]
+  The legal entity responsible for the team tree. Only declared on team tree roots
+  """
+  legalEntity: LegalEntity
 }
 
-""" Locations below some locations that share a type, as id and name """
-type LocationTypeLocations {
-  type: LocationType
-  locations: [Location!]!
+"""
+The legal entity responsible for a team tree, declared on its root team by accepting the data processing terms.
+Required for the team tree to record Persons.
+"""
+type LegalEntity {
+  legalName: String!
+
+  """A role address for requests about personal data"""
+  privacyContact: String!
+
+  """The version of the data processing terms accepted"""
+  termsVersion: String!
+  declaredAt: DateTime
+
+  """Visible to admins of the team only"""
+  declaredBy: UserDisplay
 }
 
-type LocationTemplate {
-  name: String!
+"""The data processing terms accepted when declaring a legal entity"""
+type DataProcessingTerms {
+  """
+  Null when no terms are configured, in which case legal entities cannot be declared
+  """
+  version: String
+  url: String
+}
 
-  """ Optional code for location, e.g. zip-code """
-  code: String
+type UserAccess {
+  read: [Team!]
+  write: [Team!]
+  admin: [Team!]
+  curate: [Team!]
+}
+
+type Position {
+  """ID of Location in a LocationTree"""
+  location: Location!
+
+  """ID of Layout in and LayoutTree"""
+  layout: Layout
+
+  """
+  Coordinates should be a list of values corresponding to the stored layout axes.
+  """
+  coordinates: [String]
+  start: DateTime
+  end: DateTime
+}
+
+type Unit {
+  id: ID!
+  subject: Subject
+  germplasm: GermplasmEntry
+  name: String
   description: String
-  address: String
-  coordinates: [GeoCoordinate]
+  positions: [Position]
+  parents: [Unit]
+  children: [Unit]
+}
 
-  """ Ontology LocationType identifier """
-  typeId: ID!
+""" Units below some units that share a subject, as id and name """
+type SubjectUnits {
+  subject: Subject
+  units: [Unit!]!
 }
 
 scalar DateTime

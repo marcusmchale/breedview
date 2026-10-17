@@ -1,9 +1,9 @@
-mutation regionsCreateLocation(
+mutation locationsCreateLocation(
   $location: LocationInput!
   $controlTeamId: ID!
   $release: ReadRelease
 ) {
-  regionsCreateLocation(
+  locationsCreateLocation(
     location: $location
     controlTeamId: $controlTeamId
     release: $release

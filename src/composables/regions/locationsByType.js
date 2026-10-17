@@ -14,7 +14,7 @@ export function useLocationsByType() {
     const locationIds = (startNodes ?? []).map((node) => node.id).filter((id) => id != null)
     if (locationIds.length === 0) return []
     const { data } = await client.query({ query: DESCENDANTS_BY_TYPE_QUERY, variables: { locationIds }, fetchPolicy: 'cache-first' })
-    return (data?.regionsDescendantsByType?.result ?? []).map((group) => ({
+    return (data?.locationsDescendantsByType?.result ?? []).map((group) => ({
       key: group.type?.id ?? 'none',
       label: group.type?.name ?? 'No type',
       nodes: group.locations ?? []

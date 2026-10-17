@@ -76,8 +76,8 @@ export function useMutateUnits() {
                 release: toValue(release)
             })
 
-            if (response?.data?.blocksCreateUnit) {
-                const result = response.data.blocksCreateUnit
+            if (response?.data?.unitsCreateUnit) {
+                const result = response.data.unitsCreateUnit
                 if (result.status === 'SUCCESS') {
                     reloadUnits([unitData.parentId ?? unitData.parentIds?.[0]])
                 }
@@ -108,8 +108,8 @@ export function useMutateUnits() {
     const updateUnit = async (unitData) => {
         try {
             const response = await updateUnitMutation({unit: unitData})
-            if (response?.data?.blocksUpdateUnit) {
-                const result = response.data.blocksUpdateUnit
+            if (response?.data?.unitsUpdateUnit) {
+                const result = response.data.unitsUpdateUnit
                 if (result.status === 'SUCCESS') {
                     updateCache(unitData)
                 }
@@ -140,8 +140,8 @@ export function useMutateUnits() {
             const response = await deleteUnitMutation({
                 unitId: unitId
             })
-            if (response?.data?.blocksDeleteUnit) {
-                const result = response.data.blocksDeleteUnit
+            if (response?.data?.unitsDeleteUnit) {
+                const result = response.data.unitsDeleteUnit
                 if (result.status === 'SUCCESS') {
                     deleteFromCache({id: unitId})
                 }

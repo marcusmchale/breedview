@@ -37,12 +37,12 @@ The tests run against a synthetic, public database that breedgraph builds from i
 (`scripts/build_test_database.py --scale`), with a manifest describing it. Restore it from the breedgraph checkout:
 
 ```bash
-scripts/restore.sh test_database.dump          # instance/neo4j_archive/test_database.dump (needs sudo)
+scripts/restore.sh test_databases/test_database.dump   # instance/neo4j_archive/test_databases/test_database.dump (needs sudo)
 python scripts/load_state_store.py             # the Redis state, which is not in the dump
-cp instance/neo4j_archive/test_database_files/* "$FILE_STORAGE_PATH"   # the reference files
+cp instance/neo4j_archive/test_databases/test_database_files/* "$FILE_STORAGE_PATH"   # the reference files
 ```
 
-`lib/fixture.mjs` reads the manifest, `instance/neo4j_archive/test_database.manifest.json` in the breedgraph checkout
+`lib/fixture.mjs` reads the manifest, `instance/neo4j_archive/test_databases/test_database.manifest.json` in the breedgraph checkout
 next to this repository (`E2E_MANIFEST` to read another). It has the accounts, the teams, and every entity of the
 scenario by name, with its id, name, controlling team, release and which viewers can read it (`readable_by`). The
 trees, teams and releases are drawn in the module docstring of breedgraph's

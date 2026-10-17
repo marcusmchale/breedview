@@ -1,5 +1,5 @@
-mutation regionsUpdateLocation($location: LocationUpdate!) {
-  regionsUpdateLocation(location: $location) {
+mutation locationsUpdateLocation($location: LocationUpdate!) {
+  locationsUpdateLocation(location: $location) {
     status
     errors {
       message

@@ -15,7 +15,7 @@ export function useLayoutsLazyQuery() {
     } = useItemsLazyQuery({
         itemsQueryGraphql: LAYOUTS_QUERY,
         itemQueryFragment: LAYOUT_FRAGMENT,
-        queryName: 'arrangementsLayouts',
+        queryName: 'layoutsLayouts',
         variableName: 'layoutIds',
         typeName: 'Layout'
     })

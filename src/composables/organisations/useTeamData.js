@@ -74,12 +74,12 @@ export function useTeamData(initialTeamData, currentUserId) {
         errorPolicy: 'all'
       })
 
-      if (result?.data?.organisationsTeams?.status === 'SUCCESS' && result.data.organisationsTeams.result) {
-        const sortedTeams = [...result.data.organisationsTeams.result].sort((a, b) => a.id - b.id)
+      if (result?.data?.teamsTeams?.status === 'SUCCESS' && result.data.teamsTeams.result) {
+        const sortedTeams = [...result.data.teamsTeams.result].sort((a, b) => a.id - b.id)
         childrenData.value = sortedTeams
         childrenError.value = ''
       } else {
-        const errorMsg = result?.data?.organisationsTeams?.errors?.[0]?.message || 'Failed to load children'
+        const errorMsg = result?.data?.teamsTeams?.errors?.[0]?.message || 'Failed to load children'
         childrenError.value = errorMsg
       }
     } catch (error) {
@@ -99,8 +99,8 @@ export function useTeamData(initialTeamData, currentUserId) {
         errorPolicy: 'all'
       })
 
-      if (result?.data?.organisationsTeams?.status === 'SUCCESS' && result.data.organisationsTeams.result?.length > 0) {
-        const freshData = result.data.organisationsTeams.result[0]
+      if (result?.data?.teamsTeams?.status === 'SUCCESS' && result.data.teamsTeams.result?.length > 0) {
+        const freshData = result.data.teamsTeams.result[0]
         teamInfo.value = { ...freshData }
         return freshData
       }

@@ -1,10 +1,10 @@
-mutation blocksCreateUnit(
+mutation unitsCreateUnit(
   $unit: UnitInput!
   $position: PositionInput!
   $controlTeamId: ID!
   $release: ReadRelease
 ) {
-  blocksCreateUnit(
+  unitsCreateUnit(
     unit: $unit
     position: $position
     controlTeamId: $controlTeamId

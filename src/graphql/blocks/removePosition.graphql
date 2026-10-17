@@ -1,5 +1,5 @@
-mutation blocksRemovePosition($unitId: ID!, $position: PositionInput!) {
-  blocksRemovePosition(id: $unitId, position: $position) {
+mutation unitsRemovePosition($unitId: ID!, $position: PositionInput!) {
+  unitsRemovePosition(id: $unitId, position: $position) {
     status
     errors {
       message

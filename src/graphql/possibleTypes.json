@@ -14,6 +14,7 @@
     "LocationType",
     "LayoutType",
     "Design",
+    "Role",
     "RecordGroupType"
   ],
   "OntologyRelationships": [
@@ -31,6 +32,7 @@
     "LocationType",
     "LayoutType",
     "Design",
+    "Role",
     "RecordGroupType"
   ],
   "TermRelationships": [
@@ -50,6 +52,7 @@
     "LocationType",
     "LayoutType",
     "Design",
+    "Role",
     "RecordGroupType"
   ],
   "SubjectRelationships": [
@@ -130,7 +133,8 @@
     "LocationType",
     "LayoutType",
     "Design",
-    "RecordGroupType"
+    "RecordGroupType",
+    "Role"
   ],
   "ReferenceUnion": [
     "LegalReference",

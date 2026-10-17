@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const defaultPath = fileURLToPath(new URL('../../../../breedgraph/instance/neo4j_archive/test_database.manifest.json', import.meta.url))
+const defaultPath = fileURLToPath(new URL('../../../../breedgraph/instance/neo4j_archive/test_databases/test_database.manifest.json', import.meta.url))
 export const manifestPath = process.env.E2E_MANIFEST || defaultPath
 
 let manifest
@@ -30,6 +30,9 @@ export const datasets = manifest.datasets
 export const files = manifest.files
 // defaults for the perf scripts: { study, concept, field }
 export const perf = manifest.perf
+// the replicates study (record group extent and replicate aggregation): program, trial, study, groupings, datasets,
+// units, concepts and the expected outcomes; breedgraph docs/test-databases.md, "The replicates study"
+export const replicates = manifest.replicates
 
 // the concept of the scenario's datasets, as the app names it
 export const concept = manifest.perf.concept

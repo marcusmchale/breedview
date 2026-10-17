@@ -20,7 +20,7 @@ export function useLocationNodeQueries({ locationId }) {
     )
 
     const location = computed( () => {
-        return locationResult?.value?.regionsLocations?.result?.find(loc => loc.id === toValue(locationId))
+        return locationResult?.value?.locationsLocations?.result?.find(loc => loc.id === toValue(locationId))
     })
 
     return {

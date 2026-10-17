@@ -1,6 +1,6 @@
 #import "./locationFragment.graphql"
-query regions {
-    regions {
+query locationsRoots {
+    locationsRoots {
         status
         result {
             ...LocationFields

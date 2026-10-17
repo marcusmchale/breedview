@@ -10,7 +10,7 @@ export function useUnitQuery(unitId) {
     } = useItemQuery( {
         itemId: unitId,
         itemsQueryGraphql: UNITS_QUERY,
-        queryName: 'blocksUnits',
+        queryName: 'unitsUnits',
         variableName: 'unitIds'
     })
 

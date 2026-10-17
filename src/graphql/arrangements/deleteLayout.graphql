@@ -1,7 +1,7 @@
-mutation arrangementsDeleteLayout(
+mutation layoutsDeleteLayout(
     $layoutId: ID!
 ) {
-    arrangementsDeleteLayout(
+    layoutsDeleteLayout(
         id: $layoutId,
     ) {
         status

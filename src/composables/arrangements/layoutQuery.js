@@ -10,7 +10,7 @@ export function useLayoutQuery(layoutId) {
     } = useItemQuery( {
         itemId: layoutId,
         itemsQueryGraphql: LAYOUTS_QUERY,
-        queryName: 'arrangementsLayouts',
+        queryName: 'layoutsLayouts',
         variableName: 'layoutIds'
     })
 

@@ -1,5 +1,5 @@
-query organisationsDataProcessingTerms {
-    organisationsDataProcessingTerms {
+query teamsDataProcessingTerms {
+    teamsDataProcessingTerms {
         status
         result {
             version

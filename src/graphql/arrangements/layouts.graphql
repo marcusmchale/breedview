@@ -2,7 +2,7 @@
 query layouts (
     $layoutIds: [ID!]
 ){
-    arrangementsLayouts(
+    layoutsLayouts(
         ids: $layoutIds
     ){
         status

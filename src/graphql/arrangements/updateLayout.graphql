@@ -1,5 +1,5 @@
-mutation arrangementsUpdateLayout($layout: LayoutUpdate!) {
-  arrangementsUpdateLayout(layout: $layout) {
+mutation layoutsUpdateLayout($layout: LayoutUpdate!) {
+  layoutsUpdateLayout(layout: $layout) {
     status
     errors {
       message

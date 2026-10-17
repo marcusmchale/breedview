@@ -48,8 +48,8 @@ export function useMutateLocations() {
             }
         )
 
-        if (response?.data?.regionsCreateLocation) {
-          const result = response.data.regionsCreateLocation
+        if (response?.data?.locationsCreateLocation) {
+          const result = response.data.locationsCreateLocation
           if (result.status === 'SUCCESS') {
               reloadLocations([locationData.parentId])
           }
@@ -66,8 +66,8 @@ export function useMutateLocations() {
 
     const updateLocation = async (locationData) => {
         const response = await updateLocationMutation({location: locationData})
-        if (response?.data?.regionsUpdateLocation) {
-            const result = response.data.regionsUpdateLocation
+        if (response?.data?.locationsUpdateLocation) {
+            const result = response.data.locationsUpdateLocation
             if (result.status === 'SUCCESS') {
                 updateCache(locationData)
             }
@@ -86,8 +86,8 @@ export function useMutateLocations() {
         const response = await deleteLocationMutation({
             locationId: locationId
         })
-        if (response?.data?.regionsDeleteLocation) {
-            const result = response.data.regionsDeleteLocation
+        if (response?.data?.locationsDeleteLocation) {
+            const result = response.data.locationsDeleteLocation
 
             if (result.status === 'SUCCESS') {
                 deleteFromCache({id: locationId })

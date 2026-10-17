@@ -6,7 +6,7 @@ fragment LocationFields on Location {
     description
     address
     coordinates { latitude longitude }
-    region { id name }
+    root { id name }
     children { id name }
     parent { id name }
 }
