@@ -4,8 +4,8 @@ import { ref } from 'vue'
 import TransfersPanel from './TransfersPanel.vue'
 import BulkControlPanel from './BulkControlPanel.vue'
 
-// Access control: control transfers, and the control of many records at once
-const tab = ref('transfers')
+// Access control: the control of many records at once, and the transfer offers to and from the user's teams
+const tab = ref('bulk')
 </script>
 
 <template>
@@ -13,12 +13,12 @@ const tab = ref('transfers')
     <h2>Access control</h2>
 
     <div class="page-tabs" role="tablist">
-      <button class="page-tab" role="tab" :class="{ active: tab === 'transfers' }" @click="tab = 'transfers'">Transfers</button>
       <button class="page-tab" role="tab" :class="{ active: tab === 'bulk' }" @click="tab = 'bulk'">Bulk control</button>
+      <button class="page-tab" role="tab" :class="{ active: tab === 'offers' }" @click="tab = 'offers'">Transfer offers</button>
     </div>
 
-    <TransfersPanel v-if="tab === 'transfers'" />
-    <BulkControlPanel v-else />
+    <BulkControlPanel v-if="tab === 'bulk'" />
+    <TransfersPanel v-else />
   </div>
 </template>
 

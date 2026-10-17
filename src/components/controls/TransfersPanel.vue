@@ -74,11 +74,11 @@ const handleAccepted = async () => {
 
 <template>
   <div class="transfers-panel">
-    <h3>Control transfers</h3>
+    <h3>Transfer offers</h3>
     <p class="text-muted page-intro">
-      Control of a record moves between teams by offer and acceptance. Offers to teams you administer can be
-      accepted or rejected here; offers from your teams can be cancelled. Offer a transfer from the controller
-      badge on any record.
+      Control of a record moves between teams by offer and acceptance. Offers to teams you administer are accepted
+      or rejected here, offers from your teams can be cancelled, and History lists the offers answered. To offer a
+      transfer, choose records under Bulk control, or use the controller badge on a record.
     </p>
 
     <div class="tabs">
