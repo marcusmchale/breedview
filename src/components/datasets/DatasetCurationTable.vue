@@ -37,7 +37,7 @@ const props = defineProps({
 const emit = defineEmits(['back', 'submit', 'has-unsaved-changes'])
 
 // Datasets with their records, a page of units at a time under the selection's narrowing, so every row is complete
-const { page, pageCount, pageSummary, datasets, datasetsLoading, datasetsError } = useDatasetRecordPages({
+const { page, pageCount, pageSummary, datasets, unitsById, datasetsLoading, datasetsError } = useDatasetRecordPages({
   datasetIds: () => props.datasetIds,
   filters: () => props.filters,
   pageSize: () => props.pageSize
@@ -63,8 +63,11 @@ const {
   submitAllChanges, exportToCSV, getDatasetStatus, cleanup,
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
-  getGroupValueOptions, getRowSectionKey, getRowSectionLabel
+  getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails
 } = useDatasetCurationTable()
+
+// The units' germplasm and location fill their columns whenever the page's units arrive
+watch(unitsById, (units) => setUnitDetails(units), { immediate: true })
 
 // Study groupings (studies derived from the selected datasets)
 const { fetchGroupings, loading: groupingsLoading } = useStudiesGroupings()
@@ -108,7 +111,8 @@ watch(hasUnsavedChanges, (value) => {
 // Table configuration
 const sorting = ref([])
 const columnVisibility = ref({
-  unitLabel: true, unitId: true, startTime: true, endTime: true
+  unitLabel: true, unitId: true, startTime: true, endTime: true,
+  germplasmName: false, germplasmId: false, locationName: false, locationId: false
 })
 
 const getInputType = (concept) => {
@@ -130,6 +134,19 @@ const columns = computed(() => {
   }))
   cols.push(columnHelper.accessor('unitId', {
     id: 'unitId', header: 'Unit ID', meta: { width: '80px' }
+  }))
+  // the unit's germplasm, and its location at the row's time (hidden until chosen under Columns)
+  cols.push(columnHelper.accessor('germplasmName', {
+    id: 'germplasmName', header: 'Germplasm', meta: { width: '150px' }
+  }))
+  cols.push(columnHelper.accessor('germplasmId', {
+    id: 'germplasmId', header: 'G. ID', meta: { width: '80px' }
+  }))
+  cols.push(columnHelper.accessor('locationName', {
+    id: 'locationName', header: 'Location', meta: { width: '150px' }
+  }))
+  cols.push(columnHelper.accessor('locationId', {
+    id: 'locationId', header: 'L. ID', meta: { width: '80px' }
   }))
   cols.push(columnHelper.accessor('startTime', {
     id: 'startTime', header: 'Start', meta: { width: '160px' }

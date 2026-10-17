@@ -1,8 +1,10 @@
 import { computed, ref, toValue, watch } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
+import { useApolloClient, useQuery } from '@vue/apollo-composable'
 
 import DATASET_UNITS_QUERY from '@/graphql/datasets/datasetUnits.graphql'
+import UNITS_QUERY from '@/graphql/units/units.graphql'
 import { useDatasetsQuery } from './datasetsQuery'
+import { useUnitsQuery } from '@/composables/units/unitsQuery'
 
 // Units per page by default: their records from every selected dataset arrive in one request, and the table
 // renders them all, so a page of 1,000 units (25,000 records with five datasets) took seconds to load
@@ -85,6 +87,32 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
   watch(pageUnitIds, (list) => { if (list.length === 0) datasets.value = [] })
   const shownRecords = computed(() => datasets.value.reduce((n, d) => n + d.records.length, 0))
 
+  // The page's units, once each, for their germplasm and positions, and the ancestors of those with no position up to
+  // one that has one (usually a field: the trees and plots in it are not positioned themselves)
+  const { units: pageUnits } = useUnitsQuery({ unitIds: pageUnitIds })
+  const { resolveClient } = useApolloClient()
+  const unitsById = ref({})
+  const unpositionedParents = (units, known) => [...new Set(units
+    .filter((unit) => !unit.positions?.length)
+    .flatMap((unit) => (unit.parents ?? []).map((parent) => String(parent.id)))
+    .filter((id) => !known[id]))]
+  watch(pageUnits, async (units) => {
+    const known = Object.fromEntries((units ?? []).filter(Boolean).map((unit) => [String(unit.id), unit]))
+    unitsById.value = { ...known }
+    let frontier = unpositionedParents(Object.values(known), known)
+    try {
+      for (let depth = 0; depth < 20 && frontier.length > 0; depth++) {
+        const { data } = await resolveClient().query({ query: UNITS_QUERY, variables: { unitIds: frontier } })
+        const ancestors = (data?.unitsUnits?.result ?? []).filter(Boolean)
+        ancestors.forEach((unit) => { known[String(unit.id)] = unit })
+        frontier = unpositionedParents(ancestors, known)
+      }
+    } catch (error) {
+      console.warn('Could not read the ancestors of the page\'s units', error)
+    }
+    unitsById.value = known
+  }, { immediate: true })
+
   const pageSummary = computed(() => {
     if (!unitsKnown.value) return ''
     const units = allUnitIds.value.length
@@ -107,6 +135,7 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
     allUnitIds,
     totalRecords,
     datasets,
+    unitsById,
     datasetsLoading,
     datasetsError
   }

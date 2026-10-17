@@ -17,6 +17,17 @@ const props = defineProps({
 
 const emit = defineEmits(['back', 'export', 'update:columnVisibility', 'update:page'])
 
+// The optional columns, chosen under one Columns menu
+const OPTIONAL_COLUMNS = [
+  { key: 'unitId', label: 'Unit ID' },
+  { key: 'startTime', label: 'Start' },
+  { key: 'endTime', label: 'End' },
+  { key: 'germplasmName', label: 'Germplasm' },
+  { key: 'germplasmId', label: 'G. ID' },
+  { key: 'locationName', label: 'Location' },
+  { key: 'locationId', label: 'L. ID' }
+]
+
 const updateVisibility = (key, value) => {
   emit('update:columnVisibility', { ...props.columnVisibility, [key]: value })
 }
@@ -58,29 +69,18 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
 
     <div class="toolbar-spacer"></div>
 
-    <div class="column-toggles">
-      <label>
-        <input
-          type="checkbox"
-          :checked="columnVisibility.unitId"
-          @change="updateVisibility('unitId', $event.target.checked)"
-        /> Unit ID
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          :checked="columnVisibility.startTime"
-          @change="updateVisibility('startTime', $event.target.checked)"
-        /> Start
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          :checked="columnVisibility.endTime"
-          @change="updateVisibility('endTime', $event.target.checked)"
-        /> End
-      </label>
-    </div>
+    <details class="column-toggles">
+      <summary class="btn btn-secondary btn-sm">Columns</summary>
+      <div class="column-menu">
+        <label v-for="c in OPTIONAL_COLUMNS" :key="c.key">
+          <input
+            type="checkbox"
+            :checked="columnVisibility[c.key]"
+            @change="updateVisibility(c.key, $event.target.checked)"
+          /> {{ c.label }}
+        </label>
+      </div>
+    </details>
 
     <button class="btn btn-secondary btn-sm" @click="$emit('export')">
       📥 Export CSV
@@ -123,16 +123,44 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
 }
 
 .column-toggles {
-  display: flex;
-  gap: 12px;
+  position: relative;
   font-size: 13px;
 }
 
-.column-toggles label {
+.column-toggles summary {
+  list-style: none;
+}
+
+.column-toggles summary::-webkit-details-marker {
+  display: none;
+}
+
+.column-toggles summary::after {
+  content: ' ▾';
+}
+
+.column-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.column-menu label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn {

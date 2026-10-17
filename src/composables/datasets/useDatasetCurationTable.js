@@ -332,6 +332,7 @@ export function useDatasetCurationTable() {
         }
         return 0
       })
+      applyUnitDetails()
 
       // Initialize column status for each dataset
       datasetIds.forEach(datasetId => {
@@ -657,6 +658,57 @@ export function useDatasetCurationTable() {
     const originalValue = metadata.originalValue ?? ''
 
     return currentValue !== originalValue
+  }
+
+  /* ---------- the units' germplasm and location ---------- */
+
+  // { [unitId]: Unit } of the loaded page, as they arrive (before or after the records)
+  const unitDetails = ref({})
+
+  // Partial times compared on their shared prefix, e.g. 2021-05 against 2021-05-03T10:00
+  const comparePrefix = (a, b) => {
+    const n = Math.min(a.length, b.length)
+    return a.slice(0, n).localeCompare(b.slice(0, n))
+  }
+
+  // The unit's position at the row's time: the latest one whose period contains it, else the latest one
+  const positionAt = (positions, time) => {
+    const byStart = [...(positions ?? [])].sort((a, b) => String(a.start ?? '').localeCompare(String(b.start ?? '')))
+    if (time) {
+      const containing = byStart.filter((p) => (!p.start || comparePrefix(p.start, time) <= 0) && (!p.end || comparePrefix(time, p.end) <= 0))
+      if (containing.length) return containing.at(-1)
+    }
+    return byStart.at(-1) ?? null
+  }
+
+  // The position of the unit, or of its nearest ancestor that has one (breadth first, through every parent)
+  const locatingPosition = (unit, time) => {
+    const seen = new Set()
+    let level = unit ? [unit] : []
+    while (level.length > 0) {
+      const positioned = level.find((u) => u.positions?.length)
+      if (positioned) return positionAt(positioned.positions, time)
+      level.forEach((u) => seen.add(String(u.id)))
+      level = level.flatMap((u) => (u.parents ?? []).map((p) => unitDetails.value[String(p.id)]))
+        .filter((u) => u && !seen.has(String(u.id)))
+    }
+    return null
+  }
+
+  const applyUnitDetails = () => {
+    for (const row of tableData.value) {
+      const unit = unitDetails.value[String(row.unitId)]
+      const position = locatingPosition(unit, row.startTime || row.endTime)
+      row.germplasmName = unit?.germplasm?.name ?? ''
+      row.germplasmId = unit?.germplasm?.id ?? ''
+      row.locationName = position?.location?.name ?? ''
+      row.locationId = position?.location?.id ?? ''
+    }
+  }
+
+  const setUnitDetails = (unitsById) => {
+    unitDetails.value = unitsById ?? {}
+    applyUnitDetails()
   }
 
   // A row's time as shown, or null when empty: an unchanged time is sent back exactly as the API gave it
@@ -1139,6 +1191,7 @@ export function useDatasetCurationTable() {
     isMarkedForDeletion,
     hasValueChanged,
     hasRowTimesChanged,
+    setUnitDetails,
     hasRowGroupsChanged,
     getCellReferences,
     updateCellReferences,

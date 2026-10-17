@@ -287,6 +287,14 @@ test('curation: records with a time of day show it as given and have nothing to 
   assert.ok(starts.every((s) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)), `times of day as the API gives them: ${starts.slice(0, 3).join(', ')}`)
   const save = await page.evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.innerText.includes('Save Changes')); return b && b.disabled })()`)
   assert.equal(save, true, 'Save Changes is disabled until something changes')
+
+  // the unit's location, from its field when the tree itself has no position
+  await page.click('.column-toggles summary')
+  await page.evaluate(`[...document.querySelectorAll('.column-menu label')].find((l) => l.innerText.trim() === 'Location').querySelector('input').click()`)
+  await page.sleep(500)
+  const headers = await page.evaluate(`[...document.querySelectorAll('.table-wrapper thead th')].map((e) => e.innerText.trim())`)
+  const locations = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')].map((tr) => tr.querySelectorAll('td')[${headers.indexOf('Location')}]?.innerText.trim())`)
+  assert.ok(headers.includes('Location') && locations.every(Boolean), `every tree has its field's location: ${q(locations.slice(0, 3))}`)
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 
