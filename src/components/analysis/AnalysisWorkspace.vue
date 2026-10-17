@@ -16,7 +16,9 @@ import AnalysisSubmissionView from '@/components/analysis/results/AnalysisSubmis
 /**
  * Analysis workspace: recent analyses on the left; on the right either the editor,
  * for a new analysis or an edited one, or the selected submission with its results.
- * The selected submission is kept in the route query (?id=) so it can be linked to.
+ * The selected submission is kept in the route query (?id=) so it can be linked to. Without one, ?study= (and
+ * optionally ?datasets=, comma-separated) start a new analysis with that study and those datasets selected, e.g. from
+ * a study's Analyse button on the programs page.
  */
 const route = useRoute()
 const router = useRouter()
@@ -39,7 +41,14 @@ const mode = ref(selectedId.value ? 'view' : 'edit')
 
 /* ---------- editor ---------- */
 
-const form = shallowRef(reactive(createEmptyForm()))
+const queryIds = (value) => (value ? String(value).split(',').filter(Boolean) : [])
+const initialForm = () => {
+  const empty = createEmptyForm()
+  if (route.query.id || !route.query.study) return empty
+  return { ...empty, studyIds: queryIds(route.query.study), datasetIds: queryIds(route.query.datasets) }
+}
+
+const form = shallowRef(reactive(initialForm()))
 const previousMessages = ref([])
 const editorTitle = ref('New analysis')
 // Remounts the editor for each new form, so its sections start from the new state
@@ -164,6 +173,7 @@ watch(
     />
 
     <main class="workspace-main">
+      <router-link to="/programs" class="programs-link">← Programs</router-link>
       <AnalysisConfigEditor
         v-if="mode === 'edit'"
         :key="editorKey"
@@ -199,6 +209,18 @@ watch(
   top: 16px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+}
+
+.programs-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #1976d2;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.programs-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 900px) {

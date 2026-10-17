@@ -112,9 +112,6 @@ onMounted(async () => {
             Access control
           </router-link>
           <template v-if="isAuthenticated">
-            <router-link to="/analysis" class="nav-link" active-class="active">
-              Analysis
-            </router-link>
             <router-link to="/profile" class="nav-link" active-class="active">
               Profile
             </router-link>
