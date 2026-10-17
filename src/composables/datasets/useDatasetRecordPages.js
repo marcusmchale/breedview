@@ -2,13 +2,15 @@ import { computed, ref, toValue, watch } from 'vue'
 import { useApolloClient, useQuery } from '@vue/apollo-composable'
 
 import DATASET_UNITS_QUERY from '@/graphql/datasets/datasetUnits.graphql'
-import UNITS_QUERY from '@/graphql/units/units.graphql'
+import DATASETS_QUERY from '@/graphql/datasets/datasets.graphql'
+import UNITS_WITH_ANCESTORS_QUERY from '@/graphql/units/unitsWithAncestors.graphql'
 import { useDatasetsQuery } from './datasetsQuery'
-import { useUnitsQuery } from '@/composables/units/unitsQuery'
 
 // Units per page by default: their records from every selected dataset arrive in one request, and the table
 // renders them all, so a page of 1,000 units (25,000 records with five datasets) took seconds to load
 export const DEFAULT_UNITS_PAGE_SIZE = 250
+
+const isFactor = (dataset) => dataset.concept?.__typename === 'Factor'
 
 /**
  * The selected datasets with their records, a page of units at a time.
@@ -18,8 +20,13 @@ export const DEFAULT_UNITS_PAGE_SIZE = 250
  * dataset has records for are read first (one light query), a page is a slice of their sorted union, and the
  * records of those units are then read from every dataset. Narrowing (units and what they contain, a time window)
  * applies to both reads, so the page count reflects it.
+ *
+ * Factors selected with variables describe the variables' units, from those units or the units above them (breedgraph
+ * docs/analysis.md §2), so pages are then of the variables' units alone, and each page has the factor records on its
+ * units and on every unit above them, at any time: an undated factor describes every time.
  */
 export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
+  const { resolveClient } = useApolloClient()
   const page = ref(1)
 
   const narrowing = computed(() => {
@@ -42,16 +49,21 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
   const unitsPayload = computed(() => unitsResult.value?.datasets)
   const unitsKnown = computed(() => !!unitsPayload.value?.result)
 
+  const selected = computed(() => unitsPayload.value?.result ?? [])
+  const factorsApply = computed(() => selected.value.some(isFactor) && selected.value.some((d) => !isFactor(d)))
+  const factorIds = computed(() => (factorsApply.value ? selected.value.filter(isFactor).map((d) => d.id) : []))
+  // the datasets whose units are paged: the variables', when factors describe them
+  const paged = computed(() => (factorsApply.value ? selected.value.filter((d) => !isFactor(d)) : selected.value))
+  const pagedIds = computed(() => paged.value.map((d) => d.id))
+
   const allUnitIds = computed(() => {
     const seen = new Set()
-    for (const dataset of unitsPayload.value?.result ?? []) {
+    for (const dataset of paged.value) {
       for (const id of dataset.unitIds ?? []) seen.add(id)
     }
     return [...seen].sort((a, b) => Number(a) - Number(b))
   })
-  const totalRecords = computed(() =>
-    (unitsPayload.value?.result ?? []).reduce((n, d) => n + (d.recordCount ?? 0), 0)
-  )
+  const totalRecords = computed(() => paged.value.reduce((n, d) => n + (d.recordCount ?? 0), 0))
 
   const size = computed(() => Math.max(1, Number(toValue(pageSize)) || 1))
   const pageCount = computed(() => Math.max(1, Math.ceil(allUnitIds.value.length / size.value)))
@@ -65,68 +77,90 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
     return allUnitIds.value.slice(from, from + size.value)
   })
 
-  // The records of the page's units from every dataset: no offset or limit, so each unit's rows are complete
+  // The records of the page's units from the paged datasets: no offset or limit, so each unit's rows are complete
   const { datasets: pageDatasets, datasetsLoading: recordsLoading, datasetsError: recordsError } = useDatasetsQuery({
-    datasetIds: () => (pageUnitIds.value.length > 0 ? ids.value : null),
+    datasetIds: () => (pageUnitIds.value.length > 0 ? pagedIds.value : null),
     unitIds: pageUnitIds,
     start: () => narrowing.value.start,
     end: () => narrowing.value.end
   })
 
+  // The page's units with the units above them, closest first, read as soon as the page is known: for their germplasm,
+  // the location of the nearest positioned one (trees and plots in a field are not positioned themselves), and the
+  // factors recorded on them
+  let unitsRead = { key: '', promise: Promise.resolve([]) }
+  const readUnits = (unitIds) => {
+    const key = unitIds.join(',')
+    if (unitsRead.key !== key) {
+      unitsRead = {
+        key,
+        promise: unitIds.length === 0 ? Promise.resolve([]) : resolveClient()
+          .query({ query: UNITS_WITH_ANCESTORS_QUERY, variables: { unitIds } })
+          .then(({ data }) => (data?.unitsUnits?.result ?? []).filter(Boolean))
+      }
+    }
+    return unitsRead.promise
+  }
+  watch(pageUnitIds, (unitIds) => { readUnits(unitIds).catch(() => {}) }, { immediate: true })
+
+  // The factor records on exactly these units, at any time
+  const readFactorRecords = async (unitIds) => {
+    const { data } = await resolveClient().query({
+      query: DATASETS_QUERY,
+      variables: { datasetIds: factorIds.value, unitIds, includeBelow: false },
+      fetchPolicy: 'no-cache'
+    })
+    return data?.datasets?.result ?? []
+  }
+
   // unitIds on the API also selects what lies below a unit; a page lists only units that have records themselves,
-  // so records of units below them belong to those units' own pages. The datasets change only when a page's
-  // records arrive (or there is nothing to read), so the table initialises once per page.
+  // so records of units below them belong to those units' own pages. The datasets and units change together, once
+  // the page's records, units and factor records are all in, so the table initialises once per page; a later page
+  // supersedes one still being read.
   const datasets = ref([])
-  watch(pageDatasets, (list) => {
-    const inPage = new Set(pageUnitIds.value)
-    datasets.value = list.map((dataset) => ({
+  const unitsById = ref({})
+  const lineageError = ref(null)
+  let composing = 0
+  watch(pageDatasets, async (list) => {
+    const run = ++composing
+    const unitIds = pageUnitIds.value
+    const inPage = new Set(unitIds)
+    const pageRecords = list.map((dataset) => ({
       ...dataset,
       records: (dataset.records ?? []).filter((record) => inPage.has(record.unit?.id))
     }))
-  })
-  watch(pageUnitIds, (list) => { if (list.length === 0) datasets.value = [] })
-  const shownRecords = computed(() => datasets.value.reduce((n, d) => n + d.records.length, 0))
-
-  // Factors selected with variables describe the variables' units from those units or their ancestors, so every
-  // record of the factors is read, whatever the narrowing: a plot's factor is outside a narrowing to its trees, and an
-  // undated one outside any time window. Factor datasets are small (a record per unit, not per reading).
-  const isFactor = (dataset) => dataset.concept?.__typename === 'Factor'
-  const factorsApply = computed(() => datasets.value.some(isFactor) && datasets.value.some((d) => !isFactor(d)))
-  const factorDatasetIds = computed(() => (factorsApply.value ? datasets.value.filter(isFactor).map((d) => d.id) : []))
-  const { datasets: factorDatasets } = useDatasetsQuery({
-    datasetIds: () => (factorDatasetIds.value.length > 0 ? factorDatasetIds.value : null)
-  })
-
-  // The page's units, once each, for their germplasm and positions, and the ancestors of those with no position up to
-  // one that has one (usually a field: the trees and plots in it are not positioned themselves). With factors applied,
-  // every ancestor, for the factors recorded on them.
-  const { units: pageUnits } = useUnitsQuery({ unitIds: pageUnitIds })
-  const { resolveClient } = useApolloClient()
-  const unitsById = ref({})
-  const parentsToRead = (units, known, all) => [...new Set(units
-    .filter((unit) => all || !unit.positions?.length)
-    .flatMap((unit) => (unit.parents ?? []).map((parent) => String(parent.id)))
-    .filter((id) => !known[id]))]
-  // a later walk (new units, or factors now known to apply) supersedes one still running
-  let walk = 0
-  watch([pageUnits, factorsApply], async ([units, all]) => {
-    const current = ++walk
-    const known = Object.fromEntries((units ?? []).filter(Boolean).map((unit) => [String(unit.id), unit]))
-    unitsById.value = { ...known }
-    let frontier = parentsToRead(Object.values(known), known, all)
+    let units = []
+    let factorDatasets = []
+    lineageError.value = null
     try {
-      for (let depth = 0; depth < 20 && frontier.length > 0; depth++) {
-        const { data } = await resolveClient().query({ query: UNITS_QUERY, variables: { unitIds: frontier } })
-        if (current !== walk) return
-        const ancestors = (data?.unitsUnits?.result ?? []).filter(Boolean)
-        ancestors.forEach((unit) => { known[String(unit.id)] = unit })
-        frontier = parentsToRead(ancestors, known, all)
+      units = await readUnits(unitIds)
+      if (run !== composing) return
+      if (factorIds.value.length > 0) {
+        const lineage = new Set(unitIds)
+        units.forEach((unit) => (unit.ancestors ?? []).forEach((ancestor) => lineage.add(String(ancestor.id))))
+        factorDatasets = await readFactorRecords([...lineage])
+        if (run !== composing) return
       }
     } catch (error) {
-      console.warn('Could not read the ancestors of the page\'s units', error)
+      if (run !== composing) return
+      console.warn('Could not read the units above the page\'s units, or their factor records', error)
+      lineageError.value = error
     }
-    if (current === walk) unitsById.value = known
-  }, { immediate: true })
+    const known = {}
+    units.forEach((unit) => (unit.ancestors ?? []).forEach((ancestor) => { known[String(ancestor.id)] = ancestor }))
+    units.forEach((unit) => { known[String(unit.id)] = unit })
+    unitsById.value = known
+    datasets.value = [...pageRecords, ...factorDatasets]
+  })
+  watch(pageUnitIds, (list) => {
+    if (list.length === 0) {
+      composing++
+      datasets.value = []
+      unitsById.value = {}
+    }
+  })
+  const shownRecords = computed(() =>
+    datasets.value.filter((d) => pagedIds.value.includes(d.id)).reduce((n, d) => n + d.records.length, 0))
 
   const pageSummary = computed(() => {
     if (!unitsKnown.value) return ''
@@ -150,9 +184,12 @@ export function useDatasetRecordPages({ datasetIds, filters, pageSize }) {
     allUnitIds,
     totalRecords,
     datasets,
-    factorDatasets,
+    // whether factors describe the variables' rows, so the page holds the factor records on and above its units
+    factorsApply,
     unitsById,
     datasetsLoading,
-    datasetsError
+    datasetsError,
+    // the units above the page's, or their factor records, could not be read: the records are shown without them
+    lineageError
   }
 }

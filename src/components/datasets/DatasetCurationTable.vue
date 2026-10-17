@@ -37,7 +37,9 @@ const props = defineProps({
 const emit = defineEmits(['back', 'submit', 'has-unsaved-changes'])
 
 // Datasets with their records, a page of units at a time under the selection's narrowing, so every row is complete
-const { page, pageCount, pageSummary, datasets, factorDatasets, unitsById, datasetsLoading, datasetsError } = useDatasetRecordPages({
+const {
+  page, pageCount, pageSummary, datasets, factorsApply, unitsById, datasetsLoading, datasetsError, lineageError
+} = useDatasetRecordPages({
   datasetIds: () => props.datasetIds,
   filters: () => props.filters,
   pageSize: () => props.pageSize
@@ -64,13 +66,11 @@ const {
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
   getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt,
-  setFactorRecords, appliedFactors, appliedKey, getAppliedFactor
+  appliedFactors, appliedKey, getAppliedFactor
 } = useDatasetCurationTable()
 
 // The units' germplasm and location fill their columns whenever the page's units arrive
 watch(unitsById, (units) => setUnitDetails(units), { immediate: true })
-// and every record of the selected factors, the factors applied to the variable rows
-watch(factorDatasets, (list) => setFactorRecords(list), { immediate: true })
 const appliedHeader = (concept) => `${concept.name || `Concept ${concept.id}`} (applied)`
 const appliedColumns = computed(() => appliedFactors.value.map((c) => ({ key: appliedKey(c.id), label: appliedHeader(c) })))
 
@@ -426,6 +426,14 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       @update="setContributors($event.datasetId, $event.contributions)"
     />
 
+    <p v-if="factorsApply && !tableLoading && !datasetsLoading" class="factor-note">
+      Factor records on these rows' units and the units above them, at any time. Choose the factors alone to curate
+      all their records.
+    </p>
+    <p v-if="lineageError" class="factor-note warning">
+      The units above these rows, or their factor records, could not be read, so no factor is shown as applied.
+    </p>
+
     <div v-if="tableLoading || datasetsLoading || groupingsLoading" class="loading-state">
       Loading datasets...
     </div>
@@ -669,6 +677,16 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 
 .curation-table tbody tr.section-header {
   height: 33px;
+}
+
+.factor-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.factor-note.warning {
+  color: #856404;
 }
 
 /* a factor record's empty time or code: it applies to all of them */

@@ -31,32 +31,6 @@ export const codeKey = (column, code, datasetId, unitId) => {
   return [scope, column.extent === 'WITHIN_UNIT' ? String(unitId) : '', code].join('|')
 }
 
-/**
- * A unit and its ancestors, closest first: by distance through every parent, ids in order at the same distance.
- * unitsById: { [unitId]: { parents: [{ id }] } }; ancestors not loaded end the lineage there.
- */
-export const lineage = (unitId, unitsById) => {
-  const order = [String(unitId)]
-  const seen = new Set(order)
-  let level = order
-  while (level.length > 0) {
-    const next = []
-    for (const id of level) {
-      for (const parent of unitsById[id]?.parents ?? []) {
-        const parentId = String(parent.id)
-        if (!seen.has(parentId)) {
-          seen.add(parentId)
-          next.push(parentId)
-        }
-      }
-    }
-    next.sort((a, b) => Number(a) - Number(b))
-    order.push(...next)
-    level = next
-  }
-  return order
-}
-
 const describes = (record, row) =>
   overlaps(record.span, row.span)
   && Object.entries(record.codeKeys).every(([groupingId, key]) => !row.codeKeys[groupingId] || row.codeKeys[groupingId].has(key))

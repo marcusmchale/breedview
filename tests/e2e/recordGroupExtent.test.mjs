@@ -330,10 +330,12 @@ test('curation: factor records come first, apart from the variable records, for 
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 
-test('curation: each variable row shows the factor applied to it, from its unit or the nearest one above with a record', async () => {
+// The curation table of heights and Light, in a day's window or none: pages are of the trees with heights, each with
+// the Light records on their plots, which are undated and so in any window; each tree row shows its plot's Light.
+async function checkAppliedLight(day) {
   const mark = page.mark()
-  await loadCuration([r.concepts.height.name], null, [r.datasets.factor.concept_name])
-  // the Light record of each plot, and the parents of every unit, from the API
+  await loadCuration([r.concepts.height.name], day, [r.datasets.factor.concept_name])
+  // the Light record of each plot, the parents of every unit, and the trees with heights in the window, from the API
   const factor = (await graphql(page, 'query ($ids: [ID!]) { datasets(ids: $ids) { result { records { unit { id name } value start end } } } }',
     { ids: [String(r.datasets.factor.id)] })).result[0]
   const lightOf = Object.fromEntries(factor.records.map((record) => [String(record.unit.id), record]))
@@ -341,37 +343,57 @@ test('curation: each variable row shows the factor applied to it, from its unit 
   const units = (await graphql(page, 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { id parents { id } } } }',
     { ids: Object.values(r.units).map(String) })).result
   const parentsOf = Object.fromEntries(units.map((u) => [String(u.id), u.parents.map((p) => String(p.id))]))
+  const heightIds = Object.values(r.datasets).filter((d) => d.concept === r.concepts.height.id).map((d) => String(d.id))
+  const measured = new Set((await graphql(page, 'query ($ids: [ID!]!, $s: DateTime, $e: DateTime) { datasets(ids: $ids) { result { unitIds(start: $s, end: $e) } } }',
+    { ids: heightIds, s: day, e: day })).result.flatMap((d) => d.unitIds))
   const expected = (unitId) => {
     if (lightOf[unitId]) return { value: lightOf[unitId].value, title: 'From this unit, all times' }
     const plot = (parentsOf[unitId] ?? []).find((id) => lightOf[id])
     return plot ? { value: lightOf[plot].value, title: `From ${lightOf[plot].unit.name}, all times` } : { value: '', title: '' }
   }
 
+  // the page counts the measured trees, not the plots holding only Light
+  assert.match(await page.text('.page-summary'), new RegExp(`^${measured.size} units?,`), 'the units paged are the measured ones')
+  assert.match(await flatText('.factor-note') ?? '', /Choose the factors alone to curate all their records/)
+
   const header = `${r.datasets.factor.concept_name} (applied)`
   const rows = await page.evaluate(`(() => {
     const headers = [...document.querySelectorAll('.curation-table thead th .header-text')].map((h) => h.textContent.trim())
     const unitIdAt = headers.indexOf('Unit ID'), appliedAt = headers.indexOf(${q(header)})
     if (appliedAt < 0) return null
-    return [...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')].map((tr) => {
+    let section = ''
+    return [...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row)')].flatMap((tr) => {
+      if (tr.classList.contains('section-header')) { section = tr.innerText.trim(); return [] }
       const cells = tr.querySelectorAll('td'), applied = cells[appliedAt]?.querySelector('.applied-factor')
-      return { unitId: cells[unitIdAt]?.textContent.trim(), value: applied?.textContent.trim() ?? '', title: applied?.title ?? '' }
+      return [{ section, unitId: cells[unitIdAt]?.textContent.trim(), value: applied?.textContent.trim() ?? '', title: applied?.title ?? '' }]
     })
   })()`)
   assert.ok(rows, `the table has a ${header} column`)
-  // the factor rows come first, and describe no variable row
-  const factorRows = rows.slice(0, r.datasets.factor.record_count)
+  // the factor rows come first: the Light of the plots holding the measured trees, which describe no row themselves
+  const factorRows = rows.filter((row) => row.section.startsWith('Factor records'))
+  const plots = new Set([...measured].flatMap((id) => (parentsOf[id] ?? []).filter((p) => lightOf[p])))
+  assert.deepEqual(new Set(factorRows.map((row) => row.unitId)), plots, 'the factor records on and above the measured trees')
   assert.ok(factorRows.every((row) => row.value === ''), `factor rows have no applied value: ${q(factorRows)}`)
-  const variableRows = rows.slice(r.datasets.factor.record_count)
-  assert.ok(variableRows.length >= 20, `enough variable rows are shown to check: ${variableRows.length}`)
+  const variableRows = rows.filter((row) => !row.section.startsWith('Factor records'))
+  assert.ok(variableRows.length >= Math.min(20, measured.size), `enough variable rows are shown to check: ${variableRows.length}`)
   for (const row of variableRows) {
     assert.deepEqual({ value: row.value, title: row.title }, expected(row.unitId), `unit ${row.unitId}`)
   }
   assert.ok(variableRows.some((row) => row.value), 'some variable rows are described by a plot\'s Light')
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+  return header
+}
 
+test('curation: each variable row shows the factor applied to it, from its unit or the nearest one above with a record', async () => {
+  const header = await checkAppliedLight(null)
   await page.evaluate(`document.querySelector('.column-toggles summary').click()`)
   const offered = await page.evaluate(`[...document.querySelectorAll('.column-menu label')].map((l) => l.textContent.trim())`)
   assert.ok(offered.includes(header), `the ${header} column can be hidden: ${q(offered)}`)
-  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('curation: in a time window, the undated factor records on the plots still describe the trees measured in it', async () => {
+  const { start } = await datasetStart('same_time')
+  await checkAppliedLight(String(start).slice(0, 10))
 })
 
 /* ---------- analysis ---------- */

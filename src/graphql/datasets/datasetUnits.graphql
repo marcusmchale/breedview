@@ -5,6 +5,8 @@ query DatasetUnits($datasetIds: [ID!]!, $unitIds: [ID!], $start: DateTime, $end:
     status
     result {
       id
+      # a Variable or a Factor: with both, pages are of the variables' units
+      concept { __typename id versionId view }
       unitIds(unitIds: $unitIds, start: $start, end: $end)
       recordCount(unitIds: $unitIds, start: $start, end: $end)
     }

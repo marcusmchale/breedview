@@ -13,8 +13,9 @@ const orNull = (value) => {
 /**
  * Datasets with a page of their records. Without unitIds, start, end, offset or limit every record comes back,
  * as the analysis context needs; the curation table passes them to narrow and page through the records.
+ * unitIds selects those units and everything below them, or with includeBelow false, exactly those units.
  */
-export function useDatasetsQuery({ studyIds, conceptIds, datasetIds, unitIds, start, end, offset, limit }) {
+export function useDatasetsQuery({ studyIds, conceptIds, datasetIds, unitIds, start, end, offset, limit, includeBelow }) {
   const { result, loading, error } = useQuery(
     DATASETS_QUERY,
     () => ({
@@ -26,6 +27,7 @@ export function useDatasetsQuery({ studyIds, conceptIds, datasetIds, unitIds, st
       end: orNull(end),
       offset: orNull(offset),
       limit: orNull(limit),
+      includeBelow: toValue(includeBelow) ?? null,
     }),
     () => ({
       enabled: !!(toValue(datasetIds)) || !!(toValue(conceptIds)) || !!(toValue(studyIds)),

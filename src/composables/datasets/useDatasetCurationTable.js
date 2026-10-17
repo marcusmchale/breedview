@@ -6,7 +6,7 @@ import { useDatetimeUtils } from '@/composables/parsers/partialDatetime'
 import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
-import { timeSpan, codeKey, lineage, describingRecords } from './factorApplication'
+import { timeSpan, codeKey, describingRecords } from './factorApplication'
 
 import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
@@ -698,18 +698,10 @@ export function useDatasetCurationTable() {
     return byStart.at(-1) ?? null
   }
 
-  // The position of the unit, or of its nearest ancestor that has one (breadth first, through every parent)
+  // The position of the unit, or of its nearest ancestor that has one (the units above it come closest first)
   const locatingPosition = (unit, time) => {
-    const seen = new Set()
-    let level = unit ? [unit] : []
-    while (level.length > 0) {
-      const positioned = level.find((u) => u.positions?.length)
-      if (positioned) return positionAt(positioned.positions, time)
-      level.forEach((u) => seen.add(String(u.id)))
-      level = level.flatMap((u) => (u.parents ?? []).map((p) => unitDetails.value[String(p.id)]))
-        .filter((u) => u && !seen.has(String(u.id)))
-    }
-    return null
+    const positioned = [unit, ...(unit?.ancestors ?? [])].find((u) => u?.positions?.length)
+    return positioned ? positionAt(positioned.positions, time) : null
   }
 
   const applyUnitDetails = () => {
@@ -730,25 +722,8 @@ export function useDatasetCurationTable() {
 
   /* ---------- the factors applied to variable rows (see factorApplication.js) ---------- */
 
-  // Every record of the selected factors, from the API: a factor recorded on a plot describes the trees below it,
-  // whose rows can be on other pages. The page's own factor rows stand in for their records, with their edits.
-  const factorRecords = ref([])
-
-  const setFactorRecords = (datasets) => {
-    factorRecords.value = (datasets ?? [])
-      .filter((dataset) => dataset.concept?.__typename === 'Factor')
-      .flatMap((dataset) => (dataset.records ?? []).filter((record) => record.unit?.id != null).map((record) => ({
-        recordId: record.id,
-        datasetId: dataset.id,
-        conceptId: dataset.concept.id,
-        unitId: String(record.unit.id),
-        unitName: record.unit.name || `Unit ${record.unit.id}`,
-        start: record.start || null,
-        end: record.end || null,
-        codes: recordGroupCodes(record),
-        value: record.value ?? ''
-      })))
-  }
+  // A page holds the factor records on its units and on every unit above them (useDatasetRecordPages), as factor
+  // rows: they are what describes its variable rows, with their edits.
 
   const isFactor = (concept) => concept?.__typename === 'Factor'
   // A column per factor, when there are variables for it to describe
@@ -776,12 +751,10 @@ export function useDatasetCurationTable() {
     if (factorIds.size === 0) return index
 
     // the page's factor rows, as edited; records marked for deletion describe nothing
-    const onPage = new Set()
     tableData.value.forEach((row, rowIndex) => {
       if (row._kind !== 'factor') return
       factorIds.forEach((conceptId) => {
         const metadata = cellMetadata.value[`${row._rowId}-${conceptId}`]
-        if (metadata?.recordId != null) onPage.add(String(metadata.recordId))
         const value = String(row[`concept_${conceptId}`] ?? '').trim()
         if (!value || isMarkedForDeletion(rowIndex, conceptId)) return
         add(conceptId, {
@@ -796,22 +769,12 @@ export function useDatasetCurationTable() {
         })
       })
     })
-    factorRecords.value.forEach((record) => {
-      if (factorIds.has(String(record.conceptId)) && !onPage.has(String(record.recordId))) add(String(record.conceptId), record)
-    })
     return index
   })
 
-  // Lineages by unit, for the page's units as loaded: reading unitDetails here re-renders the cells when they change
-  const lineageCaches = new WeakMap()
-  const unitLineage = (unitId) => {
-    const units = unitDetails.value
-    if (!lineageCaches.has(units)) lineageCaches.set(units, new Map())
-    const cache = lineageCaches.get(units)
-    const id = String(unitId)
-    if (!cache.has(id)) cache.set(id, lineage(id, units))
-    return cache.get(id)
-  }
+  // A unit and the units above it, closest first, as the page's units were read
+  const unitLineage = (unitId) =>
+    [String(unitId), ...(unitDetails.value[String(unitId)]?.ancestors ?? []).map((ancestor) => String(ancestor.id))]
 
   const describedTimes = (records) => {
     const times = records.filter((r) => r.start || r.end).map((r) => (r.start && r.end && r.start !== r.end ? `${r.start} to ${r.end}` : r.start || r.end))
@@ -1287,7 +1250,6 @@ export function useDatasetCurationTable() {
     pendingSubmissions.value = {}
     groupingColumns.value = []
     datasetStudyIds.value = {}
-    factorRecords.value = []
 
     // Stop any active polling
     Object.values(activeSubmissions.value).forEach(sub => {
@@ -1330,7 +1292,6 @@ export function useDatasetCurationTable() {
     hasRowTimesChanged,
     setUnitDetails,
     // Factors applied to variable rows
-    setFactorRecords,
     appliedFactors,
     appliedKey,
     getAppliedFactor,

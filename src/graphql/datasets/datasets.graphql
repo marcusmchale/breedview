@@ -2,7 +2,7 @@
 #import "../people/personFragment.graphql"
 query Datasets(
   $datasetIds: [ID!], $studyIds: [ID!], $conceptIds: [ID!],
-  $unitIds: [ID!], $start: DateTime, $end: DateTime, $offset: Int, $limit: Int
+  $unitIds: [ID!], $start: DateTime, $end: DateTime, $offset: Int, $limit: Int, $includeBelow: Boolean
 ) {
   datasets(ids: $datasetIds, studyIds: $studyIds, conceptIds: $conceptIds) {
     status
@@ -35,8 +35,9 @@ query Datasets(
           }
         }
       }
-      # the records, narrowed to units (and everything below them) and a time window, and optionally paged
-      records(unitIds: $unitIds, start: $start, end: $end, offset: $offset, limit: $limit) {
+      # the records, narrowed to units (and everything below them, unless includeBelow is false) and a time window,
+      # and optionally paged
+      records(unitIds: $unitIds, start: $start, end: $end, offset: $offset, limit: $limit, includeBelow: $includeBelow) {
         ...RecordFields
       }
       contributions {

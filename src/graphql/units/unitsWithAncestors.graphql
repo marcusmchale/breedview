@@ -1,0 +1,25 @@
+#import "./unitFragment.graphql"
+# Units with the units above them, closest first, for a page of the curation table: their germplasm, the location of
+# the nearest positioned one, and the factors recorded on them and above them
+query unitsWithAncestors($unitIds: [ID!]) {
+  unitsUnits(ids: $unitIds) {
+    status
+    result {
+      ...UnitFields
+      ancestors {
+        id
+        name
+        positions {
+          location { id name }
+          layout { id name axes type { id versionId view name } }
+          coordinates
+          start
+          end
+        }
+      }
+    }
+    errors {
+      message
+    }
+  }
+}
