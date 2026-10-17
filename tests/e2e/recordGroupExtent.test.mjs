@@ -201,16 +201,8 @@ async function pickStudy() {
   await page.waitFor(`!document.querySelector('.options-list')`)
 }
 
-test('curation: same_time and width are sectioned by the shared dataset-scoped grouping, with each tree\'s replicates together', async () => {
-  const replicate = groupingNamed('WITHIN_UNIT', 'DATASET_SCOPED')
-  const plate = groupingNamed('SHARED', 'DATASET_SCOPED')
-  const block = groupingNamed('WITHIN_GRAPH', 'STUDY_WIDE')
-  const sameTime = r.datasets.same_time
-  const summaries = (await graphql(page, 'query ($id: ID!) { datasetsSummaries(studyId: $id) { result { id start end } } }', { id: String(r.study.id) })).result
-  const { start } = summaries.find((s) => String(s.id) === String(sameTime.id))
-  assert.equal(start, summaries.find((s) => String(s.id) === String(r.datasets.width.id)).start, 'same_time and width share their start')
-  assert.equal(summaries.filter((s) => s.start === start).length, 2, `only same_time and width start at ${start}`)
-
+// open the curation table of the replicates study for some concepts, narrowed to the records of one day
+async function loadCuration(concepts, day) {
   await page.goto(`${config.appUrl}/datasets`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
@@ -219,14 +211,31 @@ test('curation: same_time and width are sectioned by the shared dataset-scoped g
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await pickStudy()
   await page.waitFor(`document.querySelector('select[name=conceptIds] option')`, 60000)
-  await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); for (const o of s.options) o.selected = ${q([r.concepts.height.name, r.concepts.width.name])}.includes(o.innerText.trim()); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await page.evaluate(`(() => { const s = document.querySelector('select[name=conceptIds]'); for (const o of s.options) o.selected = ${q(concepts)}.includes(o.innerText.trim()); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`, 30000)
-  await page.type('.record-filters input[name=start]', start)
-  await page.type('.record-filters input[name=end]', start)
-  const mark = page.mark()
+  await page.type('.record-filters input[name=start]', day)
+  await page.type('.record-filters input[name=end]', day)
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')`, 60000)
   await page.sleep(1000)
+}
+
+const datasetStart = async (key) => {
+  const summaries = (await graphql(page, 'query ($id: ID!) { datasetsSummaries(studyId: $id) { result { id start end } } }', { id: String(r.study.id) })).result
+  return { summaries, start: summaries.find((s) => String(s.id) === String(r.datasets[key].id)).start }
+}
+
+test('curation: same_time and width are sectioned by the shared dataset-scoped grouping, with each tree\'s replicates together', async () => {
+  const replicate = groupingNamed('WITHIN_UNIT', 'DATASET_SCOPED')
+  const plate = groupingNamed('SHARED', 'DATASET_SCOPED')
+  const block = groupingNamed('WITHIN_GRAPH', 'STUDY_WIDE')
+  const sameTime = r.datasets.same_time
+  const { summaries, start } = await datasetStart('same_time')
+  assert.equal(start, summaries.find((s) => String(s.id) === String(r.datasets.width.id)).start, 'same_time and width share their start')
+  assert.equal(summaries.filter((s) => s.start === start).length, 2, `only same_time and width start at ${start}`)
+
+  const mark = page.mark()
+  await loadCuration([r.concepts.height.name, r.concepts.width.name], start)
 
   // the grouping columns: the replicate one is within unit, the study's blocks within the unit graph
   const headers = await page.evaluate(`[...document.querySelectorAll('.table-wrapper thead th')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)
@@ -265,6 +274,19 @@ test('curation: same_time and width are sectioned by the shared dataset-scoped g
   for (const id of sameTime.units_with_replicates) {
     assert.ok(runs.find((run) => run.unit === String(id))?.codes.length > 1, `unit ${id} has its replicates as rows`)
   }
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('curation: records with a time of day show it as given and have nothing to save', async () => {
+  const { start } = await datasetStart('windowed')
+  const day = start.slice(0, 10)
+  const mark = page.mark()
+  await loadCuration([r.concepts.height.name], day)
+  const starts = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')].map((tr) => tr.querySelectorAll('td')[2]?.innerText.trim())`)
+  assert.equal(starts.length, r.datasets.windowed.record_count, 'the records of windowed')
+  assert.ok(starts.every((s) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)), `times of day as the API gives them: ${starts.slice(0, 3).join(', ')}`)
+  const save = await page.evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.innerText.includes('Save Changes')); return b && b.disabled })()`)
+  assert.equal(save, true, 'Save Changes is disabled until something changes')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 

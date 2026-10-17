@@ -132,10 +132,10 @@ const columns = computed(() => {
     id: 'unitId', header: 'Unit ID', meta: { width: '80px' }
   }))
   cols.push(columnHelper.accessor('startTime', {
-    id: 'startTime', header: 'Start', meta: { editable: true, type: 'datetime', width: '160px' }
+    id: 'startTime', header: 'Start', meta: { width: '160px' }
   }))
   cols.push(columnHelper.accessor('endTime', {
-    id: 'endTime', header: 'End', meta: { editable: true, type: 'datetime', width: '160px' }
+    id: 'endTime', header: 'End', meta: { width: '160px' }
   }))
 
   // Record grouping columns (shared value per row)

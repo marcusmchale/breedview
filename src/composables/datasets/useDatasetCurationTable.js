@@ -1,4 +1,4 @@
-import { ref, computed, toValue } from 'vue'
+import { ref, computed } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateDatasets } from './mutateDatasets'
 import { useDatetimeUtils } from '@/composables/parsers/partialDatetime'
@@ -12,7 +12,7 @@ import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
 export function useDatasetCurationTable() {
   const { resolveClient } = useApolloClient()
   const { updateDataset, removeRecords } = useMutateDatasets()
-  const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils()
+  const { validatePartialDatetime } = useDatetimeUtils()
   const { parseValue } = useValueParser()
   const { updateCache: updateRecordInCache, deleteFromCache: deleteRecordFromCache } = useCacheUpdates({
     typename: 'Record',
@@ -255,8 +255,9 @@ export function useDatasetCurationTable() {
                 _rowId: rowId,
                 unitId: unitId,
                 unitLabel: record.unit?.name || `Unit ${unitId}`,
-                startTime: start ? formatDatetimeForDisplay(start) : '',
-                endTime: end ? formatDatetimeForDisplay(end) : '',
+                // as the API gives them, so that display and comparison use one form
+                startTime: start ?? '',
+                endTime: end ?? '',
               },
               conceptIds: new Set()
             }
@@ -381,19 +382,6 @@ export function useDatasetCurationTable() {
         datasetControllers.value[datasetId] = { canEdit: false, controller: null }
       })
     }
-  }
-
-  /**
-   * Format datetime for display
-   */
-  const formatDatetimeForDisplay = (datetime) => {
-    if (datetime == null) return ''
-    // Return as-is if already a string, or format if Date
-    if (typeof datetime === 'string') {
-      // Remove timezone info for display
-      return datetime.replace('T', ' ').split('+')[0].split('Z')[0].trim()
-    }
-    return datetime.toString()
   }
 
   /**
@@ -659,13 +647,10 @@ export function useDatasetCurationTable() {
 
     // For complex scales, compare reference IDs
     if (concept && isComplexScale(concept)) {
-      const currentRefs = cellReferences.value[cellKey] || []
-      const originalRefs = metadata.originalReferences || []
-
-      if (currentRefs.length !== originalRefs.length) return true
-      const sortedCurrent = [...currentRefs].sort((a,b) => a.id.localeCompare(b.id))
-      const sortedOriginal = [...originalRefs].sort((a,b) => a.id.localeCompare(b.id))
-      return !sortedCurrent.every((val, idx) => val === sortedOriginal[idx])
+      // the cell holds references, the baseline their ids
+      const currentIds = (cellReferences.value[cellKey] || []).map((reference) => String(reference.id)).sort()
+      const originalIds = (metadata.originalReferences || []).map(String).sort()
+      return currentIds.length !== originalIds.length || currentIds.some((id, i) => id !== originalIds[i])
     }
 
     const currentValue = row[`concept_${conceptId}`] ?? ''
@@ -673,6 +658,9 @@ export function useDatasetCurationTable() {
 
     return currentValue !== originalValue
   }
+
+  // A row's time as shown, or null when empty: an unchanged time is sent back exactly as the API gave it
+  const rowTime = (value) => String(value ?? '').trim() || null
 
   /**
    * Check if row times have changed
@@ -684,10 +672,7 @@ export function useDatasetCurationTable() {
     const meta = rowMetadata.value[row._rowId]
     if (!meta) return false
 
-    const currentStart = normalizePartialDatetime(row.startTime) || null
-    const currentEnd = normalizePartialDatetime(row.endTime) || null
-
-    return currentStart !== meta.originalStart || currentEnd !== meta.originalEnd
+    return rowTime(row.startTime) !== meta.originalStart || rowTime(row.endTime) !== meta.originalEnd
   }
 
   /**
@@ -777,8 +762,8 @@ export function useDatasetCurationTable() {
       if (valueChanged || timesChanged || groupsChanged) {
         const update = {
           id: metadata.recordId,
-          start: normalizePartialDatetime(row.startTime) || null,
-          end: normalizePartialDatetime(row.endTime) || null
+          start: rowTime(row.startTime),
+          end: rowTime(row.endTime)
         }
         // Only send groups when changed (full set for the record)
         if (groupsChanged) {
@@ -846,6 +831,7 @@ export function useDatasetCurationTable() {
               throw new Error(result?.errors?.[0]?.message || 'Failed to delete records')
             }
             deletions.forEach(recordId => deleteRecordFromCache({itemId: recordId}))
+            clearDeletedRecords(datasetId, deletions)
           }
 
           // Then, handle updates to records and contributors in one submission
@@ -893,6 +879,41 @@ export function useDatasetCurationTable() {
     }
   }
 
+  // The saved values become the baseline, so the table can stay open and show nothing left to save
+  const rebaselineUpdates = ({ updates, indexMapping, conceptId }) => {
+    (updates ?? []).forEach((update, k) => {
+      const row = tableData.value[indexMapping?.[k]]
+      if (!row) return
+      const meta = rowMetadata.value[row._rowId]
+      if (meta) {
+        meta.originalStart = update.start
+        meta.originalEnd = update.end
+        meta.originalGroups = Object.fromEntries(groupingColumns.value.map((c) => [c.key, normalizeCode(row[c.key])]))
+      }
+      const cellKey = `${row._rowId}-${conceptId}`
+      const cell = cellMetadata.value[cellKey]
+      if (!cell) return
+      if (update.referenceIds) {
+        cell.originalReferences = (cellReferences.value[cellKey] ?? []).map((reference) => reference.id)
+      } else {
+        cell.originalValue = update.value
+      }
+    })
+  }
+
+  // Removed records leave empty cells with nothing to save
+  const clearDeletedRecords = (datasetId, recordIds) => {
+    for (const [cellKey, cell] of Object.entries(cellMetadata.value)) {
+      if (cell.datasetId !== datasetId || !recordIds.has(cell.recordId)) continue
+      const rowId = cellKey.slice(0, cellKey.lastIndexOf('-'))
+      const conceptId = cellKey.slice(cellKey.lastIndexOf('-') + 1)
+      const row = tableData.value.find((r) => r._rowId === rowId)
+      if (row) row[`concept_${conceptId}`] = ''
+      delete cellMetadata.value[cellKey]
+    }
+    delete recordsToDelete.value[datasetId]
+  }
+
     /**
    * Map item errors back to original row indices
    */
@@ -936,6 +957,7 @@ export function useDatasetCurationTable() {
         if (contributorIds && datasetContributors.value[datasetId]) {
           datasetContributors.value[datasetId].originalIds = [...contributorIds]
         }
+        rebaselineUpdates({ updates, indexMapping, conceptId })
         if (updates && updates.length > 0) {
               updates.forEach(update => {
                 const cacheUpdate = {
