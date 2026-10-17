@@ -1,0 +1,20 @@
+# The units a team controls as a tree: the roots of their unit graphs, or the units below some (bulk control)
+query controlsControlledUnits($teamId: ID!, $parentIds: [ID!]) {
+  controlsControlledUnits(teamId: $teamId, parentIds: $parentIds) {
+    status
+    result {
+      unit {
+        id
+        name
+        subject { id versionId view name }
+      }
+      parentId
+      release
+      count
+      otherTeams { team { id name fullname } standIn }
+    }
+    errors {
+      message
+    }
+  }
+}

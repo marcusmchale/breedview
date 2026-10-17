@@ -5,8 +5,8 @@ import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 
-// Offer control of one entity from the user's control teams to a recipient team.
-// When the user also administers the recipient, the transfer is accepted at once.
+// Offer control of one entity, several, or everything a team controls in a scope, from the user's control teams to a
+// recipient team. When the user also administers the recipient, the transfer is accepted at once.
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -18,7 +18,22 @@ const props = defineProps({
   },
   entityId: {
     type: String,
-    required: true
+    default: null
+  },
+  // in place of entityId: [{ label, id }]
+  entities: {
+    type: Array,
+    default: null
+  },
+  // in place of entities: { teamId, label, release?, belowUnitIds? }, resolved on the server
+  scope: {
+    type: Object,
+    default: null
+  },
+  // what is offered, e.g. "12 datasets", for entities or a scope
+  description: {
+    type: String,
+    default: ''
   },
   // Control teams of the entity that the user administers
   controlTeams: {
@@ -106,7 +121,9 @@ const submitOffer = async () => {
   if (!canSubmit.value) return
   errorMessage.value = ''
   const offer = {
-    entities: [{ label: props.entityLabel, id: props.entityId }],
+    ...(props.scope
+      ? { scope: props.scope }
+      : { entities: props.entities ?? [{ label: props.entityLabel, id: props.entityId }] }),
     fromTeamIds: fromTeamIds.value,
     recipientTeamId: String(recipientTeamId.value),
     keepFromTeams: keepFromTeams.value
@@ -143,8 +160,9 @@ const closeModal = () => {
 
       <div class="modal-body">
         <p class="intro">
-          Offer control of this {{ entityLabel.toLowerCase() }} to another team. Admins of that team accept
-          and choose which of their teams take control. Only this record moves, not others in its aggregate.
+          Offer control of {{ description || `this ${entityLabel.toLowerCase()}` }} to another team. Admins of that
+          team accept and choose which of their teams take control. Each record moves alone, not others in its
+          aggregate.
           <template v-if="isPerson">
             A person record can only go to a team tree with a declared legal entity, which becomes its data controller.
           </template>

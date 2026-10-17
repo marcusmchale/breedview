@@ -1,0 +1,9 @@
+# Set the release of everything a team controls in a scope: of a label, at a release, below some units
+mutation controlsSetScopeRelease($scope: ControlScopeInput!, $release: ReadRelease!) {
+  controlsSetRelease(scope: $scope, release: $release) {
+    status
+    errors {
+      message
+    }
+  }
+}

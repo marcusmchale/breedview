@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 
 import TransfersPanel from './TransfersPanel.vue'
+import BulkControlPanel from './BulkControlPanel.vue'
 
-// Access control: control transfers, and (to come) managing the control of many records at once
+// Access control: control transfers, and the control of many records at once
 const tab = ref('transfers')
 </script>
 
@@ -17,13 +18,7 @@ const tab = ref('transfers')
     </div>
 
     <TransfersPanel v-if="tab === 'transfers'" />
-    <div v-else class="bulk-control-note text-muted">
-      <p>
-        Bulk control is coming: choose a team you administer, see what it controls by kind and release, and set the
-        release of, offer or renounce many records at once. Until then, change control from the controller badge on
-        each record.
-      </p>
-    </div>
+    <BulkControlPanel v-else />
   </div>
 </template>
 
@@ -55,12 +50,5 @@ const tab = ref('transfers')
 .page-tab.active {
   color: #212529;
   border-bottom-color: #4caf50;
-}
-
-.bulk-control-note {
-  padding: 16px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
 }
 </style>

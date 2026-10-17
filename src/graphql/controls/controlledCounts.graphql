@@ -1,0 +1,15 @@
+# How many entities of each label teams the user administers control, by release (bulk control)
+query controlsControlledCounts($teamIds: [ID!]!) {
+  controlsControlledCounts(teamIds: $teamIds) {
+    status
+    result {
+      teamId
+      label
+      release
+      count
+    }
+    errors {
+      message
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# A page of the entities of a label a team controls, ordered by id (bulk control)
+query controlsControlledEntities(
+  $teamId: ID!
+  $label: ControlledModelLabel!
+  $release: ReadRelease
+  $offset: Int
+  $limit: Int
+) {
+  controlsControlledEntities(teamId: $teamId, label: $label, release: $release, offset: $offset, limit: $limit) {
+    status
+    result {
+      total
+      items {
+        label
+        id
+        name
+        release
+        context
+        otherTeams { team { id name fullname } standIn }
+      }
+    }
+    errors {
+      message
+    }
+  }
+}

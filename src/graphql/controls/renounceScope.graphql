@@ -1,0 +1,9 @@
+# End a team's control of everything in a scope, where other teams also control it
+mutation controlsRenounceScope($scope: ControlScopeInput!, $teamIds: [ID!]!) {
+  controlsRenounceControl(scope: $scope, teamIds: $teamIds) {
+    status
+    errors {
+      message
+    }
+  }
+}

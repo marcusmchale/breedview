@@ -862,11 +862,31 @@ input ControlledEntityInput {
   id: ID!
 }
 
+"""
+Every entity of a label that a team controls, in place of listing them, for acting on many at once: at a release
+when given, and for units only those at and below some units when given. The user must be an admin of the team.
+"""
+input ControlScopeInput {
+  teamId: ID!
+  label: ControlledModelLabel!
+
+  """Only those at this release, as the team set it"""
+  release: ReadRelease
+
+  """Units only: these units and those below them"""
+  belowUnitIds: [ID!]
+}
+
 input ControlTransferOffer {
   """
-  Controlled models to transfer. Each is transferred alone, not with other models in its aggregate
+  Controlled models to transfer, or a scope. Each is transferred alone, not with other models in its aggregate
   """
-  entities: [ControlledEntityInput!]!
+  entities: [ControlledEntityInput!]
+
+  """
+  In place of entities: everything a team controls of a label (at a release, below some units)
+  """
+  scope: ControlScopeInput
 
   """
   Teams giving up control. The user must be an admin of each, and each must control every entity
@@ -1161,7 +1181,12 @@ type Mutation {
   A queued or running analysis is cancelled.
   """
   analysisDelete(id: ID!): BooleanPayload!
-  controlsSetRelease(entityLabel: ControlledModelLabel!, entityIds: [ID!]!, release: ReadRelease!): BooleanPayload!
+
+  """
+  Set the release of entities, for the teams controlling them that the user is an admin of: give entityLabel and
+  entityIds, or a scope
+  """
+  controlsSetRelease(entityLabel: ControlledModelLabel, entityIds: [ID!], scope: ControlScopeInput, release: ReadRelease!): BooleanPayload!
 
   """Offer control of controlled models to a recipient team"""
   controlsOfferTransfer(offer: ControlTransferOffer!): BooleanPayload!
@@ -1179,9 +1204,10 @@ type Mutation {
   controlsCancelTransfer(id: ID!): BooleanPayload!
 
   """
-  End the control of teams the user is an admin of, where other teams also control the entities
+  End the control of teams the user is an admin of, where other teams also control the entities: give the
+  entities, or a scope
   """
-  controlsRenounceControl(entities: [ControlledEntityInput!]!, teamIds: [ID!]!): BooleanPayload!
+  controlsRenounceControl(entities: [ControlledEntityInput!], scope: ControlScopeInput, teamIds: [ID!]!): BooleanPayload!
 
   """
   Submission Payloads include a key, the data is processed asynchronously
@@ -3172,6 +3198,73 @@ type ControlTransfer {
   cancelledAt: DateTime
 }
 
+""" How many entities of a label a team controls at a release, for the team's admins 
+"""
+type ControlledCount {
+  teamId: ID!
+  label: ControlledModelLabel!
+
+  """ The release the team set """
+  release: ReadRelease!
+  count: Int!
+}
+
+""" An entity a team controls, for the team's admins """
+type ControlledItem {
+  label: ControlledModelLabel!
+  id: ID!
+
+  """ Its name (a dataset's concept, a reference's file name or description); REDACTED when you cannot read it 
+  """
+  name: String
+
+  """ The release the team set """
+  release: ReadRelease!
+
+  """ The other teams controlling it, those hidden from you stood in for by the nearest team you can see 
+  """
+  otherTeams: [TeamReference!]!
+
+  """
+  The name of what holds it, REDACTED when you cannot read that: a dataset's study, a study's trial, a trial's
+  program, a location's parent, a layout's location; null for other labels
+  """
+  context: String
+}
+
+""" A page of the entities of a label a team controls, ordered by id, with how many there are in all 
+"""
+type ControlledItems {
+  total: Int!
+  items: [ControlledItem!]!
+}
+
+"""
+A unit in the tree of the units a team controls, for the team's admins: one the team controls, or that holds units
+it controls. The tree is the unit graphs as you may see them: hidden units are skipped, unless the team controls
+them, and a hidden root is a placeholder (docs/read-access.md).
+"""
+type ControlledUnit {
+  """ The unit's id, name, subject and germplasm only: its place in this tree is given here, not by its parents 
+  """
+  unit: Unit!
+
+  """ The unit it was asked for below; null for the root of a unit graph """
+  parentId: ID
+
+  """ The release the team set; null when the team doesn't control this unit itself, only units below it 
+  """
+  release: ReadRelease
+
+  """ How many units the team controls: this one, if it does, and those below it 
+  """
+  count: Int!
+
+  """ The other teams controlling it, those hidden from you stood in for by the nearest team you can see 
+  """
+  otherTeams: [TeamReference!]!
+}
+
 type RecordGroup {
   id: ID!
   code: String!
@@ -4689,6 +4782,24 @@ type ControlTransferPayload {
   errors: [Error!]
 }
 
+type ControlledCountsPayload {
+  status: QueryStatus!
+  result: [ControlledCount!]
+  errors: [Error!]
+}
+
+type ControlledItemsPayload {
+  status: QueryStatus!
+  result: ControlledItems
+  errors: [Error!]
+}
+
+type ControlledUnitsPayload {
+  status: QueryStatus!
+  result: [ControlledUnit!]
+  errors: [Error!]
+}
+
 type ControlTransfersPayload {
   status: QueryStatus!
   result: [ControlTransfer!]
@@ -5087,6 +5198,25 @@ type Query {
 
   """ Get the controller data for access controlled entities """
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): ControllersPayload!
+
+  """
+  How many entities of each label teams control, by release. Only for teams the user is an admin of: a request
+  naming any other team is refused.
+  """
+  controlsControlledCounts(teamIds: [ID!]!): ControlledCountsPayload!
+
+  """
+  The entities of a label a team controls, at a release if given, ordered by id, a page at a time (limit defaults
+  to 50). Only for a team the user is an admin of.
+  """
+  controlsControlledEntities(teamId: ID!, label: ControlledModelLabel!, release: ReadRelease, offset: Int, limit: Int): ControlledItemsPayload!
+
+  """
+  The units a team controls, as a tree: without parentIds the roots of the unit graphs holding them, with parentIds
+  the nearest units below each that the team controls or that hold units it controls. Only for a team the user is
+  an admin of.
+  """
+  controlsControlledUnits(teamId: ID!, parentIds: [ID!]): ControlledUnitsPayload!
 
   """ Control transfers offered to or from teams the user is an admin of """
   controlsTransfers(statuses: [ControlTransferStatus!]): ControlTransfersPayload!
