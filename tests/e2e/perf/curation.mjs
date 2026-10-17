@@ -22,7 +22,7 @@ const browser = await launchBrowser()
 const page = browser.page
 try {
   await login(page, config.adminUser, config.adminPassword)
-  await page.goto(`${config.appUrl}/datasets`)
+  await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)

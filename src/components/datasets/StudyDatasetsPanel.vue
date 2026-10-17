@@ -1,15 +1,12 @@
-<!-- src/components/datasets/StudyDatasetsPanel.vue -->
+<!-- src/components/datasets/StudyDatasetsPanel.vue: a study's datasets, within its card on the programs page -->
 <template>
   <div class="study-datasets-panel">
-    <div class="panel-header">
-      <h3>{{ study?.name || 'Study' }}</h3>
-      <p v-if="study?.fullname" class="study-fullname">{{ study.fullname }}</p>
-    </div>
-
     <div class="panel-actions">
       <button v-if="canCreate" class="btn btn-primary" @click="$emit('create-dataset')">
         + Create New Dataset
       </button>
+      <!-- more actions from the card holding the panel -->
+      <slot name="actions" />
     </div>
 
     <div class="datasets-section">
@@ -37,7 +34,7 @@
           <div v-if="isExpanded(dataset.id)" class="dataset-details">
             <div class="detail-row">
               <span class="label">Units:</span>
-              <span class="value">{{ dataset.unit_count }}</span>
+              <span class="value">{{ detailsById[dataset.id]?.unit_count ?? '…' }}</span>
             </div>
             <div class="detail-row">
               <span class="label">Date Range:</span>
@@ -51,16 +48,17 @@
                 {{ dataset.subjects.map(s => s.name).join(', ') }}
               </span>
             </div>
-            <div v-if="dataset.locations?.length" class="detail-row">
+            <div v-if="detailsLoading && !detailsById[dataset.id]" class="detail-row muted">Loading locations…</div>
+            <div v-if="detailsById[dataset.id]?.locations?.length" class="detail-row">
               <span class="label">Locations:</span>
               <span class="value">
-                {{ dataset.locations.map(l => l.name).join(', ') }}
+                {{ detailsById[dataset.id].locations.map(l => l.name).join(', ') }}
               </span>
             </div>
-            <div v-if="dataset.unitRoots?.length" class="detail-row">
-              <span class="label">Blocks:</span>
+            <div v-if="detailsById[dataset.id]?.unitRoots?.length" class="detail-row">
+              <span class="label">Unit graphs:</span>
               <span class="value">
-                {{ dataset.unitRoots.map(b => b.name).join(', ') }}
+                {{ detailsById[dataset.id].unitRoots.map(b => b.name).join(', ') }}
               </span>
             </div>
           </div>
@@ -74,14 +72,11 @@
 import { ref, computed } from 'vue'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
 import { useCanCreate } from '@/composables/controls/useWriteAccess'
+import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'
 
 const canCreate = useCanCreate()
 
 const props = defineProps({
-  study: {
-    type: Object,
-    default: null
-  },
   studyId: {
     type: String,
     default: null
@@ -90,18 +85,26 @@ const props = defineProps({
 
 defineEmits(['create-dataset'])
 
+// The light summaries, shared with the study summary above; locations and unit graphs are slow to resolve for large
+// studies, so they are read once a dataset is first expanded
 const {
   datasetSummaries,
   summariesLoading,
   summariesError
-} = useDatasetSummariesQuery(() => props.studyId)
+} = useDatasetSummariesQuery(() => props.studyId, { query: STUDY_DATASETS_SUMMARIES_QUERY })
+
+const detailsWanted = ref(false)
+const {
+  datasetSummaries: detailedSummaries,
+  summariesLoading: detailsLoading
+} = useDatasetSummariesQuery(() => (detailsWanted.value ? props.studyId : null))
+const detailsById = computed(() => Object.fromEntries(detailedSummaries.value.map((s) => [s.id, s])))
 
 
 const expandedDatasets = ref(new Set())
 
-const hasDatasets = computed(() => datasetSummaries.value.length > 0)
-
 const toggleExpanded = (datasetId) => {
+  detailsWanted.value = true
   if (expandedDatasets.value.has(datasetId)) {
     expandedDatasets.value.delete(datasetId)
   } else {
@@ -126,26 +129,15 @@ const formatDate = (dateStr) => {
   flex-direction: column;
 }
 
-.panel-header {
-  margin-bottom: 20px;
-}
-
-.panel-header h3 {
-  margin: 0 0 4px 0;
-  font-size: 22px;
-  color: #333;
-}
-
-.study-fullname {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-}
-
 .panel-actions {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.muted {
+  color: #888;
 }
 
 .btn {

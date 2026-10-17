@@ -119,9 +119,6 @@ onMounted(async () => {
           <router-link to="/programs" class="nav-link" active-class="active">
             Programs
           </router-link>
-          <router-link to="/datasets" class="nav-link" active-class="active">
-            Datasets
-          </router-link>
           <template v-if="isAuthenticated">
             <router-link to="/analysis" class="nav-link" active-class="active">
               Analysis

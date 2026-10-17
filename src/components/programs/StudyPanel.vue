@@ -11,6 +11,10 @@ import DeleteStudyModal from './DeleteStudyModal.vue'
 import ReferenceItem from "@/components/references/ReferenceItem.vue";
 import RecordGroupingPanel from '@/components/programs/RecordGroupingPanel.vue'
 import StudySummary from './StudySummary.vue'
+import StudyDatasetsPanel from '@/components/datasets/StudyDatasetsPanel.vue'
+import DatasetSubmission from '@/components/datasets/DatasetSubmission.vue'
+import DatasetCurationModal from '@/components/datasets/DatasetCurationModal.vue'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
 const props = defineProps({
   studyId: {
@@ -39,6 +43,11 @@ const canCurate = useCanCurate({ entityLabel: 'STUDY', entityId: () => props.stu
 // The dataset summary and record groupings stay collapsed, and unqueried, until asked for
 const datasetsExpanded = ref(false)
 const groupingsExpanded = ref(false)
+
+// Creating a dataset of the study, and curating its datasets (the selection starts with this study)
+const showCreateDataset = ref(false)
+const showCuration = ref(false)
+const { isAuthenticated } = useAuthStore()
 
 // Modal states
 const isUpdateModalOpen = ref(false)
@@ -123,10 +132,21 @@ const handleDeleteSuccess = () => {
         <span class="toggle-arrow" :class="{ expanded: datasetsExpanded }">▶</span>
         Datasets
       </button>
-      <StudySummary
-        v-if="datasetsExpanded"
-        :study-id="study.id"
-      />
+      <template v-if="datasetsExpanded">
+        <StudySummary :study-id="study.id" />
+        <StudyDatasetsPanel :study-id="study.id" @create-dataset="showCreateDataset = true">
+          <template #actions>
+            <button class="btn btn-sm btn-outline" @click="showCuration = true">Curate</button>
+            <router-link
+              v-if="isAuthenticated"
+              :to="{ path: '/analysis', query: { study: study.id } }"
+              class="btn btn-sm btn-outline"
+            >
+              Analyse
+            </router-link>
+          </template>
+        </StudyDatasetsPanel>
+      </template>
 
       <button class="section-toggle" @click="groupingsExpanded = !groupingsExpanded">
         <span class="toggle-arrow" :class="{ expanded: groupingsExpanded }">▶</span>
@@ -138,6 +158,21 @@ const handleDeleteSuccess = () => {
       />
 
     </div>
+
+    <Teleport to="body">
+      <DatasetSubmission
+        v-if="showCreateDataset"
+        :visible="showCreateDataset"
+        :preselected-study="study"
+        @close="showCreateDataset = false"
+        @submitted="showCreateDataset = false"
+      />
+    </Teleport>
+    <DatasetCurationModal
+      :visible="showCuration"
+      :preselected-study-ids="[studyId]"
+      @close="showCuration = false"
+    />
 
     <!-- Update Study Modal -->
     <div v-if="isUpdateModalOpen" class="modal-overlay" @click="closeUpdateModal">
@@ -262,11 +297,14 @@ const handleDeleteSuccess = () => {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  text-decoration: none;
   transition: all 0.2s ease;
 }
 

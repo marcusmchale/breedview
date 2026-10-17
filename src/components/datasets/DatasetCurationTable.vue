@@ -63,7 +63,7 @@ const {
   submitAllChanges, exportToCSV, getDatasetStatus, cleanup,
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
-  getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails
+  getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt
 } = useDatasetCurationTable()
 
 // The units' germplasm and location fill their columns whenever the page's units arrive
@@ -567,6 +567,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       :is-submitting="isSubmitting"
       :has-unsaved-changes="hasUnsavedChanges"
       :all-submitted="allSubmitted"
+      :saved-at="lastSavedAt"
       @submit="handleSubmit"
     />
 

@@ -12,7 +12,7 @@ after(async () => { await logout(page); await browser?.close() })
 const pages = [
   ['/people', 'People'], ['/access', 'Control transfers'],
   ['/ontology', ''], ['/germplasm', ''], ['/regions', ''], ['/arrangements', ''], ['/blocks', 'Select a location'],
-  ['/programs', 'Program'], ['/datasets', ''], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree']
+  ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree']
 ]
 
 for (const [path, expected] of pages) {
@@ -28,17 +28,16 @@ for (const [path, expected] of pages) {
 
 // The dataset submission mounts its table as soon as a study is chosen, so it must open without errors
 test('the dataset submission opens for the first study', async () => {
-  await page.goto(`${config.appUrl}/datasets`)
-  await page.waitFor(`document.querySelector('.program-tree .expand-btn')`, 30000)
-  const isStudyListed = `[...document.querySelectorAll('.program-node')].some((n) => n.querySelector('.type-badge')?.innerText.trim() === 'Study')`
-  // expand one node at a time until a study is listed
-  for (let step = 0; step < 12 && !(await page.evaluate(isStudyListed)); step++) {
-    const more = await page.evaluate(`(() => { const b = document.querySelector('.program-tree .expand-btn:not(.expanded)'); if (b) b.click(); return !!b })()`)
-    if (!more) break
-    await page.sleep(1500)
-  }
-  assert.ok(await page.evaluate(isStudyListed), 'a study is listed in the program tree')
-  await page.evaluate(`[...document.querySelectorAll('.program-node')].find((n) => n.querySelector('.type-badge')?.innerText.trim() === 'Study').querySelector('.node-info').click()`)
+  // the first study of the programs page: open the trials and studies of each program until one is listed
+  await page.goto(`${config.appUrl}/programs`)
+  await page.waitFor(`document.querySelector('.program-card .trials-header')`, 30000)
+  await page.sleep(1000)
+  await page.evaluate(`document.querySelectorAll('.trials-header').forEach((e) => e.click())`)
+  await page.waitFor(`document.querySelector('.trial-card .studies-header')`, 30000)
+  await page.sleep(500)
+  await page.evaluate(`document.querySelectorAll('.studies-header').forEach((e) => e.click())`)
+  await page.waitFor(`document.querySelector('.study-card .section-toggle')`, 30000)
+  await page.evaluate(`[...document.querySelector('.study-card').querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.includes('Create New Dataset'))`, 30000)
   const mark = page.mark()
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.includes('Create New Dataset')).click()`)

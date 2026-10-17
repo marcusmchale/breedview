@@ -2,14 +2,19 @@
 defineProps({
   isSubmitting: { type: Boolean, default: false },
   hasUnsavedChanges: { type: Boolean, default: false },
-  allSubmitted: { type: Boolean, default: false }
+  allSubmitted: { type: Boolean, default: false },
+  // when changes were last saved, shown until the next change
+  savedAt: { type: Date, default: null }
 })
+
+const timeOf = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 const emit = defineEmits(['submit'])
 </script>
 
 <template>
   <div class="table-footer">
+    <span v-if="savedAt && !hasUnsavedChanges && !isSubmitting" class="saved-note">✓ Saved at {{ timeOf(savedAt) }}</span>
     <button
       class="btn btn-primary"
       @click="$emit('submit')"
@@ -26,7 +31,14 @@ const emit = defineEmits(['submit'])
 .table-footer {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   padding-top: 8px;
+}
+
+.saved-note {
+  color: #2e7d32;
+  font-size: 14px;
 }
 
 .btn {

@@ -10,10 +10,15 @@ import { isPartialDatetime } from '@/plugins/formkitRules'
 import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 
-defineProps({
+const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // studies chosen to start with, e.g. the study whose Curate button opened the selection
+  initialStudyIds: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -26,7 +31,7 @@ const DEFAULT_PAGE_SIZE = DEFAULT_UNITS_PAGE_SIZE
 const selectedProgram = ref(null)
 const selectedTrial = ref(null)
 const emptySelection = () => ({
-  studyIds: [],
+  studyIds: [...props.initialStudyIds],
   conceptIds: [],
   // narrowing of the records: units (with everything below them) and a time window
   unitIds: [],

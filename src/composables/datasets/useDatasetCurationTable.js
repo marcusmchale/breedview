@@ -39,6 +39,8 @@ export function useDatasetCurationTable() {
 
   // Records marked for deletion: { [datasetId]: Set<recordId> }
   const recordsToDelete = ref({})
+  // When changes were last saved: kept when the table is rebuilt from the saved records, which clears columnStatus
+  const lastSavedAt = ref(null)
 
   // Column submission status: { [datasetId]: { status, error, submissionId } }
   const columnStatus = ref({})
@@ -915,6 +917,7 @@ export function useDatasetCurationTable() {
           } else if (deletions && deletions.size > 0) {
             // Only deletions, no updates
             columnStatus.value[datasetId] = { status: 'success' }
+            lastSavedAt.value = new Date()
           }
 
         } catch (err) {
@@ -1027,6 +1030,7 @@ export function useDatasetCurationTable() {
 
 
         columnStatus.value[datasetId] = { status: 'success' }
+        lastSavedAt.value = new Date()
       } else if (status === 'FAILED' || errors || itemErrors) {
         // Map item errors back to cells
         if (itemErrors && indexMapping && conceptId) {
@@ -1192,6 +1196,7 @@ export function useDatasetCurationTable() {
     hasValueChanged,
     hasRowTimesChanged,
     setUnitDetails,
+    lastSavedAt,
     hasRowGroupsChanged,
     getCellReferences,
     updateCellReferences,

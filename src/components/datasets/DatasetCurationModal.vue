@@ -9,6 +9,11 @@ const props = defineProps({
   visible: {
     type: Boolean,
     default: false
+  },
+  // studies to start the selection with
+  preselectedStudyIds: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -112,6 +117,7 @@ const isSubmitting = computed(() => {
         <div v-if="phase === 'selection'" class="modal-content selection-phase">
           <DatasetSelectionForm
             ref="selectionFormRef"
+            :initial-study-ids="preselectedStudyIds"
             @load-table="handleLoadTable"
           />
         </div>

@@ -6,6 +6,8 @@ import { useCanCreate } from '@/composables/controls/useWriteAccess'
 
 import ProgramPanel from './ProgramPanel.vue'
 import CreateProgramModal from './CreateProgramModal.vue'
+import DatasetCurationModal from '@/components/datasets/DatasetCurationModal.vue'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
 const {
   programs,
@@ -16,6 +18,9 @@ const {
 } = useProgramsQuery()
 
 const canCreate = useCanCreate()
+const { isAuthenticated } = useAuthStore()
+
+const showCuration = ref(false)
 
 // Create program modal state
 const isCreateModalOpen = ref(false)
@@ -44,6 +49,10 @@ const handleProgramDeleted = () => {
       <button v-if="canCreate" @click="openCreateModal" class="btn btn-primary">
         Create New Program
       </button>
+      <div class="header-actions">
+        <button class="btn btn-secondary" @click="showCuration = true">View & curate datasets</button>
+        <router-link v-if="isAuthenticated" to="/analysis" class="btn btn-secondary">Analysis</router-link>
+      </div>
     </div>
 
     <!-- Query errors -->
@@ -75,6 +84,9 @@ const handleProgramDeleted = () => {
         />
       </div>
     </div>
+
+    <!-- Curating the datasets of any studies -->
+    <DatasetCurationModal :visible="showCuration" @close="showCuration = false" />
 
     <!-- Create Program Modal -->
     <div v-if="isCreateModalOpen" class="modal-overlay" @click="closeCreateModal">
@@ -111,10 +123,17 @@ const handleProgramDeleted = () => {
   margin-top: 20px;
 }
 
+/* one column, so the nested trial and study cards have room */
 .programs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  grid-template-columns: 1fr;
   gap: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .loading, .error {
@@ -179,5 +198,14 @@ const handleProgramDeleted = () => {
 
 .btn-primary:hover {
   background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
 }
 </style>

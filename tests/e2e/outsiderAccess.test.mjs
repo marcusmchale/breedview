@@ -130,7 +130,7 @@ test('blocks: the readable trees under a placeholder for their hidden block root
 })
 
 test('curation: the readable dataset with all its records, hidden units as placeholders', async () => {
-  await page.goto(`${config.appUrl}/datasets`)
+  await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)

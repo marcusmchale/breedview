@@ -15,7 +15,7 @@ const levelLoaded = `!document.querySelector('.options-list .loading-state') && 
 const withAmount = /· [\d,]+ (units|records?)$/
 
 test('the units filter offers the units the selected datasets have records for', async () => {
-  await page.goto(`${config.appUrl}/datasets`)
+  await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)

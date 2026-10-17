@@ -12,7 +12,6 @@ import GermplasmManagement from '@/components/germplasm/GermplasmManagement.vue'
 import RegionManagement from '@/components/locations/LocationsPage.vue'
 import ArrangementManagement from "@/components/layouts/ArrangementManagement.vue";
 import BlockManagement from '@/components/units/BlockManagement.vue'
-import DatasetManagement from '@/components/datasets/DatasetManagement.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'
 import ProfilePage from '@/components/user/ProfilePage.vue'
@@ -113,16 +112,6 @@ const routes = [
       // anyone may read what has been released to the public; signing in shows more
       allowAnonymous: true,
       title: 'Blocks'
-    }
-  },
-  {
-    path: '/datasets',
-    name: 'Datasets',
-    component: DatasetManagement,
-    meta: {
-      // anyone may read what has been released to the public; signing in shows more
-      allowAnonymous: true,
-      title: 'Datasets'
     }
   },
   {
