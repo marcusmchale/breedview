@@ -7,6 +7,7 @@ import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAcces
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
 import ContactsDisplay from '@/components/people/ContactsDisplay.vue'
+import ContributionsList from '@/components/people/ContributionsList.vue'
 import StudyPanel from './StudyPanel.vue'
 import UpdateTrialModal from './UpdateTrialModal.vue'
 import DeleteTrialModal from './DeleteTrialModal.vue'
@@ -141,6 +142,7 @@ const handleStudyDeleted = () => {
           :entity-name="trial.name"
           @changed="refetchTrial"
         />
+        <ContributionsList :contributions="trial.contributions" />
 
         <!-- References Display -->
         <ReferencesDisplay

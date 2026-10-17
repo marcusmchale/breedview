@@ -1,4 +1,5 @@
 <script setup>
+import { contributionsInput } from '@/composables/people/personDisplay'
 import { ref } from 'vue'
 import { FormKit } from '@formkit/vue'
 
@@ -6,6 +7,7 @@ import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
 import ContactsField from "@/components/people/ContactsField.vue";
+import ContributionsField from "@/components/people/ContributionsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -29,6 +31,8 @@ const formError = ref('')
 
 // Contacts - initialize from program data
 const selectedContactIds = ref(props.program.contacts?.map(c => String(c.id)) || [])
+// Who contributed, with their roles (the list replaces the program's contributions)
+const contributions = ref(contributionsInput(props.program.contributions))
 
 // References state - initialize from program data
 const selectedReferenceIds = ref(props.program.references?.map(r => r.id) || [])
@@ -63,7 +67,8 @@ const submitForm = async (values) => {
       id: props.program.id,
       ...cleanValues,
       referenceIds: selectedReferenceIds.value,
-      contactIds: selectedContactIds.value
+      contactIds: selectedContactIds.value,
+      contributions: contributions.value
     })
 
     if (status === 'SUCCESS') {
@@ -121,6 +126,7 @@ const submitForm = async (values) => {
 
         <!-- Contacts Section -->
         <ContactsField v-model="selectedContactIds" />
+        <ContributionsField v-model="contributions" kind="program" :people="(program.contributions ?? []).map((c) => c.person).filter(Boolean)" />
 
         <!-- References Section -->
         <div class="reference-section">

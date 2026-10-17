@@ -41,7 +41,7 @@ query Datasets(
       }
       contributions {
         person { ...PersonFields }
-        roles { id name }
+        roles { id versionId view name }
       }
       references {
         id

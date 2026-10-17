@@ -9,6 +9,7 @@ query programsProgram($programId: ID, $trialId: ID, $studyId: ID) {
       fullname
       description
       contacts { ...PersonFields }
+      contributions { person { ...PersonFields } roles { id versionId view name } }
       references { ...ReferenceFields }
       trials { id name }
     }

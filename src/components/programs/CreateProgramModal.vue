@@ -6,6 +6,7 @@ import { useMutatePrograms } from '@/composables/programs/mutatePrograms'
 import ControlSelector from "@/components/controls/ControlSelector.vue";
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
 import ContactsField from "@/components/people/ContactsField.vue";
+import ContributionsField from "@/components/people/ContributionsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const emit = defineEmits(['close', 'success'])
@@ -29,6 +30,8 @@ const formData = ref({
 
 // Contacts: Persons linked to an account, released widely enough for this program
 const selectedContactIds = ref([])
+// Who contributed, with their roles
+const contributions = ref([])
 
 // References state
 const selectedReferenceIds = ref([])
@@ -69,6 +72,9 @@ const submitForm = async (values) => {
     }
     if (selectedContactIds.value.length > 0) {
       cleanValues.contactIds = selectedContactIds.value
+    }
+    if (contributions.value.length > 0) {
+      cleanValues.contributions = contributions.value
     }
 
     const { status, errors } = await createProgram({
@@ -132,6 +138,7 @@ const submitForm = async (values) => {
 
         <!-- Contacts Section -->
         <ContactsField v-model="selectedContactIds" />
+        <ContributionsField v-model="contributions" kind="program" />
 
         <!-- References Section -->
         <div class="reference-section">

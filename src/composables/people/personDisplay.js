@@ -50,3 +50,32 @@ export function teamReferenceName({ team, standIn }, { full = false } = {}) {
 export function personTeamNames(person, options = {}) {
   return (person?.teams ?? []).map((reference) => teamReferenceName(reference, options))
 }
+
+// A contribution as credited, e.g. "Name (Institution) — Investigation, Data curation"
+export function contributionLabel({ person, roles }) {
+  const names = (roles ?? []).map((role) => role?.name).filter(Boolean)
+  return names.length ? `${personLabel(person)} — ${names.join(', ')}` : personLabel(person)
+}
+
+// Contributions as read ({ person, roles }) to their input ({ personId, roleIds }); a Person the API could not
+// resolve is left out
+export const contributionsInput = (contributions) => (contributions ?? [])
+  .filter((contribution) => contribution?.person)
+  .map((contribution) => ({
+    personId: String(contribution.person.id),
+    roleIds: (contribution.roles ?? []).map((role) => String(role.id))
+  }))
+
+// The same contributions in any order, as one string to compare
+export const contributionsKey = (contributions) => JSON.stringify(
+  [...(contributions ?? [])]
+    .map(({ personId, roleIds }) => [String(personId), [...(roleIds ?? [])].map(String).sort()])
+    .sort((a, b) => a[0].localeCompare(b[0]))
+)
+
+// The CRediT roles that fit each kind of record (breedgraph docs/front-end-changes.md §14), offered first
+export const SUGGESTED_ROLES = {
+  dataset: ['Investigation', 'Data curation', 'Methodology', 'Resources', 'Validation', 'Supervision'],
+  program: ['Conceptualization', 'Funding acquisition', 'Project administration', 'Supervision'],
+  reference: ['Formal analysis', 'Visualization', 'Writing – original draft', 'Writing – review & editing', 'Software', 'Data curation']
+}

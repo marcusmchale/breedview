@@ -1,4 +1,5 @@
 <script setup>
+import { contributionsInput } from '@/composables/people/personDisplay'
 import { ref } from 'vue'
 import { FormKit } from '@formkit/vue'
 
@@ -6,6 +7,7 @@ import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
 import ContactsField from "@/components/people/ContactsField.vue";
+import ContributionsField from "@/components/people/ContributionsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -31,6 +33,8 @@ const formError = ref('')
 
 // Contacts - initialize from trial data
 const selectedContactIds = ref(props.trial.contacts?.map(c => String(c.id)) || [])
+// Who contributed, with their roles (the list replaces the trial's contributions)
+const contributions = ref(contributionsInput(props.trial.contributions))
 
 // References state - initialize from trial data
 const selectedReferenceIds = ref(props.trial.references?.map(r => r.id) || [])
@@ -63,7 +67,8 @@ const submitForm = async (values) => {
       start: values.start?.trim() || undefined,
       end: values.end?.trim() || undefined,
       referenceIds: selectedReferenceIds.value,
-      contactIds: selectedContactIds.value
+      contactIds: selectedContactIds.value,
+      contributions: contributions.value
     }
 
     // Remove undefined values (except trialId and arrays)
@@ -150,6 +155,7 @@ const submitForm = async (values) => {
 
         <!-- Contacts Section -->
         <ContactsField v-model="selectedContactIds" />
+        <ContributionsField v-model="contributions" kind="program" :people="(trial.contributions ?? []).map((c) => c.person).filter(Boolean)" />
 
         <!-- References Section -->
         <div class="reference-section">

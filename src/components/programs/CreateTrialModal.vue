@@ -9,6 +9,7 @@ import ControlSelector from "@/components/controls/ControlSelector.vue";
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
 import ContactsField from "@/components/people/ContactsField.vue";
+import ContributionsField from "@/components/people/ContributionsField.vue";
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -46,6 +47,8 @@ const formData = ref({
 
 // Contacts: Persons linked to an account, released widely enough for this trial
 const selectedContactIds = ref([])
+// Who contributed, with their roles
+const contributions = ref([])
 
 // References state
 const selectedReferenceIds = ref([])
@@ -82,7 +85,8 @@ const submitForm = async (values) => {
       start: values.start?.trim() || undefined,
       end: values.end?.trim() || undefined,
       referenceIds: selectedReferenceIds.value.length > 0 ? selectedReferenceIds.value : undefined,
-      contactIds: selectedContactIds.value.length > 0 ? selectedContactIds.value : undefined
+      contactIds: selectedContactIds.value.length > 0 ? selectedContactIds.value : undefined,
+      contributions: contributions.value.length > 0 ? contributions.value : undefined
     }
 
     // Remove undefined values
@@ -173,6 +177,7 @@ const submitForm = async (values) => {
 
         <!-- Contacts Section -->
         <ContactsField v-model="selectedContactIds" />
+        <ContributionsField v-model="contributions" kind="program" />
 
         <!-- References Section -->
         <div class="reference-section">
