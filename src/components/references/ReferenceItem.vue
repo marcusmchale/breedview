@@ -8,6 +8,7 @@ import {
 } from '@/composables/references/referenceTypes'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import FileDownloadButton from '@/components/references/FileDownloadButton.vue'
+import ContributionsList from '@/components/people/ContributionsList.vue'
 
 const props = defineProps({
     reference: {
@@ -106,6 +107,9 @@ const toggleExpand = () => {
                     <div class="text-content">{{ reference.text }}</div>
                 </div>
             </template>
+
+            <!-- who made a file or data, with their roles -->
+            <ContributionsList v-if="reference.contributions?.length" :contributions="reference.contributions" class="detail-row" />
 
             <!-- External Reference details -->
             <template v-if="referenceType === 'ExternalReference'">

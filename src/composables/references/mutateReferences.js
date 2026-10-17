@@ -1,5 +1,5 @@
 import { toValue } from "vue"
-import { useMutation } from '@vue/apollo-composable'
+import { useApolloClient, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import CREATE_DATA_FILE_REFERENCE from "@/graphql/references/createDataFileReference.graphql";
@@ -23,6 +23,16 @@ export function useMutateReferences() {
         typename: "Reference",
         fragment: REFERENCE_FRAGMENT
     })
+    const { resolveClient } = useApolloClient()
+
+    // Contributions are sent as { personId, roleIds } but read as { person, roles }: they are left out of what is
+    // written to the cache, and the reference's are dropped there so that they are read again
+    const withoutContributions = ({ contributions, ...rest }) => rest  // eslint-disable-line no-unused-vars
+    const refetchContributions = (typename, id) => {
+        const cache = resolveClient().cache
+        cache.evict({ id: cache.identify({ __typename: typename, id }), fieldName: 'contributions' })
+        cache.gc()
+    }
 
     const {
         mutate: createDataFileReferenceMutation,
@@ -52,9 +62,10 @@ export function useMutateReferences() {
           const data = response.data.referencesUpdateDataFile
           if (data.status === "SUCCESS" ) {
             updateCache({
-              updateData: reference,
+              updateData: withoutContributions(reference),
               idField: 'referenceId'
             })
+            if (reference.contributions) refetchContributions('DataFileReference', reference.id)
           }
           const { result, status, errors} = data
           return { result, status, errors }
@@ -90,9 +101,10 @@ export function useMutateReferences() {
             const data = response.data.referencesUpdateExternalData
             if (data.status === "SUCCESS") {
                 updateCache({
-                    updateData: reference,
+                    updateData: withoutContributions(reference),
                     idField: 'referenceId'
                 })
+                if (reference.contributions) refetchContributions('ExternalDataReference', reference.id)
             }
             const { result, status, errors } = data
             return { result, status, errors }
@@ -205,6 +217,7 @@ export function useMutateReferences() {
         if (response?.data?.referencesUpdateFile) {
             const data = response.data.referencesUpdateFile
             const { result, status, errors } = data
+            if (status === 'SUCCESS' && reference.contributions) refetchContributions('FileReference', reference.id)
             return { result, status, errors }
         }
     }

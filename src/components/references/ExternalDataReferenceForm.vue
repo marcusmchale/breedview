@@ -6,6 +6,8 @@ import { useReferenceSchema } from '@/composables/references/useReferenceSchema'
 
 import ControlSelector from "@/components/controls/ControlSelector.vue"
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
+import ContributionsField from '@/components/people/ContributionsField.vue'
+import { contributionsInput } from '@/composables/people/personDisplay'
 
 const props = defineProps({
     reference: {
@@ -37,6 +39,10 @@ const formData = ref({
     format: props.reference?.format || '',
     schema: props.reference?.schema || ''
 })
+
+// Who made the data, with their roles; on update the list replaces the reference's contributions
+const contributions = ref(contributionsInput(props.reference?.contributions))
+watch(() => props.reference, (newRef) => { contributions.value = contributionsInput(newRef?.contributions) })
 
 const formError = ref(null)
 const schemaError = ref(null)
@@ -111,7 +117,8 @@ const submitForm = async () => {
         if (isEditing.value) {
             const { status, errors } = await updateExternalDataReference({
                 id: props.reference.id,
-                ...referenceData
+                ...referenceData,
+                contributions: contributions.value
             })
 
             if (status === 'SUCCESS') {
@@ -121,7 +128,10 @@ const submitForm = async () => {
             }
         } else {
             const { result, status, errors } = await createExternalDataReference({
-              reference: referenceData,
+              reference: {
+                ...referenceData,
+                contributions: contributions.value.length ? contributions.value : undefined
+              },
               controlTeamId: selectedControlTeamId,
               release: selectedRelease
             })
@@ -187,6 +197,12 @@ const resetForm = () => {
                 label="Description"
                 placeholder="Brief description of this external data reference"
                 :input-attrs="{ rows: 2 }"
+            />
+
+            <ContributionsField
+                v-model="contributions"
+                kind="reference"
+                :people="(reference?.contributions ?? []).map((c) => c.person).filter(Boolean)"
             />
 
             <FormKit

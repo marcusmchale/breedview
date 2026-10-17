@@ -1,4 +1,6 @@
 <script setup>
+import ContributionsField from '@/components/people/ContributionsField.vue'
+import { contributionsInput } from '@/composables/people/personDisplay'
 import { ref, computed, watch, markRaw } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateReferences } from '@/composables/references/mutateReferences'
@@ -39,6 +41,10 @@ const formData = ref({
     schema: props.reference?.schema || '',
     file: null
 })
+
+// Who made the file or data, with their roles; on update the list replaces the reference's contributions
+const contributions = ref(contributionsInput(props.reference?.contributions))
+watch(() => props.reference, (newRef) => { contributions.value = contributionsInput(newRef?.contributions) })
 
 const formError = ref('')
 const schemaError = ref('')
@@ -172,7 +178,8 @@ const submitForm = async () => {
                 description: formData.value.description?.trim() || null,
                 format: formData.value.format,
                 schema: formData.value.schema?.trim() || null,
-                file: formData.value.file || null
+                file: formData.value.file || null,
+                contributions: contributions.value
             })
 
             if (status === 'SUCCESS') {
@@ -199,7 +206,8 @@ const submitForm = async () => {
                 description: formData.value.description?.trim() || null,
                 format: formData.value.format,
                 schema: formData.value.schema?.trim() || null,
-                file: formData.value.file
+                file: formData.value.file,
+                contributions: contributions.value.length ? contributions.value : undefined
               },
               controlTeamId: selectedControlTeamId,
               release: selectedRelease
@@ -271,6 +279,13 @@ const resetForm = () => {
                 :disabled="isLoading"
             />
         </div>
+
+        <ContributionsField
+            v-model="contributions"
+            kind="reference"
+            :people="(reference?.contributions ?? []).map((c) => c.person).filter(Boolean)"
+            :disabled="isLoading"
+        />
 
         <div class="form-group">
             <label>Format *</label>

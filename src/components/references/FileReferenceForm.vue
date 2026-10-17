@@ -7,6 +7,8 @@ import { pollFileSubmission } from '@/composables/references/fileSubmissionQuery
 import ControlSelector from "@/components/controls/ControlSelector.vue";
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import UploadStatus from '@/components/references/UploadStatus.vue'
+import ContributionsField from '@/components/people/ContributionsField.vue'
+import { contributionsInput } from '@/composables/people/personDisplay'
 
 const props = defineProps({
     reference: {
@@ -34,6 +36,10 @@ const formData = ref({
     description: props.reference?.description || '',
     file: null
 })
+
+// Who made the file or data, with their roles; on update the list replaces the reference's contributions
+const contributions = ref(contributionsInput(props.reference?.contributions))
+watch(() => props.reference, (newRef) => { contributions.value = contributionsInput(newRef?.contributions) })
 
 const formError = ref('')
 const uploadStatus = ref(null)
@@ -126,7 +132,8 @@ const submitForm = async () => {
             const { result: fileId, status, errors } = await updateFileReference({
                 id: props.reference.id,
                 description: formData.value.description?.trim() || null,
-                file: formData.value.file || null
+                file: formData.value.file || null,
+                contributions: contributions.value
             })
 
             if (status === 'SUCCESS') {
@@ -151,7 +158,8 @@ const submitForm = async () => {
             const { result: fileId, status, errors } = await createFileReference({
               reference: {
                   description: formData.value.description?.trim() || null,
-                  file: formData.value.file
+                  file: formData.value.file,
+                  contributions: contributions.value.length ? contributions.value : undefined
               },
               controlTeamId: selectedControlTeamId,
               release: selectedRelease
@@ -209,6 +217,13 @@ const resetForm = () => {
                 :disabled="isLoading"
             />
         </div>
+
+        <ContributionsField
+            v-model="contributions"
+            kind="reference"
+            :people="(reference?.contributions ?? []).map((c) => c.person).filter(Boolean)"
+            :disabled="isLoading"
+        />
 
         <div class="form-group">
             <label>{{ isEditing ? 'Replace File (optional)' : 'File' }} {{ !isEditing ? '*' : '' }}</label>
