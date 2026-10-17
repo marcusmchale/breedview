@@ -101,15 +101,20 @@ export function useDatasetCurationTable() {
 
   // Row sections, split by the values of DATASET_SCOPED groupings with SHARED or WITHIN_GRAPH extent.
   // WITHIN_UNIT codes (replicates) only mean something within a unit, so they stay ordinary columns.
-  const datasetScopedColumns = computed(() =>
+  const sectionColumns = computed(() =>
     groupingColumns.value.filter((c) => c.scope === 'DATASET_SCOPED' && c.extent !== 'WITHIN_UNIT')
+  )
+  // Of those, the ones with a code in some loaded row: the others put every row in the same section, so they are
+  // left out of the labels
+  const datasetScopedColumns = computed(() =>
+    sectionColumns.value.filter((c) => tableData.value.some((row) => normalizeCode(row?.[c.key])))
   )
   const withinUnitColumns = computed(() =>
     groupingColumns.value.filter((c) => c.extent === 'WITHIN_UNIT')
   )
 
-  const getRowSectionKey = (row) =>
-    datasetScopedColumns.value.map((c) => normalizeCode(row?.[c.key])).join('\u0000')
+  const sectionKey = (columns, row) => columns.map((c) => normalizeCode(row?.[c.key])).join('\u0000')
+  const getRowSectionKey = (row) => sectionKey(datasetScopedColumns.value, row)
 
   const getRowSectionLabel = (row) =>
     datasetScopedColumns.value
@@ -311,9 +316,9 @@ export function useDatasetCurationTable() {
       }
 
       tableData.value = allRows.sort((a, b) => {
-        // Keep DATASET_SCOPED sections contiguous
-        const sa = getRowSectionKey(a)
-        const sb = getRowSectionKey(b)
+        // Keep DATASET_SCOPED sections contiguous (by every candidate grouping, as tableData isn't set yet)
+        const sa = sectionKey(sectionColumns.value, a)
+        const sb = sectionKey(sectionColumns.value, b)
         if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
         if (a.unitId !== b.unitId) return String(a.unitId).localeCompare(String(b.unitId))
         const byTime = (a.startTime || '').localeCompare(b.startTime || '')

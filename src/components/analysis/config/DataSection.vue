@@ -158,7 +158,7 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
           No datasets in this study.
         </p>
         <label v-for="s in summariesByStudy[studyId] ?? []" :key="s.id" class="dataset-row">
-          <input type="checkbox" :checked="isSelected(s.id)" @change="toggleDataset(s.id)" />
+          <input type="checkbox" :value="s.id" :checked="isSelected(s.id)" @change="toggleDataset(s.id)" />
           <span class="dataset-concept">{{ s.concept?.name ?? `Dataset ${s.id}` }}</span>
           <span class="muted">
             {{ s.record_count }} records · {{ s.unit_count }} units
@@ -177,7 +177,7 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
         </div>
         <p class="hint">These datasets aren't listed in a selected study; they may have been removed or be unreadable.</p>
         <label v-for="id in orphanDatasetIds" :key="id" class="dataset-row">
-          <input type="checkbox" checked @change="toggleDataset(id)" />
+          <input type="checkbox" :value="id" checked @change="toggleDataset(id)" />
           <span class="dataset-concept">{{ datasetName(id) }}</span>
           <span v-for="(m, i) in datasetErrors(id)" :key="i" class="message error">{{ m.message }}</span>
         </label>

@@ -294,10 +294,9 @@ const handleScopesUpdate = (scopes) => {
   gap: 12px;
 }
 
-.radio-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* .form-group label would make it a block with a bottom margin */
+.form-group .radio-label {
+  margin-bottom: 0;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -328,6 +327,12 @@ const handleScopesUpdate = (scopes) => {
 .help-text {
   font-size: 0.85rem;
   color: #666;
+}
+
+.radio-label .help-text {
+  display: block;
+  margin: 4px 0 0 21px;
+  font-weight: normal;
 }
 
 .form-actions {
