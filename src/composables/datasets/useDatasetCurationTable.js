@@ -184,11 +184,14 @@ export function useDatasetCurationTable() {
       const datasetIds = datasets.map(d => d.id)
       await fetchControllers(datasetIds)
 
-      // Contributors, as loaded, so changes to them can be told apart and submitted
+      // Contributors, as loaded, so changes to them can be told apart and submitted. Their roles are kept as loaded,
+      // as saving replaces the dataset's contributions; there is no role picker here yet
       datasets.forEach(dataset => {
-        const people = dataset.contributors ?? []
+        const contributions = (dataset.contributions ?? []).filter(c => c.person)
+        const people = contributions.map(c => c.person)
         const ids = people.map(person => String(person.id))
-        datasetContributors.value[dataset.id] = { originalIds: ids, ids: [...ids], people }
+        const roleIds = Object.fromEntries(contributions.map(c => [String(c.person.id), (c.roles ?? []).map(r => r.id)]))
+        datasetContributors.value[dataset.id] = { originalIds: ids, ids: [...ids], people, roleIds }
       })
 
       // Build concept data map
@@ -846,10 +849,13 @@ export function useDatasetCurationTable() {
             ? [...datasetContributors.value[datasetId].ids]
             : null
           if (updates.length > 0 || contributorIds) {
+            const roleIds = datasetContributors.value[datasetId]?.roleIds ?? {}
             const result = await updateDataset({
               id: datasetId,
               records: updates,
-              ...(contributorIds ? { contributorIds } : {})
+              ...(contributorIds
+                ? { contributions: contributorIds.map(personId => ({ personId, roleIds: roleIds[personId] ?? [] })) }
+                : {})
             })
 
             if (result?.status === 'SUCCESS' || result?.result) {

@@ -39,8 +39,9 @@ query Datasets(
       records(unitIds: $unitIds, start: $start, end: $end, offset: $offset, limit: $limit) {
         ...RecordFields
       }
-      contributors {
-        ...PersonFields
+      contributions {
+        person { ...PersonFields }
+        roles { id name }
       }
       references {
         id

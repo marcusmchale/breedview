@@ -547,7 +547,8 @@ export function useDatasetTable({
       };
       const contributors = toValue(contributorIds) ?? [];
       if (contributors.length > 0) {
-        dataset.contributorIds = contributors;
+        // credited without roles: there is no role picker here yet
+        dataset.contributions = contributors.map((personId) => ({ personId, roleIds: [] }));
       }
       const result = await createDataset({
         dataset,
