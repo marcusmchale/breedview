@@ -10,7 +10,7 @@ before(async () => { browser = await launchBrowser(); page = browser.page; await
 after(async () => { await logout(page); await browser?.close() })
 
 const pages = [
-  ['/people', 'People'], ['/transfers', 'Control transfers'],
+  ['/people', 'People'], ['/access', 'Control transfers'],
   ['/ontology', ''], ['/germplasm', ''], ['/regions', ''], ['/arrangements', ''], ['/blocks', 'Select a location'],
   ['/programs', 'Program'], ['/datasets', ''], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree']
 ]

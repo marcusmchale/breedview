@@ -17,7 +17,7 @@ import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'
 import ProfilePage from '@/components/user/ProfilePage.vue'
 import OrcidCallbackPage from '@/components/user/OrcidCallbackPage.vue'
-import TransfersPage from '@/components/controls/TransfersPage.vue'
+import AccessControlPage from '@/components/controls/AccessControlPage.vue'
 
 const routes = [
   {
@@ -167,12 +167,12 @@ const routes = [
     }
   },
   {
-    path: '/transfers',
-    name: 'Transfers',
-    component: TransfersPage,
+    path: '/access',
+    name: 'AccessControl',
+    component: AccessControlPage,
     meta: {
       requiresAuth: true,
-      title: 'Control Transfers'
+      title: 'Access control'
     }
   },
   {

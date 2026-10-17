@@ -47,7 +47,7 @@
     {{ deleteTeamError }}
     <template v-if="deleteRefusedForControl">
       Transfer or renounce its control first, from the controller badge on each record or the
-      <router-link to="/transfers">Transfers</router-link> page.
+      <router-link to="/access">Access control</router-link> page.
     </template>
   </div>
 </template>

@@ -73,8 +73,8 @@ const handleAccepted = async () => {
 </script>
 
 <template>
-  <div class="page-container transfers-page">
-    <h2>Control transfers</h2>
+  <div class="transfers-panel">
+    <h3>Control transfers</h3>
     <p class="text-muted page-intro">
       Control of a record moves between teams by offer and acceptance. Offers to teams you administer can be
       accepted or rejected here; offers from your teams can be cancelled. Offer a transfer from the controller
@@ -144,9 +144,8 @@ const handleAccepted = async () => {
 </template>
 
 <style scoped>
-.transfers-page {
-  max-width: 1000px;
-  margin: 0 auto;
+.transfers-panel h3 {
+  margin: 0 0 8px;
 }
 
 .page-intro {

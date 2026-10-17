@@ -97,8 +97,8 @@ onMounted(async () => {
             People
           </router-link>
           <template v-if="isAuthenticated">
-            <router-link to="/transfers" class="nav-link" active-class="active">
-              Transfers
+            <router-link to="/access" class="nav-link" active-class="active">
+              Access control
             </router-link>
             <router-link to="/ontology" class="nav-link" active-class="active">
               Ontology
