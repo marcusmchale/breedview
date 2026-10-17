@@ -47,7 +47,8 @@ cp instance/neo4j_archive/test_databases/test_database_files/* "$FILE_STORAGE_PA
 
 `lib/fixture.mjs` reads the manifest, `instance/neo4j_archive/test_databases/test_database.manifest.json` in the breedgraph checkout
 next to this repository (`E2E_MANIFEST` to read another). It has the accounts, the teams, and every entity of the
-scenario by name, with its id, name, controlling team, release and which viewers can read it (`readable_by`). The
+scenario by name, with its id, name, controlling team, release and which viewers can read it (`readable_by`), for
+Persons how each viewer sees them (`person_views`), and the legal entities the roots declared. The
 trees, teams and releases are drawn in the module docstring of breedgraph's
 `tests/breedgraph/scenarios/read_policy_scenario.py`. Tests name entities by their scenario name and take names and
 expectations from the manifest, so a rebuilt database with other generated names still passes.
@@ -107,12 +108,17 @@ browser: that the pages render it, which actions they offer, the modals and labe
   studies, no write actions, stand-in teams and placeholder controllers in the controller modal, locations joined
   past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units tab of the
   Locations page), and the curation selection, units filter and table with hidden units as placeholders.
-- `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation, is sent to log in from
-  the others, and sees the public programs and units without controller badges or write actions; no request on the
-  open pages fails apart from the sign-in check.
+- `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in
+  the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
+  without controller badges or write actions, and the people credited on a program by attribution, each opening the
+  organisation holding the record, with no Contact button; no request on the open pages fails apart from the sign-in
+  check.
 - `germplasmAccess.test.mjs`: the germplasm page draws, for each viewer, the entries the manifest says they can read.
-- `peopleAccess.test.mjs`: the people page lists the Persons each viewer can read, and the outsider their own private
-  Person with its hidden team stood in for; Edit and Erase follow curate and admin access and the linked user.
+- `peopleAccess.test.mjs`: the people page needs an account; it lists the Persons each viewer sees in full or by
+  attribution: the full record (teams, lawful basis, whether an account is linked, even when the account is hidden)
+  for read affiliates and the linked user, the attribution for others, each with the organisation holding it; the
+  outsider's own private Person with its hidden team stood in for; Edit and Erase follow curate and admin access and
+  the linked user.
 - `accountsAccess.test.mjs`: in the controller modal, writes are attributed to the writer's Person where the viewer
   cannot see the account, or to "an account without a Person record".
 - `recordGroupExtent.test.mjs`, on the replicates study (manifest `replicates`), signed in as the writer, who curates

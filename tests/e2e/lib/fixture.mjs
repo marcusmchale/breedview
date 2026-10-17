@@ -20,9 +20,11 @@ export { manifest }
 
 // admin, writer, stranger, outsider: { username, password, email, user_id, affiliations }
 export const accounts = manifest.accounts
-// root (an organisation), child (below root), other (a second organisation): { id, name }
+// root (an organisation), child (below root), other (a second organisation): { id, name }, and for the roots the
+// legal entity they declared, the data controller of their Persons: legal_name, privacy_contact
 export const teams = manifest.teams
-// every controlled entity by scenario name: { id, label, name, team, release, readable_by }
+// every controlled entity by scenario name: { id, label, name, team, release, readable_by }, and for Persons
+// person_views, how each viewer sees it
 export const entities = manifest.entities
 // record_count and unit_count by dataset name
 export const datasets = manifest.datasets
@@ -47,3 +49,16 @@ export function entity(name) {
 }
 
 export const canRead = (viewer, name) => entity(name).readable_by.includes(viewer)
+
+// How a viewer sees a Person (breedgraph docs/person.md §3): 'FULL', 'ATTRIBUTION' or 'RESTRICTED'
+export function personView(viewer, name) {
+  const views = entity(name).person_views
+  if (!views) {
+    throw new Error(`the test database manifest ${manifestPath} has no person views: it was built before them, ` +
+      'so build it again (breedgraph docs/test-databases.md)')
+  }
+  return views[viewer]
+}
+
+// The legal entity holding a Person: { legal_name, privacy_contact } of its team's root
+export const dataController = (name) => teams[entity(name).team === 'other' ? 'other' : 'root']

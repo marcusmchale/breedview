@@ -1,12 +1,14 @@
-// What someone who is not signed in sees: the people, germplasm, programs, regions, arrangements, blocks and
-// datasets pages are open to them, showing what has been released to the public, with placeholders and skipped
-// members as for anyone else (breedgraph docs/read-access.md), and no badges or write actions. Other pages send them
-// to log in. What the API returns is tested in breedgraph; here, that the pages show it without failing requests.
+// What someone who is not signed in sees: the germplasm, programs, regions, arrangements, blocks and datasets pages
+// are open to them, showing what has been released to the public, with placeholders and skipped members as for anyone
+// else (breedgraph docs/read-access.md), and no badges or write actions. People are not listed publicly: they see
+// Persons only where they are credited, by attribution, each naming the organisation holding the record (docs/person.md
+// §3). Other pages, the people page among them, send them to log in. What the API returns is tested in breedgraph;
+// here, that the pages show it without failing requests.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, flat, loginAs } from './lib/app.mjs'
-import { entities as e } from './lib/fixture.mjs'
+import { entities as e, dataController } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => { browser = await launchBrowser({ height: 1800 }); page = browser.page })
@@ -18,17 +20,21 @@ const writeActions = () => page.evaluate(`[...document.querySelectorAll('main bu
 // the only request expected to fail: the check of who is signed in
 const failedRequests = async (mark) => (await page.graphqlErrors(mark)).filter((f) => !f.startsWith('accountsAccount:'))
 
-test('the navigation offers the open pages and a way to log in', async () => {
+test('the navigation offers the open pages and a way to log in, and the privacy notice is a link away', async () => {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['Programs', 'Locations', 'Germplasm', 'People', 'Log in'])
+  assert.deepEqual(links, ['Programs', 'Locations', 'Germplasm', 'Log in'])
+  await page.click('.app-footer a')
+  await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
 })
 
 test('pages that need an account still send anonymous users to log in', async () => {
-  await page.goto(`${config.appUrl}/profile`)
-  await page.waitFor(`location.pathname === '/login'`, 30000)
-  assert.match(await page.url(), /redirect=(%2F|\/)profile/)
+  for (const path of ['profile', 'people']) {
+    await page.goto(`${config.appUrl}/${path}`)
+    await page.waitFor(`location.pathname === '/login'`, 30000)
+    assert.match(await page.url(), new RegExp(`redirect=(%2F|/)${path}`))
+  }
 })
 
 test('home, and an address that is no page, are the programs for anonymous users', async () => {
@@ -72,6 +78,24 @@ test('programs: the public studies below placeholders, without badges or write a
   assert.ok(!text.includes(e.study_registered.name), 'the study released to registered users is not')
   assert.ok(!(await page.exists('.controller-badge')), 'no controller badges')
   assert.deepEqual(await writeActions(), [])
+  assert.deepEqual(await failedRequests(mark), [])
+})
+
+test('programs: who is credited, by attribution, each opening the organisation holding the record, and no Contact', async () => {
+  const q = JSON.stringify
+  const mark = page.mark()
+  await page.goto(`${config.appUrl}/programs`)
+  // program_public's contact and contributor (PROGRAM_CREDITS in breedgraph's read-policy scenario)
+  await page.waitFor(`document.querySelector('.contributions-list') && document.body.innerText.includes(${q(e.person_public.name)})`, 30000)
+  const text = await pageText()
+  for (const name of ['person_admin', 'person_public']) assert.ok(text.includes(e[name].name), `${name} is credited`)
+  await page.evaluate(`[...document.querySelectorAll('.contributions-list .person-attribution summary')]
+    .find((s) => s.textContent.includes(${q(e.person_public.name)})).click()`)
+  const holder = dataController('person_public').legal_name
+  await page.waitFor(`[...document.querySelectorAll('.person-attribution[open] .attribution-card')]
+    .some((c) => c.textContent.includes(${q(holder)}))`, 10000)
+  assert.ok(!(await page.evaluate(`[...document.querySelectorAll('main button')].some((b) => b.innerText.trim() === 'Contact')`)),
+    'only signed-in users can message a contact')
   assert.deepEqual(await failedRequests(mark), [])
 })
 

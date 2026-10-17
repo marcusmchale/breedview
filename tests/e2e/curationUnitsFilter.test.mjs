@@ -1,11 +1,15 @@
 // The units filter of the curation selection lists only units the selected datasets have records for, with counts.
-// env: STUDY to prefer a study by name; otherwise the first study found is used.
+// env: STUDY to prefer a study by name; otherwise the test database's replicates study, with several records per unit
+// (picked by the names of its program and trial, as which study is listed first depends on the generated names).
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, login, logout } from './lib/app.mjs'
+import { replicates } from './lib/fixture.mjs'
 
 const STUDY = process.env.STUDY || ''
+// the label to pick at each level of the studies picker: program, trial, study
+const PATH = STUDY ? [STUDY, STUDY, STUDY] : [replicates.program.name, replicates.trial.name, replicates.study.name]
 let browser, page
 before(async () => { browser = await launchBrowser(); page = browser.page; await login(page, config.adminUser, config.adminPassword) })
 after(async () => { await logout(page); await browser?.close() })
@@ -20,19 +24,20 @@ test('the units filter offers the units the selected datasets have records for',
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)
   await page.sleep(800)
-  // a study: program -> trial -> study, the first at each level unless one matches STUDY
+  // a study: program -> trial -> study, the one on PATH at each level, else the first
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await page.waitFor(levelLoaded, 30000)
-  for (let level = 0; level < 3; level++) {
+  let level = 0
+  for (; level < 2; level++) {
     if (!(await page.exists('.options-list .expand-button'))) break
     const labels = await optionLabels()
-    const pick = Math.max(labels.findIndex((l) => l.includes(STUDY)), 0)
+    const pick = Math.max(labels.findIndex((l) => l.includes(PATH[level])), 0)
     await page.evaluate(`[...document.querySelectorAll('.options-list .expand-button')][${pick}].click()`)
     await page.sleep(300)
     await page.waitFor(levelLoaded, 30000)
   }
   const studies = await optionLabels()
-  const study = Math.max(studies.findIndex((l) => l.includes(STUDY)), 0)
+  const study = Math.max(studies.findIndex((l) => l.includes(PATH[level])), 0)
   await page.evaluate(`[...document.querySelectorAll('.options-list .option-checkbox')][${study}].click()`)
   // Done only once the picker has the study, and on only once it has closed: a click while it re-renders is lost,
   // leaving the study list open for the option labels read below
