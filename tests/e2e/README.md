@@ -120,7 +120,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   grouping's required extent, prefilled from its type's default and not replacing a choice, and the note when an edit
   changes it; curation of `same_time` and `width` sectioned by the shared plate only, with each tree's replicates
   together in code order; times of day shown as given with nothing to save, and each tree's location from its field;
-  factor records in their own section first, at all times and levels; every analysis outcome in the manifest's `expected.cases`, a failed analysis reopened at its
+  factor records in their own section first, at all times and levels, and each variable row's applied Light from its
+  plot; a grouping with records refused deletion; every analysis outcome in the manifest's `expected.cases`, a failed analysis reopened at its
   replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
   It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
   20 analyses.
@@ -128,6 +129,10 @@ browser: that the pages render it, which actions they offer, the modals and labe
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to
   `child`; the grant is removed afterwards.
+- `bulkControl.test.mjs`, as the admin: the Bulk control counts by kind and release as the API gives them; a scale
+  study dataset's release set and set back; the unit tree opened past a root another team controls to the unit the
+  child team does; a scale tree and its units set to a release and back; a tree's control shared with the root team,
+  which renounces it. Every change is reverted, leaving Control history.
 
 ## Adding a test
 
