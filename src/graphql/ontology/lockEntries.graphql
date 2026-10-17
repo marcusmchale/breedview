@@ -1,0 +1,8 @@
+mutation ontologyLockEntries($entryIds: [ID!]!) {
+    ontologyLockEntries(ids: $entryIds) {
+        status
+        errors {
+            message
+        }
+    }
+}

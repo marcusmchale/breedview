@@ -77,6 +77,11 @@ const referencesList = computed(() => {
       <div class="card-title">
         <span class="type-badge">{{ typeName }}</span>
         <h2>{{ entry.name }}</h2>
+        <span
+          v-if="entry.locked"
+          class="lock-mark"
+          title="Locked: its name, description, source and defining relationships cannot change"
+        >🔒 Locked</span>
       </div>
       <div class="card-actions">
         <button v-if="showEditButtons" @click="$emit('edit-entry')" class="btn btn-sm btn-outline">
@@ -95,6 +100,12 @@ const referencesList = computed(() => {
             <p class="field-value">{{ field.value }}</p>
           </div>
         </div>
+        <!-- an entry from an external standard, credited as its source asks -->
+        <p v-if="entry.sourceUrl || entry.sourceAttribution" class="entry-source">
+          <span class="field-label">Source</span>
+          <a v-if="entry.sourceUrl" :href="entry.sourceUrl" target="_blank" rel="noopener">{{ entry.sourceUrl }}</a>
+          <span v-if="entry.sourceAttribution" class="attribution">{{ entry.sourceAttribution }}</span>
+        </p>
       </div>
 
       <!-- Related entries -->
@@ -322,5 +333,27 @@ const referencesList = computed(() => {
 
 .btn-outline:hover {
   background: #e3f2fd;
+}
+
+.lock-mark {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fff8e1;
+  color: #6d4c00;
+  white-space: nowrap;
+}
+
+.entry-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+}
+
+.entry-source .attribution {
+  color: #555;
 }
 </style>

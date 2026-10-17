@@ -55,6 +55,12 @@ export const ontologyLabelsMap = {
     code: 'OM',
     color: '#FF006E'  // Hot magenta
   },
+  ROLE: {
+    text: 'Role',
+    PascalCase: 'Role',
+    code: 'Rol',
+    color: '#B5838D'  // Dusty rose
+  },
   SCALE: {
     text: 'Scale',
     PascalCase: 'Scale',

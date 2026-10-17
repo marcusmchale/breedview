@@ -40,6 +40,10 @@ import CREATE_RECORD_GROUP_TYPE from '@/graphql/ontology/createRecordGroupType.g
 import UPDATE_RECORD_GROUP_TYPE from '@/graphql/ontology/updateRecordGroupType.graphql'
 import CREATE_LAYOUT_TYPE from '@/graphql/ontology/createLayoutType.graphql'
 import UPDATE_LAYOUT_TYPE from '@/graphql/ontology/updateLayoutType.graphql'
+import CREATE_ROLE from '@/graphql/ontology/createRole.graphql'
+import UPDATE_ROLE from '@/graphql/ontology/updateRole.graphql'
+import LOCK_ENTRIES from '@/graphql/ontology/lockEntries.graphql'
+import UNLOCK_ENTRIES from '@/graphql/ontology/unlockEntries.graphql'
 
 // Helper: wrap a raw mutation response into { status, errors }
 function extractResult(response, key) {
@@ -310,6 +314,31 @@ export function useMutateOntology({ versionId, view }) {
     return extractResult(response, 'ontologyUpdateLayoutType')
   }
 
+  const { mutate: createRoleMutation } = useMutation(CREATE_ROLE)
+  const { mutate: updateRoleMutation } = useMutation(UPDATE_ROLE)
+  const createRole = async (variables, controlTeamId) => {
+    const response = await createRoleMutation({ ...variables, controlTeamId })
+    return extractResult(response, 'ontologyCreateRole')
+  }
+  const updateRole = async (variables) => {
+    const response = await updateRoleMutation(variables)
+    return extractResult(response, 'ontologyUpdateRole')
+  }
+
+  // Locking (ontology admins): a locked entry keeps its name, description, source and defining relationships
+  const { mutate: lockMutation } = useMutation(LOCK_ENTRIES)
+  const { mutate: unlockMutation } = useMutation(UNLOCK_ENTRIES)
+  const setLocked = async (entryIds, locked) => {
+    const response = await (locked ? lockMutation : unlockMutation)({ entryIds })
+    const result = extractResult(response, locked ? 'ontologyLockEntries' : 'ontologyUnlockEntries')
+    if (result.status === 'SUCCESS') {
+      entryIds.forEach((id) => updateCache({ id, versionId, view, locked }))
+    }
+    return result
+  }
+  const lockEntries = (entryIds) => setLocked(entryIds, true)
+  const unlockEntries = (entryIds) => setLocked(entryIds, false)
+
   return {
     createTerm, updateTerm,
     createSubject, updateSubject,
@@ -326,6 +355,8 @@ export function useMutateOntology({ versionId, view }) {
     createDesign, updateDesign,
     createRecordGroupType, updateRecordGroupType,
     createLayoutType, updateLayoutType,
+    createRole, updateRole,
+    lockEntries, unlockEntries,
     deprecateEntries, deprecateLoading, deprecateError,
     cancelDeprecateEntries, cancelDeprecateLoading, cancelDeprecateError,
     commitVersionMutation, commitVersionLoading, commitVersionError,

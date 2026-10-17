@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import { isLockedField } from '@/composables/ontology/ontologyEntryConfig'
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
 const props = defineProps({
@@ -21,13 +22,18 @@ const props = defineProps({
     type: String,
     default: null
   },
+  // ontology admins may lock and unlock entries
+  canLock: {
+    type: Boolean,
+    default: false
+  },
   loading: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['submit', 'deprecate', 'cancelDeprecate', 'close'])
+const emit = defineEmits(['submit', 'deprecate', 'cancelDeprecate', 'lock', 'unlock', 'close'])
 
 const isUpdateMode = computed(() => props.entry !== null)
 const title = computed(() =>
@@ -211,6 +217,10 @@ const handleSubmit = () => {
 const phase = computed(() => props.entry?.phase ?? null)
 const canDeprecate = computed(() => isUpdateMode.value && ['DRAFT', 'ACTIVE'].includes(phase.value))
 const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 'DEPRECATED')
+
+// ── Locked entries ────────────────────────────────────────────────────────────
+const isLocked = computed(() => isUpdateMode.value && !!props.entry?.locked)
+const lockedOut = (field) => isLocked.value && isLockedField(props.config, field)
 </script>
 
 <template>
@@ -232,6 +242,11 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
             v-model="formData"
             @submit="handleSubmit"
           >
+            <p v-if="isLocked" class="locked-note">
+              🔒 This entry is locked: its name, description, source and defining relationships can't change, and it
+              can't be deprecated. Its synonyms, references, parents, children and terms stay editable.
+            </p>
+
             <!-- Rendered fields -->
             <template v-for="field in config.fields" :key="field.name">
 
@@ -244,6 +259,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
                     :key="option.value"
                     type="button"
                     class="add-axis-btn"
+                    :disabled="lockedOut(field)"
                     @click="addAxis(field.name, option.value)"
                   >
                     + {{ option.label }}
@@ -272,6 +288,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
               <!-- Enum select -->
               <FormKit
                 v-else-if="field.type === 'enumselect'"
+                :disabled="lockedOut(field)"
                 type="select"
                 :name="field.name"
                 :label="field.label"
@@ -283,6 +300,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
               <!-- Ordered multiselect (selection-order preserved) -->
               <FormKit
                 v-else-if="field.type === 'multiselect' && field.ordered"
+                :disabled="lockedOut(field)"
                 type="select"
                 :name="field.name"
                 :label="getFieldLabel(field)"
@@ -294,6 +312,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
               <!-- Standard multiselect -->
               <FormKit
                 v-else-if="field.type === 'multiselect'"
+                :disabled="lockedOut(field)"
                 type="select"
                 :name="field.name"
                 :label="field.label"
@@ -304,6 +323,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
               <!-- Singleselect -->
               <FormKit
                 v-else-if="field.type === 'singleselect'"
+                :disabled="lockedOut(field)"
                 type="select"
                 :name="field.name"
                 :label="field.label"
@@ -314,6 +334,7 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
               <!-- Text / textarea -->
               <FormKit
                 v-else
+                :disabled="lockedOut(field)"
                 :type="field.type"
                 :name="field.name"
                 :label="field.label"
@@ -361,7 +382,8 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
                 v-if="canDeprecate"
                 type="button"
                 class="btn btn-danger"
-                :disabled="loading"
+                :disabled="loading || isLocked"
+                :title="isLocked ? 'A locked entry cannot be deprecated' : ''"
                 @click="emit('deprecate', entry.id)"
               >
                 Deprecate
@@ -374,6 +396,15 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
                 @click="emit('cancelDeprecate', entry.id)"
               >
                 Cancel Deprecation
+              </button>
+              <button
+                v-if="isUpdateMode && canLock"
+                type="button"
+                class="btn btn-secondary"
+                :disabled="loading"
+                @click="emit(isLocked ? 'unlock' : 'lock', entry.id)"
+              >
+                {{ isLocked ? 'Unlock' : 'Lock' }}
               </button>
             </div>
           </FormKit>
@@ -632,6 +663,16 @@ const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.locked-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #6d4c00;
 }
 
 .btn:disabled {

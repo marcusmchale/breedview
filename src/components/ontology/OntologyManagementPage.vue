@@ -51,6 +51,7 @@ const handleCommitSuccess = async () => {
       :versionId="version.id"
       :editor="canEdit"
       :creator="canCreate"
+      :admin="user?.ontologyRole === 'ADMIN'"
       :key="version.id"
     />
 

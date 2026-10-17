@@ -87,6 +87,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       multi('locationTypeIds', 'Location Types', 'LocationType', false),
       multi('layoutTypeIds', 'Layout Types', 'LayoutType', false),
       multi('designIds', 'Designs', 'Design', false),
+      multi('roleIds', 'Roles', 'Role', false),
       multi('recordGroupTypeIds', 'Record Group Types', 'RecordGroupType', false)
     ],
     processCreate: (formData, referenceIds) => ({
@@ -109,6 +110,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         locationTypeIds: processIdArray(formData.locationTypeIds),
         layoutTypeIds: processIdArray(formData.layoutTypeIds),
         designIds: processIdArray(formData.designIds),
+        roleIds: processIdArray(formData.roleIds),
         recordGroupTypeIds: processIdArray(formData.recordGroupTypeIds)
       }
     }),
@@ -133,6 +135,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         locationTypeIds: formData.locationTypeIds ?? [],
         layoutTypeIds: formData.layoutTypeIds ?? [],
         designIds: formData.designIds ?? [],
+        roleIds: formData.roleIds ?? [],
         recordGroupTypeIds: formData.recordGroupTypeIds ?? []
       }
     }),
@@ -636,6 +639,39 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
 
 
 
+  Role: {
+    typename: 'Role',
+    createTitle: 'Create Role',
+    updateTitle: 'Update Role',
+    fields: [
+      nameField,
+      descriptionField,
+      multi('parentIds', 'Parent Roles', 'Role'),
+      multi('childIds', 'Child Roles', 'Role', true, 'children'),
+      multi('termIds', 'Terms', 'Term', false),
+    ],
+    processCreate: (formData, referenceIds) => ({
+      role: {
+        name: formData.name,
+        description: formData.description || undefined,
+        referenceIds: referenceIds?.length ? referenceIds : undefined,
+        parentIds: processIdArray(formData.parentIds),
+        childIds: processIdArray(formData.childIds),
+        termIds: processIdArray(formData.termIds),
+      }
+    }),
+    processUpdate: (entry, formData, referenceIds) => ({
+      role: {
+        id: entry.id,
+        name: formData.name,
+        description: formData.description || undefined,
+        referenceIds: referenceIds?.length ? referenceIds : [],
+        parentIds: formData.parentIds ?? [],
+        childIds: formData.childIds ?? [],
+        termIds: formData.termIds ?? [],
+      }
+    }),
+  },
   LayoutType: {
     typename: 'LayoutType',
     createTitle: 'Create Layout Type',
@@ -672,4 +708,38 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       }
     }),
   },
+}
+
+/*
+ * Every entry may be taken from an external standard or ontology: its source URL and how to attribute it (the CRediT
+ * roles' licence requires the attribution). Added to each type's form after the description, and sent with its input;
+ * on update an empty value clears it.
+ */
+const sourceFields = [
+  { type: 'text', name: 'sourceUrl', label: 'Source URL', placeholder: 'https://… (for an entry from an external standard)', locks: true },
+  { type: 'text', name: 'sourceAttribution', label: 'Source attribution', placeholder: 'How to credit the source, e.g. its licence', locks: true }
+]
+for (const config of Object.values(ONTOLOGY_ENTRY_CONFIGS)) {
+  const at = config.fields.indexOf(descriptionField) + 1
+  config.fields.splice(at, 0, ...sourceFields)
+  const { processCreate, processUpdate } = config
+  const withSource = (variables, formData, keep) => {
+    const input = Object.values(variables)[0]
+    input.sourceUrl = formData.sourceUrl?.trim() || (keep ? '' : undefined)
+    input.sourceAttribution = formData.sourceAttribution?.trim() || (keep ? '' : undefined)
+    return variables
+  }
+  config.processCreate = (formData, ...rest) => withSource(processCreate(formData, ...rest), formData, false)
+  config.processUpdate = (entry, formData, ...rest) => withSource(processUpdate(entry, formData, ...rest), formData, true)
+}
+
+/*
+ * A locked entry keeps its name, abbreviation, description and source, and the relationships that define it; its
+ * synonyms, references, parents, children and terms stay editable (a Term's relationships all point to it, so stay too)
+ */
+const OPEN_WHEN_LOCKED = new Set(['parentIds', 'childIds', 'termIds'])
+export const isLockedField = (config, field) => {
+  if (field.name === 'name' || field.name === 'description' || field.locks) return true
+  if (config.typename === 'Term') return false
+  return (field.type === 'multiselect' || field.type === 'singleselect') && !OPEN_WHEN_LOCKED.has(field.name)
 }

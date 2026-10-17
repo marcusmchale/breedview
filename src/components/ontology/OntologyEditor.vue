@@ -21,6 +21,11 @@ const props = defineProps({
   creator: {
     type: Boolean,
     default: false
+  },
+  // ontology admins lock and unlock entries
+  admin: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -102,6 +107,24 @@ const handleSubmit = async ({ formData, referenceIds, controlTeamId }) => {
   }
 }
 
+// ── Lock / Unlock ─────────────────────────────────────────────────────────────
+const handleSetLocked = async (entryId, locked) => {
+  mutationLoading.value = true
+  mutationError.value = null
+  try {
+    const { status, errors } = await (locked ? mutations.lockEntries : mutations.unlockEntries)([entryId])
+    if (status === 'SUCCESS') {
+      closeModal()
+    } else {
+      mutationError.value = errors?.map(e => e.message).join(', ') ?? (locked ? 'Locking failed' : 'Unlocking failed')
+    }
+  } catch (err) {
+    mutationError.value = err.message
+  } finally {
+    mutationLoading.value = false
+  }
+}
+
 // ── Deprecate / Cancel Deprecate ──────────────────────────────────────────────
 const handleDeprecate = async (entryId) => {
   mutationLoading.value = true
@@ -171,6 +194,9 @@ const handleNodeRightClick = (node) => {
       :ontology-entries="ontology?.entries ?? []"
       :entry="activeEntry"
       :loading="mutationLoading"
+      :can-lock="admin"
+      @lock="handleSetLocked($event, true)"
+      @unlock="handleSetLocked($event, false)"
       @submit="handleSubmit"
       @deprecate="handleDeprecate"
       @cancel-deprecate="handleCancelDeprecate"

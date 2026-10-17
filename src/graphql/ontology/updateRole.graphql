@@ -1,0 +1,12 @@
+mutation ontologyUpdateRole(
+    $role: RoleUpdate!
+) {
+    ontologyUpdateRole(
+        role: $role,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

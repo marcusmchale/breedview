@@ -1,0 +1,12 @@
+mutation ontologyCreateRole(
+    $role: RoleInput!
+) {
+    ontologyCreateRole(
+        role: $role,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

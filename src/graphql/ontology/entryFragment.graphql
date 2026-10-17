@@ -7,6 +7,9 @@ fragment OntologyEntryFields on OntologyNodeInterface {
 
     name
     description
+    sourceUrl
+    sourceAttribution
+    locked
 
     references {
         id description
@@ -26,6 +29,7 @@ fragment OntologyEntryFields on OntologyNodeInterface {
         locationTypes { id versionId view name }
         layoutTypes { id versionId view name }
         designs { id versionId view name }
+        roles { id versionId view name }
     }
     ... on OntologyRelationships {
         parents { id versionId view name }
