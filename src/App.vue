@@ -86,16 +86,13 @@ onMounted(async () => {
     <nav v-if="!hideNavigation" class="navbar">
       <div class="nav-container">
         <div class="nav-brand">
-          <router-link to="/home" class="brand-link">
+          <router-link to="/profile" class="brand-link">
             BreedView
           </router-link>
         </div>
 
         <div class="nav-menu">
           <!-- anonymous users see only the pages open to them (allowAnonymous in the router) -->
-          <router-link v-if="isAuthenticated" to="/affiliations" class="nav-link" active-class="active">
-            Affiliations
-          </router-link>
           <router-link to="/people" class="nav-link" active-class="active">
             People
           </router-link>

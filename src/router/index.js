@@ -1,10 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/composables/user/useAuthStore'
-import HomePage from '../components/HomePage.vue'
 import LoginPage from '../components/user/LoginPage.vue'
 import ProgramsPage from '../components/programs/ProgramsPage.vue'
 import RegistrationPage from '../components/user/RegistrationPage.vue'
-import AffiliationsPage from '../components/affiliations/AffiliationsPage.vue'
 import ResetPassword from '../components/user/ResetPassword.vue'
 import VerifyEmail from '../components/user/VerifyEmail.vue'
 import OntologyManagementPage from '../components/ontology/OntologyManagementPage.vue'
@@ -25,16 +23,7 @@ const routes = [
   {
     path: '/',
     name: 'Root',
-    redirect: '/home'
-  },
-  {
-    path: '/home',
-    name: 'Home',
-    component: HomePage,
-    meta: {
-      requiresAuth: true,
-      title: 'Home'
-    }
+    redirect: '/profile'
   },
   {
     path: '/login',
@@ -53,15 +42,6 @@ const routes = [
     meta: {
       title: 'Register',
       hideNavigation: true
-    }
-  },
-  {
-    path: '/affiliations',
-    name: 'EditAffiliations',
-    component: AffiliationsPage,
-    meta: {
-      requiresAuth: true,
-      title: 'Edit Affiliations'
     }
   },
   {
@@ -218,7 +198,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    redirect: '/home'
+    redirect: '/profile'
   }
 ]
 
@@ -279,8 +259,8 @@ router.beforeEach(async (to, from, next) => {
         // Check if already authenticated
         const authSuccess = await authenticate()
         if (authSuccess) {
-          // Already logged in, redirect to intended page or home
-          const redirectPath = to.query.redirect || '/home'
+          // Already logged in, redirect to intended page or the profile
+          const redirectPath = to.query.redirect || '/profile'
           next(redirectPath)
           return
         }

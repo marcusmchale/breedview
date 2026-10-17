@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useMyPersonQuery } from '@/composables/people/myPersonQuery'
@@ -15,6 +15,7 @@ import PersonCard from '@/components/people/PersonCard.vue'
 import PersonFormModal from '@/components/people/PersonFormModal.vue'
 import ErasePersonModal from '@/components/people/ErasePersonModal.vue'
 import ClaimPersonModal from '@/components/people/ClaimPersonModal.vue'
+import TeamsPanel from '@/components/teams/TeamsPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +39,13 @@ const personError = ref('')
 const orcidUnavailable = ref('')
 
 const orcidLink = computed(() => orcidUrl(myPerson.value?.orcid))
+
+// Links to a section, e.g. /profile#teams from the controller modal, scroll to it
+onMounted(async () => {
+  if (!route.hash) return
+  await nextTick()
+  document.getElementById(route.hash.slice(1))?.scrollIntoView()
+})
 
 // Outcome of the ORCID redirect, passed back by the /orcid page
 watch(() => route.query.orcid, (outcome) => {
@@ -232,6 +240,17 @@ const formatDate = (value) => {
       </template>
     </section>
 
+    <section id="teams" class="profile-section">
+      <div class="section-header">
+        <h3>Teams</h3>
+      </div>
+      <p class="section-intro text-muted">
+        Every team tree, with the teams you belong to below its root. Request an affiliation to a team to read, write,
+        curate or administer what it controls.
+      </p>
+      <TeamsPanel />
+    </section>
+
     <!-- Danger zone -->
     <section class="profile-section danger-zone">
       <div class="section-header">
@@ -282,6 +301,8 @@ const formatDate = (value) => {
 }
 
 .profile-section {
+  /* clear of the fixed navigation when linked to, e.g. #teams */
+  scroll-margin-top: 100px;
   margin-bottom: 24px;
   padding: 16px 20px;
   background: #f8f9fa;

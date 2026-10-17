@@ -193,8 +193,8 @@ const closeModal = () => {
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
             <template v-if="missingLegalEntity">
-              An admin of the organisation can declare it on the
-              <router-link to="/affiliations">Affiliations</router-link> page.
+              An admin of the root team can declare it under
+              <router-link :to="{ path: '/profile', hash: '#teams' }">Teams</router-link> on the profile page.
             </template>
           </div>
 
