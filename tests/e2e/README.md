@@ -21,7 +21,8 @@ scripts used to check the people and controls work in October 2026.
 
 Typing into the page uses the native value setter followed by `input` and `change` events, so Vue and FormKit see the
 change as they would from a keyboard. Selectors are the app's own classes and input names; when a component changes,
-the test that uses it changes too.
+the test that uses it changes too. A native dialog would block the page: the driver accepts every dialog (a confirm is
+confirmed) and reports an alert's message among the console errors.
 
 ## Prerequisites
 
@@ -30,6 +31,8 @@ the test that uses it changes too.
    `VUE_PORT` set to the dev server's port, so emailed links open the app. MailHog itself on 1025/8025.
 2. The dev server: `npm run dev`. To test against a backend on another port: `VITE_API_HOST=http://localhost:8001 npm run dev`.
 3. Google Chrome installed (`CHROME_BIN` if it is not `google-chrome` on the path).
+4. For `recordGroupExtent.test.mjs`, the analysis worker: analyses past validation stay queued without it. From
+   breedgraph, with its env loaded: `cd src && ../.venv/bin/python -m analysis_worker.main`.
 
 ## The test database
 
@@ -110,6 +113,14 @@ browser: that the pages render it, which actions they offer, the modals and labe
   Person with its hidden team stood in for; Edit and Erase follow curate and admin access and the linked user.
 - `accountsAccess.test.mjs`: in the controller modal, writes are attributed to the writer's Person where the viewer
   cannot see the account, or to "an account without a Person record".
+- `recordGroupExtent.test.mjs`, on the replicates study (manifest `replicates`), signed in as the writer, who curates
+  it: a record group type's optional default extent on its card and in its form; each grouping's extent badge; a new
+  grouping's required extent, prefilled from its type's default and not replacing a choice, and the note when an edit
+  changes it; curation of `same_time` and `width` sectioned by the shared plate only, with each tree's replicates
+  together in code order; every analysis outcome in the manifest's `expected.cases`, a failed analysis reopened at its
+  replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
+  It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
+  20 analyses.
 - `writeActions.test.mjs`: write actions follow the backend's checks (`composables/controls/useWriteAccess.js`):
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to

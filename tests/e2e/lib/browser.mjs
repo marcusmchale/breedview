@@ -59,6 +59,9 @@ async function connectPage(port) {
         msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result)
       } else if (msg.method) {
         events.push(msg)
+        // a native dialog blocks the page, and with it every evaluate, until it is answered: accept it (a confirm is
+        // confirmed); an alert is reported among the console errors
+        if (msg.method === 'Page.javascriptDialogOpening') send('Page.handleJavaScriptDialog', { accept: true }).catch(() => {})
       }
     }
     for (const domain of ['Page', 'Runtime', 'Network', 'Log']) await send(`${domain}.enable`)
@@ -163,8 +166,11 @@ async function connectPage(port) {
       return [...new Set(failures)]
     },
     consoleErrors: (since = 0) => events.slice(since)
-      .filter((e) => e.method === 'Runtime.exceptionThrown' || (e.method === 'Runtime.consoleAPICalled' && e.params.type === 'error'))
-      .map((e) => e.method === 'Runtime.exceptionThrown' ? e.params.exceptionDetails.exception?.description : e.params.args.map((a) => a.value ?? a.description).join(' ')),
+      .filter((e) => e.method === 'Runtime.exceptionThrown' || (e.method === 'Runtime.consoleAPICalled' && e.params.type === 'error') ||
+        (e.method === 'Page.javascriptDialogOpening' && e.params.type === 'alert'))
+      .map((e) => e.method === 'Runtime.exceptionThrown' ? e.params.exceptionDetails.exception?.description
+        : e.method === 'Page.javascriptDialogOpening' ? `alert: ${e.params.message}`
+          : e.params.args.map((a) => a.value ?? a.description).join(' ')),
     close: () => ws.close()
   }
 }
