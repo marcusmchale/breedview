@@ -5,7 +5,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, flat } from './lib/app.mjs'
+import { config, flat, loginAs } from './lib/app.mjs'
 import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
@@ -29,6 +29,32 @@ test('pages that need an account still send anonymous users to log in', async ()
   await page.goto(`${config.appUrl}/profile`)
   await page.waitFor(`location.pathname === '/login'`, 30000)
   assert.match(await page.url(), /redirect=(%2F|\/)profile/)
+})
+
+test('home, and an address that is no page, are the programs for anonymous users', async () => {
+  for (const path of ['/', '/no-such-page']) {
+    await page.goto(`${config.appUrl}${path}`)
+    await page.waitFor(`location.pathname === '/programs'`, 30000)
+  }
+})
+
+test('logging out on an open page stays there, showing only what is public; elsewhere it leaves for the programs', async () => {
+  const q = JSON.stringify
+  await loginAs(page, 'writer')
+  await page.goto(`${config.appUrl}/programs`)
+  await page.waitFor(`document.body.innerText.includes(${q(e.program.name)})`, 30000)
+  await page.click('.nav-logout')
+  await page.waitFor(`document.querySelector('.nav-login')`, 15000)
+  assert.equal(new URL(await page.url()).pathname, '/programs', 'still on the programs')
+  await page.waitFor(`document.body.innerText.includes(${q(e.program_public.name)})`, 30000)
+  await page.sleep(500)
+  assert.ok(!(await pageText()).includes(e.program.name), 'the private program is no longer shown')
+
+  await loginAs(page, 'writer')
+  await page.goto(`${config.appUrl}/profile`)
+  await page.waitFor(`document.querySelector('.nav-logout')`, 30000)
+  await page.click('.nav-logout')
+  await page.waitFor(`location.pathname === '/programs' && document.querySelector('.nav-login')`, 15000)
 })
 
 test('programs: the public studies below placeholders, without badges or write actions', async () => {

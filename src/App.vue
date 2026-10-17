@@ -40,30 +40,35 @@ const clearApolloCache = async () => {
   }
 }
 
+// Signed out, a page open to everyone stays, read again as an anonymous user would see it; any other page leaves for
+// the programs. The cache held what the account could read, so it is cleared either way.
+const leaveSignedOut = async () => {
+  clearAuthState()
+  clearCsrfToken()
+  if (route.meta?.allowAnonymous) {
+    try {
+      // clears the cache and reads the page's queries again
+      await client.resetStore()
+    } catch (error) {
+      console.error('Failed to read the page again after logout:', error)
+    }
+  } else {
+    await clearApolloCache()
+    await router.push('/programs')
+  }
+}
+
 const logout = async () => {
   try {
     const response = await logoutMutation()
-    if (response?.data?.accountsLogout?.status === 'SUCCESS') {
-      // Successfully logged out, clear auth state and redirect
-      console.log('Logout successful')
-      clearAuthState()
-      clearCsrfToken()
-      await router.push('/login')
-    } else {
-      // Logout failed, but clear auth state and redirect anyway for security
+    if (response?.data?.accountsLogout?.status !== 'SUCCESS') {
+      // signed out here all the same
       console.error('Logout failed:', response?.data?.accountsLogout?.errors)
-      clearAuthState()
-      clearCsrfToken()
-      await clearApolloCache()
-      await router.push('/login')
     }
   } catch (error) {
     console.error('Logout failed:', error)
-    // Clear auth state and redirect even if logout mutation fails
-    clearAuthState()
-    clearCsrfToken()
-    await router.push('/login')
   }
+  await leaveSignedOut()
 }
 
 onMounted(async () => {
@@ -86,7 +91,7 @@ onMounted(async () => {
     <nav v-if="!hideNavigation" class="navbar">
       <div class="nav-container">
         <div class="nav-brand">
-          <router-link to="/profile" class="brand-link">
+          <router-link to="/" class="brand-link">
             BreedView
           </router-link>
         </div>

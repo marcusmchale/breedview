@@ -18,9 +18,14 @@ import AccessControlPage from '@/components/controls/AccessControlPage.vue'
 
 const routes = [
   {
+    // home: the profile when signed in, otherwise the programs, which anyone may read
     path: '/',
     name: 'Root',
-    redirect: '/profile'
+    component: { render: () => null },
+    beforeEnter: async () => {
+      const signedIn = await useAuthStore().authenticate().catch(() => false)
+      return signedIn ? '/profile' : '/programs'
+    }
   },
   {
     path: '/login',
@@ -165,7 +170,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    redirect: '/profile'
+    redirect: '/'
   }
 ]
 

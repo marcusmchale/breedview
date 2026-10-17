@@ -70,8 +70,9 @@ export async function loginAs(page, viewer) {
 }
 
 // Navigating away before the logout request has finished would cancel it and leave the session signed in, so wait
-// until the app has left for the login page. The app goes there even when its logout request fails (e.g. on a CSRF
-// token replaced meanwhile), so check the session ended, and end it through the API if not.
+// until the app shows the signed-out navigation (it stays on a page open to everyone, or goes to the programs). It
+// does so even when its logout request fails (e.g. on a CSRF token replaced meanwhile), so check the session ended,
+// and end it through the API if not.
 export async function logout(page) {
   if (await page.exists('.nav-logout')) {
     await page.click('.nav-logout')
