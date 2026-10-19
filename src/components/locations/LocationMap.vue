@@ -23,7 +23,7 @@ import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
-const { locationId, selectedLocation, childLocations, regionCountry } = useLocationMapQueries()
+const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry } = useLocationMapQueries()
 
 // Place searches go through the API, which needs an account (breedgraph docs/front-end-changes.md §19)
 const { isAuthenticated } = useAuthStore()
@@ -474,7 +474,7 @@ const displayChildLocations = () => {
     map.addLayer(displayedItems)
   }
 
-  childLocations.value.forEach(child => {
+  placedChildren.value.forEach(child => {
     if (!child?.coordinates) {
       return
     }
@@ -537,6 +537,29 @@ const coordinatePoints = (coordinates) => (coordinates ?? [])
   .map((coord) => [Number(coord.latitude ?? coord.lat), Number(coord.longitude ?? coord.lng)])
   .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng))
 
+// The selected location's children (those of the previous selection may still be loaded), and those with coordinates
+const selectedChildren = computed(() => (childLocations.value ?? [])
+  .filter((child) => child && String(child.parent?.id) === String(selectedLocation.value?.id)))
+const placedChildren = computed(() => selectedChildren.value.filter((child) => coordinatePoints(child.coordinates).length))
+
+// Below the map: how many of the selected location's children it shows, and how many have no coordinates
+const childrenSummary = computed(() => {
+  const name = selectedLocation.value?.name
+  const all = selectedChildren.value.length
+  const placed = placedChildren.value.length
+  if (!all) {
+    return selectedLocation.value?.children?.length && childLocationsLoading.value
+      ? `Loading the locations below ${name}…`
+      : `No locations below ${name}`
+  }
+  if (!placed) {
+    return all === 1 ? `The location below ${name} has no coordinates` : `None of the ${all} locations below ${name} have coordinates`
+  }
+  if (placed === all) return `Showing the ${all === 1 ? 'location' : `${all} locations`} below ${name}`
+  const unplaced = all - placed
+  return `Showing ${placed} of the ${all} locations below ${name}; ${unplaced === 1 ? '1 has' : `${unplaced} have`} no coordinates`
+})
+
 const fitPoints = (map, points, maxZoom) => {
   if (points.length === 1) {
     map.setView(points[0], Math.max(map.getZoom(), POINT_ZOOM), { animate: false })
@@ -586,10 +609,7 @@ const focusSelection = async () => {
     return
   }
   const own = coordinatePoints(location.coordinates)
-  // children of the previous selection may still be shown while the new ones load
-  const children = (childLocations.value ?? [])
-    .filter((child) => String(child?.parent?.id) === String(location.id))
-    .flatMap((child) => coordinatePoints(child.coordinates))
+  const children = placedChildren.value.flatMap((child) => coordinatePoints(child.coordinates))
   if (own.length || children.length) {
     fitPoints(map, [...own, ...children], children.length ? CHILDREN_MAX_ZOOM : SHAPE_MAX_ZOOM)
   } else if (regionCountry.value) {
@@ -728,11 +748,8 @@ watch(() => regionCountry.value?.code, focusSelection)
       <p v-if="!selectedLocationId" class="help-text">
         Select a location from the tree to view it on the map
       </p>
-      <p v-else-if="!childLocations || childLocations.length === 0" class="help-text">
-        No child locations with coordinates to display
-      </p>
-      <p v-else class="help-text">
-        Showing {{ childLocations.length }} location{{ childLocations.length !== 1 ? 's' : '' }}
+      <p v-else-if="selectedLocation" class="help-text">
+        {{ childrenSummary }}
       </p>
     </div>
   </div>

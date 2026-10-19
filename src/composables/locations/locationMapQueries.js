@@ -43,7 +43,8 @@ export function useLocationMapQueries() {
         return validChildLocationIds.value.length > 0
     })
     const {
-        result: childLocationsResult
+        result: childLocationsResult,
+        loading: childLocationsLoading
     } = useQuery(
         LOCATIONS_QUERY,
         childLocationsQueryVariables,
@@ -94,6 +95,7 @@ export function useLocationMapQueries() {
         locationId,
         selectedLocation,
         childLocations,
+        childLocationsLoading,
         regionCountry
     }
 }
