@@ -21,6 +21,16 @@ async function loadTiles() {
   return tilesJson
 }
 
+/**
+ * The extent to show a country by, [[south, west], [north, east]] around its main parts, from the outline the server
+ * fetched its maps with (tiles.json countries); null when it has none, e.g. where no detailed maps are fetched. East
+ * can be above 180 for a country across the antimeridian.
+ */
+export async function countryBounds(code) {
+  const tiles = await loadTiles()
+  return tiles?.countries?.[code]?.bounds ?? null
+}
+
 /** [[south, west], [north, east]] of a web map tile */
 function tileBounds(z, x, y) {
   const n = 2 ** z

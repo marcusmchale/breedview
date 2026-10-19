@@ -5,6 +5,7 @@ query locationsGeocodeCountry($name: String!) {
             name
             latitude
             longitude
+            bounds
         }
         errors {
             message

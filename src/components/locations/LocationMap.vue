@@ -17,7 +17,7 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 import { useLocationGeocoding } from '@/composables/locations/useLocationGeocoding'
 import { useLocationSearch } from '@/composables/locations/locationSearch'
-import { addBaseMap } from '@/composables/locations/baseMap'
+import { addBaseMap, countryBounds } from '@/composables/locations/baseMap'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
@@ -48,7 +48,7 @@ watch(() => props.selectedLocationId, (newSelectedLocationId) => {
 
 // drawn-change: emits the drawn coordinates (or null when nothing is drawn) so the location card can save them
 // show-card: the user asked to go to the location card to save the drawn shape
-const emit = defineEmits(['update-coordinates', 'drawn-change', 'show-card', 'location-selected'])
+const emit = defineEmits(['drawn-change', 'show-card', 'location-selected'])
 
 // Map state
 // Create a custom emoji icon for markers
@@ -242,6 +242,11 @@ const onMapReady = () => {
     }
 
     map.setView(center.value, zoom.value, { animate: false })
+    // a location selected before the map was ready
+    if (selectedLocation.value) {
+      displayLocationCoordinates(selectedLocation.value)
+      focusSelection()
+    }
 
     // Initialize Geoman controls (similar to leaflet-draw), shown only while drawable
     map.pm.addControls({
@@ -439,15 +444,6 @@ const displayLocationCoordinates = (location) => {
     displayedItems.addLayer(polygon)
     polygon.bindPopup(`<strong>${location.name}</strong><br/>Polygon with ${coords.length} points`)
   }
-
-  // Force map to show the displayed items
-  const bounds = displayedItems.getBounds()
-  if (bounds.isValid()) {
-    map.fitBounds(bounds, {
-      //padding: [50, 50],
-      maxZoom: zoom.value
-    })
-  }
 }
 
 // Helper function to display child locations on map
@@ -523,154 +519,96 @@ const displayChildLocations = () => {
 }
 
 
-/**
- * Check if location has coordinates and update if missing
- */
-const updateCoordinatesIfNeeded = async (location, geocodedCoords) => {
-  if (!geocodedCoords || !location?.id) {
-    return false
-  }
+// How far the map zooms to show a selected location: detailed maps start a few zooms above the world file's
+const POINT_ZOOM = 14  // a single point, unless already zoomed in further
+const SHAPE_MAX_ZOOM = 17
+const CHILDREN_MAX_ZOOM = 14
 
-  try {
-    // Check if location already has coordinates
-    if (location.coordinates?.latitude && location.coordinates?.longitude) {
-      return false
-    }
+// [latitude, longitude] of valid coordinates
+const coordinatePoints = (coordinates) => (coordinates ?? [])
+  .map((coord) => [Number(coord.latitude ?? coord.lat), Number(coord.longitude ?? coord.lng)])
+  .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng))
 
-    // Prepare coordinates as GeoCoordinateInput list
-    const coordinatesInput = [{
-      latitude: geocodedCoords.latitude,
-      longitude: geocodedCoords.longitude
-    }]
-
-  // Emit the update-coordinates event with the collected data
-    emit('update-coordinates', {
-      locationId: props.selectedLocationId,
-      coordinates: coordinatesInput
-    })
-  } catch (err) {
-    console.error('Error updating coordinates:', err)
-    return false
+const fitPoints = (map, points, maxZoom) => {
+  if (points.length === 1) {
+    map.setView(points[0], Math.max(map.getZoom(), POINT_ZOOM), { animate: false })
+  } else {
+    map.fitBounds(points, { padding: [40, 40], maxZoom, animate: false })
   }
 }
 
+// Nominatim's box for a country's name, asked once per country, for countries without an extent in tiles.json
+const geocodedCountries = new Map()
 
-// Fit map bounds to show all child locations
-const fitBoundsToChildren = () => {
-
-  if (!mapRef.value?.leafletObject || childLocations.value?.length === 0) return
-
-  // Collect all lat/lng pairs from all children's coordinate arrays
-  const validPoints = []
-
-  childLocations.value?.forEach(child => {
-    if (child && child.coordinates && Array.isArray(child.coordinates)) {
-      // Each child.coordinates is an array of Geocoordinate objects
-      child.coordinates.forEach(coord => {
-        const lat = Number(coord.latitude ?? coord.lat)
-        const lng = Number(coord.longitude ?? coord.lng)
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          validPoints.push({latitude:lat, longitude:lng})
-        }
-      })
-    }
-  })
-
-  // If there are no valid points, do not change the map
-  if (validPoints.length === 0) {
+/**
+ * Show a country by its extent from the outline its maps were fetched with, or where there is none, by Nominatim's
+ * box for its name (signed in only, as place searches need an account). Nothing is saved: countries need no
+ * coordinates.
+ */
+const fitCountry = async (map, country, stillSelected) => {
+  const bounds = await countryBounds(country.code)
+  if (!stillSelected()) return
+  if (bounds) {
+    map.fitBounds(bounds, { padding: [20, 20], animate: false })
     return
   }
+  if (!isAuthenticated.value) return
+  const place = geocodedCountries.get(country.code) ?? await geocodeCountry(country.name)
+  if (place) geocodedCountries.set(country.code, place)
+  if (!stillSelected()) return
+  if (place?.bounds) {
+    map.fitBounds(place.bounds, { animate: false })
+  } else if (place && hasValidCoordinates(place)) {
+    map.setView([place.latitude, place.longitude], 5, { animate: false })
+  }
+}
+
+/**
+ * Show the selected location: a country by its extent; anything else by its coordinates and those of its children,
+ * or when none of them is placed, by its country
+ */
+const focusSelection = async () => {
+  const location = selectedLocation.value
+  if (!location || !mapRef.value?.leafletObject) return
   const map = toRaw(mapRef.value.leafletObject)
-  if (validPoints.length === 1) {
-    map.setView([validPoints[0].latitude, validPoints[0].longitude], zoom.value, { animate: false })
+  // looking up a country's extent can take a moment, by when another location may be selected
+  const stillSelected = () => selectedLocation.value?.id === location.id
+  if (!location.parent) {
+    await fitCountry(map, location, stillSelected)
     return
   }
-  const normalizedBounds = validPoints.map(coord => [
-    coord.latitude,
-    coord.longitude
-  ])
-  map.fitBounds(normalizedBounds, {
-    padding: [50, 50],
-    maxZoom: 12,
-    duration: 0  // if we animate it looks strange with the other layers as they are rendered in place before the pan
-  })
+  const own = coordinatePoints(location.coordinates)
+  // children of the previous selection may still be shown while the new ones load
+  const children = (childLocations.value ?? [])
+    .filter((child) => String(child?.parent?.id) === String(location.id))
+    .flatMap((child) => coordinatePoints(child.coordinates))
+  if (own.length || children.length) {
+    fitPoints(map, [...own, ...children], children.length ? CHILDREN_MAX_ZOOM : SHAPE_MAX_ZOOM)
+  } else if (regionCountry.value) {
+    await fitCountry(map, regionCountry.value, stillSelected)
+  }
 }
 
 // Watch for selected location changes
-watch(selectedLocation, async (newLocation) => {
+watch(selectedLocation, (newLocation) => {
   if (!newLocation) return
-
-  // Clear all displayed items
   displayedItems.clearLayers()
-  // Display the selected location's coordinates on the map
   displayLocationCoordinates(newLocation)
-
-  // Otherwise if the location has coordinates, zoom to them
-  if (newLocation.coordinates && hasValidCoordinates(newLocation.coordinates)) {
-
-    if (!mapRef.value?.leafletObject) {
-      console.warn('Map not ready yet')
-      return
-    }
-
-    const map = toRaw(mapRef.value.leafletObject)
-    if (newLocation.coordinates.length > 1) {
-      const normalizedBounds = newLocation.coordinates.map(coord => [
-        coord.latitude,
-        coord.longitude
-      ])
-      map.fitBounds(normalizedBounds, {
-        //padding: [50, 50],
-        maxZoom: zoom.value
-      })
-    } else {
-      const targetLat = newLocation.coordinates[0].latitude
-      const targetLng = newLocation.coordinates[0].longitude
-      center.value = [targetLat, targetLng]
-      map.setView([targetLat, targetLng], zoom.value,  { animate: false })
-    }
-    return
-  }
-
-  // If we don't have coordinates try to geocode by name
-  // Only automatically do this for countries as we don't want to give away private location information,
-  // and only signed in, as place searches need an account; the coordinates are saved only by those who can curate
-  // todo add option to geocode by name for other locations
-  if (!newLocation.parent && isAuthenticated.value) {
-    const coords = await geocodeCountry(newLocation.name)
-    if (coords && hasValidCoordinates(coords)) {
-      toRaw(mapRef.value.leafletObject).setView([coords.latitude, coords.longitude], zoom.value, { animate: false })
-
-      // Check if location has coordinates, update if needed
-      if (props.drawable) await updateCoordinatesIfNeeded(newLocation, coords)
-
-    } else {
-      // If geocoding failed, avoid setting center to undefined
-      console.warn('Geocode did not return valid coordinates for', newLocation.name, coords)
-    }
-  }
+  focusSelection()
 }, { immediate: true, deep: true })
 
 // Watch for child locations changes
-watch(childLocations, async (newChildren) => {
-  if (!newChildren) return
-  if (newChildren.length > 0) {
-    //await nextTick()
-    // Clear and redraw all displayed items when children change
-    displayedItems.clearLayers()
+watch(childLocations, (newChildren) => {
+  if (!newChildren?.length) return
+  // Clear and redraw all displayed items when children change
+  displayedItems.clearLayers()
+  if (selectedLocation.value) displayLocationCoordinates(selectedLocation.value)
+  displayChildLocations()
+  focusSelection()
+}, { deep: true })
 
-    // Redisplay the selected location
-    if (selectedLocation.value) {
-      displayLocationCoordinates(selectedLocation.value)
-    }
-
-    // Display the new children
-    displayChildLocations()
-
-    // Fit bounds to show all children
-    fitBoundsToChildren()
-  }
-}, { deep: true})
+// The selected location's country loads after it, for a location shown by its country
+watch(() => regionCountry.value?.code, focusSelection)
 
 </script>
 

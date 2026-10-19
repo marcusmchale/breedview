@@ -150,7 +150,6 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
             ref="mapRef"
             :selectedLocationId="displayedLocationId"
             :drawable="canCurateDisplayed"
-            @update-coordinates="handleUpdateCoordinates"
             @drawn-change="onDrawnChange"
             @show-card="scrollToCard"
             @location-selected="onLocationSelected"

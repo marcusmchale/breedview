@@ -33,13 +33,13 @@ export function useLocationGeocoding() {
   }
 
   /**
-   * Geocode a country name to coordinates
-   * Returns { latitude, longitude } or null if not found
+   * Geocode a country name
+   * Returns { latitude, longitude, bounds } (bounds [[south, west], [north, east]] when known), or null if not found
    */
   const geocodeCountry = async (countryName) => {
     if (!countryName) return null
     const place = await run(GEOCODE_COUNTRY_QUERY, { name: countryName }, 'locationsGeocodeCountry')
-    return place ? { latitude: place.latitude, longitude: place.longitude } : null
+    return place ? { latitude: place.latitude, longitude: place.longitude, bounds: place.bounds ?? null } : null
   }
 
   /**
