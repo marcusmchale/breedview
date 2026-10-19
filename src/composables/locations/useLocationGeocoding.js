@@ -1,51 +1,30 @@
 import { ref } from 'vue'
+import { useApolloClient } from '@vue/apollo-composable'
+
+import SEARCH_PLACES_QUERY from '@/graphql/locations/searchPlaces.graphql'
+import GEOCODE_COUNTRY_QUERY from '@/graphql/locations/geocodeCountry.graphql'
 
 /**
- * Composable for geocoding location names to coordinates
- * Uses OpenStreetMap's Nominatim service for country lookups
+ * Finding places by name for the location map. The API asks OpenStreetMap's Nominatim, so the browser contacts no
+ * third party (breedgraph docs/front-end-changes.md §19). Both queries need an account, and are limited per user.
  */
 export function useLocationGeocoding() {
+  const { resolveClient } = useApolloClient()
+  const client = resolveClient()
   const loading = ref(false)
   const error = ref(null)
 
-  /**
-   * Geocode a country name to coordinates using Nominatim
-   * Returns { latitude, longitude } or null if not found
-   */
-  const geocodeCountry = async (countryName) => {
-    if (!countryName) return null
-
+  const run = async (query, variables, field) => {
     loading.value = true
     error.value = null
-
     try {
-      // Use Nominatim API (OSM's geocoding service)
-      // Note: Be respectful with rate limits (1 request per second)
-      const url = new URL('https://nominatim.openstreetmap.org/search')
-      url.searchParams.set('country', countryName)
-      url.searchParams.set('format', 'json')
-      url.searchParams.set('limit', '1')
-
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'BreedView Application' // Nominatim requires User-Agent
-        }
-      })
-      if (!response.ok) {
-        throw new Error('Geocoding request failed')
+      const { data } = await client.query({ query, variables, fetchPolicy: 'cache-first' })
+      const payload = data?.[field]
+      if (payload?.status !== 'SUCCESS') {
+        throw new Error(payload?.errors?.map((e) => e.message).join(', ') || 'Place search failed')
       }
-
-      const data = await response.json()
-      if (data.length > 0) {
-        return {
-          latitude: parseFloat(data[0].lat),
-          longitude: parseFloat(data[0].lon)
-        }
-      }
-
-      return null
+      return payload.result
     } catch (err) {
-      console.error('Geocoding error:', err)
       error.value = err.message
       return null
     } finally {
@@ -54,61 +33,29 @@ export function useLocationGeocoding() {
   }
 
   /**
-   * Search for places by free-text name using Nominatim
-   * viewbox: [west, south, east, north] to prefer results in that area
-   * bounded: only return results inside the viewbox
+   * Geocode a country name to coordinates
+   * Returns { latitude, longitude } or null if not found
+   */
+  const geocodeCountry = async (countryName) => {
+    if (!countryName) return null
+    const place = await run(GEOCODE_COUNTRY_QUERY, { name: countryName }, 'locationsGeocodeCountry')
+    return place ? { latitude: place.latitude, longitude: place.longitude } : null
+  }
+
+  /**
+   * Search for places by free text
+   * viewbox: [west, south, east, north] to prefer (or, when bounded, only return) results in that area
    * countryCode: ISO alpha-2 code to only return results in that country
    * Returns a list of { name, latitude, longitude, bounds } where bounds is [[south, west], [north, east]]
    */
   const searchPlaces = async (query, { viewbox = null, bounded = false, countryCode = null, limit = 5 } = {}) => {
     if (!query?.trim()) return []
-
-    loading.value = true
-    error.value = null
-
-    try {
-      const url = new URL('https://nominatim.openstreetmap.org/search')
-      url.searchParams.set('q', query.trim())
-      url.searchParams.set('format', 'json')
-      url.searchParams.set('limit', String(limit))
-      if (viewbox) {
-        url.searchParams.set('viewbox', viewbox.join(','))
-        if (bounded) {
-          url.searchParams.set('bounded', '1')
-        }
-      }
-      if (countryCode) {
-        url.searchParams.set('countrycodes', countryCode.toLowerCase())
-      }
-
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'BreedView Application'
-        }
-      })
-      if (!response.ok) {
-        throw new Error('Place search request failed')
-      }
-
-      const data = await response.json()
-      return data.map(place => {
-        const [south, north, west, east] = (place.boundingbox ?? []).map(parseFloat)
-        return {
-          name: place.display_name,
-          latitude: parseFloat(place.lat),
-          longitude: parseFloat(place.lon),
-          bounds: [south, north, west, east].every(Number.isFinite)
-            ? [[south, west], [north, east]]
-            : null
-        }
-      })
-    } catch (err) {
-      console.error('Place search error:', err)
-      error.value = err.message
-      return []
-    } finally {
-      loading.value = false
-    }
+    const places = await run(
+      SEARCH_PLACES_QUERY,
+      { query: query.trim(), viewbox, bounded, countryCode, limit },
+      'locationsSearchPlaces'
+    )
+    return places ?? []
   }
 
   return {

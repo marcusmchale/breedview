@@ -19,6 +19,7 @@
     "@formkit/themes": "^1.6.9",
     "@formkit/vue": "^1.6.9",
     "@geoman-io/leaflet-geoman-free": "^2.19.0",
+    "@protomaps/basemaps": "^5.7.2",
     "@tanstack/vue-table": "^8.21.3",
     "@tanstack/vue-virtual": "^3.13.45",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
@@ -28,6 +29,7 @@
     "d3": "^7.9.0",
     "graphql": "^16.11.0",
     "leaflet": "^1.9.4",
+    "protomaps-leaflet": "^5.1.0",
     "vue": "^3.4.0",
     "vue-router": "^4.5.1"
   },

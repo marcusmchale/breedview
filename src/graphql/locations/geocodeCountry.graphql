@@ -1,0 +1,13 @@
+query locationsGeocodeCountry($name: String!) {
+    locationsGeocodeCountry(name: $name) {
+        status
+        result {
+            name
+            latitude
+            longitude
+        }
+        errors {
+            message
+        }
+    }
+}

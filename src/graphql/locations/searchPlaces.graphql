@@ -1,0 +1,14 @@
+query locationsSearchPlaces($query: String!, $viewbox: [Float!], $bounded: Boolean, $countryCode: String, $limit: Int) {
+    locationsSearchPlaces(query: $query, viewbox: $viewbox, bounded: $bounded, countryCode: $countryCode, limit: $limit) {
+        status
+        result {
+            name
+            latitude
+            longitude
+            bounds
+        }
+        errors {
+            message
+        }
+    }
+}

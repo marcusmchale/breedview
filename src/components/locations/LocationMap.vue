@@ -6,7 +6,7 @@ import {
   watch,
   toRaw
 } from 'vue'
-import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
+import { LMap } from '@vue-leaflet/vue-leaflet'
 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -16,13 +16,15 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 
 import { useLocationGeocoding } from '@/composables/locations/useLocationGeocoding'
+import { addBaseMap } from '@/composables/locations/baseMap'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
 const { locationId, selectedLocation, childLocations, regionCountry } = useLocationMapQueries()
 
-// Add Mapbox token (get from environment variable)
-const mapboxToken = `${import.meta.env.VITE_MAPBOX_TOKEN}`
+// Place searches go through the API, which needs an account (breedgraph docs/front-end-changes.md §19)
+const { isAuthenticated } = useAuthStore()
 
 const props = defineProps({
   selectedLocationId: {
@@ -208,6 +210,9 @@ const onMapReady = () => {
 
   if (mapRef.value?.leafletObject) {
     const map = toRaw(mapRef.value.leafletObject)
+
+    // the base map, from tiles our server serves
+    addBaseMap(map)
 
     // Add feature group for drawn items
     if (!map.hasLayer(drawnItems)) {
@@ -606,16 +611,16 @@ watch(selectedLocation, async (newLocation) => {
   }
 
   // If we don't have coordinates try to geocode by name
-  // Only automatically do this for countries as we don't want to give away private location information
+  // Only automatically do this for countries as we don't want to give away private location information,
+  // and only signed in, as place searches need an account; the coordinates are saved only by those who can curate
   // todo add option to geocode by name for other locations
-  if (!newLocation.parent) {
-    console.log('Geocoding location:', newLocation)
+  if (!newLocation.parent && isAuthenticated.value) {
     const coords = await geocodeCountry(newLocation.name)
     if (coords && hasValidCoordinates(coords)) {
       toRaw(mapRef.value.leafletObject).setView([coords.latitude, coords.longitude], zoom.value, { animate: false })
 
       // Check if location has coordinates, update if needed
-      await updateCoordinatesIfNeeded(newLocation, coords)
+      if (props.drawable) await updateCoordinatesIfNeeded(newLocation, coords)
 
     } else {
       // If geocoding failed, avoid setting center to undefined
@@ -672,7 +677,7 @@ watch(childLocations, async (newChildren) => {
       <div v-else-if="hasLayer" class="unsaved-shape-cue unsaved-shape-cue--warning">
         Select a location in the tree before drawing. Selecting one clears this shape.
       </div>
-      <div class="place-search">
+      <div v-if="isAuthenticated" class="place-search">
         <form class="place-search-form" @submit.prevent="handlePlaceSearch">
           <input
             v-model="placeQuery"
@@ -734,16 +739,7 @@ watch(childLocations, async (newChildren) => {
         v-model:center="center"
         :use-global-leaflet="true"
         @ready="onMapReady"
-      >
-        <l-tile-layer
-          url="https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}"
-          attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          :options="{ accessToken: mapboxToken }"
-          layer-type="base"
-          name="Mapbox"
-          :max-zoom="19"
-        />
-      </l-map>
+      />
     </div>
 
     <div class="map-info">
