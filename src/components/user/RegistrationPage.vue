@@ -208,20 +208,21 @@ const submitHandler = async (formData) => {
           </div>
         </div>
 
+        <!-- confirming the notice was read, not consent: consent is not the lawful basis (breedgraph docs/legal/privacy-notice.md) -->
         <div class="gdpr-consent">
           <FormKit
             type="checkbox"
-            name="gdprConsent"
+            name="privacyNoticeRead"
             validation="accepted"
             :validation-messages="{
-              accepted: 'You must accept the privacy notice to register'
+              accepted: 'Please confirm you have read the privacy notice'
             }"
           >
             <template #label>
               <span class="gdpr-label">
-                I have read and accept the
+                I have read the
                 <a href="#" @click.prevent="showPrivacyModal = true" class="privacy-link">
-                  Privacy Notice
+                  privacy notice
                 </a>
               </span>
             </template>
