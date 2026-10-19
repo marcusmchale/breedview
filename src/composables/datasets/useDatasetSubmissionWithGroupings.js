@@ -37,7 +37,8 @@ export function useDatasetSubmissionWithGroupings({ columnStatus, mergeConfig })
 
   const setStatus = (groupingId, status, error = null) => {
     mergeStatus.value = { ...mergeStatus.value, [groupingId]: status }
-    const { [groupingId]: _, ...rest } = mergeErrors.value
+    const rest = { ...mergeErrors.value }
+    delete rest[groupingId]
     mergeErrors.value = error ? { ...rest, [groupingId]: error } : rest
   }
 

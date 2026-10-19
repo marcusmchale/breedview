@@ -46,7 +46,7 @@ export function useMutateReferences() {
           controlTeamId: toValue(controlTeamId),
           release: toValue(release)
       });
-      const { result, status, errors } = response?.data?.referencesCreateDataFile
+      const { result, status, errors } = response?.data?.referencesCreateDataFile || {}
       return { result, status, errors }
     }
 

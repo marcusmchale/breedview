@@ -16,7 +16,7 @@ export function useProgramsQuery() {
         if (!programsResult.value?.programs?.result) {
             return []
         }
-        const programs = [...programsResult.value?.programs?.result]
+        const programs = [...programsResult.value.programs.result]
         programs.sort((a, b) => a.name.localeCompare(b.name))
         return programs
     })

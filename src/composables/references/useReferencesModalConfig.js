@@ -11,10 +11,6 @@ export function useReferencesModalConfig(referenceTypeConfigs) {
   // Generate tabs configuration from the provided type configs
   const tabConfigs = computed(() => {
     return typeConfigs.value.map(typeConfig => {
-      // Find the full config from REFERENCE_TYPE_CONFIGS
-      const fullConfig = Object.values(REFERENCE_TYPE_CONFIGS).find(
-        cfg => cfg.key === typeConfig.key
-      )
       return {
         id: typeConfig.key,
         label: typeConfig.label,

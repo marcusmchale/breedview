@@ -1,4 +1,4 @@
-import { computed, watch} from 'vue'
+import { computed } from 'vue'
 import { useStudyQuery } from "@/composables/programs/studyQuery";
 import { useProgramsQuery } from "@/composables/programs/programsQuery";
 import { useProgramQuery } from "@/composables/programs/programQuery";

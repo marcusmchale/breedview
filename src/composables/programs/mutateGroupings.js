@@ -12,9 +12,7 @@ import { toValue } from "vue";
 
 export function useMutateGroupings( { studyId } ) {
 
-  const {
-    study, studyLoading, studyError, refetchStudy
-  } = useStudyQuery(studyId)
+  const { refetchStudy } = useStudyQuery(studyId)
 
 
   // Create grouping

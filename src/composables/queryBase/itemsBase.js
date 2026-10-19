@@ -21,7 +21,6 @@ export function useItemsQuery({
         result: itemsResult,
         loading: itemsLoading,
         error: itemsError,
-        onResult: onItemsResult,
         refetch: refetchItems
     } = useQuery(
         itemsQueryGraphql,
