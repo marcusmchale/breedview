@@ -20,8 +20,7 @@ export { manifest }
 
 // admin, writer, stranger, outsider: { username, password, email, user_id, affiliations }
 export const accounts = manifest.accounts
-// root (an organisation), child (below root), other (a second organisation): { id, name }, and for the roots the
-// legal entity they declared, the data controller of their Persons: legal_name, privacy_contact
+// root (an organisation), child (below root), other (a second organisation): { id, name }
 export const teams = manifest.teams
 // every controlled entity by scenario name: { id, label, name, team, release, readable_by }, and for Persons
 // person_views, how each viewer sees it
@@ -59,6 +58,3 @@ export function personView(viewer, name) {
   }
   return views[viewer]
 }
-
-// The legal entity holding a Person: { legal_name, privacy_contact } of its team's root
-export const dataController = (name) => teams[entity(name).team === 'other' ? 'other' : 'root']

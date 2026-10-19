@@ -1,14 +1,14 @@
 // What someone who is not signed in sees: the germplasm, programs, regions, arrangements, blocks and datasets pages
 // are open to them, showing what has been released to the public, with placeholders and skipped members as for anyone
-// else (breedgraph docs/read-access.md), and no badges or write actions. People are not listed publicly: they see
-// Persons only where they are credited, by attribution, each naming the organisation holding the record (docs/person.md
-// §3). Other pages, the people page among them, send them to log in. What the API returns is tested in breedgraph;
-// here, that the pages show it without failing requests.
+// else (breedgraph docs/read-access.md), and no badges or write actions. They see no people at all: no contributors or
+// contacts, and no people page (docs/person.md §3). Other pages, the people page among them, send them to log in. The
+// browser contacts no third party: maps and place searches come from our own servers. What the API returns is tested
+// in breedgraph; here, that the pages show it without failing requests.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, flat, loginAs } from './lib/app.mjs'
-import { entities as e, dataController } from './lib/fixture.mjs'
+import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => { browser = await launchBrowser({ height: 1800 }); page = browser.page })
@@ -81,21 +81,17 @@ test('programs: the public studies below placeholders, without badges or write a
   assert.deepEqual(await failedRequests(mark), [])
 })
 
-test('programs: who is credited, by attribution, each opening the organisation holding the record, and no Contact', async () => {
-  const q = JSON.stringify
+test('programs: no one is credited or named as a contact for signed-out visitors', async () => {
   const mark = page.mark()
   await page.goto(`${config.appUrl}/programs`)
-  // program_public's contact and contributor (PROGRAM_CREDITS in breedgraph's read-policy scenario)
-  await page.waitFor(`document.querySelector('.contributions-list') && document.body.innerText.includes(${q(e.person_public.name)})`, 30000)
+  // program_public has a contact and a contributor (PROGRAM_CREDITS in breedgraph's read-policy scenario), released to
+  // registered users only, as Persons are
+  await page.waitFor(`document.body.innerText.includes(${JSON.stringify(e.program_public.name)})`, 30000)
+  await page.sleep(2000)
   const text = await pageText()
-  for (const name of ['person_admin', 'person_public']) assert.ok(text.includes(e[name].name), `${name} is credited`)
-  await page.evaluate(`[...document.querySelectorAll('.contributions-list .person-attribution summary')]
-    .find((s) => s.textContent.includes(${q(e.person_public.name)})).click()`)
-  const holder = dataController('person_public').legal_name
-  await page.waitFor(`[...document.querySelectorAll('.person-attribution[open] .attribution-card')]
-    .some((c) => c.textContent.includes(${q(holder)}))`, 10000)
-  assert.ok(!(await page.evaluate(`[...document.querySelectorAll('main button')].some((b) => b.innerText.trim() === 'Contact')`)),
-    'only signed-in users can message a contact')
+  for (const name of ['person_admin', 'person_public']) assert.ok(!text.includes(e[name].name), `${name} is not shown`)
+  assert.ok(!(await page.exists('.contributions-list')), 'no contributions')
+  assert.ok(!(await page.exists('.contacts-display')), 'no contacts')
   assert.deepEqual(await failedRequests(mark), [])
 })
 
@@ -131,4 +127,14 @@ test('locations and programs: no request fails', async () => {
     await page.sleep(4000)
     assert.deepEqual(await failedRequests(mark), [], route)
   }
+})
+
+test('the browser contacts no third party: maps and place searches come from our servers', async () => {
+  const mark = page.mark()
+  for (const route of ['programs', 'locations', 'germplasm', 'privacy']) {
+    await page.goto(`${config.appUrl}/${route}`)
+    await page.sleep(3000)
+  }
+  const ours = [new URL(config.appUrl).origin, new URL(config.apiUrl).origin]
+  assert.deepEqual((await page.origins(mark)).filter((origin) => !ours.includes(origin)), [])
 })

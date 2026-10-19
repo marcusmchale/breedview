@@ -129,6 +129,10 @@ async function connectPage(port) {
     },
     heapMB: async () => Math.round((await send('Runtime.getHeapUsage')).usedSize / 1048576),
     mark: () => events.length,
+    // the origins of the requests seen since a mark (http and https only), e.g. to show no third party is contacted
+    origins: (since = 0) => [...new Set(events.slice(since)
+      .filter((e) => e.method === 'Network.requestWillBeSent' && /^https?:/.test(e.params.request?.url ?? ''))
+      .map((e) => new URL(e.params.request.url).origin))].sort(),
     // GraphQL requests seen since a mark: operation name, duration and bytes
     graphql: (since = 0) => {
       const requests = new Map()

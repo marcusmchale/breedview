@@ -1,8 +1,9 @@
 // Who wrote what, in the controller modal (breedgraph docs/read-access.md): accounts are shown only to their owner and
 // admins of their teams, so a write is attributed to the writer's Person where the viewer cannot see the account, and
-// a writer with neither is named as such. What the API returns (organisation roots and legal entities, team
-// placeholders, controllers refused anonymously, write attribution) is tested in breedgraph; here, the labels.
-// The admin is linked to a public Person and wrote the public program; the writer has no Person and wrote the study.
+// a writer with neither is named as such. What the API returns (organisation roots, team placeholders, controllers
+// refused anonymously, write attribution) is tested in breedgraph; here, the labels.
+// The admin is linked to a Person released to registered users and wrote the public program; the writer has no Person
+// and wrote the study.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'

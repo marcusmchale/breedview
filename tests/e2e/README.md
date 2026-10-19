@@ -33,6 +33,9 @@ confirmed) and reports an alert's message among the console errors.
 3. Google Chrome installed (`CHROME_BIN` if it is not `google-chrome` on the path).
 4. For `recordGroupExtent.test.mjs`, the analysis worker: analyses past validation stay queued without it. From
    breedgraph, with its env loaded: `cd src && ../.venv/bin/python -m analysis_worker.main`.
+5. Map tiles in the backend's `MAP_TILES_PATH`, for the maps: from breedgraph, with its env loaded,
+   `scripts/map_tiles.py --build https://build.protomaps.com/YYYYMMDD.pmtiles --world-maxzoom 6` (about 45 MB; needs
+   the `pmtiles` command, see breedgraph's README, Maps).
 
 ## The test database
 
@@ -48,7 +51,7 @@ cp instance/neo4j_archive/test_databases/test_database_files/* "$FILE_STORAGE_PA
 `lib/fixture.mjs` reads the manifest, `instance/neo4j_archive/test_databases/test_database.manifest.json` in the breedgraph checkout
 next to this repository (`E2E_MANIFEST` to read another). It has the accounts, the teams, and every entity of the
 scenario by name, with its id, name, controlling team, release and which viewers can read it (`readable_by`), for
-Persons how each viewer sees them (`person_views`), and the legal entities the roots declared. The
+Persons how each viewer sees them (`person_views`). The
 trees, teams and releases are drawn in the module docstring of breedgraph's
 `tests/breedgraph/scenarios/read_policy_scenario.py`. Tests name entities by their scenario name and take names and
 expectations from the manifest, so a rebuilt database with other generated names still passes.
@@ -110,13 +113,13 @@ browser: that the pages render it, which actions they offer, the modals and labe
   Locations page), and the curation selection, units filter and table with hidden units as placeholders.
 - `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in
   the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
-  without controller badges or write actions, and the people credited on a program by attribution, each opening the
-  organisation holding the record, with no Contact button; no request on the open pages fails apart from the sign-in
-  check.
+  without controller badges or write actions, and no one credited or named as a contact; no request on the open pages
+  fails apart from the sign-in check, and the open pages request nothing from hosts other than the app and the API
+  (maps come from the API's `/tiles`, so the test database needs `scripts/map_tiles.py` run for the world file).
 - `germplasmAccess.test.mjs`: the germplasm page draws, for each viewer, the entries the manifest says they can read.
 - `peopleAccess.test.mjs`: the people page needs an account; it lists the Persons each viewer sees in full or by
-  attribution: the full record (teams, lawful basis, whether an account is linked, even when the account is hidden)
-  for read affiliates and the linked user, the attribution for others, each with the organisation holding it; the
+  attribution: the full record (teams, when it was recorded, whether an account is linked, even when the account is
+  hidden) for read affiliates and the linked user, the attribution for others; the
   outsider's own private Person with its hidden team stood in for; Edit and Erase follow curate and admin access and
   the linked user.
 - `accountsAccess.test.mjs`: in the controller modal, writes are attributed to the writer's Person where the viewer

@@ -1,15 +1,15 @@
-// The people page under the read policy (breedgraph docs/read-access.md, docs/person.md §3). It needs an account:
-// signed-out visitors see Persons only where they are credited. Each viewer is shown the Persons they see in full or
-// by attribution: the full record (teams, lawful basis, whether an account is linked) for read affiliates of the
-// controlling team and the linked user, name, institution and ORCID iD for those reading it by release only, and the
-// organisation holding the record either way. In the full record, a Person's teams hidden from the viewer show as the
-// nearest team they can see, marked as standing in. Edit and Erase are offered by curate and admin access, and to the
-// linked user. What the API returns is tested in breedgraph; here, the cards.
+// The people page under the read policy (breedgraph docs/read-access.md, docs/person.md §3). It needs an account, and
+// signed-out visitors see no Persons anywhere. Each viewer is shown the Persons they see in full or by attribution: the
+// full record (teams, when it was recorded, whether an account is linked) for read affiliates of the controlling team
+// and the linked user, and name, institution and ORCID iD for those reading it by release only. In the full record, a
+// Person's teams hidden from the viewer show as the nearest team they can see, marked as standing in. Edit and Erase
+// are offered by curate and admin access, and to the linked user. What the API returns is tested in breedgraph; here,
+// the cards.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, flat } from './lib/app.mjs'
-import { entities as e, teams, personView, dataController } from './lib/fixture.mjs'
+import { entities as e, teams, personView } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => { browser = await launchBrowser({ height: 1800 }); page = browser.page })
@@ -30,16 +30,13 @@ const listed = async () => {
   return people.filter((name) => text.includes(e[name].name)).sort()
 }
 
-// The full record shows teams, the lawful basis and whether an account is linked; the attribution view none of them
+// The full record shows when it was recorded and whether an account is linked; the attribution view neither, nor teams
 const assertFull = (card, name) => {
-  assert.match(card, /Lawful basis/, `the full record of ${name}: ${card}`)
+  assert.match(card, /Recorded/, `the full record of ${name}: ${card}`)
   assert.match(card, /Account/, `whether ${name} has an account: ${card}`)
 }
 const assertAttribution = (card, name) => {
-  assert.ok(!/Lawful basis|Teams|Account|Recorded/.test(card), `only the attribution of ${name}: ${card}`)
-}
-const assertHolder = (card, name) => {
-  assert.ok(card.includes(dataController(name).legal_name), `the organisation holding ${name}: ${card}`)
+  assert.ok(!/Teams|Account|Recorded/.test(card), `only the attribution of ${name}: ${card}`)
 }
 
 test('signed out, the people page sends you to log in', async () => {
@@ -59,13 +56,11 @@ test('a registered user in no team: the attribution of released Persons, and the
     assertFull(own, 'person_outsider')
     assert.ok(own.includes('a team in ') && own.includes(teams.root.name), `the stand-in team is marked: ${own}`)
     assert.match(own, /Account\s*linked/, `their own account: ${own}`)
-    assertHolder(own, 'person_outsider')
     assert.match(own, /Edit/, 'the linked user can edit')
     assert.match(own, /Erase/, 'and erase')
 
     const other = await cardOf('person_public')
     assertAttribution(other, 'person_public')
-    assertHolder(other, 'person_public')
     assert.ok(!/Edit|Erase/.test(other), `nor change other Persons: ${other}`)
   } finally {
     await logout(page)
@@ -81,7 +76,6 @@ test('a read affiliate of the controlling team sees the full record, and that an
     assertFull(card, 'person_outsider')
     // the outsider's account is private (it is in none of the writer's teams), but the record says it is linked
     assert.match(card, /Account\s*linked/, card)
-    assertHolder(card, 'person_outsider')
     // a Person of another organisation, released to registered users: attribution only
     assertAttribution(await cardOf('person_other'), 'person_other')
   } finally {
