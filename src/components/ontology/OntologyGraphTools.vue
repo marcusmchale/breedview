@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 
 import OntologyNetworkGraph from '@/components/ontology/OntologyNetworkGraph.vue'
-import OntologyEntryModal from '@/components/ontology/OntologyEntryModal.vue'
 import CreateEntryButtonsPanel from '@/components/ontology/CreateEntryButtonsPanel.vue'
 import OntologyCard from '@/components/ontology/OntologyCard.vue'
 

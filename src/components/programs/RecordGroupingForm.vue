@@ -41,7 +41,9 @@ watch(
   (grouping) => {
     if (grouping) {
       // Extract typeId from type object if present, otherwise use typeId directly
-      const { type, __typename, ...groupingData } = grouping
+      const groupingData = { ...grouping }
+      delete groupingData.type
+      delete groupingData.__typename
       const typeId = grouping.typeId || (grouping.type?.id)
       formData.value = {
         ...groupingData,

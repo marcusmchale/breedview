@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutateStudies } from '@/composables/programs/mutateStudies'

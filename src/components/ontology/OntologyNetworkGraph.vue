@@ -717,7 +717,7 @@ function dragged(event, d) {
 
 }
 
-function dragended(event, d) {
+function dragended(event) {
 
   if (!event.active) {
     simulation.alphaTarget(0)

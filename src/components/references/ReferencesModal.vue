@@ -1,9 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useMutateReferences } from '@/composables/references/mutateReferences'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
-import { isReferenceTypeInList } from '@/composables/references/referenceTypes'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
 
 import ReferenceItem from './ReferenceItem.vue'
@@ -64,7 +62,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'update:selectedReferenceIds', 'save'])
 
 // Modal configuration
-const { orderedTabs, defaultActiveTab, getFormComponentForType, hasType } = useReferencesModalConfig(props.referenceTypes)
+const { orderedTabs, defaultActiveTab, hasType } = useReferencesModalConfig(props.referenceTypes)
 
 // State
 const searchQuery = ref('')
@@ -74,8 +72,6 @@ const selectedReferencesData = ref([...props.initialReferences])
 const editingReference = ref(null)
 
 // Queries
-const { deleteReferences, deleteReferencesLoading } = useMutateReferences()
-
 const { searchResults, searchLoading, searchError } = useReferencesSearchQuery({
   description: searchQuery,
   referenceTypes: props.referenceTypes.map(({ key }) => key)
@@ -199,25 +195,6 @@ const startEditing = (reference) => {
 
 const cancelEditing = () => {
   editingReference.value = null
-}
-
-const handleDeleteReference = async (referenceId) => {
-  if (!confirm('Are you sure you want to delete this reference? This cannot be undone.')) {
-    return
-  }
-
-  try {
-    const { status, errors } = await deleteReferences([referenceId])
-    if (status === 'SUCCESS') {
-      removeFromSelection(referenceId)
-      selectedReferencesData.value = selectedReferencesData.value.filter(r => r.id !== referenceId)
-    } else {
-      alert(errors?.[0]?.message || 'Failed to delete reference')
-    }
-  } catch (error) {
-    console.error('Delete error:', error)
-    alert(error.message || 'Failed to delete reference')
-  }
 }
 
 const handleSave = () => {

@@ -54,17 +54,12 @@ const showTableModal = ref(false);
 
 const {
   study,
-  studyLoading,
-  studyError,
   programs,
   programsLoading,
-  programsError,
   trials,
   trialsLoading,
-  trialsError,
   studies,
   studiesLoading,
-  studiesError,
 } = useSelectStudyQueries({
   programId: selectedProgram,
   trialId: selectedTrial,

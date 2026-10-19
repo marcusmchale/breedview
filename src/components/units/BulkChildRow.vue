@@ -31,7 +31,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['remove'])
+const emit = defineEmits(['remove', 'update'])
 
 const {
   germplasm,
@@ -53,12 +53,18 @@ const rowStatusLabel = computed(() => {
   return 'Pending'
 })
 
-const markRowDirty = () => {
-  if (props.row.status === 'error') {
-    props.row.status = 'pending'
-    props.row.errorMessage = ''
-  }
+// The row belongs to the parent, so a change to it is emitted as the fields to update; a row that failed is pending
+// again once changed
+const update = (fields) => {
+  emit('update', props.row.status === 'error' ? { ...fields, status: 'pending', errorMessage: '' } : fields)
 }
+const field = (key) => computed({ get: () => props.row[key], set: (value) => update({ [key]: value }) })
+const subjectId = field('subjectId')
+const germplasmId = field('germplasmId')
+const positionStart = field('positionStart')
+const positionEnd = field('positionEnd')
+const name = field('name')
+const description = field('description')
 </script>
 
 <template>
@@ -84,10 +90,9 @@ const markRowDirty = () => {
     </td>
     <td>
       <select
-        v-model="row.subjectId"
+        v-model="subjectId"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
-        @change="markRowDirty"
       >
         <option :value="null">-- Select a subject --</option>
         <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
@@ -98,7 +103,7 @@ const markRowDirty = () => {
     <td>
       <FormKit
         type="hierarchical-select"
-        v-model="row.germplasmId"
+        v-model="germplasmId"
         :selected="germplasm"
         :rootNodes="crops"
         :hasChildrenFn="hasChildren"
@@ -109,58 +114,52 @@ const markRowDirty = () => {
         :get-node-label-fn="(unit) => unit.name || `${unit.type?.name} ${unit.id}`"
         validation="optional"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
-        @update:modelValue="markRowDirty"
-        @change="markRowDirty"
       />
     </td>
     <td>
       <input
-        v-model="row.positionStart"
+        v-model="positionStart"
         type="text"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
         placeholder="Optional"
-        @input="markRowDirty"
       >
     </td>
     <td>
       <input
-        v-model="row.positionEnd"
+        v-model="positionEnd"
         type="text"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
         placeholder="Optional"
-        @input="markRowDirty"
       >
     </td>
     <td v-for="(key, index) in rowCoordinates" :key="key">
       <input
-        v-model="row[key]"
+        :value="row[key]"
         type="text"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
         :placeholder="coordinateAxes[index]"
-        @input="markRowDirty"
+        @input="update({ [key]: $event.target.value })"
       >
     </td>
     <td>
       <input
-        v-model="row.name"
+        v-model="name"
         type="text"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
         placeholder="Optional"
-        @input="markRowDirty"
       >
     </td>
     <td>
       <input
-        v-model="row.description"
+        v-model="description"
         type="text"
         class="bulk-input"
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
         placeholder="Optional"
-        @input="markRowDirty"
       >
     </td>
     <td class="row-actions">

@@ -31,7 +31,6 @@ const contextMenu = ref({
 
 let simulation = null
 let svgElement = null
-let gElement = null
 let zoomBehavior = null
 const nodeMap = new Map()
 
@@ -193,8 +192,6 @@ const renderGraph = async () => {
 
   // Add a group to apply zoom transformation
   const g = svg.append("g")
-
-  gElement = g.node()
 
   // Define arrowhead marker
   svg.append("defs").append("marker")

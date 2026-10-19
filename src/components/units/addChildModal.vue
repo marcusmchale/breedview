@@ -633,7 +633,7 @@ const setMode = (nextMode) => {
                 <th class="germplasm-col">Germplasm</th>
                 <th class="date-col">Start</th>
                 <th class="date-col">End</th>
-                <th v-for="(axis, index) in bulkLayout?.axes || []" :key="axis" class="coord-col">{{ axis }}</th>
+                <th v-for="axis in bulkLayout?.axes || []" :key="axis" class="coord-col">{{ axis }}</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th class="row-actions"></th>
@@ -650,6 +650,7 @@ const setMode = (nextMode) => {
                 :create-unit-loading="createUnitLoading"
                 :bulk-submitting="bulkSubmitting"
                 @remove="removeBulkRow(index)"
+                @update="(fields) => Object.assign(row, fields)"
               />
             </tbody>
           </table>

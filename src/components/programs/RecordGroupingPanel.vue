@@ -17,7 +17,6 @@ const {
   groupings,
   recordGroupTypes,
   isLoading,
-  errors,
   createGrouping,
   updateGrouping,
   deleteGrouping

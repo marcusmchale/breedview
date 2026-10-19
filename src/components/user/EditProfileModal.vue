@@ -6,7 +6,7 @@ import { useQuery, useMutation } from '@vue/apollo-composable'
 import ACCOUNT_QUERY from '../../graphql/account/account.graphql'
 import UPDATE_USER_MUTATION from '../../graphql/account/updateUser.graphql'
 
-const props = defineProps({
+defineProps({
   isOpen: {
     type: Boolean,
     default: false

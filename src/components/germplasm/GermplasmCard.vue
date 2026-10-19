@@ -14,7 +14,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit-entry', 'delete-entry'])
+defineEmits(['edit-entry', 'delete-entry'])
 
 const hasData = computed(() => !!props.entry)
 
@@ -96,7 +96,7 @@ const sinksList = computed(() => {
       <div class="section">
         <h3 class="section-title">Information</h3>
         <div class="fields-grid">
-          <div v-for="field in displayFields" class="field">
+          <div v-for="field in displayFields" :key="field.label" class="field">
             <label class="field-label">{{ field.label }}</label>
             <p class="field-value">{{ field.value }}</p>
           </div>
@@ -107,7 +107,7 @@ const sinksList = computed(() => {
       <div v-if="synonymsList.length > 0" class="section">
         <h3 class="section-title">Synonyms</h3>
         <div class="tag-list">
-          <span v-for="synonym in synonymsList" class="tag">
+          <span v-for="synonym in synonymsList" :key="synonym" class="tag">
             {{ synonym }}
           </span>
         </div>
@@ -117,7 +117,7 @@ const sinksList = computed(() => {
       <div v-if="controlMethodsList.length > 0" class="section">
         <h3 class="section-title">Control Methods</h3>
         <div class="list">
-          <div v-for="method in controlMethodsList" class="list-item">
+          <div v-for="method in controlMethodsList" :key="method.id" class="list-item">
             {{ method.name }}
           </div>
         </div>
@@ -127,7 +127,7 @@ const sinksList = computed(() => {
       <div v-if="referencesList.length > 0" class="section">
         <h3 class="section-title">References</h3>
         <div class="list">
-          <div v-for="ref in referencesList" class="list-item">
+          <div v-for="ref in referencesList" :key="ref.id" class="list-item">
             <span v-if="ref.description" class="ref-description">{{ ref.description }}</span>
             <a v-if="ref.url" :href="ref.url" target="_blank" class="ref-link">
               {{ ref.externalId || 'View' }}
@@ -140,7 +140,7 @@ const sinksList = computed(() => {
       <div v-if="sourcesList.length > 0" class="section">
         <h3 class="section-title">Sources</h3>
         <div class="relationship-list">
-          <div v-for="source in sourcesList" class="relationship-item">
+          <div v-for="source in sourcesList" :key="source.id" class="relationship-item">
             <span class="rel-type">{{ source.type }}</span>
             <span class="rel-name">{{ source.name }}</span>
             <span v-if="source.description" class="rel-description">{{ source.description }}</span>
@@ -152,7 +152,7 @@ const sinksList = computed(() => {
       <div v-if="sinksList.length > 0" class="section">
         <h3 class="section-title">Sinks</h3>
         <div class="relationship-list">
-          <div v-for="sink in sinksList" class="relationship-item">
+          <div v-for="sink in sinksList" :key="sink.id" class="relationship-item">
             <span class="rel-type">{{ sink.type }}</span>
             <span class="rel-name">{{ sink.name }}</span>
             <span v-if="sink.description" class="rel-description">{{ sink.description }}</span>

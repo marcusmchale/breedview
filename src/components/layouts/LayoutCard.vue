@@ -38,9 +38,7 @@ const {
 } = useLayoutNodeQueries({ layoutId: () => props.layoutId })
 
 const {
-  layout: parent,
-  layoutLoading: parentLoading,
-  layoutError: parentError
+  layout: parent
 } = useLayoutNodeQueries({ layoutId: () => props.parentId })
 
 const hasData = computed(() => !!layout.value)
@@ -138,6 +136,10 @@ const handleAddChildSuccess = async () => {
     Loading arrangement details…
   </div>
 
+  <div v-else-if="layoutError" class="card-error">
+    Failed to load the arrangement: {{ layoutError.message }}
+  </div>
+
   <div v-else-if="hasData" class="details-card">
     <div class="card-header">
       <h2>{{ layout.name || `${layout.type?.name || 'Layout'} ${layout.id}` }}</h2>
@@ -183,7 +185,7 @@ const handleAddChildSuccess = async () => {
       <div v-if="axesList.length > 0" class="section">
         <h3 class="section-title">Axes</h3>
         <div class="list">
-          <div v-for="axis in axesList" class="list-item">
+          <div v-for="axis in axesList" :key="axis.name" class="list-item">
             <span class="axis-name">{{ axis.name }} ( {{ axis.type }} )</span>
           </div>
         </div>
@@ -245,6 +247,16 @@ const handleAddChildSuccess = async () => {
   padding: 20px;
   color: #999;
   font-style: italic;
+  text-align: center;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-error {
+  padding: 20px;
+  color: #dc3545;
   text-align: center;
   background: white;
   border: 1px solid #e0e0e0;

@@ -5,7 +5,7 @@ import DatasetSelectionForm from './DatasetSelectionForm.vue'
 import DatasetCurationTable from './DatasetCurationTable.vue'
 import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 
-const props = defineProps({
+defineProps({
   visible: {
     type: Boolean,
     default: false

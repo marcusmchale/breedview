@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useMutateTrials } from '@/composables/programs/mutateTrials'

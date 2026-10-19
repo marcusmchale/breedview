@@ -1,11 +1,10 @@
 <script setup>
-import { computed, ref, watch} from 'vue'
+import { ref, watch } from 'vue'
 
 import OntologyGraphTools from '@/components/ontology/OntologyGraphTools.vue'
 import OntologyEntryModal from '@/components/ontology/OntologyEntryModal.vue'
 
 import { useOntologyQuery } from '@/composables/ontology/ontologyQuery'
-import { useOntologySchema } from '@/composables/ontology/useOntologySchema'
 import { useMutateOntology } from '@/composables/ontology/mutateOntology'
 import { ONTOLOGY_ENTRY_CONFIGS } from '@/composables/ontology/ontologyEntryConfig'
 
@@ -156,20 +155,6 @@ const handleCancelDeprecate = async (entryId) => {
   } finally {
     mutationLoading.value = false
   }
-}
-
-// ── Graph interaction ─────────────────────────────────────────────────────────
-const handleNodeRightClick = (node) => {
-  const entry = ontology.value?.entries.find(e => e.id === node.id)
-  if (!entry) {
-    console.warn('Entry not found for node:', node)
-    return
-  }
-  if (!ONTOLOGY_ENTRY_CONFIGS[entry.__typename]) {
-    console.warn('No config for type:', entry.__typename)
-    return
-  }
-  openUpdateForm(entry)
 }
 </script>
 

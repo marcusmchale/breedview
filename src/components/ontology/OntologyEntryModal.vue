@@ -43,7 +43,6 @@ const title = computed(() =>
 // ── Form data ─────────────────────────────────────────────────────────────────
 const formData = ref({})
 const controlTeamId = ref(props.controlTeamId)
-const controlTeamError = ref(null)
 
 // Tracks selection order for `ordered` multiselect fields: { [fieldName]: string[] }
 const selectionOrders = ref({})

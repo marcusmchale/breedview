@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import LayoutTreeNode from './LayoutTreeNode.vue'
 
-const props = defineProps({
+defineProps({
   arrangementId: {
     type: String,
     required: true

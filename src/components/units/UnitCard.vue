@@ -142,6 +142,10 @@ const handleAddPositionSuccess = async () => {
     Loading unit details…
   </div>
 
+  <div v-else-if="unitError" class="card-error">
+    Failed to load the unit: {{ unitError.message }}
+  </div>
+
   <div v-else-if="isRedacted" class="details-card redacted-card">
     <div class="card-header">
       <h2>Unit {{ unit.id }} - Access Restricted</h2>
@@ -300,6 +304,16 @@ const handleAddPositionSuccess = async () => {
   padding: 20px;
   color: #999;
   font-style: italic;
+  text-align: center;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-error {
+  padding: 20px;
+  color: #dc3545;
   text-align: center;
   background: white;
   border: 1px solid #e0e0e0;

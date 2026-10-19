@@ -7,7 +7,7 @@ import ControlSelector from '@/components/controls/ControlSelector.vue'
 
 import { useOntologyEntriesQuery } from "@/composables/ontology/ontologyEntriesQuery";
 
-const props = defineProps({
+defineProps({
   availableEntries: {
     type: Array,
     required: true
@@ -24,11 +24,9 @@ const {
     entries: controlMethods
 } = useOntologyEntriesQuery({labels: ['CONTROL_METHOD'], view: "PUBLISHED"})
 
-const controlMethodOptions = computed( () => {
-   return [
-       ...controlMethods.value?.map(method => ({ value: method.id, label: method.name }))
-   ] || []
-})
+const controlMethodOptions = computed(() =>
+  (controlMethods.value || []).map(method => ({ value: method.id, label: method.name }))
+)
 
 
 const formData = ref({

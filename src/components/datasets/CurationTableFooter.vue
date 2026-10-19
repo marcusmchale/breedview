@@ -9,7 +9,7 @@ defineProps({
 
 const timeOf = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-const emit = defineEmits(['submit'])
+defineEmits(['submit'])
 </script>
 
 <template>

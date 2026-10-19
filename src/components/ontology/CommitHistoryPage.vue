@@ -41,7 +41,8 @@ const formatDate = (timestamp) => {
 }
 
 const hasPrior = computed(() => versionCursorHistory.value.length > 0)
-const hasMore = computed( () => commits.value?.length < limit || true)
+// a full page may have more after it
+const hasMore = computed(() => commits.value.length >= limit.value)
 
 const loadNext = () => {
   versionCursorHistory.value.push(lastVersionId.value)

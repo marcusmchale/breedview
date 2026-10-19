@@ -190,7 +190,7 @@ const handleToggleExpanded = (entry) => {
   }
 }
 
-const handleCreateSuccess = async ({ entryName, sourceIds, sinkIds }) => {
+const handleCreateSuccess = async () => {
   showCreateModal.value = false
   await refetchAllGermplasm()
 }

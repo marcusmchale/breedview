@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/composables/user/useAuthStore'
 
-const props = defineProps({
+defineProps({
   latestCommit: {
     type: Object,
     default: null

@@ -14,7 +14,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit-entry'])
+defineEmits(['edit-entry'])
 
 const hasData = computed(() => !!props.entry)
 
