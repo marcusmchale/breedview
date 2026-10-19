@@ -163,8 +163,8 @@ const handleAddChildSuccess = async () => {
         </div>
       </div>
 
-      <!-- Coordinates -->
-      <div class="section">
+      <!-- Coordinates; a country (a location without a parent) is shown by its outline, so has none -->
+      <div v-if="location.parent" class="section">
         <h3 class="section-title">Coordinates</h3>
 
         <div v-if="drawnShapeDescription && canCurate" class="drawn-shape">

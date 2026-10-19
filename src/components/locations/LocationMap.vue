@@ -272,7 +272,7 @@ const onMapReady = () => {
       cutPolygon: false,
       removalMode: true,
     })
-    if (!props.drawable) map.pm.toggleControls()
+    if (!drawingOffered.value) map.pm.toggleControls()
 
     // Configure polygon drawing
     map.pm.setPathOptions({
@@ -408,7 +408,12 @@ const showDrawControls = (drawable) => {
     clearDrawing()
   }
 }
-watch(() => props.drawable, showDrawControls)
+// A country is shown by its outline, so the tools are offered only for the locations within one, and are hidden
+// until the selected location has loaded
+const drawingOffered = computed(() => (
+  props.drawable && selectedLocation.value?.id === props.selectedLocationId && !!selectedLocation.value?.parent
+))
+watch(drawingOffered, showDrawControls)
 
 defineExpose({ clearDrawing })
 
