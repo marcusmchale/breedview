@@ -531,6 +531,8 @@ const displayChildLocations = () => {
 const POINT_ZOOM = 14  // a single point, unless already zoomed in further
 const SHAPE_MAX_ZOOM = 17
 const CHILDREN_MAX_ZOOM = 14
+// room around what is fitted, more at the top for the search box
+const FIT_PADDING = { paddingTopLeft: [40, 90], paddingBottomRight: [40, 40] }
 
 // [latitude, longitude] of valid coordinates
 const coordinatePoints = (coordinates) => (coordinates ?? [])
@@ -564,7 +566,7 @@ const fitPoints = (map, points, maxZoom) => {
   if (points.length === 1) {
     map.setView(points[0], Math.max(map.getZoom(), POINT_ZOOM), { animate: false })
   } else {
-    map.fitBounds(points, { padding: [40, 40], maxZoom, animate: false })
+    map.fitBounds(points, { ...FIT_PADDING, maxZoom, animate: false })
   }
 }
 
@@ -580,7 +582,7 @@ const fitCountry = async (map, country, stillSelected) => {
   const bounds = await countryBounds(country.code)
   if (!stillSelected()) return
   if (bounds) {
-    map.fitBounds(bounds, { padding: [20, 20], animate: false })
+    map.fitBounds(bounds, { ...FIT_PADDING, animate: false })
     return
   }
   if (!isAuthenticated.value) return
@@ -588,7 +590,7 @@ const fitCountry = async (map, country, stillSelected) => {
   if (place) geocodedCountries.set(country.code, place)
   if (!stillSelected()) return
   if (place?.bounds) {
-    map.fitBounds(place.bounds, { animate: false })
+    map.fitBounds(place.bounds, { ...FIT_PADDING, animate: false })
   } else if (place && hasValidCoordinates(place)) {
     map.setView([place.latitude, place.longitude], 5, { animate: false })
   }
