@@ -1,246 +1,156 @@
-# BreedGraph Privacy Policy
+# BreedGraph privacy notice
 
-**Last updated:** 20 July 2026
+**Last updated: [date]**
 
-## 1. Introduction
+## Summary
 
-BreedGraph is a research data platform operated by the University of Galway. It provides infrastructure for the collection, organisation, management, and controlled sharing of plant breeding research data.
+- BreedGraph is a research data platform for plant breeding, run by the University of Galway. Partner organisations use it to record and share research data.
+- The University is responsible for all personal data in BreedGraph: your account, and the records that credit people for research.
+- Your email address is not shown to other users.
+- People are credited only where signed-in users can see it. Pages open to everyone show no one's name, and there is no public directory of people or organisations.
+- You can erase a record that credits you, or ask us to, and you can delete your account at any time.
+- BreedGraph sets only the cookies it needs to sign you in and protect your requests. Maps and place searches come from our own server, so using BreedGraph sends nothing from your browser to other companies, unless you choose to link your ORCID iD.
 
-BreedGraph consists of the BreedGraph API and the BreedView user interface and is hosted at breedgraph.universityofgalway.ie.
+## Who we are
 
-This privacy policy explains how BreedGraph processes personal information relating to registered users and contributors. It also explains how personal information is managed in relation to research datasets stored and shared through the platform.
+BreedGraph is run by the University of Galway ("we"), the data controller for all personal data in it. It consists of the BreedGraph API and the BreedView website, at breedgraph.universityofgalway.ie.
 
-The University of Galway is committed to protecting personal data in accordance with applicable data protection legislation, including the General Data Protection Regulation (EU) 2016/679 (GDPR).
+Contact for questions about this notice or your personal data: [BreedGraph contact address].
 
----
+Data Protection Officer: [name and contact address of the University's Data Protection Officer].
 
-## 2. Data controller
+## If you have an account
 
-The University of Galway is the data controller for personal data processed by BreedGraph in relation to:
+What we hold:
 
-* user registration and account management,
-* authentication and security,
-* platform administration,
-* communication with users,
-* maintaining records of contributions and activity within the platform.
+- your username, full name and email address;
+- your password, as a one-way hash, never in readable form;
+- your team affiliations and access levels (read, write, curate, admin), your default team for new records, and your role in developing the shared ontology;
+- requests you make: to join teams, for an ontology role, or to link a Person record to your account;
+- records of what you created or changed, and when.
 
-Submitting organisations are responsible for determining how their own research datasets are collected, managed, licensed, and released through BreedGraph. Depending on the circumstances, submitting organisations may act as controllers for information contained within their datasets.
+Why: to sign you in, to control what you can see and change, to record who contributed what, for the integrity of research data, and to send you the emails the service needs, such as account verification, password resets, invitations, replies to your requests and the progress of work you started. We do not send marketing emails.
 
-For privacy-related questions, users may contact the BreedGraph platform administrator.
+Who sees it:
 
----
+- Your email address: only you and us.
+- Your username and full name: you, and administrators of the teams you belong to or ask to join.
+- What you created or changed is shown as the work of the Person record linked to your account, if there is one, to those who can see that record (see below). Otherwise it is not attributed to you by name.
 
-## 3. Who can use BreedGraph
+To detect password guessing, we count failed sign-in attempts, and record in our application logs the usernames locked after repeated failures.
 
-BreedGraph is intended for researchers, organisations, and companies involved in plant breeding and related research activities.
+## If you are credited in a Person record
 
-At present, access is provided through invitation-based registration. The platform may expand to support broader public access in the future.
+Partner organisations use BreedGraph to record the people who took part in their research, such as technicians and field staff, so that contributions are attributed correctly, whether or not those people have an account. A Person record can be credited as a contributor, with the roles played, or named as a contact, on research programmes, trials, datasets and files.
 
-Users may only access data according to the permissions associated with their account and the release settings applied to datasets.
+The person who records you confirms that you took part in the research and that you were told about the record and this notice. They act on the University's behalf.
 
----
+What a Person record holds:
 
-## 4. Personal information we collect
+- a display name, the institution you did the work with, and the teams you belong to;
+- confirmation that you were told, and who recorded you and when;
+- your ORCID iD, only if you link it yourself;
+- the link to your account, if you claim the record.
 
-When users register for BreedGraph we collect:
+It holds no contact details, postal addresses or free-text descriptions.
 
-* name
-* email address
+Why: to attribute research to the people who did it.
 
-To establish access control patterns we collect:
-* affiliations to teams within organisations,
-* a role in developing the central ontology, such as contributor, editor, or administrator
+Who sees it: the teams that control the record decide whether it is shown to their own members only, or to all signed-in users.
 
-We may also collect technical information necessary for operating and securing the service, including:
+- Members of those teams with read access, and you once the record is linked to your account, see the whole record.
+- Other signed-in users it is shown to see only what attribution needs: your name, institution and ORCID iD.
+- People who are not signed in never see Person records. Signed-in users can search, by name, the records shown to them.
 
-* account activity records;
-* timestamps associated with submissions and changes;
-* authentication-related information;
-* security and operational logs.
+To link your ORCID iD, you sign in at ORCID, which tells us your iD. ORCID also sends us your name and an access token, which we do not keep.
 
-Passwords are stored using secure password hashing methods and are not stored in readable form.
+## If you are invited
 
----
+When someone invites you, we hold your email address, who invited you, and what the invitation offers: team access, or a Person record to link to your account.
 
-## 5. Why we use personal information
+## Messages to contacts
 
-Personal information is processed for the following purposes:
+If the Person record linked to your account is named as a contact for a research programme or trial, signed-in users who can see it can send you a message through BreedGraph.
 
-### Account management
+- BreedGraph passes the message on to your account email address and does not keep it. **Senders never see your address.**
+- The message includes the sender's name and email address, so that you can reply. Replying shares your address with them.
+- You can remove yourself as a contact at any time.
 
-To:
+If you send a message, your name and email address are given to the recipient.
 
-* create and maintain user accounts;
-* authenticate users;
-* manage permissions and affiliations;
-* provide access to platform features.
+## Research data
 
-### Communication
+Research data, such as datasets, files and analyses, is controlled by the teams it is uploaded for. It describes plants, samples, locations and measurements, and should not include personal data.
 
-To send necessary service-related communications, including:
+## When you use the website
 
-* account activation messages;
-* password reset links;
-* notifications relating to requests or administrative actions;
-* links to requested files or resources.
+### Cookies
 
-These communications are necessary for operating the service and are not used for marketing purposes.
+BreedGraph sets two cookies. Both are needed for the service to work, so they do not need your consent.
 
-### Research contribution and provenance
+- auth_token keeps you signed in, for 7 days or until you sign out.
+- csrf_token protects your requests against forgery by other websites, for an hour.
 
-To maintain accurate records of:
+We use no analytics, advertising or tracking cookies.
 
-* dataset contributions;
-* changes made to research records;
-* user actions within the platform.
+### Maps and place search
 
-Maintaining contribution history supports research integrity, reproducibility, and appropriate attribution.
+- Maps are served from our own server. To prepare detailed maps of an area, our server downloads public map data, and sends nothing about you.
+- When you search for a place on a map, our server asks the Nominatim service of the OpenStreetMap Foundation (United Kingdom) for you. It receives your search, but not your IP address or who you are.
 
----
+### Server logs
 
-## 6. Research datasets and ownership
+- Access logs record requests to the service, including your IP address.
+- Application logs record actions by account and record number, not names, email addresses, searches or message content.
 
-BreedGraph stores plant breeding research datasets, which may include information such as:
+## Lawful basis
 
-* geographic locations and GPS coordinates;
-* field, plant, and sample information;
-* genotype data;
-* phenotype data;
-* pedigree information;
-* ontology information describing biological concepts and relationships.
+We process personal data in BreedGraph as a task carried out in the public interest (Art. 6(1)(e) GDPR), as the University provides BreedGraph as part of its research. For Person records, which serve scientific research, we also rely on the research provisions of Art. 89 GDPR and section 42 of the Data Protection Act 2018, with safeguards including holding only what attribution needs, showing it only to signed-in users, and letting you erase it at any time.
 
-Much of this scientific information may not constitute personal data under GDPR. However, some information associated with datasets, including contributor information, ownership information, and activity records, may relate to identifiable individuals.
+## How long we keep it
 
-Research datasets submitted to BreedGraph remain controlled by the submitting organisation. Submitting organisations determine:
+- Your account: while it exists. When you delete it, your username, full name, email address, password and team memberships are removed, and what you contributed stays attributed to an anonymous account number.
+- Person records: as long as the research data they credit. An ORCID iD is kept until you remove it, and the link to your account until you or an administrator remove it.
+- Invitations, including the email address: until you register or the invitation is cancelled, and at most 30 days.
+- Counts of failed sign-in attempts: one hour.
+- Uploads awaiting processing, and analysis jobs: 7 days after their last change.
+- Access logs: 30 days. Application logs: 90 days.
+- Backups of the database: 90 days.
 
-* who may access their datasets;
-* how datasets are released;
-* applicable licences;
-* whether datasets are made available to other researchers or the public.
+## Who receives your data, and where it is kept
 
----
+- Other BreedGraph users, as described above.
+- Others, where the law requires it.
 
-## 7. Dataset access and release levels
+The University's IT services host BreedGraph and its database, and send its emails. A server of the University's Plant Systems Biology Laboratory keeps the database backups, archives uploaded files and runs analyses. Backups and archived files are encrypted before they are copied to that server, which holds no key to read them. Your data is stored in Ireland.
 
-BreedGraph provides granular access controls for datasets.
+Some users work for partner organisations outside the European Economic Area (EEA), so what they can see, as described above, is transferred outside the EEA. These transfers are protected by [the safeguard, such as standard contractual clauses, and how to get a copy of it].
 
-Dataset owners may define release levels, including:
+If we restore a backup, we first apply every Person record erasure and account deletion made since it was taken, from a log of the record and account numbers concerned, kept outside the database.
 
-### Private
+## Security
 
-Available only to authorised users that are provided a read affiliation to the controlling organisation.
+- Connections are encrypted (HTTPS), and cookies are sent only over encrypted connections.
+- Access to data is controlled by team.
+- Passwords are hashed, and sign-in attempts are limited.
+- Administrative access to the servers is restricted to the people who run BreedGraph, under the University's controls and confidentiality obligations.
 
-### Registered
+## Your rights
 
-Available to all registered BreedGraph users.
+You have rights to access, correct and erase your personal data, to restrict or object to its processing, and to data portability, subject to the conditions in the GDPR, including exemptions for research.
 
-### Public
+In BreedGraph:
 
-Available to users without requiring restricted organisational access.
+- **Your account**: change your username, full name, email address or password, or delete your account, in your account settings. When you delete your account, you are asked whether to erase the Person record linked to it as well, which is the default.
+- **A Person record crediting you**: if you have an account, ask to link the record to your account. Administrators of the teams that control it decide the request, after confirming who you are. Once linked, you can see the record in full, correct your name, link your ORCID iD, unlink the record, or **erase it**.
+- **If you have no account**, contact us. Once we have confirmed who you are, we can erase the record for you, or invite you to register and link it, so you can manage it yourself.
+- **Erasing a Person record** removes your name, institution, teams and ORCID iD and keeps only an anonymous record number, so research data stays attributed without identifying you.
+- **Anything else**: contact us.
 
-Release settings may be changed by users given administrative affiliations to the controlling team.
-A dataset may move between release levels according to the decisions of the organisation controlling that dataset.
+We may refuse some requests where the research provisions apply, and we will always explain why. Erasing a Person record is always available, because it keeps the research record intact.
 
----
+You can complain to the Data Protection Commission (www.dataprotection.ie).
 
-## 8. Organisation affiliations and permissions
+## Changes to this notice
 
-Users may have affiliations with one or more organisations.
-
-An affiliation determines the organisations with which a user may contribute, manage, or access datasets.
-
-Permissions can include combinations of:
-
-* read access;
-* write access;
-* curation access;
-* administrative access.
-
-Organisation administrators manage permissions within their organisation according to their own governance arrangements.
-
----
-
-## 9. Data retention
-
-BreedGraph is designed as a long-term research archive.
-
-User accounts, contribution records, and research datasets may be retained indefinitely where necessary to support:
-
-* scientific provenance;
-* research reproducibility;
-* attribution of contributions;
-* preservation of research records.
-
-Users may request changes to their personal information where appropriate. Some information may need to be retained where removal would compromise research records, audit trails, or archival integrity.
-
----
-
-## 10. Data security
-
-The University of Galway applies appropriate technical and organisational measures to protect information stored within BreedGraph.
-
-Measures include:
-
-* encrypted connections using HTTPS;
-* controlled access to application functions and datasets;
-* authentication and authorisation controls;
-* logging of submissions and changes;
-* secure backup procedures;
-* restricted administrative access.
-
-BreedGraph is hosted within University of Galway infrastructure.
-
-System administrators may have technical access to infrastructure where necessary for operation, maintenance, security, backup, or troubleshooting purposes. Such access is restricted and subject to appropriate institutional controls and confidentiality obligations.
-
----
-
-## 11. Sharing personal information
-
-BreedGraph does not make user email addresses publicly available or share them with other users for unrelated purposes.
-
-Email addresses may be used internally for account management and service communications.
-
-Personal information may be disclosed where necessary:
-
-* to provide and maintain the service;
-* to comply with legal obligations;
-* to protect the security and integrity of the platform.
-
----
-
-## 12. Your rights under GDPR
-
-Depending on the circumstances, individuals have rights relating to their personal data, including:
-
-* access to personal information;
-* correction of inaccurate information;
-* restriction of processing;
-* objection to certain processing activities;
-* deletion of personal information where applicable.
-
-Requests relating to personal data may be submitted to the BreedGraph platform administrator.
-
-The ability to remove information may be limited where retention is necessary for research integrity, legal obligations, or preservation of scientific records.
-
----
-
-## 13. Changes to this privacy policy
-
-This privacy policy may be updated periodically to reflect changes to BreedGraph, applicable legislation, or institutional requirements.
-
-Users will be informed of significant changes where appropriate.
-
----
-
-## 14. Contact
-
-For questions about privacy, personal data, or this policy, contact:
-
-**BreedGraph Platform Administrator**
-Marcus McHale
-marcus.mchale@universityofgalway.ie
-
----
-
-**Data controller:**
-University of Galway
+We will update this notice when BreedGraph or the law changes, and tell registered users of significant changes by email.
