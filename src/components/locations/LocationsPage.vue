@@ -50,8 +50,6 @@ const onLocationSelected = (locationId) => {
 
 const {
     locationTypes,
-    locationTypesLoading,
-    locationTypesError,
 
     countries,
     countriesLoading,
