@@ -16,6 +16,7 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 
 import { useLocationGeocoding } from '@/composables/locations/useLocationGeocoding'
+import { useLocationSearch } from '@/composables/locations/locationSearch'
 import { addBaseMap } from '@/composables/locations/baseMap'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
@@ -47,7 +48,7 @@ watch(() => props.selectedLocationId, (newSelectedLocationId) => {
 
 // drawn-change: emits the drawn coordinates (or null when nothing is drawn) so the location card can save them
 // show-card: the user asked to go to the location card to save the drawn shape
-const emit = defineEmits(['update-coordinates', 'drawn-change', 'show-card'])
+const emit = defineEmits(['update-coordinates', 'drawn-change', 'show-card', 'location-selected'])
 
 // Map state
 // Create a custom emoji icon for markers
@@ -87,9 +88,14 @@ const {
   loading: placeSearchLoading,
   error: placeSearchError
 } = useLocationGeocoding()
+// BreedGraph's own locations, found by name for anyone; places (OpenStreetMap) for signed-in users only
+const { searchLocations, loading: locationSearchLoading, error: locationSearchError } = useLocationSearch()
+const searchLoading = computed(() => placeSearchLoading.value || locationSearchLoading.value)
+const searchError = computed(() => locationSearchError.value || placeSearchError.value)
 
 // Place search state
 const placeQuery = ref('')
+const locationResults = ref([])
 const placeResults = ref([])
 const placeSearched = ref(false)
 const searchResultLayer = new L.FeatureGroup()  // kept separate so results are never submitted as coordinates
@@ -154,13 +160,19 @@ let placeSearchRequest = 0  // ignore responses from searches that have since be
 const handlePlaceSearch = async () => {
   if (!placeQuery.value.trim()) return
   const request = ++placeSearchRequest
-  const results = await searchPlaces(placeQuery.value, {
-    viewbox: getViewbox(),  // also prefers the visible area for the country and anywhere scopes
-    bounded: searchScope.value === 'view',
-    countryCode: searchScope.value === 'country' ? searchCountry.value?.alpha2 : null
-  })
+  const [locations, places] = await Promise.all([
+    searchLocations(placeQuery.value),
+    isAuthenticated.value
+      ? searchPlaces(placeQuery.value, {
+        viewbox: getViewbox(),  // also prefers the visible area for the country and anywhere scopes
+        bounded: searchScope.value === 'view',
+        countryCode: searchScope.value === 'country' ? searchCountry.value?.alpha2 : null
+      })
+      : []
+  ])
   if (request !== placeSearchRequest) return
-  placeResults.value = results
+  locationResults.value = locations
+  placeResults.value = places
   placeSearched.value = true
 }
 
@@ -172,9 +184,18 @@ watch(searchScope, () => {
 const clearPlaceSearch = () => {
   placeSearchRequest++
   placeQuery.value = ''
+  locationResults.value = []
   placeResults.value = []
   placeSearched.value = false
   searchResultLayer.clearLayers()
+}
+
+// A BreedGraph location is selected as from the tree: the page shows it on the map and opens its card
+const goToLocation = (location) => {
+  emit('location-selected', String(location.id))
+  locationResults.value = []
+  placeResults.value = []
+  placeSearched.value = false
 }
 
 const goToPlace = (place) => {
@@ -200,6 +221,7 @@ const goToPlace = (place) => {
   } else {
     map.setView([place.latitude, place.longitude], 14)
   }
+  locationResults.value = []
   placeResults.value = []
   placeSearched.value = false
 }
@@ -677,25 +699,25 @@ watch(childLocations, async (newChildren) => {
       <div v-else-if="hasLayer" class="unsaved-shape-cue unsaved-shape-cue--warning">
         Select a location in the tree before drawing. Selecting one clears this shape.
       </div>
-      <div v-if="isAuthenticated" class="place-search">
+      <div class="place-search">
         <form class="place-search-form" @submit.prevent="handlePlaceSearch">
           <input
             v-model="placeQuery"
             type="search"
             class="place-search-input"
-            :placeholder="`Search ${scopeDescription(searchScope)}…`"
+            :placeholder="isAuthenticated ? `Search locations, and places ${scopeDescription(searchScope)}…` : 'Search locations…'"
             @keydown.esc="clearPlaceSearch"
           />
           <button
             type="submit"
             class="draw-btn"
-            :disabled="placeSearchLoading || !placeQuery.trim()"
+            :disabled="searchLoading || !placeQuery.trim()"
           >
-            {{ placeSearchLoading ? 'Searching...' : 'Search' }}
+            {{ searchLoading ? 'Searching...' : 'Search' }}
           </button>
         </form>
-        <div class="place-search-scope" role="radiogroup" aria-label="Search in">
-          <span class="place-search-scope-label">Search in:</span>
+        <div v-if="isAuthenticated" class="place-search-scope" role="radiogroup" aria-label="Search places in">
+          <span class="place-search-scope-label">Places in:</span>
           <div class="scope-toggle">
             <button
               v-for="option in scopeOptions"
@@ -710,22 +732,36 @@ watch(childLocations, async (newChildren) => {
             </button>
           </div>
         </div>
-        <ul v-if="placeResults.length > 0" class="place-results">
+        <ul v-if="locationResults.length > 0 || placeResults.length > 0" class="place-results">
+          <li v-if="locationResults.length > 0" class="place-results-heading">In BreedGraph</li>
+          <li
+            v-for="location in locationResults"
+            :key="`location-${location.id}`"
+            class="place-result location-result"
+            @click="goToLocation(location)"
+          >
+            {{ location.name }}
+            <span v-if="location.root && String(location.root.id) !== String(location.id)" class="location-result-context">
+              in {{ location.root.name }}
+            </span>
+          </li>
+          <li v-if="placeResults.length > 0" class="place-results-heading">Places</li>
           <li
             v-for="(place, index) in placeResults"
-            :key="index"
+            :key="`place-${index}`"
             class="place-result"
             @click="goToPlace(place)"
           >
             {{ place.name }}
           </li>
         </ul>
-        <p v-else-if="placeSearchError" class="place-search-message error-message">
-          {{ placeSearchError }}
+        <p v-else-if="searchError" class="place-search-message error-message">
+          {{ searchError }}
         </p>
-        <p v-else-if="placeSearched && !placeSearchLoading" class="place-search-message">
-          No places found {{ scopeDescription(searchScope) }}.
-          <template v-for="option in widerScopes" :key="option.value">
+        <p v-else-if="placeSearched && !searchLoading" class="place-search-message">
+          <template v-if="isAuthenticated">No locations, and no places {{ scopeDescription(searchScope) }}.</template>
+          <template v-else>No locations found.</template>
+          <template v-for="option in (isAuthenticated ? widerScopes : [])" :key="option.value">
             ·
             <button type="button" class="link-btn" @click="searchScope = option.value">
               Search {{ scopeDescription(option.value) }}
@@ -960,6 +996,19 @@ watch(childLocations, async (newChildren) => {
 
 .place-result:hover {
   background-color: #e9ecef;
+}
+
+.place-results-heading {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+}
+
+.location-result-context {
+  color: #6c757d;
 }
 
 .place-search-message {

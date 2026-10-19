@@ -153,6 +153,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
             @update-coordinates="handleUpdateCoordinates"
             @drawn-change="onDrawnChange"
             @show-card="scrollToCard"
+            @location-selected="onLocationSelected"
           />
         </div>
       </div>

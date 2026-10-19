@@ -1,0 +1,13 @@
+query locationsSearch($name: String!, $limit: Int) {
+    locationsSearch(name: $name, limit: $limit) {
+        status
+        result {
+            id
+            name
+            root { id name }
+        }
+        errors {
+            message
+        }
+    }
+}

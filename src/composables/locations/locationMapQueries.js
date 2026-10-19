@@ -56,14 +56,18 @@ export function useLocationMapQueries() {
     })
 
     //Fetch child locations
-    watch(locationId, (newLocationId) => {
-        if (newLocationId) {
-            const cachedLocation = client.cache.readFragment({
-                id: `Location:${newLocationId}`,
-                fragment: LOCATION_FRAGMENT
-            })
-            childLocationIds.value = cachedLocation.children.map(child => child.id)
+    watch(locationId, async (newLocationId) => {
+        if (!newLocationId) return
+        let location = client.cache.readFragment({
+            id: `Location:${newLocationId}`,
+            fragment: LOCATION_FRAGMENT
+        })
+        if (!location) {
+            // not loaded by the tree, e.g. found with the map's search
+            const { data } = await client.query({ query: LOCATIONS_QUERY, variables: { locationIds: [newLocationId] } })
+            location = data?.locationsLocations?.result?.[0]
         }
+        if (locationId.value === newLocationId) childLocationIds.value = (location?.children ?? []).map(child => child.id)
     })
 
     // Fetch the country (region root) of the selected location, used to scope place searches
