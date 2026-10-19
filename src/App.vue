@@ -164,6 +164,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;  /* the padding is within the width, so the page doesn't scroll sideways */
 }
 
 .app-footer {
