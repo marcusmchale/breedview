@@ -220,6 +220,8 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
   grid-template-columns: 400px 1fr;
   gap: 20px;
   min-height: 600px;
+  /* each panel keeps its own height: a long tree scrolls in its panel rather than stretching the map's */
+  align-items: start;
 }
 
 .regions-tree-panel {

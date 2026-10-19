@@ -4,7 +4,8 @@ import {
   ref,
   computed,
   watch,
-  toRaw
+  toRaw,
+  onBeforeUnmount
 } from 'vue'
 import { LMap } from '@vue-leaflet/vue-leaflet'
 
@@ -226,6 +227,9 @@ const goToPlace = (place) => {
   placeSearched.value = false
 }
 
+let resizeObserver = null
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
 // Initialize map
 const onMapReady = () => {
   console.log('Map is ready')
@@ -235,6 +239,10 @@ const onMapReady = () => {
 
     // the base map, from tiles our server serves
     addBaseMap(map)
+
+    // Leaflet notices only window resizes: redraw whenever the layout resizes the map, so no grey area is left
+    resizeObserver = new ResizeObserver(() => map.invalidateSize())
+    resizeObserver.observe(map.getContainer())
 
     // Add feature group for drawn items
     if (!map.hasLayer(drawnItems)) {
@@ -957,7 +965,10 @@ watch(() => regionCountry.value?.code, focusSelection)
   color: #666;
 }
 
+/* the map fills its wrapper, which the panel sizes; positioned so it doesn't need a parent of definite height */
 .map-wrapper :deep(.leaflet-container) {
+  position: absolute;
+  inset: 0;
   height: 100%;
   width: 100%;
   z-index: 1;
