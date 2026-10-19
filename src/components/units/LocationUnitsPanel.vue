@@ -90,12 +90,13 @@ const handleNodeDeleted = () => {
 <style scoped>
 .location-units-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);  /* as wide as the page, whatever the width of its contents */
   gap: 20px;
 }
 
 .top-row {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 20px;
   min-height: 300px;
 }
@@ -125,5 +126,12 @@ const handleNodeDeleted = () => {
 
 .card-panel {
   width: 100%;
+}
+
+/* too narrow for the tree beside the list: the tree goes below it */
+@media (max-width: 700px) {
+  .top-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

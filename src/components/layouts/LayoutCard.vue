@@ -282,6 +282,8 @@ const handleAddChildSuccess = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;  /* the actions go below the name when they don't fit beside it */
+  gap: 12px;
   padding: 20px;
   border-bottom: 2px solid #f0f0f0;
   background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
@@ -299,6 +301,7 @@ const handleAddChildSuccess = async () => {
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .card-content {

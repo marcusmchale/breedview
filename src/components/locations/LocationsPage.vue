@@ -209,13 +209,13 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 
 .regions-content {
   display: grid;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr);  /* as wide as the page, whatever the width of its contents */
   gap: 20px;
 }
 
 .regions-top-row {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 400px minmax(0, 1fr);
   gap: 20px;
   min-height: 600px;
   /* each panel keeps its own height: a long tree scrolls in its panel rather than stretching the map's */
@@ -265,6 +265,13 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 .content-tab.active {
   color: #212529;
   border-bottom-color: #4caf50;
+}
+
+/* too narrow for the tree beside the map: the map goes below it */
+@media (max-width: 900px) {
+  .regions-top-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 </style>
