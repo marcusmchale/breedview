@@ -40,7 +40,8 @@ const props = defineProps({
   }
 })
 
-// Watch for selected location changes
+// The selected location, from the start (e.g. a link to it) and as it changes
+locationId.value = props.selectedLocationId
 watch(() => props.selectedLocationId, (newSelectedLocationId) => {
   locationId.value = newSelectedLocationId
   // a shape drawn for the previous location must not be saved against the new one
@@ -751,7 +752,7 @@ watch(() => regionCountry.value?.code, focusSelection)
       />
     </div>
 
-    <div class="map-info">
+    <div v-if="!selectedLocationId || selectedLocation" class="map-info">
       <p v-if="!selectedLocationId" class="help-text">
         Select a location from the tree to view it on the map
       </p>
