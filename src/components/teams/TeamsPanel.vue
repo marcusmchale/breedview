@@ -56,25 +56,8 @@
             </div>
           </div>
 
-          <div v-if="termsAvailable" class="legal-entity-section">
-            <label class="legal-entity-toggle">
-              <input v-model="declareLegalEntity" type="checkbox" :disabled="createLoading" />
-              <span>Declare the legal entity responsible for this team tree</span>
-            </label>
-            <p class="legal-entity-help">
-              Needed before the team tree can record people. It can also be declared later by an admin of the root team.
-            </p>
-            <LegalEntityForm
-              v-if="declareLegalEntity"
-              ref="legalEntityFormRef"
-              v-model="newLegalEntity"
-              :disabled="createLoading"
-              @terms-version="termsVersion = $event"
-            />
-          </div>
-
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="createLoading || !legalEntityComplete">
+            <button type="submit" class="btn btn-primary" :disabled="createLoading">
               {{ createLoading ? 'Creating...' : 'Create team tree' }}
             </button>
           </div>
@@ -112,11 +95,9 @@ import { ref, computed } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
-import { useDataProcessingTermsQuery } from '@/composables/teams/dataProcessingTermsQuery'
 import CREATE_TEAM_MUTATION from '@/graphql/teams/createTeam.graphql'
 import TeamNode from './TeamNode.vue'
 import CreateTeamModal from './CreateTeamModal.vue'
-import LegalEntityForm from './LegalEntityForm.vue'
 import RequestAffiliationModal from '@/components/affiliations/RequestAffiliationModal.vue'
 
 const { currentUserId } = useAuthStore()
@@ -148,14 +129,6 @@ const newTree = ref({ name: '', fullname: '' })
 const createError = ref('')
 const createSuccess = ref('')
 
-// Optional legal entity declaration for the new tree (only offered when terms are configured)
-const { termsAvailable } = useDataProcessingTermsQuery()
-const declareLegalEntity = ref(false)
-const newLegalEntity = ref({ legalName: '', privacyContact: '', accepted: false })
-const legalEntityFormRef = ref(null)
-const termsVersion = ref(null)
-const legalEntityComplete = computed(() => !declareLegalEntity.value || !!legalEntityFormRef.value?.complete)
-
 const { mutate: createTeam, loading: createLoading } = useMutation(CREATE_TEAM_MUTATION)
 
 const submitCreateTree = async () => {
@@ -166,20 +139,11 @@ const submitCreateTree = async () => {
     name: newTree.value.name.trim(),
     fullname: newTree.value.fullname.trim() || null
   }
-  if (declareLegalEntity.value) {
-    team.legalEntity = {
-      legalName: newLegalEntity.value.legalName.trim(),
-      privacyContact: newLegalEntity.value.privacyContact.trim(),
-      termsVersion: termsVersion.value
-    }
-  }
   try {
     const response = (await createTeam({ team }))?.data?.teamsCreateTeam
     if (response?.status === 'SUCCESS') {
       createSuccess.value = 'Team tree created.'
       newTree.value = { name: '', fullname: '' }
-      declareLegalEntity.value = false
-      newLegalEntity.value = { legalName: '', privacyContact: '', accepted: false }
       refetchTeamRoots()
     } else {
       createError.value = response?.errors?.[0]?.message || 'Failed to create the team tree'
@@ -223,29 +187,6 @@ const submitCreateTree = async () => {
   display: flex;
   gap: 1rem;
   align-items: end;
-}
-
-.legal-entity-section {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-}
-
-.legal-entity-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  color: #495057;
-  cursor: pointer;
-}
-
-.legal-entity-help {
-  margin: 4px 0 12px 24px;
-  font-size: 0.85rem;
-  color: #666;
 }
 
 .create-tree-form > .form-actions {

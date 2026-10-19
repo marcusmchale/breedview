@@ -33,19 +33,10 @@ export function writerLabel({ user, person }) {
   return 'An account without a Person record'
 }
 
-// The legal entity holding a Person record (its data controller), shown with every Person so anyone credited can tell
-// who holds the record about them: { legalName, privacyContact }, or null when it can't be told
-export const dataController = (person) => (person?.erased ? null : person?.dataController ?? null)
-
 export function orcidUrl(orcid) {
   if (!orcid) return null
   return orcid.startsWith('http') ? orcid : `https://orcid.org/${orcid}`
 }
-
-export const LAWFUL_BASIS_OPTIONS = [
-  { value: 'PUBLIC_TASK', label: 'Public task', description: 'Research by a public body, e.g. a university' },
-  { value: 'LEGITIMATE_INTEREST', label: 'Legitimate interest', description: 'Research by a private partner' }
-]
 
 /**
  * The name a team reference (TeamReference) is shown by: the team's, or for a team hidden from the viewer,

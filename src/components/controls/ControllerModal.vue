@@ -8,6 +8,7 @@ import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 import OfferTransferModal from './OfferTransferModal.vue'
 import { writerLabel } from '@/composables/people/personDisplay'
+import { RELEASE_LABELS, releasesFor } from '@/composables/controls/releases'
 
 const props = defineProps({
   isVisible: {
@@ -50,6 +51,8 @@ const administeredControlTeams = computed(() =>
     .filter(({ team, standIn }) => !standIn && adminTeamIds.value.map(String).includes(String(team.id)))
     .map(({ team }) => team)
 )
+// the releases this kind of entity can be given (Persons: at most registered users)
+const releaseOptions = computed(() => releasesFor([props.entityLabel]))
 const canTransfer = computed(() => administeredControlTeams.value.length > 0 && !!props.entityLabel && !!props.entityId)
 const canRenounce = computed(() => canTransfer.value && (props.controller?.teams?.length ?? 0) > 1)
 // the controlling teams the user can see, and those standing in for teams hidden from them
@@ -261,9 +264,7 @@ const formatDate = (dateString) => {
                 v-model="selectedRelease"
                 class="release-select"
               >
-                <option value="PRIVATE">Private</option>
-                <option value="REGISTERED">Registered</option>
-                <option value="PUBLIC">Public</option>
+                <option v-for="option in releaseOptions" :key="option" :value="option">{{ RELEASE_LABELS[option] }}</option>
               </select>
             </div>
 

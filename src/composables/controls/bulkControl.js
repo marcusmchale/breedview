@@ -28,8 +28,7 @@ export const CONTROLLED_LABELS = [
 export const labelInfo = (value) => CONTROLLED_LABELS.find((l) => l.value === value) ?? { value, plural: value, one: value }
 export const countOf = (n, info) => `${n.toLocaleString()} ${n === 1 ? info.one : info.plural.toLowerCase()}`
 
-export const RELEASES = ['PRIVATE', 'REGISTERED', 'PUBLIC']
-export const RELEASE_LABELS = { PRIVATE: 'Private', REGISTERED: 'Registered', PUBLIC: 'Public' }
+export { RELEASES, RELEASE_LABELS, releasesFor } from './releases'
 
 const payloadError = (error, payload) => error?.message || payload?.errors?.map((e) => e.message).join(', ') || ''
 

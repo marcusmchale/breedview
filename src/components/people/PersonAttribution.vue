@@ -1,11 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { personForm, personLabel, orcidUrl, dataController } from '@/composables/people/personDisplay'
+import { personForm, personLabel, orcidUrl } from '@/composables/people/personDisplay'
 
-// A credited Person's name, opening a small card with who they are (name, institution, ORCID iD) and who holds the
-// record about them, its data controller (breedgraph docs/person.md §2), for signed-out visitors too: a person
-// credited here can tell whom to ask about their data. Restricted Persons show the holder only; erased ones are plain
-// text, as they hold no personal data.
+// A credited Person's name, opening a small card with who they are: name, institution and ORCID iD. Restricted and
+// erased Persons are plain text. Only signed-in users see Persons (breedgraph docs/person.md §3).
 const props = defineProps({
   person: {
     type: Object,
@@ -16,27 +14,18 @@ const props = defineProps({
 const form = computed(() => personForm(props.person))
 const label = computed(() => personLabel(props.person))
 const orcidLink = computed(() => orcidUrl(props.person?.orcid))
-const holder = computed(() => dataController(props.person))
 const named = computed(() => form.value === 'full' || form.value === 'attribution')
-const hasCard = computed(() => (named.value && (props.person.institution || orcidLink.value)) || holder.value)
+const hasCard = computed(() => named.value && !!(props.person.institution || orcidLink.value))
 </script>
 
 <template>
   <details v-if="hasCard" class="person-attribution" :class="`person-${form}`">
     <summary class="person-label">{{ label }}</summary>
     <div class="attribution-card">
-      <template v-if="named">
-        <div class="attribution-name">{{ person.name }}</div>
-        <div v-if="person.institution" class="attribution-line">{{ person.institution }}</div>
-        <div v-if="orcidLink" class="attribution-line">
-          <a :href="orcidLink" target="_blank" rel="noopener">{{ orcidLink }}</a>
-        </div>
-      </template>
-      <div v-else class="attribution-line text-muted">A person record you cannot see.</div>
-      <div v-if="holder" class="attribution-holder">
-        Record held by <strong>{{ holder.legalName }}</strong>.
-        Questions about this personal data:
-        <a :href="`mailto:${holder.privacyContact}`">{{ holder.privacyContact }}</a>
+      <div class="attribution-name">{{ person.name }}</div>
+      <div v-if="person.institution" class="attribution-line">{{ person.institution }}</div>
+      <div v-if="orcidLink" class="attribution-line">
+        <a :href="orcidLink" target="_blank" rel="noopener">{{ orcidLink }}</a>
       </div>
     </div>
   </details>
@@ -93,15 +82,7 @@ const hasCard = computed(() => (named.value && (props.person.institution || orci
   font-weight: 600;
 }
 
-.attribution-line a,
-.attribution-holder a {
+.attribution-line a {
   overflow-wrap: anywhere;
-}
-
-.attribution-holder {
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px solid #eee;
-  color: #555;
 }
 </style>

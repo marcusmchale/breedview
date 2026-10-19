@@ -4,7 +4,6 @@ fragment PersonFields on Person {
     name
     institution
     teams { team { id name fullname } standIn }
-    basis
     informedAttestation
     orcid
     linked
@@ -14,5 +13,4 @@ fragment PersonFields on Person {
     erased
     erasedAt
     restricted
-    dataController { legalName privacyContact }
 }

@@ -80,8 +80,8 @@ const handleErased = (personId) => {
 
     <p class="page-intro text-muted">
       People are credited for research data as dataset contributors and listed as contacts for programs and trials.
-      The full record is for the teams holding it; records released to you show who the person is, and each names
-      the organisation holding it.
+      The full record is for the teams holding it; records released to you show who the person is. People are shown
+      only to signed-in users.
     </p>
 
     <ClaimRequestsPanel v-if="isAuthenticated" @decided="refetchPeople" />

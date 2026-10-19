@@ -5,7 +5,7 @@ import PersonAttribution from './PersonAttribution.vue'
 import { personForm, personNamed, orcidUrl } from '@/composables/people/personDisplay'
 
 // Inline credit for a Person in any of its forms: full or attribution ("Name (Institution)"), restricted or erased,
-// opening who they are and who holds the record (PersonAttribution).
+// opening who they are (PersonAttribution).
 const props = defineProps({
   person: {
     type: Object,

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import ReadReleaseSelector from './ReadReleaseSelector.vue'
+import { releasesFor } from '@/composables/controls/releases'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
@@ -108,7 +109,11 @@ watch(recipientTeamId, (id) => {
   toTeamIds.value = administersRecipient.value && id ? [String(id)] : []
 })
 
-const isPerson = computed(() => props.entityLabel === 'PERSON')
+// the widest release the offered entities can be given (Persons: registered users)
+const maxRelease = computed(() => {
+  const labels = props.scope ? [props.scope.label] : (props.entities ?? [{ label: props.entityLabel }]).map((e) => e.label)
+  return releasesFor(labels).at(-1)
+})
 
 const canSubmit = computed(() =>
   !offerTransferLoading.value &&
@@ -163,9 +168,6 @@ const closeModal = () => {
           Offer control of {{ description || `this ${entityLabel.toLowerCase()}` }} to another team. Admins of that
           team accept and choose which of their teams take control. Each record moves alone, not others in its
           aggregate.
-          <template v-if="isPerson">
-            A person record can only go to a team tree with a declared legal entity, which becomes its data controller.
-          </template>
         </p>
 
         <form @submit.prevent="submitOffer">
@@ -211,7 +213,7 @@ const closeModal = () => {
             </div>
             <div class="form-group">
               <label>Release of the new controls</label>
-              <ReadReleaseSelector v-model="release" />
+              <ReadReleaseSelector v-model="release" :max-release="maxRelease" />
             </div>
           </div>
 

@@ -1,9 +1,9 @@
 <!-- src/components/controls/BulkControlActions.vue: set the release of, offer or renounce a selection of what a team controls -->
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 import OfferTransferModal from './OfferTransferModal.vue'
-import { useBulkControlActions, RELEASES, RELEASE_LABELS } from '@/composables/controls/bulkControl'
+import { useBulkControlActions, RELEASE_LABELS, releasesFor } from '@/composables/controls/bulkControl'
 
 const props = defineProps({
   // { entities: [{ label, id }] } or { scope: { teamId, label, release?, belowUnitIds? } }; null when nothing is chosen
@@ -18,6 +18,8 @@ const props = defineProps({
 const emit = defineEmits(['changed'])
 
 const { setRelease, renounce, actionLoading } = useBulkControlActions()
+// the releases the selection can be given (Persons: at most registered users)
+const releases = computed(() => releasesFor([props.label]))
 
 const release = ref('PRIVATE')
 const message = ref('')
@@ -75,7 +77,7 @@ const offered = (accepted) => {
     <span class="selection-description">{{ selection ? description : 'Choose what to act on' }}</span>
     <div class="action-group">
       <select v-model="release" name="bulkRelease" :disabled="!selection || actionLoading" aria-label="Release">
-        <option v-for="r in RELEASES" :key="r" :value="r">{{ RELEASE_LABELS[r] }}</option>
+        <option v-for="r in releases" :key="r" :value="r">{{ RELEASE_LABELS[r] }}</option>
       </select>
       <button class="btn btn-primary btn-sm" :disabled="!selection || actionLoading" @click="applyRelease">
         Set release

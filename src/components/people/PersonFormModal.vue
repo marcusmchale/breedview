@@ -3,10 +3,10 @@ import { ref, computed, watch } from 'vue'
 import ControlSelector from '@/components/controls/ControlSelector.vue'
 import { useMutatePeople } from '@/composables/people/mutatePeople'
 import { useUserAccess } from '@/composables/user/useUserAccess'
-import { LAWFUL_BASIS_OPTIONS } from '@/composables/people/personDisplay'
+import { RELEASE_CEILINGS } from '@/composables/controls/releases'
 
-// Create a Person (person null) or update one. Creating needs a control team whose organisation
-// has declared a legal entity, and confirmation that the person has been informed.
+// Create a Person (person null) or update one. Creating needs a control team and confirmation that the person was
+// told about the record and the privacy notice. Persons are released at most to registered users.
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -27,7 +27,7 @@ const emit = defineEmits(['close', 'saved'])
 
 const isUpdate = computed(() => !!props.person)
 
-const form = ref({ name: '', institution: '', teamIds: [], basis: 'PUBLIC_TASK', informed: false })
+const form = ref({ name: '', institution: '', teamIds: [], informed: false })
 const errorMessage = ref('')
 const controlTeamId = ref(null)
 const release = ref(null)
@@ -51,15 +51,12 @@ const teamOptions = computed(() => {
 
 const busy = computed(() => createPersonLoading.value || updatePersonLoading.value)
 
-const missingLegalEntity = computed(() => /legal entity/i.test(errorMessage.value))
-
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     form.value = {
       name: props.person?.name ?? '',
       institution: props.person?.institution ?? '',
       teamIds: (props.person?.teams ?? []).filter(({ standIn }) => !standIn).map(({ team }) => String(team.id)),
-      basis: props.person?.basis ?? 'PUBLIC_TASK',
       informed: false
     }
     errorMessage.value = ''
@@ -85,7 +82,6 @@ const submitForm = async () => {
       }
       if (!props.limitedToOwnFields) {
         personData.teamIds = form.value.teamIds
-        personData.basis = form.value.basis
       }
       result = await updatePerson(personData)
     } else {
@@ -94,7 +90,6 @@ const submitForm = async () => {
           name: form.value.name.trim(),
           institution: form.value.institution.trim() || null,
           teamIds: form.value.teamIds,
-          basis: form.value.basis,
           informedAttestation: form.value.informed
         },
         controlTeamId,
@@ -169,46 +164,33 @@ const closeModal = () => {
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="person-basis">Lawful basis</label>
-              <select id="person-basis" v-model="form.basis" :disabled="busy">
-                <option v-for="option in LAWFUL_BASIS_OPTIONS" :key="option.value" :value="option.value">
-                  {{ option.label }}: {{ option.description }}
-                </option>
-              </select>
-              <p v-if="isUpdate" class="help-text">Changing teams or basis requires curate access.</p>
-            </div>
+            <p v-if="isUpdate" class="help-text">Changing teams requires curate access.</p>
           </template>
 
           <div v-if="!isUpdate" class="form-group">
             <label class="informed-attestation">
               <input v-model="form.informed" type="checkbox" :disabled="busy" />
               <span>
-                I confirm this person has been informed that this record is held, as described in the
-                organisation's privacy notice
+                I confirm this person took part in the research and has been told about this record and the
+                <router-link to="/privacy" target="_blank">BreedGraph privacy notice</router-link>
               </span>
             </label>
           </div>
 
-          <p v-if="!isUpdate && release && release !== 'PRIVATE'" class="help-text release-note">
-            Released {{ release === 'PUBLIC' ? 'to everyone' : 'to registered users' }}, the name, institution and
-            ORCID iD are shown where this person is credited, with the organisation holding the record. Teams, basis
-            and the rest stay with the teams that control it.
+          <p v-if="!isUpdate" class="help-text release-note">
+            Released to registered users, the name, institution and ORCID iD are shown to signed-in users where this
+            person is credited; teams and the rest stay with the teams that control the record. People are never
+            shown to visitors who are not signed in.
           </p>
 
-          <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-            <template v-if="missingLegalEntity">
-              An admin of the root team can declare it under
-              <router-link :to="{ path: '/profile', hash: '#teams' }">Teams</router-link> on the profile page.
-            </template>
-          </div>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
           <div class="form-actions">
             <ControlSelector
               v-if="!isUpdate"
               v-model:controlTeamId="controlTeamId"
               v-model:readRelease="release"
+              :max-release="RELEASE_CEILINGS.PERSON"
               @error="errorMessage = $event || ''"
             />
             <button type="button" class="btn btn-secondary" :disabled="busy" @click="closeModal">

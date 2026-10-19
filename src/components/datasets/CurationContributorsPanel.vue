@@ -8,7 +8,8 @@ import ContributionsField from '@/components/people/ContributionsField.vue'
 
 /**
  * The contributors of the loaded datasets, credited by name with their roles, and edited for each dataset the user
- * can curate. Changes are saved with the table's other changes.
+ * can curate. Changes are saved with the table's other changes. Signed-in users only: people are not shown to
+ * visitors who are not signed in (breedgraph docs/person.md §3).
  * datasets: [{ id, label, contributions, people, canEdit, changed }], contributions being [{ personId, roleIds }]
  * and people the Persons as loaded
  */
@@ -23,7 +24,7 @@ const open = ref(false)
 // the dataset whose contributions are being edited
 const editing = ref(null)
 
-// Listing people needs an account; signed out, the loaded datasets' own Persons name the contributors
+// Listing people needs an account, as does seeing contributors at all
 const { isAuthenticated } = useAuthStore()
 const { people } = usePeopleQuery(null, { enabled: isAuthenticated })
 const { entries: roles } = useOntologyEntriesQuery({ labels: ['ROLE'], view: 'PUBLISHED' })
@@ -49,7 +50,7 @@ const toggleEdit = (id) => {
 </script>
 
 <template>
-  <div class="contributors">
+  <div v-if="isAuthenticated" class="contributors">
     <button type="button" class="btn btn-secondary btn-sm toggle" @click="open = !open">
       {{ open ? '▾' : '▸' }} Contributors ({{ total }}){{ changedCount ? ` · ${changedCount} changed` : '' }}
     </button>

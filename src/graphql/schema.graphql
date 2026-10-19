@@ -1270,8 +1270,7 @@ type Mutation {
   ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: ID, copyrightId: ID): BooleanPayload!
 
   """
-  Record a Person. The team tree of the control team must have declared its legal entity,
-  and becomes the data controller for the record.
+  Record a Person. Its release can be at most REGISTERED: Persons are never shown to anonymous users.
   """
   peopleCreatePerson(person: PersonInput!, controlTeamId: ID!, release: ReadRelease): BooleanPayload!
 
@@ -1369,18 +1368,6 @@ type Mutation {
   teamsCreateTeam(team: TeamInput!): BooleanPayload!
   teamsDeleteTeam(id: ID!): BooleanPayload!
   teamsUpdateTeam(team: TeamUpdate!): BooleanPayload!
-
-  """
-  Declare the legal entity responsible for a team tree, accepting the current data processing terms.
-  Only on the root team, by its admins. A new declaration replaces the current one, which is kept as history.
-  """
-  teamsDeclareLegalEntity(teamId: ID!, legalEntity: LegalEntityInput!): BooleanPayload!
-
-  """
-  Withdraw the legal entity declared for a team tree, by admins of its root team.
-  Refused while the team tree controls any Person, including erased Persons. The declaration is kept as history.
-  """
-  teamsWithdrawLegalEntity(teamId: ID!): BooleanPayload!
   unitsCreateUnit(unit: UnitInput!, controlTeamId: ID!, release: ReadRelease, position: PositionInput): BooleanPayload!
   unitsUpdateUnit(unit: UnitUpdate!): BooleanPayload!
   unitsDeleteUnit(id: ID!): BooleanPayload!
@@ -1916,9 +1903,6 @@ input PersonInput {
   """Affiliation"""
   teamIds: [ID!]
 
-  """Defaults to PUBLIC_TASK"""
-  basis: LawfulBasis
-
   """
   Confirm the person was informed that this record is held. Required to be true
   """
@@ -1934,9 +1918,6 @@ input PersonUpdate {
 
   """Requires curate access"""
   teamIds: [ID!]
-
-  """Requires curate access"""
-  basis: LawfulBasis
 }
 
 input ProgramInput {
@@ -2180,20 +2161,6 @@ input TeamInput {
 
   """ Optional parent team to extend a team tree"""
   parentId: ID
-
-  """ Optional legal entity for a new team tree, i.e. without a parent """
-  legalEntity: LegalEntityInput
-}
-
-input LegalEntityInput {
-  legalName: String!
-
-  """ A role address for requests about personal data, not an individual's """
-  privacyContact: String!
-
-  """ The version of the data processing terms shown and accepted, see teamsDataProcessingTerms 
-  """
-  termsVersion: String!
 }
 
 input TeamUpdate {
@@ -3510,6 +3477,16 @@ type LocationTemplate {
   typeId: ID!
 }
 
+"""A place found by name, to move the location map to"""
+type Place {
+  name: String!
+  latitude: Float!
+  longitude: Float!
+
+  """[[south, west], [north, east]], when known"""
+  bounds: [[Float!]!]
+}
+
 type Version {
   id: ID!
   major: Int!
@@ -4657,6 +4634,18 @@ type LocationTemplatesPayload {
   errors: [Error!]
 }
 
+type PlacesPayload {
+  status: QueryStatus!
+  result: [Place!]
+  errors: [Error!]
+}
+
+type PlacePayload {
+  status: QueryStatus!
+  result: Place
+  errors: [Error!]
+}
+
 type LayoutsPayload {
   status: QueryStatus!
   result: [Layout!]
@@ -4831,12 +4820,6 @@ type AnalysisSubmissionPayload {
   errors: [Error!]
 }
 
-type DataProcessingTermsPayload {
-  status: QueryStatus!
-  result: DataProcessingTerms
-  errors: [Error!]
-}
-
 type PersonPayload {
   status: QueryStatus!
   result: Person
@@ -4873,12 +4856,6 @@ type StringPayload {
   errors: [Error!]
 }
 
-"""The GDPR basis for holding a Person record"""
-enum LawfulBasis {
-  PUBLIC_TASK
-  LEGITIMATE_INTEREST
-}
-
 """How the viewer sees a Person. See docs/person.md §3"""
 enum PersonView {
   """
@@ -4898,22 +4875,11 @@ enum PersonView {
 }
 
 """
-The legal entity holding a Person record (its data controller under GDPR): the one declared on the root of the team
-tree controlling the record. Shown with every Person, restricted ones included, so anyone can tell who holds a
-record and how to contact them about it
-"""
-type DataController {
-  legalName: String!
-
-  """A role address for requests about personal data"""
-  privacyContact: String!
-}
-
-"""
 Someone who took part in research, for attribution. See docs/person.md.
 What the viewer sees depends on view: the record in FULL; name, institution and ORCID iD as ATTRIBUTION; the id only
-when RESTRICTED. Fields outside the view are null (lists empty). Every view names the data controller.
-Searches leave restricted Persons out (docs/read-access.md). An erased Person keeps its id only, so contributions stay
+when RESTRICTED. Fields outside the view are null (lists empty). Persons are released at most to registered users,
+and anonymous users get no contacts or contributors, so they see no Persons. Searches leave restricted Persons out
+(docs/read-access.md). An erased Person keeps its id only, so contributions stay
 attributed to an anonymous person; it shows as erased only to those who could see it before.
 """
 type Person {
@@ -4933,9 +4899,6 @@ type Person {
   affiliations do). Those hidden from the viewer are stood in for by the nearest team they can see
   """
   teams: [TeamReference!]!
-
-  """In the full view"""
-  basis: LawfulBasis
 
   """
   In the full view: the creator confirmed the person was informed that this record is held
@@ -4962,11 +4925,6 @@ type Person {
 
   """In the full view"""
   recordedAt: DateTime
-
-  """
-  The legal entity holding this record, null when it can't be told (no single team tree, or none declared)
-  """
-  dataController: DataController
 
   """Whether the Person was erased: false when restricted"""
   erased: Boolean!
@@ -5060,7 +5018,7 @@ type Query {
   accountsUserAccess: UserAccessPayload!
 
   """
-  The roots of the team trees, which every signed-in user sees, with their legal entities.
+  The roots of the team trees, which every signed-in user sees.
   Teams below a root are visible to their affiliates only (docs/read-access.md, rule 9).
   Navigation of the team tree graph is achieved by resolvers on the parent/children attributes. Requires sign-in.
   """
@@ -5100,10 +5058,6 @@ type Query {
   """ Pending requests to be linked to Persons controlled by teams the current user administers 
   """
   peopleClaimRequests: PersonClaimRequestsPayload!
-
-  """ The current data processing terms, to show when declaring a legal entity 
-  """
-  teamsDataProcessingTerms: DataProcessingTermsPayload!
 
   """Get the latest ontology version"""
   ontologyVersion: VersionPayload!
@@ -5169,6 +5123,19 @@ type Query {
   Get a list of country templates for use in top level location tree creation
   """
   locationsCountries: LocationTemplatesPayload!
+
+  """
+  Places matching a search, to move the location map to: preferring those in viewbox ([west, south, east, north]),
+  or only those there when bounded, and only those in the country with ISO alpha-2 countryCode when given.
+  The server asks OpenStreetMap's Nominatim, so the browser contacts no third party. Requires sign-in, and is
+  limited per user per hour.
+  """
+  locationsSearchPlaces(query: String!, viewbox: [Float!], bounded: Boolean, countryCode: String, limit: Int): PlacesPayload!
+
+  """
+  The country with this name, as locationsSearchPlaces finds places. Requires sign-in
+  """
+  locationsGeocodeCountry(name: String!): PlacePayload!
 
   """
   Get a list of location tree "root" locations.
@@ -5457,38 +5424,6 @@ type Team {
   affiliations: Affiliations
   directAffiliations: Affiliations
   inheritedAffiliations: Affiliations
-
-  """
-  The legal entity responsible for the team tree. Only declared on team tree roots
-  """
-  legalEntity: LegalEntity
-}
-
-"""
-The legal entity responsible for a team tree, declared on its root team by accepting the data processing terms.
-Required for the team tree to record Persons.
-"""
-type LegalEntity {
-  legalName: String!
-
-  """A role address for requests about personal data"""
-  privacyContact: String!
-
-  """The version of the data processing terms accepted"""
-  termsVersion: String!
-  declaredAt: DateTime
-
-  """Visible to admins of the team only"""
-  declaredBy: UserDisplay
-}
-
-"""The data processing terms accepted when declaring a legal entity"""
-type DataProcessingTerms {
-  """
-  Null when no terms are configured, in which case legal entities cannot be declared
-  """
-  version: String
-  url: String
 }
 
 type UserAccess {

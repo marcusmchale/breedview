@@ -1,13 +1,12 @@
 <script setup>
 import { computed } from 'vue'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
-import { personForm, personLabel, orcidUrl, personTeamNames, dataController } from '@/composables/people/personDisplay'
+import { personForm, personLabel, orcidUrl, personTeamNames } from '@/composables/people/personDisplay'
 import { useEntityAccess } from '@/composables/controls/useWriteAccess'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 
 // A Person as the viewer sees it (breedgraph docs/person.md §3): the full record to read affiliates of a controlling
-// team and the linked user; name, institution and ORCID iD to those reading it by release only; or its id. Each names
-// the legal entity holding the record.
+// team and the linked user; name, institution and ORCID iD to those reading it by release only; or its id.
 
 const props = defineProps({
   person: {
@@ -26,7 +25,6 @@ defineEmits(['edit', 'erase'])
 const form = computed(() => personForm(props.person))
 const orcidLink = computed(() => orcidUrl(props.person.orcid))
 const teamNames = computed(() => personTeamNames(props.person, { full: true }))
-const holder = computed(() => dataController(props.person))
 
 // As the backend allows: curators edit, admins of the controlling teams erase, and the linked user does both
 const { currentUserId, isAuthenticated } = useAuthStore()
@@ -40,11 +38,6 @@ const formatDate = (value) => {
   const date = new Date(value)
   return isNaN(date.getTime()) ? value : date.toLocaleDateString()
 }
-
-const basisLabel = computed(() => ({
-  PUBLIC_TASK: 'Public task',
-  LEGITIMATE_INTEREST: 'Legitimate interest'
-}[props.person.basis] ?? props.person.basis))
 </script>
 
 <template>
@@ -63,7 +56,7 @@ const basisLabel = computed(() => ({
       Erased<template v-if="person.erasedAt"> {{ formatDate(person.erasedAt) }}</template>. Contributions stay attributed to this id.
     </div>
 
-    <div v-if="form !== 'erased'" class="card-body">
+    <div v-if="form === 'full' || form === 'attribution'" class="card-body">
       <dl class="details">
         <template v-if="teamNames.length">
           <dt>Teams</dt>
@@ -82,10 +75,6 @@ const basisLabel = computed(() => ({
             <span v-else class="text-muted">not linked</span>
           </dd>
         </template>
-        <template v-if="person.basis">
-          <dt>Lawful basis</dt>
-          <dd>{{ basisLabel }}</dd>
-        </template>
         <template v-if="person.recordedAt">
           <dt>Recorded</dt>
           <dd>
@@ -93,16 +82,9 @@ const basisLabel = computed(() => ({
             <template v-if="person.recordedBy">by {{ person.recordedBy.fullname || person.recordedBy.name }}</template>
           </dd>
         </template>
-        <template v-if="holder">
-          <dt>Held by</dt>
-          <dd>
-            {{ holder.legalName }}
-            <span class="text-muted">(privacy contact <a :href="`mailto:${holder.privacyContact}`">{{ holder.privacyContact }}</a>)</span>
-          </dd>
-        </template>
       </dl>
 
-      <div v-if="form !== 'restricted' && (canEdit || canErase)" class="card-actions">
+      <div v-if="canEdit || canErase" class="card-actions">
         <button v-if="canEdit" class="btn btn-secondary btn-small" @click="$emit('edit', person)">Edit</button>
         <button v-if="canErase" class="btn btn-danger btn-small" @click="$emit('erase', person)">Erase</button>
       </div>

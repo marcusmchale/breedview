@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import PersonAttribution from './PersonAttribution.vue'
 
 // Who contributed to a record and how: "Name (Institution) — Investigation, Data curation", each name opening who
-// they are and who holds the record about them (PersonAttribution)
+// they are (PersonAttribution). Signed out, the API gives no contributions, so nothing is shown
 const props = defineProps({
   contributions: {
     type: Array,

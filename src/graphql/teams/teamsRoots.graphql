@@ -6,7 +6,6 @@ query teamsRoots {
             name
             fullname
             children { id }
-            legalEntity { legalName privacyContact termsVersion declaredAt declaredBy { id name fullname } }
             affiliations {
                 read { user { id name fullname } authorisation heritable }
                 write { user { id name fullname } authorisation heritable }

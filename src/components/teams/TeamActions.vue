@@ -26,14 +26,6 @@
     </button>
     
     <button
-      v-if="userIsAdmin && isRoot"
-      class="btn btn-secondary"
-      @click="$emit('legal-entity')"
-    >
-      {{ hasLegalEntity ? 'Legal Entity' : 'Declare Legal Entity' }}
-    </button>
-
-    <button
       v-if="userIsAdmin && !hasChildren"
       class="btn btn-danger"
       @click="$emit('delete-team')"
@@ -71,19 +63,10 @@ const props = defineProps({
   deleteTeamError: {
     type: String,
     default: ''
-  },
-  // Organisation roots can declare a legal entity
-  isRoot: {
-    type: Boolean,
-    default: false
-  },
-  hasLegalEntity: {
-    type: Boolean,
-    default: false
   }
 })
 
-defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team', 'legal-entity'])
+defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team'])
 
 const deleteRefusedForControl = computed(() => /control/i.test(props.deleteTeamError || ''))
 </script>

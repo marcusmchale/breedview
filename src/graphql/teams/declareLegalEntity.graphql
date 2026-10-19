@@ -1,8 +1,0 @@
-mutation teamsDeclareLegalEntity($teamId: ID!, $legalEntity: LegalEntityInput!) {
-    teamsDeclareLegalEntity(teamId: $teamId, legalEntity: $legalEntity) {
-        status
-        errors {
-            message
-        }
-    }
-}

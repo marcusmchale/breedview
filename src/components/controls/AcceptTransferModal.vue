@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import ReadReleaseSelector from './ReadReleaseSelector.vue'
+import { releasesFor } from '@/composables/controls/releases'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 
@@ -24,6 +25,8 @@ const { acceptTransfer, acceptTransferLoading } = useMutateTransfers()
 
 const toTeamIds = ref([])
 const release = ref('PRIVATE')
+// the widest release the offered entities can be given (Persons: registered users)
+const maxRelease = computed(() => releasesFor((props.transfer?.entities ?? []).map((entity) => entity.label)).at(-1))
 const errorMessage = ref('')
 
 // The recipient team first, then the user's other admin teams; the server checks they are below the recipient
@@ -100,7 +103,7 @@ const closeModal = () => {
 
           <div class="form-group">
             <label>Release of the new controls</label>
-            <ReadReleaseSelector v-model="release" />
+            <ReadReleaseSelector v-model="release" :max-release="maxRelease" />
           </div>
 
           <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>

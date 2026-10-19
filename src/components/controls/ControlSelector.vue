@@ -2,8 +2,9 @@
 import ControlTeamSelector from './ControlTeamSelector.vue'
 import ReadReleaseSelector from './ReadReleaseSelector.vue'
 
-const props = defineProps( {
-  fixedRelease: String
+defineProps( {
+  fixedRelease: String,
+  maxRelease: String
 })
 
 const controlTeamId = defineModel('controlTeamId')
@@ -33,7 +34,7 @@ const handleLoading = (isLoading) => {
 
     <div class="selector-item">
       <label>Release</label>
-      <ReadReleaseSelector v-model="readRelease" :fixedRelease=fixedRelease />
+      <ReadReleaseSelector v-model="readRelease" :fixedRelease=fixedRelease :max-release="maxRelease" />
     </div>
   </div>
 </template>
