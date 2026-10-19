@@ -1,4 +1,4 @@
-import { ApolloClient, InMemoryCache, ApolloLink } from '@apollo/client/core'
+import { ApolloClient, InMemoryCache } from '@apollo/client/core'
 import { createUploadLink } from 'apollo-upload-client'
 
 
@@ -34,13 +34,6 @@ const authLink = setContext(async (_, { headers }) => {
     }
   }
 })
-
-const logLink = new ApolloLink((operation, forward) => {
-  return forward(operation).map(response => {
-    console.log("LogLink", operation.operationName, response);
-    return response;
-  });
-});
 
 // the docs for apollo don't match what we get, networkError is there and error is not!
 const errorLink = onError(({ networkError, operation, forward }) => {
@@ -129,7 +122,6 @@ const cache = new InMemoryCache({
 })
 
 const apolloClient = new ApolloClient({
-  //link: logLink.concat(authLink).concat(errorLink).concat(uploadLink),
   link: authLink.concat(errorLink).concat(uploadLink),
   cache: cache,
   defaultOptions: {

@@ -1,5 +1,7 @@
 module.exports = {
   root: true,
+  // the build's output
+  ignorePatterns: ['dist/'],
   env: {
     node: true,
     browser: true,
