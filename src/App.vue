@@ -93,6 +93,7 @@ onMounted(async () => {
         <div class="nav-brand">
           <router-link to="/" class="brand-link">
             BreedView
+            <span class="brand-note">an app for BreedGraph</span>
           </router-link>
         </div>
 

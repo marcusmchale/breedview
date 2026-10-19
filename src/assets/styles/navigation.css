@@ -21,10 +21,21 @@
 }
 
 .nav-brand .brand-link {
+  display: flex;
+  flex-direction: column;
   font-size: 1.5rem;
   font-weight: bold;
+  line-height: 1.15;
   color: white;
   text-decoration: none;
+}
+
+/* under the name: BreedView is one way to work with BreedGraph, which other interfaces can be built on */
+.nav-brand .brand-note {
+  font-size: 0.75rem;
+  font-weight: normal;
+  opacity: 0.85;
+  white-space: nowrap;
 }
 
 .nav-brand .brand-link:hover {
