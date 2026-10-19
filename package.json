@@ -29,6 +29,7 @@
     "d3": "^7.9.0",
     "graphql": "^16.11.0",
     "leaflet": "^1.9.4",
+    "pmtiles": "^3.2.1",
     "protomaps-leaflet": "^5.1.0",
     "vue": "^3.4.0",
     "vue-router": "^4.5.1"

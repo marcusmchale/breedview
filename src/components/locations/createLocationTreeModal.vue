@@ -96,6 +96,10 @@ const submitRegion = async () => {
               {{ country.name }}
             </option>
           </select>
+          <p class="hint">
+            Detailed maps of the country are fetched in the background, which can take some time.
+            You'll get an email when they're ready.
+          </p>
         </div>
 
         <div v-if="errorMessage" class="error-message">
@@ -199,6 +203,12 @@ const submitRegion = async () => {
 .form-control:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
+}
+
+.hint {
+  margin: 6px 0 0 0;
+  font-size: 0.85rem;
+  color: #666;
 }
 
 .error-message {
