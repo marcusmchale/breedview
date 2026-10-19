@@ -134,6 +134,10 @@ const handleAddChildSuccess = async () => {
     Loading location…
   </div>
 
+  <div v-else-if="locationError" class="card-error">
+    Failed to load the location: {{ locationError.message }}
+  </div>
+
   <div v-else-if="hasData" class="details-card">
     <div class="card-header">
       <h2>{{ location.name }}</h2>
@@ -261,6 +265,12 @@ const handleAddChildSuccess = async () => {
   padding: 20px;
   color: #999;
   font-style: italic;
+  text-align: center;
+}
+
+.card-error {
+  padding: 20px;
+  color: #dc3545;
   text-align: center;
 }
 
