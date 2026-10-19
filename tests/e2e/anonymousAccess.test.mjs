@@ -120,6 +120,27 @@ test('units: the public tree under a placeholder for its hidden unit graph root,
   assert.deepEqual(await failedRequests(mark), [], 'the location and unit types come from the published ontology')
 })
 
+test('locations: a public location is found by part of its name and opened, a hidden one is not found', async () => {
+  const q = JSON.stringify
+  const mark = page.mark()
+  const search = async (text) => {
+    await page.goto(`${config.appUrl}/locations`)
+    await page.waitFor(`document.querySelector('.place-search-input')`, 30000)
+    await page.type('.place-search-input', text)
+    await page.click('.place-search-form button[type=submit]')
+    await page.waitFor(`document.querySelector('.location-result, .place-search-message')`, 30000)
+    return page.evaluate(`[...document.querySelectorAll('.location-result')].map((e) => e.innerText.trim())`)
+  }
+  assert.ok(!(await search(e.state.name.slice(1, -1).toLowerCase())).some((t) => t.includes(e.state.name)), 'the private state is not found')
+  // only BreedGraph's locations: places (OpenStreetMap) are for signed-in users
+  assert.ok(!(await page.exists('.place-search-scope')), 'no place scopes signed out')
+  const found = await search(e.field.name.slice(1, -1).toLowerCase())
+  assert.ok(found.some((t) => t.includes(e.field.name)), `the public field is found: ${found}`)
+  await page.evaluate(`[...document.querySelectorAll('.location-result')].find((r) => r.innerText.includes(${q(e.field.name)})).click()`)
+  await page.waitFor(`location.search.includes('location=${e.field.id}') && document.querySelector('.card-panel')?.innerText.includes(${q(e.field.name)})`, 30000)
+  assert.deepEqual(await failedRequests(mark), [])
+})
+
 test('locations and programs: no request fails', async () => {
   for (const route of ['locations', 'programs']) {
     const mark = page.mark()

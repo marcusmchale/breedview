@@ -113,7 +113,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   Locations page), and the curation selection, units filter and table with hidden units as placeholders.
 - `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in
   the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
-  without controller badges or write actions, and no one credited or named as a contact; no request on the open pages
+  without controller badges or write actions, and no one credited or named as a contact; the map's search finds a
+  public location by part of its name and opens it, but not a hidden one, and offers no places; no request on the open pages
   fails apart from the sign-in check, and the open pages request nothing from hosts other than the app and the API
   (maps come from the API's `/tiles`, so the test database needs `scripts/map_tiles.py` run for the world file).
 - `germplasmAccess.test.mjs`: the germplasm page draws, for each viewer, the entries the manifest says they can read.
