@@ -13,7 +13,7 @@ const pages = [
   ['/people', 'People'], ['/access', 'Bulk control[\\s\\S]*Transfer offers[\\s\\S]*What a team you administer controls'],
   ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'],
   ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree'],
-  ['/privacy', 'Privacy']
+  ['/privacy', '[Pp]rivacy notice']
 ]
 
 for (const [path, expected] of pages) {
