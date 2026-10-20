@@ -3,7 +3,7 @@ import { leafletLayer, paintRules, labelRules } from 'protomaps-leaflet'
 import { namedFlavor } from '@protomaps/basemaps'
 import { PMTiles, SharedPromiseCache } from 'pmtiles'
 
-// The base map, from tiles served by the API (breedgraph README.md, Maps; docs/front-end-changes.md §19), so the
+// The base map, from tiles served by the API (breedgraph README.md, Maps), so the
 // browser contacts no third party: tiles.json lists a low-detail world file and then the regions fetched in full
 // detail, whole countries or sections of large ones, all PMTiles read in byte ranges. The regions are drawn by one
 // layer over the world layer, without a background, so the world shows through outside them; the world draws no

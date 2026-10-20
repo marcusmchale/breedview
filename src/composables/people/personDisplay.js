@@ -68,7 +68,7 @@ export const contributionsKey = (contributions) => JSON.stringify(
     .sort((a, b) => a[0].localeCompare(b[0]))
 )
 
-// The CRediT roles that fit each kind of record (breedgraph docs/front-end-changes.md §14), offered first
+// The CRediT roles that fit each kind of record (breedgraph docs/contributions.md §3), offered first
 export const SUGGESTED_ROLES = {
   dataset: ['Investigation', 'Data curation', 'Methodology', 'Resources', 'Validation', 'Supervision'],
   program: ['Conceptualization', 'Funding acquisition', 'Project administration', 'Supervision'],

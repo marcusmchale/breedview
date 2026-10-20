@@ -9,8 +9,9 @@ import SET_SCOPE_RELEASE_MUTATION from '@/graphql/controls/setScopeRelease.graph
 import RENOUNCE_CONTROL_MUTATION from '@/graphql/controls/renounceControl.graphql'
 import RENOUNCE_SCOPE_MUTATION from '@/graphql/controls/renounceScope.graphql'
 
-// What a team controls, for its admins (breedgraph docs/front-end-changes.md §16). These reads change with every bulk
-// action, and their items have no identity of their own in the cache, so they are read from the server each time.
+// What a team controls, for its admins (the controlsControlled queries in breedgraph's schema). These reads change
+// with every bulk action, and their items have no identity of their own in the cache, so they are read from the server
+// each time.
 
 // The labels of controlled entities, in the order the panel lists them
 export const CONTROLLED_LABELS = [

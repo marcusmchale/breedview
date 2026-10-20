@@ -25,7 +25,7 @@ import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
 const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry } = useLocationMapQueries()
 
-// Place searches go through the API, which needs an account (breedgraph docs/front-end-changes.md §19)
+// Place searches go through the API, which needs an account (breedgraph README.md, Maps)
 const { isAuthenticated } = useAuthStore()
 
 const props = defineProps({

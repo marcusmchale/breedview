@@ -1,4 +1,4 @@
-// A partial time stands for its whole period (breedgraph front-end-changes §15): as a start, the start of its period;
+// A partial time stands for its whole period (breedgraph README.md, Times): as a start, the start of its period;
 // as an end, the end of it. Both as comparable numbers (wall-clock times have no zone, so they are read as UTC).
 const PARTIAL = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2}))?)?)?)?)?$/
 

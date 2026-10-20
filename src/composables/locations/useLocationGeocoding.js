@@ -6,7 +6,7 @@ import GEOCODE_COUNTRY_QUERY from '@/graphql/locations/geocodeCountry.graphql'
 
 /**
  * Finding places by name for the location map. The API asks OpenStreetMap's Nominatim, so the browser contacts no
- * third party (breedgraph docs/front-end-changes.md §19). Both queries need an account, and are limited per user.
+ * third party (breedgraph README.md, Maps). Both queries need an account, and are limited per user.
  */
 export function useLocationGeocoding() {
   const { resolveClient } = useApolloClient()
