@@ -167,9 +167,14 @@ scopes are never pooled. Level definitions explicitly combine codes
 into shared levels; codes not included in a level definition keep
 their nested identity.
 
-Records with no code for any of the dimension's groupings, including
-all records from studies without such a grouping, are excluded from
-the analysis and reported in a warning.
+Each study has one source of levels. Records of a study with one of
+the dimension's groupings take its codes. Records of other studies
+take the nearest unit of one of the dimension's subjects, their own
+unit or an ancestor, e.g. the plots of a field, as a level of its own.
+
+Records with no code, or in a study without a grouping, no such unit
+(or two on separate lineages), are excluded from the analysis and
+reported in a warning.
 """
 input RecordGroupDimensionInput {
   """
@@ -187,7 +192,15 @@ input RecordGroupDimensionInput {
   At most one grouping per study, and each grouping may contribute
   to only one dimension in the analysis.
   """
-  groupingIds: [ID!]!
+  groupingIds: [ID!]
+
+  """
+  Subjects whose units are levels, for studies without one of the groupings.
+  
+  Each subject may contribute to only one dimension in the analysis.
+  A dimension needs at least one grouping or subject.
+  """
+  subjectIds: [ID!]
 
   """Optional shared levels combining codes across groupings or scopes."""
   levels: [RecordGroupLevelInput!]
@@ -1010,11 +1023,13 @@ input GermplasmUpdate {
   name: String
   description: String
   synonyms: [String!]
+
+  """ Omitted, the origin is unchanged; null removes it """
   originId: ID
   time: DateTime
   reproduction: Reproduction
   controlMethodIds: [ID!]
-  referenceIds: [ID!] = []
+  referenceIds: [ID!]
   sources: [GermplasmSourceRelationship!]
 }
 
@@ -2018,7 +2033,11 @@ input StudyUpdate {
   start: DateTime
   end: DateTime
   datasetIds: [ID!]
+
+  """ Omitted, the design is unchanged; null removes it """
   designId: ID
+
+  """ Omitted, the licence is unchanged; null removes it """
   licenceId: ID
   referenceIds: [ID!]
 }
@@ -2200,7 +2219,11 @@ input UnitInput {
 
 input UnitUpdate {
   id: ID!
+
+  """ Omitted, the subject is unchanged; null removes it """
   subjectId: ID
+
+  """ Omitted, the germplasm is unchanged; null removes it """
   germplasmId: ID
   name: String
   description: String
@@ -2574,6 +2597,11 @@ type AnalysisRecordGroupDimension {
   """Record groupings contributing to the dimension."""
   groupings: [AnalysisRecordGrouping!]!
 
+  """
+  Subjects whose units are levels, for studies without one of the groupings.
+  """
+  subjectIds: [ID!]!
+
   """Shared levels combining codes across groupings or scopes."""
   levels: [AnalysisRecordGroupLevel!]!
 }
@@ -2843,7 +2871,7 @@ type AnalysisRecordGroupAssignment {
   """
   Identifier of the level, unique within the dimension.
   
-  The label of a shared level, otherwise an identifier
+  The label of a shared level, "unit|<unitId>" for a unit level, otherwise an identifier
   composed of grouping, scope, code and, for WITHIN_UNIT groupings, the base unit,
   or for WITHIN_GRAPH groupings, the root of the base unit's graph.
   """
@@ -2852,7 +2880,7 @@ type AnalysisRecordGroupAssignment {
   """Whether the level is a shared level."""
   shared: Boolean!
 
-  """Grouping of a nested level."""
+  """Grouping of a nested level. Null for shared levels and unit levels."""
   groupingId: ID
 
   """
@@ -2866,7 +2894,8 @@ type AnalysisRecordGroupAssignment {
   code: String
 
   """
-  Base unit of a nested level of a WITHIN_UNIT grouping, whose codes are only comparable within a unit,
+  The unit of a unit level, a unit of one of the dimension's subjects.
+  Otherwise the base unit of a nested level of a WITHIN_UNIT grouping, whose codes are only comparable within a unit,
   or the root of the base unit's graph for a WITHIN_GRAPH grouping, whose codes are only comparable within a graph.
   """
   unitId: ID
