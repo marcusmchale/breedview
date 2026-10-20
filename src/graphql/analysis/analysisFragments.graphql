@@ -51,6 +51,7 @@ fragment AnalysisGroupingFields on AnalysisGrouping {
   recordGroups {
     name
     groupings { groupingId studyId }
+    subjectIds
     levels {
       label
       members { ...AnalysisRecordGroupMemberFields }

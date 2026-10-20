@@ -1,15 +1,16 @@
 // Record group extent and replicate aggregation, on the test database's replicates study (manifest `replicates`,
 // breedgraph docs/test-databases.md "The replicates study"): a record group type's optional default extent, each
 // study grouping's extent, curation sections by shared groupings with replicates kept together, analyses that must
-// combine replicates (the outcomes are the manifest's `expected.cases`), and the levels of a within-unit-graph
-// grouping named with their unit graph. Signed in as the writer, who curates the replicates study.
+// combine replicates (the outcomes are the manifest's `expected.cases`), the levels of a within-unit-graph
+// grouping named with their unit graph, and the plots as levels of a dimension of their subject. Signed in as the
+// writer, who curates the replicates study.
 // Needs the analysis worker (see README.md). Creates two draft record group types, which stay, and two groupings of
 // the replicates study, which are deleted afterwards, and tries to delete one of the study's own groupings, which is refused.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, graphql, uniqueName } from './lib/app.mjs'
-import { replicates as r } from './lib/fixture.mjs'
+import { manifest, replicates as r } from './lib/fixture.mjs'
 import { RECORD_GROUP_EXTENT_LABELS as labels } from '../../src/composables/ontology/recordGroupExtent.js'
 
 const q = JSON.stringify
@@ -541,4 +542,45 @@ test('analysis: the levels of a within-unit-graph grouping are named with their 
   const levels = await levelsOf()
   assert.equal(levels.length, r.expected.blocks.block_levels_with_block_1_shared, `the shared level replaces the ${code} of each field: ${levels.join('; ')}`)
   assert.ok(levels.some((l) => l.endsWith(code) && !l.includes(' of ')), `a level for the shared ${code}: ${levels.join('; ')}`)
+})
+
+test('analysis: the units of a subject are the levels of a dimension without a grouping, and are kept on reopening', async () => {
+  const plot = (await graphql(page, 'query ($ids: [ID!]) { ontologyEntries(ids: $ids) { result { ... on Subject { id name } } } }',
+    { ids: [String(manifest.ids.ontology_subject_plot)] })).result[0]
+  const units = (await graphql(page, 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { name subject { id } } } }',
+    { ids: Object.values(r.units).map(String) })).result
+  const plots = units.filter((u) => String(u.subject?.id) === String(plot.id)).map((u) => u.name)
+  assert.ok(plots.length > 1, `the study has plots: ${q(plots)}`)
+  const dimensions = `[...document.querySelectorAll('#analysis-grouping .box')].filter((b) => b.querySelector('.name-field'))`
+  const subjectChip = (i) => `[...${dimensions}[${i}].querySelectorAll('.chip')].find((c) => c.innerText.trim() === ${q(plot.name)})`
+  const levelsOf = () => page.evaluate(`[...document.querySelectorAll('.submission-view table tbody tr')].map((tr) => tr.querySelector('td, th')?.innerText.trim()).filter((l) => l && l !== 'All observations')`)
+
+  await openEditor()
+  const mark = page.mark()
+  await selectDataset('blocks')
+  await page.clickText('Add record group dimension')
+  await page.sleep(300)
+  await page.waitFor(subjectChip(0), 30000)
+  await page.evaluate(`${subjectChip(0)}.click()`)
+  await page.sleep(200)
+  assert.ok(await page.evaluate(`${subjectChip(0)}.classList.contains('selected')`), `${plot.name} is selected`)
+  assert.match(await page.evaluate(`${dimensions}[0].innerText`), new RegExp(`Units are the levels for ${r.study.name}`), 'the study without a selected grouping takes units')
+  // a subject belongs to one dimension
+  await page.clickText('Add record group dimension')
+  await page.sleep(300)
+  assert.ok(await page.evaluate(`${subjectChip(1)}.disabled`), `${plot.name} can't be chosen in a second dimension`)
+  await page.evaluate(`${dimensions}[1].querySelector('.box-header .btn-link.danger').click()`)
+  await page.sleep(200)
+
+  await page.evaluate(`[...document.querySelectorAll('#analysis-terms .chip')].find((c) => c.innerText.includes('Record group 1')).click()`)
+  await addConcept(r.concepts.height.name)
+  await submit()
+  assert.equal(await statusLabel(), 'Completed', q(await messages()))
+  assert.deepEqual((await levelsOf()).sort(), [...plots].sort(), 'a level for each plot, named as the plot')
+
+  await page.clickText('Edit & resubmit')
+  await page.waitFor(`document.querySelector('.config-editor')`)
+  await page.waitFor(subjectChip(0), 30000)
+  assert.ok(await page.evaluate(`${subjectChip(0)}.classList.contains('selected')`), `the reopened dimension keeps ${plot.name}`)
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })

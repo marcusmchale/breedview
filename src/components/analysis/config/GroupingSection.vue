@@ -50,7 +50,7 @@ const addDimension = () => {
   const names = new Set(form.grouping.recordGroups.map((d) => d.name))
   let n = form.grouping.recordGroups.length + 1
   while (names.has(`Record group ${n}`)) n++
-  form.grouping.recordGroups.push({ name: `Record group ${n}`, groupingIds: [], levels: [] })
+  form.grouping.recordGroups.push({ name: `Record group ${n}`, groupingIds: [], subjectIds: [], levels: [] })
 }
 
 const removeDimension = (i) => {
@@ -122,7 +122,8 @@ const removeDimension = (i) => {
 
     <h4 class="subsection-title">Record group dimensions</h4>
     <p class="hint">
-      Group records by study record groupings such as replicate or batch. Terms refer to a dimension by its name.
+      Group records by study record groupings such as replicate or batch, or by units such as the plots of a field.
+      Terms refer to a dimension by its name.
     </p>
     <RecordGroupDimensionEditor
       v-for="(dim, i) in form.grouping.recordGroups"

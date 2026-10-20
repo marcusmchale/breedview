@@ -166,6 +166,8 @@ export function positionLabel(position) {
 export function recordGroupAssignmentLabel(a, shownUnitId = null) {
   if (!a) return ''
   if (a.shared) return a.level
+  // A unit level (the nearest unit of one of the dimension's subjects) has a unit and no grouping
+  if (a.groupingId == null) return unitName(a.unitId)
   const scope = (a.scopeDatasetIds ?? []).map(datasetName).join(', ')
   // unitId is set for WITHIN_UNIT groupings, whose codes (e.g. replicates) only mean something within a unit, and for
   // WITHIN_GRAPH groupings, where it is the unit graph's root: "Block 1 of ED1"
@@ -182,6 +184,7 @@ function keyLabel(type, level) {
       .filter(Boolean)
       .join(' · ')
   }
+  if (type === 'RECORD_GROUP' && parts.length === 2 && parts[0] === 'unit') return unitName(parts[1])
   if (type === 'RECORD_GROUP' && parts.length === 3) {
     const [groupingId, , code] = parts
     return `${groupingName(groupingId)}: ${code}`
@@ -241,6 +244,10 @@ export function collectIds({ groups = [], levels = [] }) {
     if (l.term.type === 'UNIT') ids.unit.add(l.level)
     if (l.term.type === 'STUDY') ids.study.add(l.level)
     if (l.term.type === 'POSITION') ids.location.add(String(l.level).split('|')[0])
+    if (l.term.type === 'RECORD_GROUP') {
+      const parts = String(l.level).split('|')
+      if (parts.length === 2 && parts[0] === 'unit') ids.unit.add(parts[1])
+    }
   }
   return Object.fromEntries(Object.entries(ids).map(([k, v]) => [k, [...v]]))
 }

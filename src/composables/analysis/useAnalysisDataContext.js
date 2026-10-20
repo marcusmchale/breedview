@@ -4,11 +4,12 @@ import { useApolloClient } from '@vue/apollo-composable'
 import STUDY_QUERY from '@/graphql/programs/study.graphql'
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
 import { useAnalysisDatasetsQuery } from '@/composables/analysis/analysisDatasetsQuery'
+import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
 import { datasetConcepts, registerNames, useAnalysisNames } from '@/composables/analysis/useAnalysisNames'
 
 /**
  * Data available to the analysis editor for the selected studies and datasets:
- * studies and their record groupings, dataset summaries, concepts with their
+ * studies and their record groupings, subjects, dataset summaries, concepts with their
  * scales, and what the records span (record group codes, times and values at each
  * percentile), read as dimensions of each dataset rather than as the records themselves.
  */
@@ -163,6 +164,11 @@ export function useAnalysisDataContext(form) {
   // Replicates are possible only where a study of the selected datasets has a WITHIN_UNIT grouping
   const hasWithinUnitGroupings = computed(() => groupings.value.some((g) => g.extent === 'WITHIN_UNIT'))
 
+  // Subjects whose units a record group dimension can take as levels, e.g. plots as blocks
+  const { entries: subjectEntries, entriesLoading: subjectsLoading } = useOntologyEntriesQuery({ labels: ['SUBJECT'] })
+  const subjects = computed(() => [...subjectEntries.value].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')))
+  const subjectsById = computed(() => Object.fromEntries(subjects.value.map((s) => [s.id, s])))
+
   /**
    * Codes present for each grouping, as {code, datasetId}.
    * datasetId is set only for dataset-scoped groupings, where it selects the scope.
@@ -215,10 +221,14 @@ export function useAnalysisDataContext(form) {
     recordCount,
     timeSamples,
     valueSamples,
+    selectedStudyIds,
     groupings,
     groupingsById,
     hasWithinUnitGroupings,
     codesByGrouping,
+    subjects,
+    subjectsById,
+    subjectsLoading,
     blockIds,
     locations
   }

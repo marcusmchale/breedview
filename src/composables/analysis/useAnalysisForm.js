@@ -229,6 +229,7 @@ const groupingInput = (g) => {
   if (nonEmpty(g.recordGroups)) {
     out.recordGroups = g.recordGroups.map((d) => {
       const dim = { name: d.name, groupingIds: [...d.groupingIds] }
+      assignIf(dim, 'subjectIds', [...(d.subjectIds ?? [])], nonEmpty(d.subjectIds))
       assignIf(
         dim,
         'levels',
@@ -354,6 +355,7 @@ const groupingFromOutput = (g) => {
   out.recordGroups = (g.recordGroups ?? []).map((d) => ({
     name: d.name,
     groupingIds: d.groupings.map((x) => x.groupingId),
+    subjectIds: [...(d.subjectIds ?? [])],
     levels: (d.levels ?? []).map((l) => ({ label: l.label, members: l.members.map(memberFromOutput) }))
   }))
   return out

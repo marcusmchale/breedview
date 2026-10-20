@@ -88,12 +88,46 @@ const selectedGroupings = computed(() =>
 
 const withinUnitSelected = computed(() => selectedGroupings.value.some((g) => g.extent === 'WITHIN_UNIT'))
 
+/* ---------- units as levels ---------- */
+
+// Dimensions from before subjects existed have none
+const subjectIds = computed(() => dimension.value.subjectIds ?? [])
+
+const subjectsUsedElsewhere = computed(
+  () => new Set(form.grouping.recordGroups.filter((_, i) => i !== props.index).flatMap((d) => d.subjectIds ?? []))
+)
+
+const isSubjectSelected = (id) => subjectIds.value.includes(id)
+
+// A subject belongs to only one dimension
+const isSubjectDisabled = (s) => !isSubjectSelected(s.id) && subjectsUsedElsewhere.value.has(s.id)
+
+const toggleSubject = (s) => {
+  dimension.value.subjectIds = isSubjectSelected(s.id)
+    ? subjectIds.value.filter((id) => id !== s.id)
+    : [...subjectIds.value, s.id]
+}
+
+// Subjects selected in the dimension that aren't in the ontology (e.g. from a loaded analysis)
+const unknownSubjectIds = computed(() => subjectIds.value.filter((id) => !data.subjectsById[id]))
+
+const removeSubject = (id) => (dimension.value.subjectIds = subjectIds.value.filter((s) => s !== id))
+
+// Each study has one source of levels: records of a study without one of the dimension's groupings take units
+const unitLevelStudyIds = computed(() => {
+  const withGrouping = new Set(selectedGroupings.value.map((g) => g.studyId))
+  return data.selectedStudyIds.filter((id) => !withGrouping.has(id))
+})
+
 /* ---------- shared levels ---------- */
 
 // Only codes of SHARED and WITHIN_GRAPH groupings can be merged into shared levels (merging a code across unit graphs)
 const sharedGroupings = computed(() => selectedGroupings.value.filter((g) => g.extent !== 'WITHIN_UNIT'))
 const showSharedLevels = computed(
-  () => sharedGroupings.value.length > 0 || selectedGroupings.value.length === 0 || dimension.value.levels.length > 0
+  () =>
+    sharedGroupings.value.length > 0 ||
+    (selectedGroupings.value.length === 0 && subjectIds.value.length === 0) ||
+    dimension.value.levels.length > 0
 )
 
 const addLevel = () => dimension.value.levels.push({ label: '', members: [] })
@@ -144,6 +178,45 @@ const removeMember = (level, i) => level.members.splice(i, 1)
         or in ANOVA. To count each unit once, set a replicate aggregation on the concept terms instead.
       </p>
       <FieldErrors :path="`${path}.groupingIds`" prefix />
+    </div>
+
+    <div class="field">
+      <span class="field-label">Units as levels</span>
+      <p class="hint">
+        Records of a study without one of the selected groupings take as their level the nearest unit of one of these
+        subjects: their own unit or an ancestor, e.g. the plots of a field as blocks.
+      </p>
+      <p v-if="data.subjects.length === 0" class="hint">
+        {{ data.subjectsLoading ? 'Loading subjects…' : 'No subjects are defined in the ontology.' }}
+      </p>
+      <div v-else class="chip-list">
+        <button
+          v-for="s in data.subjects"
+          :key="s.id"
+          type="button"
+          class="chip"
+          :class="{ selected: isSubjectSelected(s.id) }"
+          :disabled="isSubjectDisabled(s)"
+          :title="isSubjectDisabled(s) ? 'Used by another dimension' : ''"
+          @click="toggleSubject(s)"
+        >
+          {{ s.name }}
+        </button>
+        <span v-for="id in unknownSubjectIds" :key="id" class="chip selected">
+          Subject {{ id }}
+          <button type="button" class="chip-remove" title="Remove" @click="removeSubject(id)">×</button>
+        </span>
+      </div>
+      <template v-if="subjectIds.length">
+        <p v-if="unitLevelStudyIds.length" class="hint">
+          Units are the levels for {{ unitLevelStudyIds.map(studyName).join(', ') }}.
+        </p>
+        <p v-else-if="data.selectedStudyIds.length" class="hint">
+          Every study of the selected datasets has one of the selected groupings, so no records take units.
+        </p>
+        <p v-if="showSharedLevels" class="hint">Units can't be members of shared levels.</p>
+      </template>
+      <FieldErrors :path="`${path}.subjectIds`" prefix />
     </div>
 
     <div v-if="showSharedLevels" class="field">
@@ -225,6 +298,11 @@ const removeMember = (level, i) => level.members.splice(i, 1)
 
 .replicate-note {
   margin-top: 6px;
+}
+
+button.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .level {
