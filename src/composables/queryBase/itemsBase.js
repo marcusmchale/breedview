@@ -6,7 +6,7 @@ export function useItemsQuery({
     itemsQueryGraphql,
     queryName,
     variableName
-}) {
+}, options = {}) {
 
     const enabled = computed(() => {
         const ids = toValue(itemIds)
@@ -25,7 +25,7 @@ export function useItemsQuery({
     } = useQuery(
         itemsQueryGraphql,
         variables,
-        { enabled: enabled }
+        { ...options, enabled: enabled }
     )
 
     const items = computed(() => {

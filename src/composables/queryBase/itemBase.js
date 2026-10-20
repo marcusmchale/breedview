@@ -28,7 +28,9 @@ export function useItemQuery({
         { enabled: enabled }
     )
 
+    // A disabled query keeps its last result, so a cleared id would still show the old item
     const item = computed(() => {
+        if (!enabled.value) return null
         const result = itemsResult.value?.[queryName]?.result
         return result && result.length > 0 ? result[0] : null
     })

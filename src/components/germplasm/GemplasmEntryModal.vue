@@ -265,6 +265,7 @@ const submitForm = async () => {
           :currentChildren="currentChildLocations"
           :exclude-node-id="null"
           :get-node-label-fn="(loc) => loc.name || `${loc.type?.name} ${loc.id}`"
+          :clearable="true"
         />
 
         <FormKit

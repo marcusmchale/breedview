@@ -27,6 +27,7 @@
           :exclude-node-id="context.excludeNodeId"
           :placeholder="context.placeholder || context.attrs.placeholder"
           :disabled="context.disabled"
+          :clearable="context.clearable"
         />
       </div>
     </div>

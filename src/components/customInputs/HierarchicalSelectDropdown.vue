@@ -12,6 +12,15 @@
       <span v-else class="placeholder">
         {{ placeholder }}
       </span>
+      <button
+        v-if="clearable && modelValue != null && !disabled"
+        type="button"
+        class="clear-button"
+        title="Clear"
+        @click.stop="clearSelection"
+      >
+        &times;
+      </button>
       <span class="dropdown-arrow" :class="{ open: isOpen }">▼</span>
     </div>
 
@@ -163,6 +172,12 @@ const props = defineProps({
 
   // Disabled state
   disabled: {
+    type: Boolean,
+    default: false
+  },
+
+  // Show a button that clears the selection, for optional links
+  clearable: {
     type: Boolean,
     default: false
   },
@@ -374,6 +389,12 @@ const selectNode = (node) => {
   closeDropdown()
 }
 
+const clearSelection = () => {
+  emit('update:modelValue', null)
+  emit('change', null)
+  closeDropdown()
+}
+
 // Dropdown controls
 const toggleDropdown = (event) => {
   if (props.disabled) return
@@ -455,6 +476,21 @@ onBeforeUnmount(() => {
 .selected-value {
   color: #333;
   font-weight: 500;
+}
+
+.clear-button {
+  margin-left: auto;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.clear-button:hover {
+  color: #c62828;
 }
 
 .dropdown-arrow {

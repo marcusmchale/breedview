@@ -24,7 +24,8 @@ export const hierarchicalSelectInput = {
     'hasChildrenFn',
     'isDisabledFn',
     'isSelectableFn',
-    'placeholder'
+    'placeholder',
+    'clearable'
   ]
 }
 
@@ -41,7 +42,8 @@ export const hierarchicalSelectPlugin = (node) => {
     'hasChildrenFn',
     'isDisabledFn',
     'isSelectableFn',
-    'placeholder'
+    'placeholder',
+    'clearable'
   ])
 
   if (node.props.type === 'hierarchical-select') {

@@ -20,11 +20,17 @@ const emit = defineEmits(['close', 'success'])
 const { updateStudy, updateStudyLoading } = useMutateStudies()
 const { designTypes, designTypesLoading } = useDesignTypesQuery()
 
+// An empty option, so a design can be removed, and the study's design if it isn't published (e.g. a draft)
 const designOptions = computed(() => {
-  return designTypes.value.map(design => ({
-    value: design.id,
-    label: design.name
-  }))
+  const current = props.study.design
+  const designs = current && !designTypes.value.some(d => d.id === current.id) ? [...designTypes.value, current] : designTypes.value
+  return [
+    { value: '', label: '— None —' },
+    ...designs.map(design => ({
+      value: design.id,
+      label: design.name
+    }))
+  ]
 })
 
 const formData = ref({
@@ -34,7 +40,7 @@ const formData = ref({
   practices: props.study.practices || '',
   start: props.study.start || '',
   end: props.study.end || '',
-  designId: props.study.design?.id || null
+  designId: props.study.design?.id || ''
 })
 
 const formError = ref('')
@@ -76,6 +82,10 @@ const handleLicenceSave = ({ references }) => {
   selectedLicence.value = references[0]
 }
 
+const removeLicence = () => {
+  selectedLicence.value = null
+}
+
 const submitForm = async (values) => {
   try {
     formError.value = ''
@@ -88,7 +98,8 @@ const submitForm = async (values) => {
       practices: values.practices?.trim() || undefined,
       start: values.start?.trim() || undefined,
       end: values.end?.trim() || undefined,
-      designId: values.designId || undefined,
+      // null removes the design or licence, as undefined would leave it unchanged
+      designId: values.designId || null,
       referenceIds: selectedReferenceIds.value,
       licenceId: selectedLicence.value?.id || null
     }
@@ -186,8 +197,7 @@ const submitForm = async (values) => {
         <FormKit
           type="select"
           name="designId"
-          label="Design"
-          placeholder="Select a design (optional)"
+          label="Design (optional)"
           :options="designOptions"
           :disabled="designTypesLoading"
         />
@@ -201,6 +211,9 @@ const submitForm = async (values) => {
               <span class="item-description">{{ selectedLicence.description || 'Legal Reference #' + selectedLicence.id }}</span>
               <button type="button" class="btn btn-sm btn-link" @click="openLicenceModal">
                 Change
+              </button>
+              <button type="button" class="btn btn-sm btn-link btn-danger-link" @click="removeLicence">
+                Remove
               </button>
             </div>
             <button
@@ -426,6 +439,10 @@ const submitForm = async (values) => {
 
 .btn-link:hover {
   text-decoration: underline;
+}
+
+.btn-danger-link {
+  color: #dc3545;
 }
 
 .btn:disabled {

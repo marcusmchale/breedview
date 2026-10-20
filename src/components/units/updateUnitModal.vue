@@ -108,8 +108,9 @@ const submitUpdate = async () => {
 
     const unitData = {
       id: props.unit.id,
-      subjectId: updateFormData.value.subjectId || undefined,
-      germplasmId: updateFormData.value.germplasmId || undefined,
+      // null removes the link, as undefined would leave it unchanged
+      subjectId: updateFormData.value.subjectId || null,
+      germplasmId: updateFormData.value.germplasmId || null,
       name: updateFormData.value.name || undefined,
       description: updateFormData.value.description || undefined,
       parentIds: updateFormData.value.parentIds
@@ -174,6 +175,7 @@ const submitUpdate = async () => {
       :currentChildren="currentChildGermplasm"
       :exclude-node-id=null
       :get-node-label-fn="(unit) => unit.name || `${unit.type?.name} ${unit.id}`"
+      :clearable="true"
       validation="optional"
     />
 

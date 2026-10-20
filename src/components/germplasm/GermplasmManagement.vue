@@ -200,7 +200,7 @@ const handleUpdateEntry = (entry) => {
   showUpdateModal.value = true
 }
 
-const handleUpdateSuccess = async ({ entryId, sourceIds, sinkIds }) => {
+const handleUpdateSuccess = async ({ entryId, sourceIds = [], sinkIds = [] }) => {
 
   // Fetch the updated entry by ID AND the defined sources/sinks by ID
   const idsToFetch = [entryId, ...sourceIds, ...sinkIds] //.filter(id => id !== entryId)
