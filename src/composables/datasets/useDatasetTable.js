@@ -164,14 +164,16 @@ export function useDatasetTable({
     units.forEach((unit) => {
       // The unit's own position now, or its last one (the API lists them earliest first)
       const pos = currentPosition(unit.positions)?.position;
+      // its own germplasm, else what it inherits from the units above it
+      const germplasm = unit.germplasm ?? unit.inheritedGermplasm?.germplasm;
 
       for (let i = 0; i < rows; i++) {
         const row = {
           _id: `${unit.id}-${i}-${Date.now()}`,
           unitId: unit.id,
           unitLabel: unit.name || unit.subject?.name || `Unit ${unit.id}`,
-          germplasmName: unit.germplasm?.name || '',
-          germplasmId: unit.germplasm?.id || '',
+          germplasmName: germplasm?.name || '',
+          germplasmId: germplasm?.id || '',
           locationName: pos?.location?.name || '',
           locationId: pos?.location?.id || '',
           layoutName: pos?.layout?.name || '',

@@ -1,8 +1,9 @@
 import { periodStart, periodEnd } from '@/composables/parsers/partialDatetime'
+import { nearestOnEachLineage } from '@/composables/units/lineages'
 
 /*
  * Which records of a factor describe a variable row, as an analysis attaches them (breedgraph docs/analysis.md §2):
- * those of the row's unit, else of its nearest ancestor with any record of the factor that describes the row.
+ * those of the row's unit, else of the nearest units with any on each lineage up its parents, which must agree.
  * The table has no time bins or record group dimensions, so a record is left out only where the row says otherwise:
  * - a dated record describes a timed row when their periods overlap (an analysis instead takes the one time bin the
  *   record falls in); an undated record, or an untimed row, any time;
@@ -36,16 +37,22 @@ const describes = (record, row) =>
   && Object.entries(record.codeKeys).every(([groupingId, key]) => !row.codeKeys[groupingId] || row.codeKeys[groupingId].has(key))
 
 /**
- * The records of one factor describing a row, from the closest unit that has any.
+ * The records of one factor describing a row: those of its unit, else of the nearest units with any on each path up
+ * its parents. Where those of separate lineages differ, none describes it: { conflict: [unitId] }.
  * row: { span, codeKeys: { [groupingId]: Set<key> } } (groupings the row has a code for)
- * recordsByUnit: { [unitId]: [{ span, codeKeys: { [groupingId]: key }, ... }] }
- * units: the row's lineage, closest first
- * Returns { unitId, records } or null.
+ * recordsByUnit: { [unitId]: [{ span, codeKeys: { [groupingId]: key }, value, ... }] }
+ * parentsOf(unitId): the unit's parent ids, as the page's units were read
+ * Returns { unitId, records }, { conflict }, or null.
  */
-export const describingRecords = (row, recordsByUnit, units) => {
-  for (const unitId of units) {
-    const records = (recordsByUnit[unitId] ?? []).filter((record) => describes(record, row))
-    if (records.length > 0) return { unitId, records }
+export const describingRecords = (row, recordsByUnit, unitId, parentsOf) => {
+  const describing = (id) => (recordsByUnit[id] ?? []).filter((record) => describes(record, row))
+  const own = describing(String(unitId))
+  if (own.length > 0) return { unitId: String(unitId), records: own }
+  const sources = nearestOnEachLineage(unitId, parentsOf, (id) => describing(id).length > 0)
+  if (sources.length === 0) return null
+  const values = (id) => [...new Set(describing(id).map((record) => String(record.value)))].sort().join('\u0000')
+  if (new Set(sources.map(values)).size > 1) {
+    return { conflict: sources.map((id) => ({ unitId: id, records: describing(id) })) }
   }
-  return null
+  return { unitId: sources[0], records: describing(sources[0]) }
 }

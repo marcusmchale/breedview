@@ -1,4 +1,5 @@
 #import "./unitFragment.graphql"
+#import "./unitInheritedFragment.graphql"
 query units (
     $unitIds: [ID!]
 ){
@@ -8,6 +9,7 @@ query units (
         status
         result {
             ...UnitFields
+            ...UnitInheritedFields
         }
         errors {
             message

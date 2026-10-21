@@ -140,8 +140,10 @@ browser: that the pages render it, which actions they offer, the modals and labe
 - `unitsPage.test.mjs`, on the arrivals (manifest `arrivals`; skipped without them): the lab's arrivals newest first as
   the writer and the outsider see them, a tree's samples elsewhere as links from its field to the arrivals that have
   them, a sample taken at the lab below its sample, the moved-on, used-up and visiting units marked, the hidden sample's
-  extract in its place for the outsider, the Locations page's link to a location's units, and a child added with its
-  parent listed below it (deleted afterwards).
+  extract in its place for the outsider, the germplasm the samples inherit as the writer and the outsider see it (and
+  the card's link to where it comes from), germplasm given to a sample coming down to its extract in place (removed
+  afterwards), the Locations page's link to a location's units, and a child added with its parent listed below it
+  (deleted afterwards).
 - `writeActions.test.mjs`: write actions follow the backend's checks (`composables/controls/useWriteAccess.js`):
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to

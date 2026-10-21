@@ -1,0 +1,12 @@
+#import "./unitInheritedFragment.graphql"
+# What units inherit, read again after what is above them changes (refreshInheritedGermplasm)
+query unitsInherited ($unitIds: [ID!]) {
+    unitsUnits (ids: $unitIds) {
+        status
+        result {
+            id
+            ...UnitInheritedFields
+        }
+        errors { message }
+    }
+}

@@ -1,0 +1,9 @@
+# What a unit takes from the units above it: the germplasm of the nearest units with some, when it has none of its own.
+# Kept out of UnitFields, through which the cache updates read a unit, as it is read again on its own when what is above
+# a unit changes (refreshInheritedGermplasm).
+fragment UnitInheritedFields on Unit {
+    inheritedGermplasm {
+        germplasm { id name }
+        unit { id name }
+    }
+}

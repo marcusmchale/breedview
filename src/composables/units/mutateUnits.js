@@ -2,6 +2,7 @@ import {ref, toValue} from 'vue'
 import { useApolloClient, useLazyQuery, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 import { evictUnitsByLocation } from "@/composables/units/unitPlaces";
+import { refreshInheritedGermplasm } from "@/composables/units/lineages";
 
 import UNITS_QUERY from '@/graphql/units/units.graphql'
 import UNIT_FRAGMENT from '@/graphql/units/unitFragment.graphql'
@@ -34,6 +35,11 @@ const extractApolloErrorMessage = (error, fallbackMessage) => {
     pushMessage(error?.message)
 
     return messages.length > 0 ? messages.join(', ') : fallbackMessage
+}
+
+const sameIds = (a, b) => {
+    const sorted = (ids) => [...(ids ?? [])].map(String).sort()
+    return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b))
 }
 
 export function useMutateUnits() {
@@ -113,6 +119,12 @@ export function useMutateUnits() {
 
 
     const updateUnit = async (unitData) => {
+        // what it was, to tell what the update changes (an update may give every field, changed or not)
+        const cached = getCached({ id: unitData.id })
+        const germplasmChanged = unitData.germplasmId !== undefined
+            && String(unitData.germplasmId ?? '') !== String(cached?.germplasm?.id ?? '')
+        const parentsChanged = unitData.parentIds !== undefined
+            && (!cached || !sameIds(unitData.parentIds, cached.parents?.map((parent) => parent.id)))
         try {
             const response = await updateUnitMutation({unit: unitData})
             if (response?.data?.unitsUpdateUnit) {
@@ -120,7 +132,13 @@ export function useMutateUnits() {
                 if (result.status === 'SUCCESS') {
                     updateCache(unitData)
                     // a unit given other parents may join or leave an arrival, or become a unit graph's root
-                    if (unitData.parentIds || unitData.childrenIds) evictUnitsByLocation(client.cache)
+                    if (parentsChanged || unitData.childrenIds) evictUnitsByLocation(client.cache)
+                    // and what it and the units below it inherit may change, as with its germplasm
+                    if (germplasmChanged || parentsChanged || unitData.childrenIds) {
+                        refreshInheritedGermplasm(client, [
+                            unitData.id, ...(cached?.children ?? []).map((child) => child.id), ...(unitData.childrenIds ?? [])
+                        ])
+                    }
                 }
                 const { status, errors} = result
                 return { status, errors }
@@ -145,6 +163,7 @@ export function useMutateUnits() {
     } = useMutation(DELETE_UNIT_MUTATION)
 
     const deleteUnit = async (unitId) => {
+        const childIds = (getCached({ id: unitId })?.children ?? []).map((child) => child.id)
         try {
             const response = await deleteUnitMutation({
                 unitId: unitId
@@ -154,6 +173,7 @@ export function useMutateUnits() {
                 if (result.status === 'SUCCESS') {
                     deleteFromCache({id: unitId})
                     evictUnitsByLocation(client.cache)
+                    refreshInheritedGermplasm(client, childIds)
                 }
                 const {status, errors} = result
                 return {status, errors}

@@ -131,6 +131,11 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
           <div class="node-meta">
             <span v-if="unit.subject" class="type-badge">{{ unit.subject.name }}</span>
             <span v-if="unit.germplasm" class="germplasm-badge">{{ unit.germplasm.name }}</span>
+            <span
+              v-else-if="unit.inheritedGermplasm"
+              class="inherited-germplasm-badge"
+              :title="`From ${unit.inheritedGermplasm.unit.name || `unit ${unit.inheritedGermplasm.unit.id}`}`"
+            >{{ unit.inheritedGermplasm.germplasm.name }}</span>
             <span v-if="!unit.subject" class="redacted-badge">Access Restricted</span>
             <span v-if="elsewhere && isHidden(elsewhere)" class="place-badge">now elsewhere</span>
             <router-link
@@ -276,6 +281,18 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
   background: #e3f2fd;
   color: #1976d2;
   padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* germplasm that comes down from the units above */
+.inherited-germplasm-badge {
+  display: inline-block;
+  background: #f5f9fd;
+  color: #5c8fc2;
+  border: 1px dashed #90caf9;
+  padding: 1px 6px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 500;

@@ -167,7 +167,9 @@ const submitUpdate = async () => {
       type="hierarchical-select"
       name="germplasmId"
       label="Germplasm:"
-      help="Optionally define a germplasm entry for this unit"
+      :help="updateFormData.parentIds?.some(Boolean)
+        ? 'Leave empty to inherit the germplasm of the units above it'
+        : 'Optionally define a germplasm entry for this unit'"
       :selected="germplasm"
       :rootNodes="crops"
       :hasChildrenFn="hasChildren"

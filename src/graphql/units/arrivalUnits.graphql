@@ -1,9 +1,10 @@
 #import "./unitFragment.graphql"
+#import "./unitInheritedFragment.graphql"
 # A page of an arrival's units, by name
 query unitsArrivalUnits ($arrival: ArrivalInput!, $offset: Int, $limit: Int) {
     unitsArrivalUnits (arrival: $arrival, offset: $offset, limit: $limit) {
         status
-        result { ...UnitFields }
+        result { ...UnitFields ...UnitInheritedFields }
         errors { message }
     }
 }

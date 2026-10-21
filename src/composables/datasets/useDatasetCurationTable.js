@@ -688,8 +688,10 @@ export function useDatasetCurationTable() {
       const unit = unitDetails.value[String(row.unitId)]
       // where the unit was at the row's time: its own position then, or that of the nearest unit above it
       const position = placeAt([unit, ...(unit?.ancestors ?? [])], row.startTime || row.endTime)
-      row.germplasmName = unit?.germplasm?.name ?? ''
-      row.germplasmId = unit?.germplasm?.id ?? ''
+      // its own germplasm, else what it inherits from the units above it
+      const germplasm = unit?.germplasm ?? unit?.inheritedGermplasm?.germplasm
+      row.germplasmName = germplasm?.name ?? ''
+      row.germplasmId = germplasm?.id ?? ''
       row.locationName = position?.location?.name ?? ''
       row.locationId = position?.location?.id ?? ''
     }
@@ -752,9 +754,8 @@ export function useDatasetCurationTable() {
     return index
   })
 
-  // A unit and the units above it, closest first, as the page's units were read
-  const unitLineage = (unitId) =>
-    [String(unitId), ...(unitDetails.value[String(unitId)]?.ancestors ?? []).map((ancestor) => String(ancestor.id))]
+  // A unit's parents, as the page's units and the units above them were read
+  const parentsOf = (unitId) => (unitDetails.value[String(unitId)]?.parents ?? []).map((parent) => String(parent.id))
 
   const describedTimes = (records) => {
     const times = records.filter((r) => r.start || r.end).map((r) => (r.start && r.end && r.start !== r.end ? `${r.start} to ${r.end}` : r.start || r.end))
@@ -780,9 +781,17 @@ export function useDatasetCurationTable() {
     const found = describingRecords(
       { span: timeSpan(rowTime(row.startTime), rowTime(row.endTime)), codeKeys },
       recordsByUnit,
-      unitLineage(row.unitId)
+      row.unitId,
+      parentsOf
     )
     if (!found) return null
+    if (found.conflict) {
+      const names = found.conflict.map(({ records }) => records[0].unitName)
+      return {
+        value: '—',
+        title: `The records of ${names.join(' and ')} differ, so none describes this row, as in an analysis`
+      }
+    }
     const { records } = found
     const unitName = records[0].unitName
     const own = String(found.unitId) === String(row.unitId)

@@ -35,7 +35,11 @@ export const MESSAGE_CODES = {
     hint: 'Replicates were pooled by the term\'s aggregation, so units and dates with more replicates weigh more. ' +
       'Set a replicate aggregation to combine each reading first.'
   },
-  MODEL_NOT_CONVERGED: { hint: 'The model did not converge; interpret the result with caution.' }
+  MODEL_NOT_CONVERGED: { hint: 'The model did not converge; interpret the result with caution.' },
+  FACTOR_LINEAGES_DIFFER: {
+    hint: 'These factor records, on separate lineages above some units, differ (e.g. a sample pooled from trees given ' +
+      'different treatments), so none describes those units. Record the factor on the units themselves to say which applies.'
+  }
 }
 
 // Variants of a code, told apart by the message path

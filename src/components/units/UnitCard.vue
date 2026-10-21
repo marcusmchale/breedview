@@ -50,10 +50,12 @@ const canCurate = useCanCurate({ entityLabel: 'UNIT', entityId: () => props.unit
 const displayFields = computed(() => {
   if (!unit.value) return []
   const u = unit.value
+  // its own germplasm, else that of the units above it, from the nearest of them
+  const inherited = u.germplasm ? null : u.inheritedGermplasm
   return [
     { label: 'Name', value: u.name },
     { label: 'Subject', value: u.subject?.name },
-    { label: 'Germplasm', value: u.germplasm?.name },
+    { label: 'Germplasm', value: u.germplasm?.name ?? inherited?.germplasm?.name, from: inherited?.unit },
     { label: 'ID', value: u.id },
     { label: 'Description', value: u.description }
   ].filter(f => f.value !== null && f.value !== undefined)
@@ -80,7 +82,11 @@ const currentPosition = computed(() => current.value?.position ?? null)
 
 // Edit Modal state and events
 const isEditModalOpen = ref(false)
+// its parents when the edit began: the cache has the new ones by the time it succeeds
+let parentsAtEdit = ''
+const parentIdsOf = (u) => (u?.parents ?? []).map((parent) => parent.id).sort().join()
 const openEditModal = () => {
+  parentsAtEdit = parentIdsOf(unit.value)
   isEditModalOpen.value = true
 }
 const closeEditModal = () => {
@@ -89,7 +95,9 @@ const closeEditModal = () => {
 const handleUpdateSuccess = async () => {
   closeEditModal()
   await refetchUnit()
-  emit('refresh-tree')
+  // given other parents, the unit moves in the tree, which is drawn again; other changes show where they are, so the
+  // tree keeps what is open
+  if (parentIdsOf(unit.value) !== parentsAtEdit) emit('refresh-tree')
 }
 
 // Delete modal state and events
@@ -188,7 +196,13 @@ const handleAddPositionSuccess = async () => {
         <div class="fields-grid">
           <div v-for="field in displayFields" :key="field.label" class="field">
             <label class="field-label">{{ field.label }}</label>
-            <p class="field-value">{{ field.value }}</p>
+            <p class="field-value">
+              {{ field.value }}
+              <span v-if="field.from" class="inherited-from">
+                (from <button type="button" class="from-link" @click="emit('go-to-unit', field.from.id)">{{
+                  field.from.name || `Unit ${field.from.id}` }}</button>)
+              </span>
+            </p>
           </div>
         </div>
       </div>
@@ -312,6 +326,21 @@ const handleAddPositionSuccess = async () => {
 .tag-link:hover {
   border-color: #1565c0;
   color: #1565c0;
+}
+
+.inherited-from {
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.from-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1565c0;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
 }
 
 .card-empty {
