@@ -1,12 +1,14 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import LocationTree from '@/components/locations/LocationTree.vue'
 import LocationUnitsPanel from './LocationUnitsPanel.vue'
+import ReceiveUnitsModal from './receiveUnitsModal.vue'
 
 import { useLocationNodeQueries } from '@/composables/locations/locationNodeQueries'
-import { placeNow, useUnitWithAncestors } from '@/composables/units/unitPlaces'
+import { arrivalParam, placeNow, useUnitWithAncestors } from '@/composables/units/unitPlaces'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
 
 // Units by location: a location tree, and at the selected location its unit graphs and arrivals. What is selected is
 // in the address (location, graph, arrival, from, unit), so a link from anywhere can open any of it.
@@ -41,6 +43,12 @@ const goToUnit = async (unitId) => {
   const place = target ? placeNow(target) : null
   router.push({ query: { location: place?.location?.id ?? locationId.value, unit: unitId } })
 }
+
+// Units received here from elsewhere make an arrival here, which opens once they are moved (the backend checks that
+// the user curates them; those who can write anything are offered it)
+const canCreate = useCanCreate()
+const receiving = ref(false)
+const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam(position.start), from: null, unit: null })
 </script>
 
 <template>
@@ -63,6 +71,17 @@ const goToUnit = async (unitId) => {
             <router-link class="location-link" :to="{ name: 'Locations', query: { location: locationId } }">
               Location details
             </router-link>
+            <button v-if="canCreate" type="button" class="btn btn-sm btn-secondary receive" @click="receiving = true">
+              Receive units…
+            </button>
+          </div>
+          <div v-if="receiving" class="modal-overlay" @click="receiving = false">
+            <ReceiveUnitsModal
+              :locationId="locationId"
+              :locationName="location?.name"
+              @moved="onReceived"
+              @close="receiving = false"
+            />
           </div>
           <LocationUnitsPanel
             :key="locationId"
@@ -113,6 +132,10 @@ const goToUnit = async (unitId) => {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 12px;
+}
+
+.receive {
+  margin-left: auto;
 }
 
 .location-header h2 {

@@ -1,10 +1,13 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import UnitTreeNode from './UnitTreeNode.vue'
+import moveUnitsModal from './moveUnitsModal.vue'
+import changePositionsModal from './changePositionsModal.vue'
 
 import { useArrivalUnitsQuery } from '@/composables/units/arrivalUnitsQuery'
 import { useUnitQuery } from '@/composables/units/unitQuery'
+import { useCanCurateAll } from '@/composables/controls/useWriteAccess'
 
 // The units of an arrival, a page at a time, each with the units it came from and the tree below it
 const props = defineProps({
@@ -28,7 +31,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['node-selected', 'go-to-unit', 'clear-from', 'units-loaded'])
+const emit = defineEmits(['node-selected', 'go-to-unit', 'clear-from', 'units-loaded', 'arrival-moved', 'arrival-changed'])
 
 const arrivalInput = computed(() => ({
   locationId: props.arrival.location.id,
@@ -53,6 +56,22 @@ const unitName = (unit) => unit.name || `Unit ${unit.id}`
 const heading = computed(() => props.arrival.start
   ? `Arrived at ${props.arrival.location.name} on ${props.arrival.start}`
   : `At ${props.arrival.location.name}, undated`)
+
+// The arrival's units are moved, ended or corrected together, those of them related to the "from" unit if one is
+// chosen; offered to those who curate the units listed, as the backend refuses the write unless they curate them all
+const canWrite = useCanCurateAll({ entityLabel: 'UNIT', entityIds: computed(() => units.value.map((unit) => unit.id)) })
+const selection = computed(() => ({ arrival: arrivalInput.value }))
+const at = computed(() => ({ locationId: props.arrival.location.id, start: props.arrival.start }))
+const current = computed(() => ({ location: props.arrival.location, start: props.arrival.start }))
+const description = computed(() => {
+  const count = props.unitId ? `the units from ${fromUnit.value ? unitName(fromUnit.value) : `Unit ${props.unitId}`}`
+    : `the ${props.arrival.unitCount} unit${props.arrival.unitCount !== 1 ? 's' : ''}`
+  return props.arrival.start
+    ? `${count} that arrived at ${props.arrival.location.name} on ${props.arrival.start}`
+    : `${count} at ${props.arrival.location.name}, undated`
+})
+const modal = ref(null)  // 'move', 'end' or 'correct'
+const onChanged = ({ change }) => emit('arrival-changed', { start: 'start' in change ? change.start : props.arrival.start })
 </script>
 
 <template>
@@ -64,6 +83,31 @@ const heading = computed(() => props.arrival.start
         from {{ fromUnit ? unitName(fromUnit) : `Unit ${unitId}` }}
         <button type="button" class="from-clear" title="Show all of the arrival" @click="emit('clear-from')">×</button>
       </span>
+      <span v-if="canWrite" class="arrival-actions">
+        <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'move'">Move on…</button>
+        <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'end'">End here…</button>
+        <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'correct'">Correct…</button>
+      </span>
+    </div>
+
+    <div v-if="modal === 'move'" class="modal-overlay" @click="modal = null">
+      <moveUnitsModal
+        :units="selection"
+        :description="description"
+        @moved="emit('arrival-moved', $event)"
+        @close="modal = null"
+      />
+    </div>
+    <div v-else-if="modal" class="modal-overlay" @click="modal = null">
+      <changePositionsModal
+        :units="selection"
+        :description="description"
+        :at="at"
+        :current="current"
+        :mode="modal"
+        @changed="onChanged"
+        @close="modal = null"
+      />
     </div>
 
     <div v-if="unitsError" class="error">Error loading the arrival's units: {{ unitsError.message }}</div>
@@ -125,6 +169,12 @@ const heading = computed(() => props.arrival.start
   background: #e3f2fd;
   color: #1565c0;
   font-size: 12px;
+}
+
+.arrival-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .from-clear {

@@ -1,8 +1,10 @@
 import { computed, toValue } from 'vue'
+import { useQuery } from '@vue/apollo-composable'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useControllerQuery } from '@/composables/controls/useControllerQuery'
 import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
+import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
 
 /**
  * Whether to offer write actions, following the backend's checks: creating a controlled entity needs a write
@@ -36,4 +38,21 @@ export function useEntityAccess({ entityLabel, entityId }) {
 export function useCanCurate({ entityLabel, entityId }) {
   const access = useEntityAccess({ entityLabel, entityId })
   return computed(() => access.value.includes('CURATE'))
+}
+
+// Whether the user curates every one of these entities, e.g. the units of an arrival moved together, which the backend
+// refuses unless they do: one request for them all. False for anonymous users and while it is read.
+export function useCanCurateAll({ entityLabel, entityIds }) {
+  const { isAuthenticated } = useAuthStore()
+  const ids = computed(() => toValue(entityIds) ?? [])
+  const { result } = useQuery(
+    CONTROLLER_ACCESS_QUERY,
+    () => ({ entityLabel: toValue(entityLabel), entityIds: ids.value }),
+    { enabled: computed(() => isAuthenticated.value && ids.value.length > 0) }
+  )
+  return computed(() => {
+    const controllers = result.value?.controlsControllers?.result ?? []
+    return isAuthenticated.value && ids.value.length > 0 && controllers.length === ids.value.length
+      && controllers.every((controller) => controller?.access?.includes('CURATE'))
+  })
 }

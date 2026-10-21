@@ -87,6 +87,19 @@ const treeKey = ref(0)
 const handleRefreshTree = () => {
   treeKey.value++
 }
+
+// After an arrival is moved on, where it went; after its start is corrected, the arrival it now is
+const notice = ref(null)
+watch(() => [props.locationId, props.arrival], () => { notice.value = null })
+const onArrivalMoved = ({ units, position, location }) => {
+  notice.value = {
+    text: `Moved ${units.length} unit${units.length !== 1 ? 's' : ''} to ${location?.name ?? 'another location'}`,
+    to: { name: 'Units', query: { location: position.locationId, arrival: arrivalParam(position.start) } }
+  }
+}
+const onArrivalChanged = ({ start }) => {
+  if (arrivalParam(start) !== props.arrival) emit('update', { arrival: arrivalParam(start), unit: null })
+}
 const handleNodeDeleted = () => {
   emit('update', { unit: null })
   treeKey.value++
@@ -112,6 +125,10 @@ const handleNodeDeleted = () => {
       </div>
 
       <div class="tree-panel">
+        <div v-if="notice" class="notice">
+          {{ notice.text }} · <router-link :to="notice.to">Show them there</router-link>
+          <button type="button" class="notice-close" title="Dismiss" @click="notice = null">×</button>
+        </div>
         <UnitTree
           v-if="graph"
           :key="`graph_${graph}_${treeKey}`"
@@ -132,6 +149,8 @@ const handleNodeDeleted = () => {
           @go-to-unit="emit('go-to-unit', $event)"
           @clear-from="emit('update', { from: null })"
           @units-loaded="arrivalTops = $event"
+          @arrival-moved="onArrivalMoved"
+          @arrival-changed="onArrivalChanged"
         />
         <div v-else class="empty-selection">
           <p>Select a unit graph or an arrival to view its units</p>
@@ -181,6 +200,28 @@ const handleNodeDeleted = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 13px;
+}
+
+.notice-close {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .empty-selection {

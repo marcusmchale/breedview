@@ -5,11 +5,14 @@ import UpdateUnitModal from '@/components/units/updateUnitModal.vue'
 import DeleteModal from '@/components/units/deleteModal.vue'
 import AddChildModal from '@/components/units/addChildModal.vue'
 import AddPositionModal from '@/components/units/addPositionModal.vue'
+import MoveUnitsModal from '@/components/units/moveUnitsModal.vue'
+import ChangePositionsModal from '@/components/units/changePositionsModal.vue'
 import PositionDetails from '@/components/units/positionDetails.vue'
 
 import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
 import { currentPosition as currentPositionOf } from '@/composables/units/unitPositions'
 import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
+import { positionMatch } from '@/composables/units/mutatePositions'
 
 const props = defineProps({
   unitId: {
@@ -137,6 +140,15 @@ const closeAddPositionModal = () => {
 const handleAddPositionSuccess = async () => {
   await refetchUnit()
 }
+
+// Moving the unit, ending where it is now, or correcting one of its positions: written as for a batch, this one unit
+// (the unit comes back with its positions, so the card shows them as they now are)
+const unitName = computed(() => unit.value?.name || `${unit.value?.subject?.name || 'Unit'} ${props.unitId}`)
+const thisUnit = computed(() => ({ unitIds: [props.unitId] }))
+const positionModal = ref(null)  // { mode: 'move' } or { mode: 'end' | 'correct', position }
+const openPositionModal = (mode, position = null) => {
+  positionModal.value = { mode, position }
+}
 </script>
 
 <template>
@@ -184,6 +196,16 @@ const handleAddPositionSuccess = async () => {
         </button>
         <button v-if="canCurate" @click="openAddPositionModal" class="btn btn-sm btn-add-position">
           📍 Add Position
+        </button>
+        <button v-if="canCurate" @click="openPositionModal('move')" class="btn btn-sm btn-outline">
+          Move…
+        </button>
+        <button
+          v-if="canCurate && currentPosition && !current.ended"
+          @click="openPositionModal('end', currentPosition)"
+          class="btn btn-sm btn-outline"
+        >
+          End…
         </button>
         <ControllerBadge entityLabel="UNIT" :entityId="unit.id" />
       </div>
@@ -240,6 +262,7 @@ const handleAddPositionSuccess = async () => {
           :positions="positionsList"
           :editable="canCurate"
           @position-updated="refetchUnit"
+          @edit-position="openPositionModal('correct', $event)"
         />
       </div>
 
@@ -302,6 +325,20 @@ const handleAddPositionSuccess = async () => {
         :parentPosition="currentPosition"
         @close="closeAddChildModal"
         @success="handleAddChildSuccess"
+      />
+    </div>
+
+    <div v-if="positionModal?.mode === 'move'" class="modal-overlay" @click="positionModal = null">
+      <MoveUnitsModal :units="thisUnit" :description="unitName" @close="positionModal = null" />
+    </div>
+    <div v-else-if="positionModal" class="modal-overlay" @click="positionModal = null">
+      <ChangePositionsModal
+        :units="thisUnit"
+        :description="`${unitName}'s position at ${positionModal.position.location?.name}`"
+        :at="positionMatch(positionModal.position)"
+        :current="positionModal.position"
+        :mode="positionModal.mode"
+        @close="positionModal = null"
       />
     </div>
 

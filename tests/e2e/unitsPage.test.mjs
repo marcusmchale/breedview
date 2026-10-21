@@ -115,7 +115,7 @@ test('a tree\'s samples elsewhere are links from its field to the arrivals that 
   assert.equal(await page.evaluate(`!!${nodeHeader('Arrival Sample A1')}`), false, 'the samples are not listed at the field')
   await page.evaluate(`[...document.querySelectorAll('.away-link')].find((l) => l.innerText.includes(${q(e.lab.name)})).click()`)
   await page.waitFor(`location.search.includes('location=${LAB}') && document.querySelector('.arrival-item.selected')`, 30000)
-  await page.waitFor(`document.querySelector('.arrival-tree .from-chip')`, 30000)
+  await page.waitFor(`document.querySelector('.arrival-tree .from-chip') && document.querySelector('.arrival-tree > .arrival-unit') && !document.querySelector('.arrival-tree > .loading')`, 30000)
   await page.sleep(1000)
   assert.deepEqual((await arrivalItems()).map((i) => i.start), ['Arrived 2025-03-25', 'Arrived 2024-11', 'Undated'], 'the arrivals of Tree A\'s units')
   assert.deepEqual(await arrivalUnits(), ['Arrival Pooled', 'Arrival Sample A1', 'Arrival Sample A2', 'Arrival Sample A3', 'Arrival Sample Hidden'])

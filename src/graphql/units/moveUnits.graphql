@@ -1,0 +1,10 @@
+#import "./unitFragment.graphql"
+# Moves units to a position from its start, by id or an arrival's; the units moved come back, so the cache has their
+# positions as they now are
+mutation unitsMoveUnits ($units: UnitsSelection!, $position: PositionInput!) {
+    unitsMoveUnits (units: $units, position: $position) {
+        status
+        result { ...UnitFields }
+        errors { message }
+    }
+}

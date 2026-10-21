@@ -137,6 +137,9 @@ browser: that the pages render it, which actions they offer, the modals and labe
   20 analyses.
 - `datasetArrivalPicker.test.mjs`, on the arrivals (skipped without them): the dataset submission's units picker at the
   lab lists its arrivals, an arrival's tick selects the units that came, and opening it lists them.
+- `unitMoves.test.mjs`, on the arrivals (skipped without them), signed in as the writer: the lab's spare arrival
+  moved on to the lab store and found there, ended and its start corrected (the page following it), and one of its
+  units received back at the lab from the store through the units picker. Their positions are put back afterwards.
 - `unitsPage.test.mjs`, on the arrivals (manifest `arrivals`; skipped without them): the lab's arrivals newest first as
   the writer and the outsider see them, a tree's samples elsewhere as links from its field to the arrivals that have
   them, a sample taken at the lab below its sample, the moved-on, used-up and visiting units marked, the hidden sample's

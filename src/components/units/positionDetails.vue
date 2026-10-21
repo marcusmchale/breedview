@@ -25,7 +25,7 @@ const {
   removePositionError
 } = useMutatePositions({unitId: () => props.unitId} )
 
-const emit = defineEmits(['position-updated'])
+const emit = defineEmits(['position-updated', 'edit-position'])
 
 // In time order, as the API lists them: each partial time as its period, so a position ending 2021 runs through the year
 const positionsSorted = computed(() => sortPositions(props.positions))
@@ -81,14 +81,22 @@ const formatDate = (dateString) => {
       </div>
       <div v-if="pos.start">Start: {{ formatDate(pos.start) }}</div>
       <div v-if="pos.end">End: {{ formatDate(pos.end) }}</div>
-      <button
-        v-if="editable"
-        @click="submitRemovePosition(pos)"
-        class="btn btn-sm btn-add-position"
-        title="Remove position record"
-      >
-      - Position
-      </button>
+      <div v-if="editable" class="position-actions">
+        <button
+          @click="emit('edit-position', pos)"
+          class="btn btn-sm btn-add-position"
+          title="Correct this position as entered"
+        >
+          Edit
+        </button>
+        <button
+          @click="submitRemovePosition(pos)"
+          class="btn btn-sm btn-add-position"
+          title="Remove position record"
+        >
+          - Position
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -103,6 +111,12 @@ const formatDate = (dateString) => {
 
 .position-history {
   margin-top: 12px;
+}
+
+.position-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .history-list {

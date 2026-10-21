@@ -1,0 +1,10 @@
+#import "./unitFragment.graphql"
+# Changes one position of each unit, the one matching at, e.g. to end an arrival or correct its start; the units changed
+# come back, so the cache has their positions as they now are
+mutation unitsChangePositions ($units: UnitsSelection!, $at: PositionMatchInput!, $change: PositionChangeInput!) {
+    unitsChangePositions (units: $units, at: $at, change: $change) {
+        status
+        result { ...UnitFields }
+        errors { message }
+    }
+}
