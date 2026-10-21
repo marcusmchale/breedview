@@ -148,7 +148,7 @@ test('by field: the fields the records are at are listed with their layouts, and
   const places = await page.evaluate(`[...${field('In the selected datasets')}.querySelectorAll('.place-name')].map((e) => e.innerText.trim())`)
   assert.deepEqual(places.sort(), Object.keys(p.locations).filter((name) => name.startsWith('Position Field')).sort(),
     'the three fields, not the greenhouse')
-  assert.ok(await page.exists(chip('Layout axes (optional)', 'Row')), 'the axes of their layouts are offered')
+  assert.ok(await page.evaluate(`!!${chip('Layout axes (optional)', 'Row')}`), 'the axes of their layouts are offered')
   await addTerm('Location')
   await submit()
   await assertCase('fields')
