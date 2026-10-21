@@ -31,7 +31,8 @@ confirmed) and reports an alert's message among the console errors.
    `VUE_PORT` set to the dev server's port, so emailed links open the app. MailHog itself on 1025/8025.
 2. The dev server: `npm run dev`. To test against a backend on another port: `VITE_API_HOST=http://localhost:8001 npm run dev`.
 3. Google Chrome installed (`CHROME_BIN` if it is not `google-chrome` on the path).
-4. For `recordGroupExtent.test.mjs`, the analysis worker: analyses past validation stay queued without it. From
+4. For `recordGroupExtent.test.mjs` and `positionGrouping.test.mjs`, the analysis worker: analyses past validation
+   stay queued without it. From
    breedgraph, with its env loaded: `cd src && ../.venv/bin/python -m analysis_worker.main`.
 5. Map tiles in the backend's `MAP_TILES_PATH`, for the maps: from breedgraph, with its env loaded,
    `scripts/map_tiles.py --build https://build.protomaps.com/YYYYMMDD.pmtiles --world-maxzoom 6` (about 45 MB; needs
@@ -137,6 +138,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   20 analyses.
 - `datasetArrivalPicker.test.mjs`, on the arrivals (skipped without them): the dataset submission's units picker at the
   lab lists its arrivals, an arrival's tick selects the units that came, and opening it lists them.
+- `positionGrouping.test.mjs`, on the positions (manifest `positions`; skipped without them), signed in as the writer:
+  the analysis editor's location types, the fields the height records are at with their layouts' axes, results by
+  field and by row (each row labelled with its layout) as the manifest's `expected` cases give them with the records
+  that can't be placed, and by country a sample analysed abroad in its lab's country, then by its tree in the tree's,
+  kept on reopening.
 - `unitMoves.test.mjs`, on the arrivals (skipped without them), signed in as the writer: the lab's spare arrival
   moved on to the lab store and found there, ended and its start corrected (the page following it), and one of its
   units received back at the lab from the store through the units picker. Their positions are put back afterwards.

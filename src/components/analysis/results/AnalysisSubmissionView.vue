@@ -29,7 +29,7 @@ const { submission, status, isTerminal, notFound, queryErrors, loading, error } 
 
 /* ---------- names ---------- */
 
-const { ensureDatasets, ensureStudies, ensureGermplasm, ensureUnits, ensureLocations } = useAnalysisNames()
+const { ensureDatasets, ensureStudies, ensureGermplasm, ensureUnits, ensureLocations, ensureLayouts } = useAnalysisNames()
 
 watch(
   () => submission.value?.datasetIds,
@@ -78,6 +78,7 @@ watch(referenced, (ids) => {
   ensureUnits(ids.unit)
   ensureStudies(ids.study)
   ensureLocations(ids.location)
+  ensureLayouts(ids.layout)
 })
 
 /* ---------- display ---------- */
@@ -102,7 +103,7 @@ const dimensions = computed(() => {
   if (g.time) out.push(`Time (${g.time.binning.labels?.length ?? g.time.binning.boundaries.length + 1} bins)`)
   if (g.germplasm) out.push(`Germplasm (${g.germplasm.germplasmIds.length})`)
   if (g.unit) out.push(`Parent unit (${g.unit.unitIds.length})`)
-  if (g.position) out.push('Position')
+  if (g.position) out.push(['Location', ...(g.position.axes ?? [])].join(', '))
   g.recordGroups.forEach((d) => out.push(`Record group: ${d.name}`))
   return out
 })

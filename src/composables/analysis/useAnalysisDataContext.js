@@ -4,6 +4,7 @@ import { useApolloClient } from '@vue/apollo-composable'
 import STUDY_QUERY from '@/graphql/programs/study.graphql'
 import { useDatasetSummariesMultiQuery } from '@/composables/datasets/datasetSummariesMultiQuery'
 import { useAnalysisDatasetsQuery } from '@/composables/analysis/analysisDatasetsQuery'
+import { useAnalysisPlacesQuery } from '@/composables/analysis/analysisPlacesQuery'
 import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
 import { datasetConcepts, registerNames, useAnalysisNames } from '@/composables/analysis/useAnalysisNames'
 
@@ -11,7 +12,8 @@ import { datasetConcepts, registerNames, useAnalysisNames } from '@/composables/
  * Data available to the analysis editor for the selected studies and datasets:
  * studies and their record groupings, subjects, dataset summaries, concepts with their
  * scales, and what the records span (record group codes, times and values at each
- * percentile), read as dimensions of each dataset rather than as the records themselves.
+ * percentile), read as dimensions of each dataset rather than as the records themselves;
+ * and for position grouping, the location types and where the records could be placed.
  */
 export function useAnalysisDataContext(form) {
   const { resolveClient } = useApolloClient()
@@ -206,6 +208,27 @@ export function useAnalysisDataContext(form) {
     return [...map.values()]
   })
 
+  /* ---------- position grouping ---------- */
+
+  // Location types place records at the nearest location of one of them
+  const { entries: locationTypeEntries, entriesLoading: locationTypesLoading } = useOntologyEntriesQuery({
+    labels: ['LOCATION_TYPE']
+  })
+  const locationTypes = computed(() =>
+    [...locationTypeEntries.value].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+  )
+  const locationTypesById = computed(() => Object.fromEntries(locationTypes.value.map((t) => [t.id, t])))
+
+  // Where the selected datasets' records could be placed at the chosen types, with the layouts and their axes
+  const { places, loading: placesLoading } = useAnalysisPlacesQuery({
+    datasetIds,
+    locationTypeIds: () => toValue(form).grouping.position?.locationTypeIds ?? []
+  })
+  watch(places, (list) => {
+    registerNames('location', list.map((p) => p.location))
+    registerNames('layout', list.flatMap((p) => p.layouts.map((l) => l.layout)))
+  })
+
   return {
     studies,
     studiesById,
@@ -230,6 +253,11 @@ export function useAnalysisDataContext(form) {
     subjectsById,
     subjectsLoading,
     blockIds,
-    locations
+    locations,
+    locationTypes,
+    locationTypesById,
+    locationTypesLoading,
+    places,
+    placesLoading
   }
 }

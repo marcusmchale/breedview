@@ -1,0 +1,20 @@
+# Where position grouping could place the selected datasets' records: the locations of the location types, with the
+# layouts of the positions there and the axis names those give, for the position grouping editor
+query AnalysisPlaces($datasetIds: [ID!]!, $locationTypeIds: [ID!]!) {
+  datasetsPlaces(datasetIds: $datasetIds, locationTypeIds: $locationTypeIds) {
+    status
+    result {
+      location { id name }
+      unitCount
+      layouts {
+        layout { id name }
+        unitCount
+        axes
+      }
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

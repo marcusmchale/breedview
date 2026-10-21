@@ -2,6 +2,7 @@ fragment AnalysisTermReferenceFields on AnalysisTermReference {
   type
   conceptId
   recordGroupDimension { name }
+  layoutAxis
 }
 
 fragment AnalysisBinningFields on Binning {
@@ -36,16 +37,9 @@ fragment AnalysisGroupingFields on AnalysisGrouping {
   germplasm { germplasmIds }
   unit { unitIds }
   position {
-    locationId
-    layoutId
-    axisIndexes
-    positions {
-      location { id name }
-      layout { id name axes }
-      coordinates
-      start
-      end
-    }
+    locationTypeIds
+    subjectIds
+    axes
     time
   }
   recordGroups {
@@ -131,13 +125,8 @@ fragment AnalysisGroupFields on AnalysisGroup {
   time
   germplasmId
   unitId
-  position {
-    location { id name }
-    layout { id name axes }
-    coordinates
-    start
-    end
-  }
+  locationId
+  layoutAxes { axis layoutId value }
   studyId
   recordGroups {
     dimension

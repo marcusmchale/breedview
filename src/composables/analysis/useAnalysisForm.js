@@ -53,14 +53,15 @@ const OPTION_FIELDS = {
   OUTLIER_DETECTION: { method: 'outlierMethod' }
 }
 
-export const DOMAIN_TERM_TYPES = ['TIME', 'GERMPLASM', 'UNIT', 'POSITION', 'RECORD_GROUP', 'STUDY']
+export const DOMAIN_TERM_TYPES = ['TIME', 'GERMPLASM', 'UNIT', 'LOCATION', 'LAYOUT_AXIS', 'RECORD_GROUP', 'STUDY']
 
 export const TERM_TYPE_LABELS = {
   CONCEPT: 'Concept',
   TIME: 'Time',
   GERMPLASM: 'Germplasm',
   UNIT: 'Unit',
-  POSITION: 'Position',
+  LOCATION: 'Location',
+  LAYOUT_AXIS: 'Layout axis',
   RECORD_GROUP: 'Record group',
   STUDY: 'Study'
 }
@@ -81,7 +82,12 @@ export const createEmptyExclusion = () => ({
 })
 
 export const createTerm = (reference) => ({
-  reference: { type: reference.type, conceptId: reference.conceptId ?? null, recordGroupDimension: reference.recordGroupDimension ?? null },
+  reference: {
+    type: reference.type,
+    conceptId: reference.conceptId ?? null,
+    recordGroupDimension: reference.recordGroupDimension ?? null,
+    layoutAxis: reference.layoutAxis ?? null
+  },
   representation: null,
   binning: null,
   levelOrder: null,
@@ -141,6 +147,7 @@ export const termKey = (ref) => {
   if (!ref) return ''
   if (ref.type === 'CONCEPT') return `CONCEPT:${ref.conceptId}`
   if (ref.type === 'RECORD_GROUP') return `RECORD_GROUP:${dimensionName(ref)}`
+  if (ref.type === 'LAYOUT_AXIS') return `LAYOUT_AXIS:${ref.layoutAxis}`
   return ref.type
 }
 
@@ -149,7 +156,8 @@ export const sameTerm = (a, b) => termKey(a) === termKey(b)
 export const toReference = (ref) => ({
   type: ref.type,
   conceptId: ref.type === 'CONCEPT' ? ref.conceptId : null,
-  recordGroupDimension: ref.type === 'RECORD_GROUP' ? dimensionName(ref) : null
+  recordGroupDimension: ref.type === 'RECORD_GROUP' ? dimensionName(ref) : null,
+  layoutAxis: ref.type === 'LAYOUT_AXIS' ? ref.layoutAxis : null
 })
 
 /* ---------- form -> AnalysisInput ---------- */
@@ -166,6 +174,7 @@ const referenceInput = (ref) => {
   const out = { type: ref.type }
   if (ref.type === 'CONCEPT') out.conceptId = ref.conceptId
   if (ref.type === 'RECORD_GROUP') out.recordGroupDimension = dimensionName(ref)
+  if (ref.type === 'LAYOUT_AXIS') out.layoutAxis = ref.layoutAxis
   return out
 }
 
@@ -209,20 +218,9 @@ const groupingInput = (g) => {
   if (g.unit) out.unit = { unitIds: [...g.unit.unitIds] }
   if (g.position) {
     const p = g.position
-    const position = { locationId: p.locationId }
-    assignIf(position, 'layoutId', p.layoutId)
-    assignIf(position, 'axisIndexes', [...(p.axisIndexes ?? [])], nonEmpty(p.axisIndexes))
-    assignIf(
-      position,
-      'positions',
-      (p.positions ?? []).map((pos) => {
-        const posOut = { locationId: pos.locationId ?? p.locationId }
-        assignIf(posOut, 'layoutId', pos.layoutId ?? p.layoutId)
-        assignIf(posOut, 'coordinates', (pos.coordinates ?? []).map((c) => (c === '' ? null : c)), nonEmpty(pos.coordinates))
-        return posOut
-      }),
-      nonEmpty(p.positions)
-    )
+    const position = { locationTypeIds: [...p.locationTypeIds] }
+    assignIf(position, 'subjectIds', [...(p.subjectIds ?? [])], nonEmpty(p.subjectIds))
+    assignIf(position, 'axes', [...(p.axes ?? [])], nonEmpty(p.axes))
     assignIf(position, 'time', p.time)
     out.position = position
   }
@@ -341,14 +339,9 @@ const groupingFromOutput = (g) => {
   if (g.position) {
     const p = g.position
     out.position = {
-      locationId: p.locationId,
-      layoutId: p.layoutId ?? null,
-      axisIndexes: [...(p.axisIndexes ?? [])],
-      positions: (p.positions ?? []).map((pos) => ({
-        locationId: pos.location?.id ?? p.locationId,
-        layoutId: pos.layout?.id ?? null,
-        coordinates: [...(pos.coordinates ?? [])]
-      })),
+      locationTypeIds: [...(p.locationTypeIds ?? [])],
+      subjectIds: [...(p.subjectIds ?? [])],
+      axes: [...(p.axes ?? [])],
       time: p.time ?? null
     }
   }

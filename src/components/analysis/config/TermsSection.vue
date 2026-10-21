@@ -38,7 +38,7 @@ const addConcept = () => {
 const GROUPING_LABELS = { time: 'time', germplasm: 'germplasm', position: 'position' }
 
 const domainTerms = computed(() =>
-  ['UNIT', 'STUDY', 'TIME', 'GERMPLASM', 'POSITION'].map((type) => {
+  ['UNIT', 'STUDY', 'TIME', 'GERMPLASM', 'LOCATION'].map((type) => {
     const ref = { type }
     const configured = isGroupingConfigured(form.grouping, type)
     let reason = ''
@@ -60,6 +60,14 @@ const recordGroupTerms = computed(() =>
       }
       return { ref, label: d.name, disabled: !!reason, reason }
     })
+)
+
+// each axis of the position grouping is a term of its own, e.g. Row
+const layoutAxisTerms = computed(() =>
+  (form.grouping.position?.axes ?? []).map((axis) => {
+    const ref = { type: 'LAYOUT_AXIS', layoutAxis: axis }
+    return { ref, label: axis, disabled: isUsed(ref), reason: isUsed(ref) ? 'Already added' : '' }
+  })
 )
 
 const addDomain = (ref) => form.terms.push(createTerm(ref))
@@ -96,7 +104,7 @@ const removeTerm = (i) => removeTermReferences(form, form.terms[i].reference)
         <span class="field-label">Add a domain term</span>
         <div class="chip-list">
           <button
-            v-for="t in [...domainTerms, ...recordGroupTerms]"
+            v-for="t in [...domainTerms, ...layoutAxisTerms, ...recordGroupTerms]"
             :key="termKey(t.ref)"
             type="button"
             class="chip"

@@ -26,7 +26,10 @@ export const MESSAGE_CODES = {
   UNASSIGNED_TIME: { hint: 'Exclude these records, or adjust the time bins.', excludeRecords: true },
   UNASSIGNED_GERMPLASM: { hint: 'Exclude these records, or adjust the selected germplasm.', excludeRecords: true },
   UNASSIGNED_UNIT: { hint: 'Exclude these records, or adjust the selected parent units.', excludeRecords: true },
-  UNASSIGNED_POSITION: { hint: 'Exclude these records, or adjust the position grouping.', excludeRecords: true },
+  UNASSIGNED_POSITION: {
+    hint: 'Exclude these records, or adjust the position grouping: other location types, place by a subject, or fewer axes.',
+    excludeRecords: true
+  },
   UNASSIGNED_RECORD_GROUP: { hint: 'Exclude these records, or adjust the record group dimension.', excludeRecords: true },
   MISSING_VALUES: { hint: 'Some observations lack a value for the term.' },
   DATASET_FULLY_EXCLUDED: { hint: 'The dataset contributed no observations.' },

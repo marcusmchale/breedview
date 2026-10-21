@@ -114,7 +114,11 @@ export const showsEffect = (analysisType) => analysisType === 'ANOVA'
 
 /** Grouping that must be configured before a domain term can be used. */
 export function requiredGrouping(type) {
-  return { TIME: 'time', GERMPLASM: 'germplasm', POSITION: 'position', RECORD_GROUP: 'recordGroups' }[type] ?? null
+  return (
+    { TIME: 'time', GERMPLASM: 'germplasm', LOCATION: 'position', LAYOUT_AXIS: 'position', RECORD_GROUP: 'recordGroups' }[
+      type
+    ] ?? null
+  )
 }
 
 export function isGroupingConfigured(grouping, type) {

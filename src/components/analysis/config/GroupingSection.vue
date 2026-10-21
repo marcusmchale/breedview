@@ -13,27 +13,31 @@ const { form, data } = useAnalysisEditor()
 const DIMENSIONS = {
   time: {
     label: 'Time',
-    termType: 'TIME',
+    termTypes: () => [{ type: 'TIME' }],
     description: 'Bins records by their start/end time, e.g. to separate repeated measurements.',
     create: () => ({ assignment: 'MIDPOINT', binning: createEmptyBinning() })
   },
   germplasm: {
     label: 'Germplasm',
-    termType: 'GERMPLASM',
+    termTypes: () => [{ type: 'GERMPLASM' }],
     description: "Assigns each unit's germplasm to itself or its closest selected ancestor.",
     create: () => ({ germplasmIds: [] })
   },
   unit: {
     label: 'Parent unit',
-    termType: null,
+    termTypes: () => [],
     description: 'Replaces each base unit with its closest selected parent unit, e.g. plants to plots.',
     create: () => ({ unitIds: [] })
   },
   position: {
     label: 'Position',
-    termType: 'POSITION',
-    description: 'Groups units by their position at a location and layout.',
-    create: () => ({ locationId: null, layoutId: null, axisIndexes: [], positions: [], time: null })
+    // the location term and a term for each axis
+    termTypes: (position) => [
+      { type: 'LOCATION' },
+      ...(position?.axes ?? []).map((axis) => ({ type: 'LAYOUT_AXIS', layoutAxis: axis }))
+    ],
+    description: 'Groups records by where their units were: at locations of chosen types, and by layout axes.',
+    create: () => ({ locationTypeIds: [], subjectIds: [], axes: [], time: null })
   }
 }
 
@@ -41,8 +45,9 @@ const toggle = (key, enabled) => {
   if (enabled) {
     form.grouping[key] = DIMENSIONS[key].create()
   } else {
+    const references = DIMENSIONS[key].termTypes(form.grouping[key])
     form.grouping[key] = null
-    if (DIMENSIONS[key].termType) removeTermReferences(form, { type: DIMENSIONS[key].termType })
+    references.forEach((ref) => removeTermReferences(form, ref))
   }
 }
 

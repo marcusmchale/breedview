@@ -38,6 +38,10 @@ export const replicates = manifest.replicates
 // datasets and the expected arrivals per viewer, germplasm and factor values; breedgraph docs/test-databases.md,
 // "The arrivals". Null for a manifest built before them, or another database's: their tests skip.
 export const arrivals = manifest.arrivals ?? null
+// units at positions in layouts, for analysis position grouping: locations, layouts, units, datasets and, for each case
+// of the scenario, its grouping and terms and the levels each viewer finds; breedgraph docs/test-databases.md,
+// "The positions". Null for a manifest built before them: their tests skip.
+export const positions = manifest.positions ?? null
 
 // the concept of the scenario's datasets, as the app names it
 export const concept = manifest.perf.concept

@@ -87,36 +87,42 @@ input UnitGroupingInput {
 }
 
 """
-Defines how positions are resolved into analytical groups.
+Defines where the units of records were, as the dimensions of a
+LOCATION term and a LAYOUT_AXIS term for each axis.
 
-Positions may represent geographic locations, layout coordinates,
-or both.
+A position counts when its location is, or is below, a location of
+one of the location types, and when axes are configured, it is in a
+layout with a value on each axis. A record is
+placed by the nearest unit with a position that counts: its own unit,
+or else the nearest units above it, one on each lineage, which must
+agree. Of a unit's positions that count, the one holding at the
+record's time places it; without a time, or when none holds then,
+they must agree. Records that can't be placed are excluded from the
+analysis and reported in a warning.
 """
 input PositionGroupingInput {
-  """ID of the Location in the LocationTree hierarchy."""
-  locationId: ID!
-
-  """Optional ID of the Layout in the LayoutTree hierarchy."""
-  layoutId: ID
-
   """
-  Layout axes used to define position groups.
-  
-  Positions having equal values for all selected axes belong
-  to the same group.
+  Location types from the ontology. A record's location is the
+  nearest location of one of them, at or above its unit's position.
   """
-  axisIndexes: [Int!]
+  locationTypeIds: [ID!]!
 
   """
-  Optional explicit positions defining groups. This overrides axisIndexes where the position match is found.
+  Subjects whose units place the units below them, e.g. Tree, so
+  that a sample analysed in a lab is placed where its tree was.
   """
-  positions: [PositionInput!]
+  subjectIds: [ID!]
 
   """
-  Time at which the position is evaluated.
-  
-  When null, a unit is considered to match the defined position
-  if it occupied that position at any time.
+  Names of layout axes, each a dimension (a LAYOUT_AXIS term). The
+  value comes from the position's layout or a layout above it, and
+  is nested in the layout that has the axis.
+  """
+  axes: [String!]
+
+  """
+  Stands in for each record's time in choosing between a unit's
+  positions.
   """
   time: DateTime
 }
@@ -363,8 +369,17 @@ enum AnalysisTermType {
   """
   UNIT
 
-  """The position dimension. Requires grouping.position."""
-  POSITION
+  """
+  Where the units were: the nearest location of one of the location
+  types of grouping.position. Requires grouping.position.
+  """
+  LOCATION
+
+  """
+  The values on a layout axis, identified by layoutAxis, nested in
+  the layout that has the axis. Requires the axis in grouping.position.axes.
+  """
+  LAYOUT_AXIS
 
   """
   A record group dimension, identified by recordGroupDimension.
@@ -773,6 +788,9 @@ input AnalysisTermReferenceInput {
   Name of a dimension in grouping.recordGroups when type is RECORD_GROUP.
   """
   recordGroupDimension: String
+
+  """Name of an axis in grouping.position.axes when type is LAYOUT_AXIS."""
+  layoutAxis: String
 }
 
 """
@@ -2630,24 +2648,16 @@ type UnitGrouping {
 }
 
 type PositionGrouping {
-  """ID of the Location in the LocationTree hierarchy."""
-  locationId: ID!
+  """Location types whose nearest location places each record."""
+  locationTypeIds: [ID!]!
 
-  """ID of the Layout in the LayoutTree hierarchy."""
-  layoutId: ID
+  """Subjects whose units place the units below them."""
+  subjectIds: [ID!]!
 
-  """Layout axes used to define position groups."""
-  axisIndexes: [Int!]
+  """Names of the layout axes that are dimensions."""
+  axes: [String!]!
 
-  """Explicit positions defining groups."""
-  positions: [Position!]!
-
-  """
-  Time at which positions are evaluated.
-  
-  When null, a unit is grouped according to whether it occupies
-  the specified position at any time.
-  """
+  """Stands in for each record's time in choosing between positions."""
   time: DateTime
 }
 
@@ -2915,14 +2925,27 @@ type AnalysisGroup {
   """Unit grouping represented by this group."""
   unitId: ID
 
-  """Position represented by this group."""
-  position: Position
+  """Location represented by this group."""
+  locationId: ID
+
+  """Layout axis values represented by this group."""
+  layoutAxes: [AnalysisLayoutAxisLevel!]!
 
   """Study represented by this group, when a STUDY term is used."""
   studyId: ID
 
   """Record group levels represented by this group."""
   recordGroups: [AnalysisRecordGroupAssignment!]!
+}
+
+"""The value of a layout axis represented by a group."""
+type AnalysisLayoutAxisLevel {
+  """Name of the axis."""
+  axis: String!
+
+  """ID of the layout that has the axis; values are nested in it."""
+  layoutId: ID!
+  value: String!
 }
 
 """The level of a record group dimension represented by a group."""
@@ -3111,6 +3134,9 @@ type AnalysisTermReference {
 
   """Record group dimension when the term represents a record group."""
   recordGroupDimension: AnalysisRecordGroupDimension
+
+  """Name of the layout axis when the term represents a layout axis."""
+  layoutAxis: String
 }
 
 type InteractionTerm {
@@ -3370,6 +3396,33 @@ type DatasetDimensions {
 
   """ The record group codes present, by grouping, each in text order """
   groups: [GroupingCodes!]!
+}
+
+"""
+A location that analysis position grouping could place the records of datasets at (Query.datasetsPlaces)
+"""
+type DatasetPlace {
+  location: Location!
+
+  """ The datasets' recorded units placed there, through their own positions or those of the units above them 
+  """
+  unitCount: Int!
+
+  """ The layouts of the positions placing them, in id order """
+  layouts: [DatasetPlaceLayout!]!
+}
+
+type DatasetPlaceLayout {
+  layout: Layout!
+
+  """ The datasets' recorded units placed in it """
+  unitCount: Int!
+
+  """
+  The axis names a position in the layout has values on: its own, then those of the layouts above it, up to one
+  the user can't read
+  """
+  axes: [String!]!
 }
 
 """
@@ -4749,6 +4802,12 @@ type UnitsPayload {
   errors: [Error!]
 }
 
+type DatasetPlacesPayload {
+  status: QueryStatus!
+  result: [DatasetPlace!]
+  errors: [Error!]
+}
+
 type SubjectUnitsPayload {
   status: QueryStatus!
   result: [SubjectUnits!]
@@ -5333,6 +5392,15 @@ type Query {
   For selecting all the recorded units of a subject at once, e.g. every measured tree of a field.
   """
   datasetsUnitsBySubject(datasetIds: [ID!]!, unitIds: [ID!], start: DateTime, end: DateTime): SubjectUnitsPayload!
+
+  """
+  Where analysis position grouping (PositionGroupingInput) could place the records of readable datasets: the
+  locations of the location types at or above the positions of their recorded units and of the units above them,
+  with the layouts of those positions and the axis names they give. For the analysis editor: which unit places a
+  record, and when, are left to the analysis, so these are every place it could use. Only what the user can read
+  is given.
+  """
+  datasetsPlaces(datasetIds: [ID!]!, locationTypeIds: [ID!]!): DatasetPlacesPayload!
 
   """ Get the controller data for access controlled entities """
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): ControllersPayload!

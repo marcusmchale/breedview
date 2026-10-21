@@ -4,6 +4,7 @@ import { useApolloClient } from '@vue/apollo-composable'
 import ENTRIES_NAVIGATION_QUERY from '@/graphql/germplasm/entriesNavigation.graphql'
 import UNITS_QUERY from '@/graphql/units/units.graphql'
 import LOCATIONS_QUERY from '@/graphql/locations/locations.graphql'
+import LAYOUTS_QUERY from '@/graphql/layouts/layouts.graphql'
 import STUDY_QUERY from '@/graphql/programs/study.graphql'
 import ANALYSIS_DATASETS_QUERY from '@/graphql/analysis/analysisDatasets.graphql'
 import { TERM_TYPE_LABELS } from '@/composables/analysis/useAnalysisForm'
@@ -27,6 +28,7 @@ const requested = {
   germplasm: new Set(),
   unit: new Set(),
   location: new Set(),
+  layout: new Set(),
   study: new Set(),
   dataset: new Set()
 }
@@ -91,6 +93,12 @@ export function useAnalysisNames() {
       registerNames('location', data?.locationsLocations?.result)
     })
 
+  const ensureLayouts = (ids) =>
+    fetchMissing('layout', ids, async (client, missing) => {
+      const { data } = await client.query({ query: LAYOUTS_QUERY, variables: { layoutIds: missing } })
+      registerNames('layout', data?.layoutsLayouts?.result)
+    })
+
   const ensureStudies = (ids) =>
     fetchMissing('study', ids, async (client, missing) => {
       const results = await Promise.all(
@@ -117,6 +125,7 @@ export function useAnalysisNames() {
     ensureGermplasm,
     ensureUnits,
     ensureLocations,
+    ensureLayouts,
     ensureStudies,
     ensureDatasets,
     registerDatasets
@@ -133,6 +142,7 @@ export const studyName = (id) => named('study', id, 'Study')
 export const groupingName = (id) => named('grouping', id, 'Grouping')
 export const conceptName = (id) => named('concept', id, 'Concept')
 export const locationName = (id) => named('location', id, 'Location')
+export const layoutName = (id) => named('layout', id, 'Layout')
 
 export function datasetName(id) {
   if (id == null) return ''
@@ -147,20 +157,12 @@ export function termLabel(ref) {
   if (!ref) return ''
   if (ref.type === 'CONCEPT') return conceptName(ref.conceptId)
   if (ref.type === 'RECORD_GROUP') return dimensionName(ref) ?? 'Record group'
+  if (ref.type === 'LAYOUT_AXIS') return ref.layoutAxis ?? TERM_TYPE_LABELS.LAYOUT_AXIS
   return TERM_TYPE_LABELS[ref.type] ?? ref.type
 }
 
-export function positionLabel(position) {
-  if (!position) return ''
-  const parts = [position.location?.name ?? locationName(position.location?.id)]
-  if (position.layout) parts.push(position.layout.name ?? `Layout ${position.layout.id}`)
-  const coords = position.coordinates?.filter((c) => c != null && c !== '') ?? []
-  if (coords.length > 0) {
-    const axes = position.layout?.axes ?? []
-    parts.push(coords.map((c, i) => (axes[i] ? `${axes[i]} ${c}` : c)).join(', '))
-  }
-  return parts.join(' · ')
-}
+/** A layout axis value, nested in the layout that has the axis: "Row 3 · North Rows" */
+export const layoutAxisLabel = ({ axis, layoutId, value }) => `${axis} ${value} · ${layoutName(layoutId)}`
 
 /** shownUnitId: a unit the label already names, e.g. the observation's own, so it isn't repeated */
 export function recordGroupAssignmentLabel(a, shownUnitId = null) {
@@ -178,12 +180,6 @@ export function recordGroupAssignmentLabel(a, shownUnitId = null) {
 // Level keys are composite only when no structured group is available; split for display
 function keyLabel(type, level) {
   const parts = String(level).split('|')
-  if (type === 'POSITION' && parts.length >= 3) {
-    const [locationId, layoutId, ...coords] = parts
-    return [locationName(locationId), layoutId ? `Layout ${layoutId}` : null, coords.join('|') || null]
-      .filter(Boolean)
-      .join(' · ')
-  }
   if (type === 'RECORD_GROUP' && parts.length === 2 && parts[0] === 'unit') return unitName(parts[1])
   if (type === 'RECORD_GROUP' && parts.length === 3) {
     const [groupingId, , code] = parts
@@ -202,8 +198,13 @@ export function levelLabel(termLevel, group = null) {
       return unitName(level)
     case 'STUDY':
       return studyName(level)
-    case 'POSITION':
-      return group?.position ? positionLabel(group.position) : keyLabel('POSITION', level)
+    case 'LOCATION':
+      return locationName(level)
+    case 'LAYOUT_AXIS': {
+      // the level is layoutId|value
+      const [layoutId, ...value] = String(level).split('|')
+      return layoutAxisLabel({ axis: term.layoutAxis, layoutId, value: value.join('|') })
+    }
     case 'RECORD_GROUP': {
       const assignment = group?.recordGroups?.find((r) => r.dimension === dimensionName(term) && r.level === level)
       return assignment ? recordGroupAssignmentLabel(assignment) : keyLabel('RECORD_GROUP', level)
@@ -223,7 +224,8 @@ export function groupLabel(group) {
   if (group.unitId != null) parts.push(unitName(group.unitId))
   if (group.germplasmId != null) parts.push(germplasmName(group.germplasmId))
   if (group.time) parts.push(group.time)
-  if (group.position) parts.push(positionLabel(group.position))
+  if (group.locationId != null) parts.push(locationName(group.locationId))
+  for (const a of group.layoutAxes ?? []) parts.push(layoutAxisLabel(a))
   if (group.studyId != null) parts.push(studyName(group.studyId))
   for (const r of group.recordGroups ?? []) parts.push(`${r.dimension}: ${recordGroupAssignmentLabel(r, group.unitId)}`)
   return parts.join(' · ')
@@ -231,19 +233,22 @@ export function groupLabel(group) {
 
 /** IDs referenced by groups and levels, for name resolution. */
 export function collectIds({ groups = [], levels = [] }) {
-  const ids = { germplasm: new Set(), unit: new Set(), study: new Set(), location: new Set() }
+  const ids = { germplasm: new Set(), unit: new Set(), study: new Set(), location: new Set(), layout: new Set() }
   for (const g of groups) {
     if (!g) continue
     if (g.germplasmId != null) ids.germplasm.add(g.germplasmId)
     if (g.unitId != null) ids.unit.add(g.unitId)
     if (g.studyId != null) ids.study.add(g.studyId)
+    if (g.locationId != null) ids.location.add(g.locationId)
+    for (const a of g.layoutAxes ?? []) ids.layout.add(a.layoutId)
     for (const r of g.recordGroups ?? []) if (r.unitId != null) ids.unit.add(r.unitId)
   }
   for (const l of levels) {
     if (l.term.type === 'GERMPLASM') ids.germplasm.add(l.level)
     if (l.term.type === 'UNIT') ids.unit.add(l.level)
     if (l.term.type === 'STUDY') ids.study.add(l.level)
-    if (l.term.type === 'POSITION') ids.location.add(String(l.level).split('|')[0])
+    if (l.term.type === 'LOCATION') ids.location.add(l.level)
+    if (l.term.type === 'LAYOUT_AXIS') ids.layout.add(String(l.level).split('|')[0])
     if (l.term.type === 'RECORD_GROUP') {
       const parts = String(l.level).split('|')
       if (parts.length === 2 && parts[0] === 'unit') ids.unit.add(parts[1])
