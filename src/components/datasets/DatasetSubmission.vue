@@ -4,7 +4,6 @@ import { FormKit } from "@formkit/vue";
 import { useSelectStudyQueries } from "@/composables/datasets/selectStudyQueries";
 import { useSelectLocationsQuery } from "@/composables/datasets/selectLocationsQueries";
 import { useSelectUnitsQuery } from "@/composables/datasets/selectUnitsQueries";
-import { useUnitsBySubject } from "@/composables/units/unitsBySubject";
 import { useLocationsByType } from "@/composables/locations/locationsByType";
 import { useCachedName } from "@/composables/queryBase/cachedName";
 import { useSelectConceptsQuery } from "@/composables/datasets/selectConceptsQueries";
@@ -76,11 +75,14 @@ const {
 })
 
 const {
-  blocks,
+  rootNodes: unitRootNodes,
   selectedUnits,
-  loadDisplayedChildUnits,
-  displayedUnitsLoading,
-  displayedUnits
+  loadChildren: loadDisplayedChildUnits,
+  childrenLoading: displayedUnitsLoading,
+  currentChildren: displayedUnits,
+  isSelectable: isSelectableUnit,
+  hasChildren: unitHasChildren,
+  loadTypeGroups: loadUnitTypeGroups
 } = useSelectUnitsQuery({
   locationIds: () => selectionData.value?.locationIds,
   unitIds: () => selectionData.value?.unitIds
@@ -196,8 +198,6 @@ const childrenLoading = computed(() => !!(studiesLoading.value || trialsLoading.
 const { loadLocationGroups } = useLocationsByType()
 const loadLocationTypeGroups = (node) => loadLocationGroups(node ? [node] : regions.value ?? [])
 const locationNameOf = useCachedName('Location')
-const { loadUnitGroups } = useUnitsBySubject()
-const loadUnitTypeGroups = (node) => loadUnitGroups(node ? [node] : blocks.value ?? [])
 const unitNameOf = useCachedName('Unit')
 
 const currentChildren = computed(() => {
@@ -292,13 +292,15 @@ const closeModal = () => {
             type="hierarchical-multiselect"
             name="unitIds"
             label="Units:"
-            help="Select units from the unit graphs at these locations"
+            help="Select units from the unit graphs and arrivals at these locations"
             :value="selectionData.unitIds"
             :label-fn="unitNameOf"
-            :rootNodes="blocks"
+            :rootNodes="unitRootNodes"
             :loadChildrenFn="loadDisplayedChildUnits"
             :childrenLoading="displayedUnitsLoading"
             :currentChildren="displayedUnits"
+            :is-selectable-fn="isSelectableUnit"
+            :has-children-fn="unitHasChildren"
             :get-node-label-fn="(u) => u.name || `${u.subject?.name} ${u.id}`"
             :load-type-groups-fn="loadUnitTypeGroups"
             validation="required"

@@ -1,0 +1,16 @@
+# The arrivals at locations with their units by subject, as id and name, for selecting them in a picker
+query unitsArrivalsForPicker ($locationIds: [ID!]!) {
+    unitsArrivals (locationIds: $locationIds) {
+        status
+        result {
+            location { id name }
+            start
+            unitCount
+            unitsBySubject {
+                subject { id versionId view name }
+                units { id name }
+            }
+        }
+        errors { message }
+    }
+}

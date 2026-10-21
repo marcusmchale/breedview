@@ -135,6 +135,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
   It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
   20 analyses.
+- `datasetArrivalPicker.test.mjs`, on the arrivals (skipped without them): the dataset submission's units picker at the
+  lab lists its arrivals, an arrival's tick selects the units that came, and opening it lists them.
 - `unitsPage.test.mjs`, on the arrivals (manifest `arrivals`; skipped without them): the lab's arrivals newest first as
   the writer and the outsider see them, a tree's samples elsewhere as links from its field to the arrivals that have
   them, a sample taken at the lab below its sample, the moved-on, used-up and visiting units marked, the hidden sample's
