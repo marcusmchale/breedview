@@ -6,6 +6,7 @@ fragment GermplasmEntryFields on GermplasmEntry {
     reproduction
     time
     origin { id name }
+    unit { id name subject { id versionId view name } }
     controlMethods { id name view versionId }
     references { id description ... on ExternalReference { url externalId } }
     sources { sourceType, description, source { id, name } }

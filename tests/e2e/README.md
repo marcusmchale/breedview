@@ -72,8 +72,9 @@ a study per field with its datasets, the first of them, the perf scripts' defaul
 belongs to `child` and is private.
 
 Some tests write: the invitation test registers a new account with a unique name and address at `example.com`
-(`E2E_MAIL_DOMAIN` to change), and the write actions test grants the admin curate access to `child` and removes it
-afterwards. Restore the dump when a clean state matters. The backend's own pytest suite flushes the database: never
+(`E2E_MAIL_DOMAIN` to change), the write actions test grants the admin curate access to `child` and removes it
+afterwards, and the germplasm unit test gives `crop_line` a unit and creates an entry, then puts the unit back and
+deletes the entry. Restore the dump when a clean state matters. The backend's own pytest suite flushes the database: never
 run it while these tests rely on it, and restore the dump afterwards.
 
 ## Running

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import LocationTree from '@/components/locations/LocationTree.vue'
@@ -38,11 +38,26 @@ const onLocationSelected = (locationId_) => {
 
 // A unit is opened where it is now: its own position now, or the nearest unit above it with one
 const { loadUnitWithAncestors } = useUnitWithAncestors()
-const goToUnit = async (unitId) => {
+const placeOf = async (unitId) => {
   const target = await loadUnitWithAncestors(unitId)
-  const place = target ? placeNow(target) : null
+  return target ? placeNow(target) : null
+}
+const goToUnit = async (unitId) => {
+  const place = await placeOf(unitId)
   router.push({ query: { location: place?.location?.id ?? locationId.value, unit: unitId } })
 }
+// so a link to a unit alone, as from the germplasm that came from it, opens it there
+const placing = ref(false)
+watch(unit, async (unitId) => {
+  if (!unitId || locationId.value) return
+  placing.value = true
+  try {
+    const place = await placeOf(unitId)
+    if (place?.location && unit.value === unitId && !locationId.value) update({ location: place.location.id })
+  } finally {
+    placing.value = false
+  }
+}, { immediate: true })
 
 // Units received here from elsewhere make an arrival here, which opens once they are moved (the backend checks that
 // the user curates them; those who can write anything are offered it)
@@ -63,7 +78,8 @@ const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam
 
       <div class="location-units">
         <div v-if="!locationId" class="empty-selection">
-          <p>Select a location to see its unit graphs and the units that came there</p>
+          <p v-if="placing">Finding where the unit is…</p>
+          <p v-else>Select a location to see its unit graphs and the units that came there</p>
         </div>
         <template v-else>
           <div class="location-header">

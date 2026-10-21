@@ -35,6 +35,11 @@ const displayFields = computed(() => {
   ].filter(field => field.value)
 })
 
+// The unit it came from, linked to the Units page, which opens it where it is now; a placeholder, without a subject,
+// when it is hidden
+const unit = computed(() => (props.entry?.data || props.entry)?.unit ?? null)
+const unitName = computed(() => unit.value && (unit.value.name || `${unit.value.subject?.name} ${unit.value.id}`))
+
 const synonymsList = computed(() => {
   if (!props.entry) return []
   const entry = props.entry.data || props.entry
@@ -99,6 +104,13 @@ const sinksList = computed(() => {
           <div v-for="field in displayFields" :key="field.label" class="field">
             <label class="field-label">{{ field.label }}</label>
             <p class="field-value">{{ field.value }}</p>
+          </div>
+          <div v-if="unit" class="field">
+            <label class="field-label">Unit</label>
+            <p class="field-value">
+              <router-link v-if="unit.subject" :to="{ name: 'Units', query: { unit: unit.id } }">{{ unitName }}</router-link>
+              <span v-else class="hidden-unit">Unit {{ unit.id }} (access restricted)</span>
+            </p>
           </div>
         </div>
       </div>
@@ -262,6 +274,11 @@ const sinksList = computed(() => {
   font-size: 0.95rem;
   line-height: 1.4;
   word-break: break-word;
+}
+
+.hidden-unit {
+  color: #999;
+  font-style: italic;
 }
 
 .tag-list {

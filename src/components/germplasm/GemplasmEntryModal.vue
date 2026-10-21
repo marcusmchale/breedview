@@ -11,6 +11,7 @@ import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQ
 import { useLocationRootsQuery } from '@/composables/locations/locationRootsQuery'
 import { useLocationsLazyQuery } from '@/composables/locations/locationsLazyQuery'
 import { useLocationQuery } from '@/composables/locations/locationQuery'
+import { useUnitPickerQueries } from '@/composables/units/unitPickerQueries'
 
 import { REFERENCE_TYPE_GROUPS } from '@/composables/references/referenceTypes'
 
@@ -74,7 +75,8 @@ const formData = ref({
   time: '',
   reproduction: '',
   controlMethodIds: [],
-  originId: null
+  originId: null,
+  unitId: null
 })
 
 
@@ -92,6 +94,18 @@ const {
   const { locations: currentChildLocations, locationsLoading: childLocationsLoading, loadChildLocations } = useLocationsLazyQuery()
   return { regions, loadChildLocations, childLocationsLoading, currentChildLocations }
 })()
+
+// ── The unit it came from, found from where units are ───────────────────────────
+const {
+  rootNodes: unitRootNodes,
+  loadChildren: loadUnitChildren,
+  currentChildren: unitChildren,
+  childrenLoading: unitChildrenLoading,
+  hasChildren: unitHasChildren,
+  isSelectable: isSelectableUnit,
+  nodeLabel: unitNodeLabel,
+  selectedUnit
+} = useUnitPickerQueries({ unitId: () => formData.value.unitId })
 
 const sources = ref([])
 const formError = ref('')
@@ -120,7 +134,8 @@ watch(() => props.entry, (entry) => {
     time: entry.time ?? '',
     reproduction: entry.reproduction ?? '',
     controlMethodIds: entry.controlMethods?.map(m => m.id) ?? [],
-    originId: entry.origin?.id ?? null
+    originId: entry.origin?.id ?? null,
+    unitId: entry.unit?.id ?? null
   }
 
   sources.value = (entry.sources ?? []).map(rel => ({
@@ -158,6 +173,7 @@ const submitForm = async () => {
         synonyms: synonyms.length > 0 ? synonyms : null,
         originId: formData.value.originId || null,
         time: formData.value.time || null,
+        unitId: formData.value.unitId || null,
         reproduction: formData.value.reproduction || null,
         controlMethodIds: formData.value.controlMethodIds || null,
         referenceIds: selectedReferenceIds.value || null,
@@ -182,6 +198,7 @@ const submitForm = async () => {
         synonyms: synonyms.length > 0 ? synonyms : null,
         originId: formData.value.originId || null,
         time: formData.value.time || null,
+        unitId: formData.value.unitId || null,
         reproduction: formData.value.reproduction || null,
         controlMethodIds: formData.value.controlMethodIds?.length > 0 ? formData.value.controlMethodIds : null,
         referenceIds: selectedReferenceIds.value.length > 0 ? selectedReferenceIds.value : [],
@@ -275,6 +292,22 @@ const submitForm = async () => {
           help="YYYY-MM-DDTHH:mm or partial, e.g. YYYY or YYYY-MM"
           validation="partialDateTime"
           placeholder="e.g. 2024-01"
+        />
+
+        <FormKit
+          type="hierarchical-select"
+          name="unitId"
+          label="Unit (optional):"
+          help="For germplasm bred here: the unit it came from, e.g. the plant a selection was made from. Open its location to find it."
+          :selected="selectedUnit"
+          :rootNodes="unitRootNodes"
+          :loadChildrenFn="loadUnitChildren"
+          :childrenLoading="unitChildrenLoading"
+          :currentChildren="unitChildren"
+          :is-selectable-fn="isSelectableUnit"
+          :has-children-fn="unitHasChildren"
+          :get-node-label-fn="unitNodeLabel"
+          :clearable="true"
         />
 
         <FormKit
