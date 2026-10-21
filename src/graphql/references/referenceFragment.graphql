@@ -2,7 +2,7 @@
 fragment ReferenceFields on ReferenceInterface {
     id
     description
-    ... on LegalReference { text }
+    ... on LegalReference { text textFormat contentHash filename contentType fileId }
     ... on ExternalReference { url externalId }
     ... on FileReference { filename fileId contentType contributions { person { ...PersonFields } roles { id versionId view name } } }
     ... on DataFileReference { filename fileId contentType schema format contributions { person { ...PersonFields } roles { id versionId view name } } }

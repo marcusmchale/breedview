@@ -137,12 +137,15 @@ const handleSearchInput = (value) => {
 }
 
 const handleReferenceCreated = (reference) => {
+  if (isSingleMode.value) {
+    // in single mode the new reference replaces the selection, and is saved at once
+    selectedIds.value = [reference.id]
+    selectedReferencesData.value = [reference]
+    handleSave()
+    return
+  }
   selectedIds.value.push(reference.id)
   selectedReferencesData.value.push(reference)
-  if (isSingleMode.value) {
-    // Auto-save in single mode
-    handleSave()
-  }
 }
 
 const handleReferenceUpdated = (reference) => {

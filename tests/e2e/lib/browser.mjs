@@ -119,6 +119,12 @@ async function connectPage(port) {
       const el = document.querySelector(${q(selector)}); if (!el) throw new Error('no element ' + ${q(selector)});
       if (el.checked !== ${checked}) el.click(); return el.checked })()`),
     click: (selector) => evaluate(`(() => { const el = document.querySelector(${q(selector)}); if (!el) throw new Error('no element ' + ${q(selector)}); el.click(); return true })()`),
+    // choose a file in a file input, as a user would: the File is made in the page from content (a Buffer or a string)
+    upload: (selector, { name, type = '', content }) => evaluate(`(() => {
+      const el = document.querySelector(${q(selector)}); if (!el) throw new Error('no element ' + ${q(selector)});
+      const bytes = Uint8Array.from(atob(${q(Buffer.from(content).toString('base64'))}), (c) => c.charCodeAt(0));
+      const transfer = new DataTransfer(); transfer.items.add(new File([bytes], ${q(name)}, { type: ${q(type)} }));
+      el.files = transfer.files; el.dispatchEvent(new Event('change', { bubbles: true })); return true })()`),
     // click the first element of a tag whose text includes the given text
     clickText: (text, tag = 'button') => evaluate(`(() => {
       const el = [...document.querySelectorAll(${q(tag)})].find((e) => e.innerText.trim().includes(${q(text)}));

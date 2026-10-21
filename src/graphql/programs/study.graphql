@@ -20,7 +20,7 @@ query programsStudy($studyId: ID!) {
         type { ...OntologyEntryFields }
         dataset_scopes { datasetIds }
       }
-      licence { id description text }
+      licence { id description text textFormat contentHash filename contentType fileId }
       references { ...ReferenceFields }
     }
     errors {

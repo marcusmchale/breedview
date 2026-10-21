@@ -1,0 +1,9 @@
+mutation referencesUpdateLegalFile($reference: LegalFileReferenceUpdate!) {
+  referencesUpdateLegalFile(reference: $reference) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

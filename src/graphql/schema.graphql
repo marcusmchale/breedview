@@ -1403,7 +1403,17 @@ type Mutation {
   """
   referencesCreateFile(reference: FileReferenceInput, controlTeamId: ID!, release: ReadRelease): FileIdPayload!
   referencesCreateDataFile(reference: DataFileReferenceInput, controlTeamId: ID!, release: ReadRelease): FileIdPayload!
+
+  """
+  A legal reference with the text of a .txt, .md or .pdf file. Returns the key that follows the file's saving, as for
+  referencesCreateFile; the reference and its text exist at once
+  """
+  referencesCreateLegalFile(reference: LegalFileReferenceInput!, controlTeamId: ID!, release: ReadRelease): FileIdPayload!
   referencesUpdateLegal(reference: LegalReferenceUpdate!): BooleanPayload!
+
+  """ New text from a file, applied with the file once it is saved; returns the key that follows the saving 
+  """
+  referencesUpdateLegalFile(reference: LegalFileReferenceUpdate!): FileIdPayload!
   referencesUpdateExternal(reference: ExternalReferenceUpdate!): BooleanPayload!
   referencesUpdateExternalData(reference: ExternalDataReferenceUpdate!): BooleanPayload!
   referencesUpdateFile(reference: FileReferenceUpdate): FileIdPayload!
@@ -2065,6 +2075,9 @@ input StudyInput {
   end: DateTime
   datasetIds: [ID!] = []
   designId: ID
+
+  """ A legal reference, released at least as widely as the study and its datasets 
+  """
   licenceId: ID
   referenceIds: [ID!] = []
 }
@@ -2082,7 +2095,10 @@ input StudyUpdate {
   """ Omitted, the design is unchanged; null removes it """
   designId: ID
 
-  """ Omitted, the licence is unchanged; null removes it """
+  """
+  Omitted, the licence is unchanged; null removes it. A legal reference, released at least as widely as the study and
+  its datasets
+  """
   licenceId: ID
   referenceIds: [ID!]
 }
@@ -2128,6 +2144,19 @@ enum DataFormat {
 input LegalReferenceInput {
   description: String
   text: String!
+
+  """ PLAIN when omitted """
+  textFormat: TextFormat
+}
+
+"""
+A legal reference given as a file: a .txt (UTF-8 text), .md (markdown) or .pdf (with text, not a scan), of at most
+5 MB unless configured otherwise. Its text is read on upload, so a wrong file is refused at once
+"""
+input LegalFileReferenceInput {
+  """ The file's name when omitted """
+  description: String
+  file: Upload!
 }
 
 input ExternalReferenceInput {
@@ -2171,7 +2200,19 @@ input DataFileReferenceInput {
 input LegalReferenceUpdate {
   id: ID!
   description: String
-  text: String!
+
+  """ Omitted or unchanged, the text stays as it is. New typed text replaces a file the reference was read from 
+  """
+  text: String
+  textFormat: TextFormat
+}
+
+""" New text for a legal reference, read from a file as for LegalFileReferenceInput 
+"""
+input LegalFileReferenceUpdate {
+  id: ID!
+  description: String
+  file: Upload!
 }
 
 input ExternalReferenceUpdate {
@@ -5495,10 +5536,35 @@ enum ReferenceType {
   DATA_FILE
 }
 
+""" How a legal reference's text is written """
+enum TextFormat {
+  """ Shown as it is written """
+  PLAIN
+
+  """ Rendered as markdown """
+  MARKDOWN
+}
+
+"""
+Legal text, such as a study's licence: typed, or read from a .txt, .md or .pdf file, which is kept for download
+"""
 type LegalReference implements ReferenceInterface {
   id: ID!
   description: String
   text: String
+  textFormat: TextFormat!
+
+  """
+  The SHA-256 of the file the text was read from, or of the typed text: what accepting the reference names. It
+  changes with the text. Null on a placeholder
+  """
+  contentHash: String
+
+  """ Read from a file: its name and type, and its id for referencesFileDownload once it is saved 
+  """
+  filename: String
+  contentType: String
+  fileId: ID
 }
 
 type ExternalReference implements ReferenceInterface {

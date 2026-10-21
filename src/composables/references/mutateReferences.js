@@ -8,6 +8,8 @@ import CREATE_EXTERNAL_DATA_REFERENCE from "@/graphql/references/createExternalD
 import UPDATE_EXTERNAL_DATA_REFERENCE from "@/graphql/references/updateExternalDataReference.graphql";
 import CREATE_LEGAL_REFERENCE from "@/graphql/references/createLegalReference.graphql";
 import UPDATE_LEGAL_REFERENCE from "@/graphql/references/updateLegalReference.graphql";
+import CREATE_LEGAL_FILE_REFERENCE from "@/graphql/references/createLegalFileReference.graphql";
+import UPDATE_LEGAL_FILE_REFERENCE from "@/graphql/references/updateLegalFileReference.graphql";
 import CREATE_EXTERNAL_REFERENCE from "@/graphql/references/createExternalReference.graphql";
 import UPDATE_EXTERNAL_REFERENCE from "@/graphql/references/updateExternalReference.graphql";
 import CREATE_FILE_REFERENCE from "@/graphql/references/createFileReference.graphql";
@@ -31,6 +33,15 @@ export function useMutateReferences() {
     const refetchContributions = (typename, id) => {
         const cache = resolveClient().cache
         cache.evict({ id: cache.identify({ __typename: typename, id }), fieldName: 'contributions' })
+        cache.gc()
+    }
+
+    // What the server derives from a legal reference's text, its content hash and the file it was read from, is
+    // dropped from the cache after a change, so that it is read again; after a new file, the text and format too
+    const refetchLegalReference = (id, fieldNames = ['contentHash', 'filename', 'contentType', 'fileId']) => {
+        const cache = resolveClient().cache
+        const cacheId = cache.identify({ __typename: 'LegalReference', id })
+        fieldNames.forEach((fieldName) => cache.evict({ id: cacheId, fieldName }))
         cache.gc()
     }
 
@@ -144,10 +155,41 @@ export function useMutateReferences() {
                     updateData: reference,
                     idField: 'referenceId'
                 })
+                refetchLegalReference(reference.id)
             }
             const { result, status, errors } = data
             return { result, status, errors }
         }
+    }
+
+    // A legal reference given as a file (.txt, .md or .pdf): the result is the key to follow the file's saving with
+    const {
+        mutate: createLegalFileReferenceMutation,
+        loading: createLegalFileReferenceLoading,
+        error: createLegalFileReferenceError
+    } = useMutation(CREATE_LEGAL_FILE_REFERENCE);
+
+    const createLegalFileReference = async ({ reference, controlTeamId, release }) => {
+        const response = await createLegalFileReferenceMutation({
+            reference: reference,
+            controlTeamId: toValue(controlTeamId),
+            release: toValue(release)
+        });
+        const { result, status, errors } = response?.data?.referencesCreateLegalFile || {}
+        return { result, status, errors }
+    }
+
+    // New text from a file, applied when the file is saved: refetchLegalReference once it is
+    const {
+        mutate: updateLegalFileReferenceMutation,
+        loading: updateLegalFileReferenceLoading,
+        error: updateLegalFileReferenceError
+    } = useMutation(UPDATE_LEGAL_FILE_REFERENCE);
+
+    const updateLegalFileReference = async (reference) => {
+        const response = await updateLegalFileReferenceMutation({ reference });
+        const { result, status, errors } = response?.data?.referencesUpdateLegalFile || {}
+        return { result, status, errors }
     }
 
     // External Reference mutations
@@ -268,6 +310,13 @@ export function useMutateReferences() {
       updateLegalReference,
       updateLegalReferenceLoading,
       updateLegalReferenceError,
+      createLegalFileReference,
+      createLegalFileReferenceLoading,
+      createLegalFileReferenceError,
+      updateLegalFileReference,
+      updateLegalFileReferenceLoading,
+      updateLegalFileReferenceError,
+      refetchLegalReference,
 
       // External
       createExternalReference,

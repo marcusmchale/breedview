@@ -1,0 +1,17 @@
+mutation referencesCreateLegalFile(
+  $reference: LegalFileReferenceInput!
+  $controlTeamId: ID!
+  $release: ReadRelease
+) {
+  referencesCreateLegalFile(
+    reference: $reference
+    controlTeamId: $controlTeamId
+    release: $release
+  ) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

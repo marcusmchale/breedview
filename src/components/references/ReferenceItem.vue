@@ -8,6 +8,7 @@ import {
 } from '@/composables/references/referenceTypes'
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import FileDownloadButton from '@/components/references/FileDownloadButton.vue'
+import LegalText from '@/components/references/LegalText.vue'
 import ContributionsList from '@/components/people/ContributionsList.vue'
 
 const props = defineProps({
@@ -104,7 +105,7 @@ const toggleExpand = () => {
             <template v-if="referenceType === 'LegalReference'">
                 <div v-if="reference.text" class="detail-row">
                     <strong>Text:</strong>
-                    <div class="text-content">{{ reference.text }}</div>
+                    <LegalText :reference="reference" class="legal-text" />
                 </div>
             </template>
 
@@ -280,15 +281,9 @@ const toggleExpand = () => {
     word-break: break-all;
 }
 
-.text-content {
-    white-space: pre-wrap;
-    background: white;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+.legal-text {
     width: 100%;
     margin-top: 4px;
-    font-size: 0.9em;
 }
 
 .schema-content {
