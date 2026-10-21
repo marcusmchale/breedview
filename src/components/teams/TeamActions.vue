@@ -38,8 +38,8 @@
   <div v-if="deleteTeamError" class="error-message">
     {{ deleteTeamError }}
     <template v-if="deleteRefusedForControl">
-      Transfer or renounce its control first, from the controller badge on each record or the
-      <router-link to="/access">Access control</router-link> page.
+      Transfer or renounce its control first, from the controller badge on each record or under
+      <router-link :to="{ path: '/access', query: { tab: 'bulk' } }">Bulk control</router-link>.
     </template>
   </div>
 </template>

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/composables/user/useAuthStore'
+import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useMyPersonQuery } from '@/composables/people/myPersonQuery'
 import { useMyClaimsQuery } from '@/composables/people/claimsQuery'
 import { useMutateClaims } from '@/composables/people/mutateClaims'
@@ -15,7 +16,6 @@ import PersonCard from '@/components/people/PersonCard.vue'
 import PersonFormModal from '@/components/people/PersonFormModal.vue'
 import ErasePersonModal from '@/components/people/ErasePersonModal.vue'
 import ClaimPersonModal from '@/components/people/ClaimPersonModal.vue'
-import TeamsPanel from '@/components/teams/TeamsPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,11 +40,20 @@ const orcidUnavailable = ref('')
 
 const orcidLink = computed(() => orcidUrl(myPerson.value?.orcid))
 
-// Links to a section, e.g. /profile#teams from the controller modal, scroll to it
-onMounted(async () => {
-  if (!route.hash) return
-  await nextTick()
-  document.getElementById(route.hash.slice(1))?.scrollIntoView()
+// The teams the user belongs to, with their access in each, inherited access included. The team trees, requests
+// and team admin are on the Access control page.
+const { readTeams, writeTeams, curateTeams, adminTeams, loading: accessLoading } = useUserAccess()
+const myTeams = computed(() => {
+  const teams = new Map()
+  const byAccess = { read: readTeams, write: writeTeams, curate: curateTeams, admin: adminTeams }
+  for (const [access, accessTeams] of Object.entries(byAccess)) {
+    for (const team of accessTeams.value) {
+      if (!teams.has(team.id)) teams.set(team.id, { ...team, access: [] })
+      teams.get(team.id).access.push(access)
+    }
+  }
+  const nameOf = (team) => team.fullname || team.name
+  return [...teams.values()].sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
 })
 
 // Outcome of the ORCID redirect, passed back by the /orcid page
@@ -240,15 +249,22 @@ const formatDate = (value) => {
       </template>
     </section>
 
-    <section id="teams" class="profile-section">
+    <section class="profile-section">
       <div class="section-header">
         <h3>Teams</h3>
       </div>
       <p class="section-intro text-muted">
-        Every team tree, with the teams you belong to below its root. Request an affiliation to a team to read, write,
-        curate or administer what it controls.
+        Your access through the teams you belong to. Request an affiliation to a team, or manage the teams you
+        administer, under <router-link :to="{ path: '/access', query: { tab: 'teams' } }">Teams in Access control</router-link>.
       </p>
-      <TeamsPanel />
+      <div v-if="accessLoading && myTeams.length === 0" class="loading-text">Loading...</div>
+      <ul v-else-if="myTeams.length > 0" class="team-access-list">
+        <li v-for="team in myTeams" :key="team.id" class="team-access-item">
+          <span>{{ team.fullname || team.name }}</span>
+          <span class="text-muted">{{ team.access.join(', ') }}</span>
+        </li>
+      </ul>
+      <p v-else class="no-teams">You are not in any team yet.</p>
     </section>
 
     <!-- Danger zone -->
@@ -301,8 +317,6 @@ const formatDate = (value) => {
 }
 
 .profile-section {
-  /* clear of the fixed navigation when linked to, e.g. #teams */
-  scroll-margin-top: 100px;
   margin-bottom: 24px;
   padding: 16px 20px;
   background: #f8f9fa;
@@ -399,6 +413,28 @@ const formatDate = (value) => {
   color: white;
   font-size: 0.65rem;
   font-weight: bold;
+}
+
+.team-access-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-access-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.no-teams {
+  margin: 0;
 }
 
 .claims-list {

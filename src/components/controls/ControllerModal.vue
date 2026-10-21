@@ -353,7 +353,7 @@ const formatDate = (dateString) => {
                 <span v-if="team.fullname" class="team-fullname">{{ team.fullname }}</span>
               </li>
             </ul>
-            <router-link :to="{ path: '/profile', hash: '#teams' }" class="link-button" @click="closeModal">Request an affiliation</router-link>
+            <router-link :to="{ path: '/access', query: { tab: 'teams' } }" class="link-button" @click="closeModal">Request an affiliation</router-link>
           </div>
 
           <div v-if="!hasAnyData" class="no-data">

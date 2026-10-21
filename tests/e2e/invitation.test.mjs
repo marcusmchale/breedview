@@ -9,7 +9,7 @@ import { config, login, logout, register, waitForMail, verifyEmail, flat, unique
 let browser, page
 const invitee = uniqueName('invitee')
 const inviteeEmail = `breedview-${invitee}@${config.mailDomain}`
-let inviteLink, startedAt
+let inviteLink, startedAt, offeredTeam
 
 before(async () => { browser = await launchBrowser(); page = browser.page; startedAt = new Date().toISOString() })
 after(async () => { await browser?.close() })
@@ -28,6 +28,7 @@ test('an admin invites a new address, offering a team', async () => {
     ? `[...document.querySelectorAll('.offer-item')].find((e) => e.innerText.includes(${JSON.stringify(config.adminTeam)}))?.querySelector('select')`
     : `document.querySelector('.offer-item select')`
   assert.ok(await page.evaluate(`!!(${teamSelector})`), 'the team to offer is listed')
+  offeredTeam = await page.evaluate(`(${teamSelector}).closest('.offer-item').querySelector('.offer-team').innerText.trim()`)
   await page.evaluate(`(() => { const s = ${teamSelector}; const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; setter.call(s, 'WRITE'); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   try {
     await page.click('.modal form button[type=submit]')
@@ -63,11 +64,16 @@ test('the invitee registers from the link, accepting the offered team', async ()
 test('the invitee verifies from the emailed link and logs in with the affiliation', async () => {
   await verifyEmail(page, inviteeEmail, startedAt)
   await login(page, invitee)
-  await page.goto(`${config.appUrl}/profile#teams`)
-  await page.waitFor(`document.querySelector('#teams .teams-section')`)
+  await page.goto(`${config.appUrl}/profile`)
+  await page.waitFor(`document.querySelector('.team-access-list')`)
+  const access = flat(await page.text('.team-access-list'))
+  const escaped = offeredTeam.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  assert.match(access, new RegExp(`${escaped} \\| [a-z, ]*\\bwrite\\b`), 'the profile lists the offered team with write access')
+  await page.goto(`${config.appUrl}/access?tab=teams`)
+  await page.waitFor(`document.querySelector('.teams-section .team-node')`)
   await page.sleep(1000)
-  const badges = flat(await page.text('#teams .teams-section'))
-  assert.match(badges, /\bW\b/, 'the write affiliation badge is shown')
+  const badges = flat(await page.text('.teams-section'))
+  assert.match(badges, /\bW\b/, 'the write affiliation badge is shown under Teams in Access control')
   await logout(page)
 })
 

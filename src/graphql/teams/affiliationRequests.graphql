@@ -1,0 +1,19 @@
+query teamsAffiliationRequests($teamIds: [ID!]) {
+    teamsTeams(ids: $teamIds){
+        status
+        result {
+            id
+            name
+            fullname
+            directAffiliations {
+                read { user { id name fullname } authorisation heritable }
+                write { user { id name fullname } authorisation heritable }
+                admin { user { id name fullname } authorisation heritable }
+                curate { user { id name fullname } authorisation heritable }
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

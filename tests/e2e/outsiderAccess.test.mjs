@@ -75,6 +75,8 @@ test('controllers: a hidden controlling team is shown as the nearest team the us
   const modal = await pageText()
   assert.ok(modal.includes(`A team in ${organisation}`), 'the stand-in is named as such')
   assert.ok(modal.includes('Request an affiliation'), 'with a way to ask for access')
+  const requestLink = await page.evaluate(`[...document.querySelectorAll('a')].find((a) => a.innerText.includes('Request an affiliation'))?.getAttribute('href')`)
+  assert.equal(requestLink, '/access?tab=teams', 'which opens the team trees in Access control')
   await page.evaluate(`document.querySelector('.modal-close').click()`)
 })
 

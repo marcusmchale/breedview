@@ -1,5 +1,10 @@
 <template>
   <div class="teams-panel">
+    <p class="intro text-muted">
+      Every team tree, with the teams you belong to below its root. Request an affiliation to a team to read, write,
+      curate or administer what it controls; a team's admins manage its affiliations and the teams below it.
+    </p>
+
     <div v-if="loading" class="loading">
       Loading teams...
     </div>
@@ -32,7 +37,7 @@
         </div>
       </div>
 
-      <!-- A new team tree, collapsed so the profile stays readable -->
+      <!-- A new team tree, collapsed so the trees above stay in view -->
       <details class="create-tree-section" :open="createOpen" @toggle="createOpen = $event.target.open">
         <summary>Create a team tree</summary>
         <form @submit.prevent="submitCreateTree" class="create-tree-form">
@@ -156,6 +161,10 @@ const submitCreateTree = async () => {
 </script>
 
 <style scoped>
+.intro {
+  margin: 0 0 16px;
+}
+
 .teams-section {
   margin-bottom: 1rem;
 }

@@ -97,19 +97,25 @@ What the API returns to each viewer under the read policy (placeholders, searche
 file downloads) is tested in breedgraph (`tests/breedgraph/e2e/*_read_api.py`). The tests here check what needs a
 browser: that the pages render it, which actions they offer, the modals and labels, and flows across pages.
 
-- `smoke.test.mjs`: every routed page renders for a signed-in user without console errors (the profile with its
-  Teams, access control, locations, programs with curation), and the dataset submission opens from the first study's
-  Datasets section on the programs page.
+- `smoke.test.mjs`: every routed page renders for a signed-in user without console errors (access control with each
+  of its tabs, the profile with its teams, locations, programs with curation), and the dataset submission opens from
+  the first study's Datasets section on the programs page.
 - `invitation.test.mjs`: invite with a team offer, the emailed link, registration with the prefilled read-only email
-  and the accepted team, verification from the emailed link, login with the affiliation (shown under Teams on the
-  profile), and refusal of the used link.
+  and the accepted team, verification from the emailed link, login with the affiliation (listed with its access on the
+  profile, and badged under Teams in Access control), and refusal of the used link.
+- `affiliationRequests.test.mjs`: the outsider requests read access to the organisation from Teams, the first tab of
+  Access control; the email to the organisation's admin links to the Affiliation requests tab, which lists the request
+  (counted on the tab) for that admin and not for the stranger, who administers another organisation; the admin
+  rejects it, approves it when it is made again, and the outsider's profile lists the organisation. The outsider's
+  affiliation is removed before and after.
 - `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
 - `curationUnitsFilter.test.mjs`: the units filter of the curation selection lists only units with records, with
   counts, level by level and by subject.
 - `outsiderAccess.test.mjs`: what the outsider sees: placeholders for the hidden program and trial above readable
-  studies, no write actions, stand-in teams and placeholder controllers in the controller modal, locations joined
+  studies, no write actions, stand-in teams and placeholder controllers in the controller modal (with a link to
+  request an affiliation under Teams in Access control), locations joined
   past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units page), and the
   curation selection, units filter and table with hidden units as placeholders.
 - `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in

@@ -10,9 +10,12 @@ before(async () => { browser = await launchBrowser(); page = browser.page; await
 after(async () => { await logout(page); await browser?.close() })
 
 const pages = [
-  ['/people', 'People'], ['/access', 'Bulk control[\\s\\S]*Transfer offers[\\s\\S]*What a team you administer controls'],
+  ['/people', 'People'],
+  ['/access', 'Teams[\\s\\S]*Affiliation requests[\\s\\S]*Bulk control[\\s\\S]*Transfer offers[\\s\\S]*Every team tree[\\s\\S]*Create a team tree'],
+  ['/access?tab=requests', 'Requests to join the teams you administer'], ['/access?tab=bulk', 'What a team you administer controls'],
+  ['/access?tab=offers', 'Control of a record moves between teams'],
   ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'], ['/units', 'Select a location'],
-  ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree'],
+  ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Teams in Access control'],
   ['/privacy', '[Pp]rivacy notice']
 ]
 
