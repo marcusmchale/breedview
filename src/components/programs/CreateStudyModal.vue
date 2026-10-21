@@ -86,10 +86,8 @@ const closeLicenceModal = () => {
   isLicenceModalOpen.value = false
 }
 
-const handleLicenceSave = (licence) => {
-  console.log('Licence saved:', licence)
-
-  selectedLicence.value = licence
+const handleLicenceSave = ({ references }) => {
+  selectedLicence.value = references[0] ?? null
 }
 
 const submitForm = async (values) => {

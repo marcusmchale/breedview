@@ -75,7 +75,8 @@ async function submitModal() {
 test('study: Edit removes its design with "None" and its licence with Remove', async () => {
   const design = await aDesign()
   assert.ok(design, 'a design to set')
-  await updateStudy({ designId: design.id, licenceId: String(e.reference_legal_private.id) })
+  // the study and its datasets are released to registered users, so its licence must be at least (breedgraph e3da216)
+  await updateStudy({ designId: design.id, licenceId: String(e.reference_registered.id) })
 
   const programCard = `[...document.querySelectorAll('.program-card')].find((c) => c.querySelector('.program-card-header h3')?.innerText.trim() === ${q(r.program.name)})`
   const studyCard = `${programCard}.querySelector('.study-card')`

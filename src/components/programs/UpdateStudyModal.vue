@@ -79,7 +79,7 @@ const closeLicenceModal = () => {
 }
 
 const handleLicenceSave = ({ references }) => {
-  selectedLicence.value = references[0]
+  selectedLicence.value = references[0] ?? null
 }
 
 const removeLicence = () => {
@@ -273,8 +273,8 @@ const submitForm = async (values) => {
     <ReferencesModal
       :visible="isLicenceModalOpen"
       :reference-types="REFERENCE_TYPE_GROUPS.LICENSE"
-      :selected-reference-ids="selectedLicence?.value ? [selectedLicence.value?.id] : []"
-      :initial-references="selectedLicence?.value ? [selectedLicence.value] : []"
+      :selected-reference-ids="selectedLicence ? [selectedLicence.id] : []"
+      :initial-references="selectedLicence ? [selectedLicence] : []"
       :selection-mode="'single'"
       title="Select Licence"
       @close="closeLicenceModal"
