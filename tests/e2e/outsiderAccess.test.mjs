@@ -7,7 +7,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, flat } from './lib/app.mjs'
-import { entities as e, teams, concept, replicates, arrivals } from './lib/fixture.mjs'
+import { entities as e, teams, concept, replicates, arrivals, positions } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => {
@@ -93,8 +93,11 @@ test('locations: readable locations joined past hidden ones, a hidden root as a 
   await expandAll('.location-header .expand-btn:not(.expanded)')
   const childrenOf = (name) => page.evaluate(`[...[...document.querySelectorAll('.location-node')].find((e) => e.querySelector('.location-name').innerText.trim() === ${JSON.stringify(name)})
     ?.querySelector(':scope > .children')?.querySelectorAll(':scope > .child-item > .location-node') ?? []].map((n) => n.querySelector('.location-name').innerText.trim()).sort()`)
-  // the private state is skipped, as is the other organisation's private centre between the field and the lab
-  assert.deepEqual(await childrenOf(e.country.name), [e.field.name, e.field_registered.name].sort())
+  // the private state is skipped, as is the other organisation's private centre between the field and the lab; the
+  // positions' fields and greenhouse, released to registered accounts, are below that state too (their lab is below
+  // the public state)
+  const atState = positions ? Object.keys(positions.locations).filter((name) => name !== 'Position Lab') : []
+  assert.deepEqual(await childrenOf(e.country.name), [e.field.name, e.field_registered.name, ...atState].sort())
   assert.deepEqual(await childrenOf(e.field.name), [e.lab.name])
   assert.deepEqual(await childrenOf('REDACTED'), [e.state_public.name], 'the hidden region root holds the public state')
   const text = await pageText()
@@ -139,8 +142,8 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await page.waitFor(levelLoaded, 30000)
-  // the replicates and arrivals programs are released to every registered account
-  const released = [replicates.program.name, ...(arrivals ? [arrivals.program.name] : [])]
+  // the replicates, arrivals and positions programs are released to every registered account
+  const released = [replicates.program.name, ...[arrivals, positions].filter(Boolean).map((s) => s.program.name)]
   assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name, ...released].sort(),
     'the hidden program is a placeholder')
   await openOption('REDACTED')
