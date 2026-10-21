@@ -137,11 +137,12 @@ export async function mailFor(address) {
     })
 }
 
-// Wait for a message with the given subject fragment to arrive for an address, and return it
+// Wait for a message with the given subject fragment to arrive for an address, and return it. MailHog stamps messages
+// in local time with an offset, and after is usually toISOString() (UTC), so instants are compared, not strings.
 export async function waitForMail(address, subjectIncludes, { timeout = 20000, after = null } = {}) {
   const start = Date.now()
   while (Date.now() - start < timeout) {
-    const match = (await mailFor(address)).find((m) => m.subject.includes(subjectIncludes) && (!after || m.created > after))
+    const match = (await mailFor(address)).find((m) => m.subject.includes(subjectIncludes) && (!after || new Date(m.created) > new Date(after)))
     if (match) return match
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
