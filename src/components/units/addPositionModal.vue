@@ -16,7 +16,7 @@ const {
   addPosition,
   addPositionLoading,
   addPositionError
-} = useMutatePositions({unitId: props.unitId})
+} = useMutatePositions({unitId: () => props.unitId})
 
 const positionFormData = ref({
   locationId: props.currentPosition?.location?.id,
@@ -42,7 +42,7 @@ const {
     layoutId: () => positionFormData.value.layoutId
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'success'])
 
 const submitAddPosition = async () => {
 
@@ -62,6 +62,7 @@ const submitAddPosition = async () => {
     const { status, errors } = await addPosition(position)
 
     if (status === 'SUCCESS') {
+      emit('success')
       emit('close')
     } else {
       if (errors && errors.length > 0) {

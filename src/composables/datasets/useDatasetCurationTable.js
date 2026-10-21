@@ -7,6 +7,7 @@ import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 import { timeSpan, codeKey, describingRecords } from './factorApplication'
+import { placeAt } from '@/composables/units/unitPositions'
 
 import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
@@ -682,32 +683,11 @@ export function useDatasetCurationTable() {
   // { [unitId]: Unit } of the loaded page, as they arrive (before or after the records)
   const unitDetails = ref({})
 
-  // Partial times compared on their shared prefix, e.g. 2021-05 against 2021-05-03T10:00
-  const comparePrefix = (a, b) => {
-    const n = Math.min(a.length, b.length)
-    return a.slice(0, n).localeCompare(b.slice(0, n))
-  }
-
-  // The unit's position at the row's time: the latest one whose period contains it, else the latest one
-  const positionAt = (positions, time) => {
-    const byStart = [...(positions ?? [])].sort((a, b) => String(a.start ?? '').localeCompare(String(b.start ?? '')))
-    if (time) {
-      const containing = byStart.filter((p) => (!p.start || comparePrefix(p.start, time) <= 0) && (!p.end || comparePrefix(time, p.end) <= 0))
-      if (containing.length) return containing.at(-1)
-    }
-    return byStart.at(-1) ?? null
-  }
-
-  // The position of the unit, or of its nearest ancestor that has one (the units above it come closest first)
-  const locatingPosition = (unit, time) => {
-    const positioned = [unit, ...(unit?.ancestors ?? [])].find((u) => u?.positions?.length)
-    return positioned ? positionAt(positioned.positions, time) : null
-  }
-
   const applyUnitDetails = () => {
     for (const row of tableData.value) {
       const unit = unitDetails.value[String(row.unitId)]
-      const position = locatingPosition(unit, row.startTime || row.endTime)
+      // where the unit was at the row's time: its own position then, or that of the nearest unit above it
+      const position = placeAt([unit, ...(unit?.ancestors ?? [])], row.startTime || row.endTime)
       row.germplasmName = unit?.germplasm?.name ?? ''
       row.germplasmId = unit?.germplasm?.id ?? ''
       row.locationName = position?.location?.name ?? ''

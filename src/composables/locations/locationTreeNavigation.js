@@ -1,73 +1,57 @@
-
 import { ref } from 'vue'
 
-export function useLocationTreeNavigation(
-    loadChildren,
-    onLocationSelected = null
-) {
-  const selectedLocationId = ref(null)
+/**
+ * Expansion of a location tree. A location's children are shown once loadChildren(locationId) has loaded them in one
+ * request, so that each child node then reads its own location from the cache instead of sending a request.
+ * loadParentId(locationId) gives the id of a location's parent, for expanding the tree down to a location.
+ */
+export function useLocationTreeNavigation(loadChildren, loadParentId) {
   const expandedLocations = ref(new Set())
-
-  const handleToggleExpanded = (locationId) => {
-    if (expandedLocations.value.has(locationId)) {
-      expandedLocations.value.delete(locationId)
-    } else {
-      handleSelectLocation(locationId)
-      expandedLocations.value.add(locationId)
-    }
-  }
-
-  const handleSelectLocation = (locationId) => {
-    selectedLocationId.value = locationId
-
-    // Automatically load children when a location is selected
-    loadChildren(locationId)
-
-    // Call the optional callback if provided
-    if (onLocationSelected && typeof onLocationSelected === 'function') {
-      onLocationSelected(locationId)
-    }
-  }
 
   const isExpanded = (locationId) => {
     return expandedLocations.value.has(locationId)
   }
 
-  /**
-   * Manually expand a location (useful for programmatic expansion)
-   */
-  const expandLocation = (locationId) => {
-    if (!expandedLocations.value.has(locationId)) {
+  const expandLocation = async (locationId) => {
+    if (expandedLocations.value.has(locationId)) return
+    try {
+      await loadChildren(locationId)
+    } finally {
       expandedLocations.value.add(locationId)
-      loadChildren(locationId)
     }
   }
 
-  /**
-   * Manually collapse a location
-   */
   const collapseLocation = (locationId) => {
     expandedLocations.value.delete(locationId)
   }
 
-  /**
-   * Clear all expansions
-   */
-  const collapseAll = () => {
-    expandedLocations.value.clear()
+  const handleToggleExpanded = (locationId) => {
+    if (expandedLocations.value.has(locationId)) {
+      collapseLocation(locationId)
+    } else {
+      return expandLocation(locationId)
+    }
+  }
+
+  /** Expand the locations above a location, from its root down, so that it shows in the tree */
+  const expandTo = async (locationId) => {
+    const ancestors = []
+    let parentId = await loadParentId(locationId)
+    while (parentId) {
+      ancestors.unshift(parentId)
+      parentId = await loadParentId(parentId)
+    }
+    for (const ancestorId of ancestors) {
+      await expandLocation(ancestorId)
+    }
   }
 
   return {
-    // Navigation state
-    selectedLocationId,
     expandedLocations,
-
-    // Navigation methods
     handleToggleExpanded,
-    handleSelectLocation,
     isExpanded,
     expandLocation,
     collapseLocation,
-    collapseAll
+    expandTo
   }
 }

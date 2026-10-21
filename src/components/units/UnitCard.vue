@@ -8,14 +8,11 @@ import AddPositionModal from '@/components/units/addPositionModal.vue'
 import PositionDetails from '@/components/units/positionDetails.vue'
 
 import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
+import { currentPosition as currentPositionOf } from '@/composables/units/unitPositions'
 import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
   unitId: {
-    type: String,
-    default: null
-  },
-  parentId: {
     type: String,
     default: null
   },
@@ -76,9 +73,9 @@ const parentsList = computed(() => {
   return unit.value.parents ?? []
 })
 
-const currentPosition = computed(() => {
-  return positionsList.value?.[positionsList.value.length - 1]
-})
+// The unit's own position now, or the last one it had when that has ended
+const current = computed(() => currentPositionOf(positionsList.value))
+const currentPosition = computed(() => current.value?.position ?? null)
 
 // Edit Modal state and events
 const isEditModalOpen = ref(false)
@@ -197,7 +194,7 @@ const handleAddPositionSuccess = async () => {
 
       <!-- Current Position -->
       <div v-if="currentPosition" class="section">
-        <h3 class="section-title">Current Position</h3>
+        <h3 class="section-title">{{ current.ended ? 'Last position, ended' : 'Current position' }}</h3>
         <div class="position-info">
           <div><strong>Location:</strong> {{ currentPosition.location?.name }}</div>
           <div v-if="currentPosition.layout">
@@ -280,7 +277,7 @@ const handleAddPositionSuccess = async () => {
     <div v-if="isAddPositionModalOpen" class="modal-overlay" @click="closeAddPositionModal">
       <AddPositionModal
         :unitId="unitId"
-        :locationId="locationId"
+        :currentPosition="currentPosition"
         @close="closeAddPositionModal"
         @success="handleAddPositionSuccess"
       />

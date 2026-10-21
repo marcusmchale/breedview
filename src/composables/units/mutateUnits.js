@@ -1,5 +1,5 @@
 import {ref, toValue} from 'vue'
-import { useLazyQuery, useMutation } from '@vue/apollo-composable'
+import { useApolloClient, useLazyQuery, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 
 import UNITS_QUERY from '@/graphql/units/units.graphql'
@@ -36,6 +36,9 @@ const extractApolloErrorMessage = (error, fallbackMessage) => {
 }
 
 export function useMutateUnits() {
+
+    const { resolveClient } = useApolloClient()
+    const client = resolveClient()
 
     const { getCached, updateCache, deleteFromCache } = useCacheUpdates({
         typename: "Unit",
@@ -79,7 +82,14 @@ export function useMutateUnits() {
             if (response?.data?.unitsCreateUnit) {
                 const result = response.data.unitsCreateUnit
                 if (result.status === 'SUCCESS') {
-                    reloadUnits([unitData.parentId ?? unitData.parentIds?.[0]])
+                    // the parents list the new unit among their children; a new unit graph is found by its location
+                    const parentIds = unitData.parentIds ?? (unitData.parentId ? [unitData.parentId] : [])
+                    if (parentIds.length) {
+                        reloadUnits(parentIds)
+                    } else {
+                        client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'unitsRoots' })
+                        client.cache.gc()
+                    }
                 }
                 const { status, errors } = result
                 return { status, errors }

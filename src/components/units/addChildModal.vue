@@ -59,6 +59,7 @@ const singleFormData = ref({
   germplasmId: null,
   name: '',
   description: '',
+  positionMode: 'parent',
   positionLocationId: props.parentPosition?.location?.id,
   positionLayoutId: props.parentPosition?.layout?.id,
   positionStart: props.parentPosition?.end,
@@ -67,6 +68,7 @@ const singleFormData = ref({
 
 const bulkTemplate = ref({
   parentName: props.parentUnit?.name || `${props.parentUnit?.subject?.name} ${props.parentUnit?.id}`,
+  positionMode: 'parent',
   positionLocationId: props.parentPosition?.location?.id,
   positionLayoutId: props.parentPosition?.layout?.id,
   positionStart: props.parentPosition?.end,
@@ -186,7 +188,14 @@ const buildCoordinates = (source, keys) => {
   return keys.map(key => source[key] || '')
 }
 
+// A child is where its parent is unless given a position of its own
+const POSITION_MODES = [
+  { value: 'parent', label: 'With its parent' },
+  { value: 'own', label: 'A position of its own' }
+]
+
 const buildPosition = (source, keys) => {
+  if (source.positionMode !== 'own') return null
   return {
     locationId: source.positionLocationId,
     layoutId: source.positionLayoutId || undefined,
@@ -423,6 +432,13 @@ const setMode = (nextMode) => {
       <div class="form-section">
         <h5>Initial Position</h5>
         <FormKit
+          type="radio"
+          name="positionMode"
+          :options="POSITION_MODES"
+          help="With its parent, the child is wherever its parent is"
+        />
+        <template v-if="singleFormData.positionMode === 'own'">
+        <FormKit
           type="hierarchical-select"
           name="positionLocationId"
           label="Location:"
@@ -434,7 +450,7 @@ const setMode = (nextMode) => {
           :currentChildren="singleCurrentChildLocations"
           :exclude-node-id="null"
           :get-node-label-fn="(unit) => unit.name || `${unit.type?.name} ${unit.id}`"
-          :validation="required"
+          validation="required"
         />
 
         <FormKit
@@ -482,6 +498,7 @@ const setMode = (nextMode) => {
             validation="partialDateTime"
           />
         </div>
+        </template>
       </div>
 
       <div class="form-section">
@@ -528,6 +545,16 @@ const setMode = (nextMode) => {
 
         <FormKit type="text" name="parentName" label="Parent Unit:" disabled v-model="bulkTemplate.parentName" />
 
+        <FormKit
+          type="radio"
+          name="positionMode"
+          label="Position:"
+          :options="POSITION_MODES"
+          help="With their parent, the children are wherever their parent is"
+          v-model="bulkTemplate.positionMode"
+        />
+
+        <template v-if="bulkTemplate.positionMode === 'own'">
         <FormKit
           type="hierarchical-select"
           name="positionLocationId"
@@ -591,6 +618,7 @@ const setMode = (nextMode) => {
             v-model="bulkTemplate.positionEnd"
           />
         </div>
+        </template>
 
         <div class="bulk-fill-grid">
           <FormKit type="select" name="subjectId" label="Subject:" :options="subjectsWithNull" v-model="bulkTemplate.subjectId" />
@@ -631,9 +659,11 @@ const setMode = (nextMode) => {
                 <th class="status-col">Status</th>
                 <th class="subject-col">Subject</th>
                 <th class="germplasm-col">Germplasm</th>
-                <th class="date-col">Start</th>
-                <th class="date-col">End</th>
-                <th v-for="axis in bulkLayout?.axes || []" :key="axis" class="coord-col">{{ axis }}</th>
+                <template v-if="bulkTemplate.positionMode === 'own'">
+                  <th class="date-col">Start</th>
+                  <th class="date-col">End</th>
+                  <th v-for="axis in bulkLayout?.axes || []" :key="axis" class="coord-col">{{ axis }}</th>
+                </template>
                 <th>Name</th>
                 <th>Description</th>
                 <th class="row-actions"></th>
@@ -647,6 +677,7 @@ const setMode = (nextMode) => {
                 :row-index="index"
                 :subjects="props.subjects"
                 :coordinate-axes="bulkLayout?.axes || []"
+                :positioned="bulkTemplate.positionMode === 'own'"
                 :create-unit-loading="createUnitLoading"
                 :bulk-submitting="bulkSubmitting"
                 @remove="removeBulkRow(index)"

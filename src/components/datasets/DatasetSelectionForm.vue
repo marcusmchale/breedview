@@ -272,7 +272,7 @@ defineExpose({ reset })
             label="From:"
             placeholder="e.g. 2015 or 2015-03-01"
             help="Records whose period ends on or after this time"
-            validation="partialDatetime"
+            validation="partialDateTime"
             :validation-messages="{ partialDatetime: 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM' }"
           />
           <FormKit
@@ -281,7 +281,7 @@ defineExpose({ reset })
             label="To:"
             placeholder="e.g. 2015-12-31"
             help="Records whose period starts on or before this time, which covers its whole period: To 2021-05-03 includes that day"
-            validation="partialDatetime"
+            validation="partialDateTime"
             :validation-messages="{ partialDatetime: 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM' }"
           />
         </div>

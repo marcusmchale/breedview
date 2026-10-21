@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 import LocationNode from "@/components/locations/LocationNode.vue";
 
@@ -8,9 +8,10 @@ import { useLocationTreeNavigation } from "@/composables/locations/locationTreeN
 import { useLocationTreeQueries} from "@/composables/locations/locationTreeQueries";
 
 const props = defineProps({
-  onLocationSelected: {
-    type: Function,
-    required: false
+  // the page's location: highlighted, and the tree opened down to it
+  selectedLocationId: {
+    type: String,
+    default: null
   }
 })
 
@@ -27,21 +28,25 @@ const {
   regionsLoading,
   regionsError,
 
-  loadChildLocations
-} = useLocationTreeQueries(enableCountries, props.onLocationSelected)
+  loadChildLocations,
+  loadParentId
+} = useLocationTreeQueries(enableCountries)
 
 const {
     isExpanded,
     handleToggleExpanded,
-    handleSelectLocation,
-    selectedLocationId
-} = useLocationTreeNavigation(
-    loadChildLocations
-)
+    expandTo
+} = useLocationTreeNavigation(loadChildLocations, loadParentId)
 
-const handleSelectLocationAndEmit = (event) => {
-  handleSelectLocation(event)
-  emit('location-selected', event)
+const highlightedLocationId = ref(props.selectedLocationId)
+watch(() => props.selectedLocationId, async (locationId) => {
+  highlightedLocationId.value = locationId
+  if (locationId) await expandTo(locationId)
+}, { immediate: true })
+
+const handleSelectLocationAndEmit = (locationId) => {
+  highlightedLocationId.value = locationId
+  emit('location-selected', locationId)
 }
 
 </script>
@@ -55,13 +60,13 @@ const handleSelectLocationAndEmit = (event) => {
     Error loading location types! {{ locationTypesError }}
   </div>
   <div v-if="regionsLoading" class="loading">
-    Loading regions...
+    Loading location trees…
   </div>
   <div v-else-if="regionsError" class="error">
-    Error loading regions!
+    Error loading location trees!
   </div>
   <div v-else-if="regions.length === 0" class="empty-state">
-    No regions found.
+    No location trees found.
   </div>
   <div v-else class="regions-tree">
     <div v-for="region in regions" :key="`locationNode_${region?.id}`" class="location-item">
@@ -70,7 +75,7 @@ const handleSelectLocationAndEmit = (event) => {
           :locationId="region?.id"
           :isExpandedFn="isExpanded"
           :locationTypes="locationTypes"
-          :selectedLocationId="selectedLocationId"
+          :selectedLocationId="highlightedLocationId"
           @toggle-expand="handleToggleExpanded"
           @select-location="handleSelectLocationAndEmit"
       />

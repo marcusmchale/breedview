@@ -1,6 +1,7 @@
 import { toValue } from "vue";
 import { useApolloClient } from "@vue/apollo-composable";
 import { getIdentityResolver } from "@/apolloConfig/identityResolvers";
+import { comparePositions } from "@/composables/units/unitPositions";
 
 import ONTOLOGY_QUERY from '@/graphql/ontology/ontology.graphql'
 
@@ -46,12 +47,14 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
     const deleteFromCache = (keyData) => {
         const identity = identityResolver(keyData)
         const itemCacheId = client.cache.identify(identity)
-        const cachedData = getCached({id: itemCacheId})
-        if (cachedData?.parent?.id) {
+        const cachedData = getCached(keyData)
+        // a tree member has a parent, a graph member (a unit) its parents
+        const parentIds = cachedData?.parents?.map((parent) => parent.id)
+            ?? (cachedData?.parent?.id != null ? [cachedData.parent.id] : [])
+        for (const parentId of parentIds) {
             // we can safely assume for complex keys (only OntologyEntry)
             // that the fields other than id should be the same, so expand these to get the correct parent
-            const parentIdentity = identityResolver({...keyData, id: cachedData.parent?.id})
-            const parentCacheId = client.cache.identify(parentIdentity)
+            const parentCacheId = client.cache.identify(identityResolver({...keyData, id: parentId}))
             removeChildFromParentInCache({
                 parentCacheId: parentCacheId,
                 childCacheId: itemCacheId
@@ -91,6 +94,7 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
         updateParentIds({ updateData, cachedData, itemCacheId })
         updateLocationId({ updateData, cachedData, itemCacheId })
         updateTypeId({ updateData, cachedData, itemCacheId })
+        updateSubjectId({ updateData, cachedData, itemCacheId })
         updateGermplasmId({ updateData, cachedData, itemCacheId })
         updateReferences({ updateData, cachedData, itemCacheId })
     }
@@ -111,15 +115,15 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
         // Alternatively we may have a list of parentIds to update,
         // this is better handled with removal of old parentIds and creation of new refs
         else if (updateData.parentIds) {
-            const cachedParentIds = cachedData?.parents.map(u => u.id)
+            const cachedParentIds = cachedData?.parents?.map(u => u.id) ?? []
             if (!arraysAreEqual(updateData.parentIds, cachedParentIds)) {
                 const toAdd = updateData.parentIds.filter(id => !cachedParentIds.includes(id))
                 toAdd.forEach(id => {
                     const newParentIdentity = identityResolver({...updateData, id: id})
                     const newParentCacheId = client.cache.identify(newParentIdentity)
                     addChildToParentInCache({
-                        newParentId: newParentCacheId,
-                        childId: itemCacheId,
+                        parentCacheId: newParentCacheId,
+                        childCacheId: itemCacheId,
                     })
                 })
 
@@ -178,16 +182,26 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
         }
     }
 
+    // null removes the germplasm, as it does in the update
     const updateGermplasmId = ({updateData, cachedData, itemCacheId}) => {
-        if (updateData.germplasmId && updateData.germplasmId !== cachedData?.germplasm?.id) {
-            const germplasmIdentityResolver = getIdentityResolver("Germplasm")
-            const newGermplasmIdentity = germplasmIdentityResolver({id: updateData.germplasmId})
-            const newGermplasmCacheId = client.cache.identify(newGermplasmIdentity)
-            updateGermplasmRef({
-                itemCacheId: itemCacheId,
-                germplasmCacheId: newGermplasmCacheId
-            })
+        if (updateData.germplasmId === undefined || updateData.germplasmId === cachedData?.germplasm?.id) return
+        if (updateData.germplasmId === null) {
+            updateGermplasmRef({ itemCacheId: itemCacheId, germplasmCacheId: null })
+            return
         }
+        const germplasmIdentityResolver = getIdentityResolver("GermplasmEntry")
+        const newGermplasmIdentity = germplasmIdentityResolver({id: updateData.germplasmId})
+        const newGermplasmCacheId = client.cache.identify(newGermplasmIdentity)
+        updateGermplasmRef({
+            itemCacheId: itemCacheId,
+            germplasmCacheId: newGermplasmCacheId
+        })
+    }
+
+    // A subject is an ontology entry, keyed by its version and view as well, so a changed one is read again
+    const updateSubjectId = ({updateData, cachedData, itemCacheId}) => {
+        if (updateData.subjectId === undefined || updateData.subjectId === cachedData?.subject?.id) return
+        client.cache.evict({ id: itemCacheId, fieldName: 'subject' })
     }
 
     const changeParent = ({childCacheId, oldParentCacheId, newParentCacheId}) => {
@@ -297,7 +311,7 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
             id: itemCacheId,
             fields: {
                 germplasm() {
-                    return {__ref: germplasmCacheId}
+                    return germplasmCacheId ? {__ref: germplasmCacheId} : null
                 }
             }
         })
@@ -321,21 +335,6 @@ export function useCacheUpdates({ typename, fragment, ontologyVersionId, ontolog
             end: position.end || null
         }
     }
-
-    const comparePositions = (a, b) => {
-        const aDate = a.start ?? a.end;
-        const bDate = b.start ?? b.end;
-
-        const aHasDate = aDate != null;
-        const bHasDate = bDate != null;
-
-        // Undated positions first
-        if (!aHasDate && !bHasDate) return 0;
-        if (!aHasDate) return -1;
-        if (!bHasDate) return 1;
-
-        return aDate.localeCompare(bDate);
-    };
 
     const addPosition = ({unitId, position}) => {
         const unitCacheId = client.cache.identify({

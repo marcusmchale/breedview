@@ -5,7 +5,7 @@ import { DefaultApolloClient } from '@vue/apollo-composable'
 
 import { plugin as formKitPlugin, defaultConfig } from '@formkit/vue'
 import '@formkit/themes/genesis'
-import { createPartialDatetimeRule } from "@/plugins/formkitRules";
+import { partialDateTimeRule, partialDateTimeMessage } from "@/plugins/formkitRules";
 import { hierarchicalSelectPlugin } from '@/plugins/formkitHierarchicalSelect'
 import { hierarchicalMultiSelectPlugin } from '@/plugins/formkitHierarchicalMultiSelect'
 
@@ -32,7 +32,8 @@ app.use(router)
 
 app.use(formKitPlugin, defaultConfig({
   theme: 'genesis',
-  rules: [createPartialDatetimeRule()],
+  rules: { partialDateTime: partialDateTimeRule },
+  messages: { en: { validation: { partialDateTime: partialDateTimeMessage } } },
   plugins: [hierarchicalSelectPlugin, hierarchicalMultiSelectPlugin]
 }))
 

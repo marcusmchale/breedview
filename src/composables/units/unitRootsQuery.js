@@ -33,7 +33,7 @@ export function useUnitRootsQuery({locationIds}) {
         if (!blocksResult.value) {
             return []
         }
-        const blocks = [...blocksResult.value.unitsRoots.result]
+        const blocks = [...(blocksResult.value.unitsRoots?.result ?? [])]
         blocks.sort((a, b) => (a?.name || "").localeCompare(b?.name || "") || (a?.id - b?.id))
         return blocks
     })

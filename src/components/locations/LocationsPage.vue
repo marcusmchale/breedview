@@ -43,7 +43,6 @@ const { blocks: unitRoots } = useUnitRootsQuery({
 const canCreate = useCanCreate()
 const canCurateDisplayed = useCanCurate({ entityLabel: 'LOCATION', entityId: displayedLocationId })
 const onLocationSelected = (locationId) => {
-  console.log("Location selected:", locationId)
   displayedLocationId.value = locationId
   updateCoordinatesError.value = null
 }
@@ -55,7 +54,7 @@ const {
     countriesLoading,
     countriesError,
     refetchRegions
-} = useLocationTreeQueries(enableCountries, onLocationSelected)
+} = useLocationTreeQueries(enableCountries)
 
 const isCreateRegionModalOpen = ref(false)
 const openCreateRegionModal = () => {
@@ -139,6 +138,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
       <div class="regions-top-row">
         <div class="regions-tree-panel">
           <LocationTree
+            :selectedLocationId="displayedLocationId"
             @location-selected="onLocationSelected"
           />
         </div>

@@ -17,7 +17,6 @@ const props = defineProps({
 
 const selectedBlockId = ref(null)
 const selectedNodeId = ref(null)
-const selectedParentId = ref(null)
 const unitTreeKey = ref(0)
 
 watch(() => props.locationId, () => {
@@ -30,13 +29,11 @@ const { subjects } = useUnitGraphsBoxQueries({ locationIds: computed(() => [prop
 const onBlockSelected = (blockId) => {
   selectedBlockId.value = blockId
   selectedNodeId.value = blockId
-  selectedParentId.value = null
   unitTreeKey.value++
 }
 
-const onNodeSelected = ({ nodeId, parentId }) => {
+const onNodeSelected = ({ nodeId }) => {
   selectedNodeId.value = nodeId
-  selectedParentId.value = parentId
 }
 
 const handleRefreshTree = () => {
@@ -67,7 +64,6 @@ const handleNodeDeleted = () => {
           v-else
           :key="unitTreeKey"
           :blockId="selectedBlockId"
-          :subjects="subjects"
           @node-selected="onNodeSelected"
         />
       </div>
@@ -76,7 +72,6 @@ const handleNodeDeleted = () => {
     <div v-if="selectedBlockId" class="card-panel">
       <UnitCard
         :unitId="selectedNodeId"
-        :parentId="selectedParentId"
         :blockId="selectedBlockId"
         :locationId="locationId"
         :subjects="subjects"

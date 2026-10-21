@@ -1,8 +1,8 @@
 <script setup>
-import { periodStart, periodEnd } from '@/composables/parsers/partialDatetime'
 import { computed } from "vue";
 
 import { useMutatePositions } from "@/composables/units/mutatePositions";
+import { sortPositions } from "@/composables/units/unitPositions";
 
 const props = defineProps({
   unitId: {
@@ -25,18 +25,10 @@ const {
   removePositionError
 } = useMutatePositions({unitId: () => props.unitId} )
 
-// By start, then by end, each partial time as its period: a position ending 2021 runs through the year
-const positionsSorted = computed(() => {
-  const byNullLast = (a, b) => (a === null ? (b === null ? 0 : 1) : b === null ? -1 : a - b)
-  return [...props.positions].sort((a, b) => {
-    const aStart = periodStart(a.start)
-    const bStart = periodStart(b.start)
-    // started positions before those without a start
-    if ((aStart === null) !== (bStart === null)) return aStart === null ? 1 : -1
-    if (aStart !== bStart) return aStart - bStart
-    return byNullLast(periodEnd(a.end), periodEnd(b.end))
-  })
-})
+const emit = defineEmits(['position-updated'])
+
+// In time order, as the API lists them: each partial time as its period, so a position ending 2021 runs through the year
+const positionsSorted = computed(() => sortPositions(props.positions))
 
 const submitRemovePosition = async (position) => {
   try {
@@ -44,7 +36,9 @@ const submitRemovePosition = async (position) => {
 
     const { status, errors } = await removePosition(position)
 
-    if (status !== 'SUCCESS') {
+    if (status === 'SUCCESS') {
+      emit('position-updated')
+    } else {
       if (errors && errors.length > 0) {
         removePositionError.value = errors.map(err => err.message).join(', ')
       } else {

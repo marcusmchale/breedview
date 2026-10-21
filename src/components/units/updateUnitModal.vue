@@ -92,11 +92,12 @@ const handleRemoveParent = (index) => {
 
 const { getCached, updateUnit, updateUnitLoading, updateUnitError } = useMutateUnits()
 
+// A unit's parents come from its own unit graph; a root can be merged below a unit of another graph at the location
 const blockUnits = computed(()=> {
   if (props.unit?.parents?.length > 0) {
     return blockUnit.value? [blockUnit.value]: []
   } else {
-    return blocks
+    return blocks.value.filter((block) => block.id !== props.unit.id)
   }
 })
 
@@ -186,11 +187,11 @@ const submitUpdate = async () => {
     />
     <FormKit
       type="text"
-      name="Description"
+      name="description"
       label="Unit description (optional):"
     />
     <div v-if="parentsLoading">Loading parents...</div>
-    <div v-else-if="parentsError" class="error-message">{{ updateError }}</div>
+    <div v-else-if="parentsError" class="error-message">Error loading the parents: {{ parentsError.message }}</div>
     <div v-if="unit?.parents?.length === 0" class="parents-section">
       <div class="parent-input-row">
         <FormKit
@@ -211,7 +212,7 @@ const submitUpdate = async () => {
         />
         <button
           type="button"
-          @click="handleRemoveParent(index)"
+          @click="handleRemoveParent(0)"
           class="btn-remove"
           title="Remove parent"
         >
@@ -230,8 +231,8 @@ const submitUpdate = async () => {
           Add Parent
         </button>
       </div>
-      <div v-if="blocksLoading || blockLoading" class="loading-state"> Loading Blocks...</div>
-      <div v-else-if="blocksError || blockError" class="error-message"> Error Loading Blocks!</div>
+      <div v-if="blocksLoading || blockLoading" class="loading-state">Loading unit graphs…</div>
+      <div v-else-if="blocksError || blockError" class="error-message">Error loading unit graphs</div>
       <FormKit type="list">
         <div v-for="(rowKey, index) in rowKeys" :key="rowKey" class="parent-input-row">
           <FormKit

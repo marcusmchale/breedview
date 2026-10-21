@@ -87,6 +87,10 @@ const cache = new InMemoryCache({
         unitsUnits: {
           read: createPayloadByIdsReadPolicy({ typename: "Unit", payloadTypename: "UnitsPayload", idArgName: "ids" })
         },
+        // and so for the children of an expanded location in the location tree
+        locationsLocations: {
+          read: createPayloadByIdsReadPolicy({ typename: "Location", payloadTypename: "LocationsPayload", idArgName: "ids" })
+        },
       }
     },
     Ontology: {

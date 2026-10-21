@@ -21,6 +21,11 @@ const props = defineProps({
     type: Array,
     required: true
   },
+  // whether the rows take positions of their own: else they are with their parent
+  positioned: {
+    type: Boolean,
+    default: true
+  },
   createUnitLoading: {
     type: Boolean,
     default: false
@@ -116,6 +121,7 @@ const description = field('description')
         :disabled="createUnitLoading || bulkSubmitting || row.status === 'completed'"
       />
     </td>
+    <template v-if="positioned">
     <td>
       <input
         v-model="positionStart"
@@ -144,6 +150,7 @@ const description = field('description')
         @input="update({ [key]: $event.target.value })"
       >
     </td>
+    </template>
     <td>
       <input
         v-model="name"

@@ -24,7 +24,7 @@ const submitDelete = async () => {
     deleteError.value = ''
     const { status, errors } = await deleteUnit(props.unit.id)
     if (status === 'SUCCESS') {
-      emit('close')
+      emit('success')
     } else {
       if (errors && errors.length > 0) {
         deleteError.value = errors.map(err => err.message).join(', ')

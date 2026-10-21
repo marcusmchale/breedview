@@ -5,6 +5,7 @@ import { useDatetimeUtils } from '@/composables/parsers/partialDatetime';
 import { useValueParser } from "@/composables/parsers/valueParser";
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useApolloClient } from '@vue/apollo-composable';
+import { currentPosition } from '@/composables/units/unitPositions';
 
 export function useDatasetTable({
   selectedStudy,
@@ -117,7 +118,7 @@ export function useDatasetTable({
     let maxAxisCount = 0;
 
     units.forEach(unit => {
-      const pos = unit.positions?.[0];
+      const pos = currentPosition(unit.positions)?.position;
       const axes = pos?.layout?.axes || [];
 
       maxAxisCount = Math.max(maxAxisCount, axes.length);
@@ -161,8 +162,8 @@ export function useDatasetTable({
 
     const newData = [];
     units.forEach((unit) => {
-      // Get latest position if available
-      const pos = unit.positions?.[0];
+      // The unit's own position now, or its last one (the API lists them earliest first)
+      const pos = currentPosition(unit.positions)?.position;
 
       for (let i = 0; i < rows; i++) {
         const row = {

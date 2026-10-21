@@ -9,10 +9,6 @@ const props = defineProps({
   blockId: {
     type: String,
     required: true
-  },
-  subjects: {
-    type: Array,
-    required: true
   }
 })
 
@@ -26,13 +22,8 @@ const {
   unitError: blockError
 } = useUnitQuery(props.blockId)
 
+// a tree is mounted for one unit graph: its parent gives it a new key for another
 const selectedNodeId = ref(null)
-
-watch(() => props.blockId, () => {
-  selectedNodeId.value = props.blockId
-  emit('node-selected', { nodeId: props.blockId, parentId: null })
-  unitTreeKey.value++
-})
 
 const handleNodeSelected = ({ nodeId, parentId }) => {
   selectedNodeId.value = nodeId

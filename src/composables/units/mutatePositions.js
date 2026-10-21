@@ -34,13 +34,14 @@ export function useMutatePositions({ unitId }) {
             const result = response.data.unitsAddPosition
             if (result.status === "SUCCESS") {
                 addPositionToCache({
-                    unitId: unitId,
+                    unitId: toValue(unitId),
                     position: position
                 })
             }
             const { status, errors } = result
             return { status, errors }
         }
+        return { status: 'ERROR', errors: [{ message: 'Adding the position returned no data.' }] }
     }
 
     const {
@@ -54,8 +55,8 @@ export function useMutatePositions({ unitId }) {
         const {location, layout, coordinates, start, end } = position
 
         const positionData = {
-            locationId:location.id,
-            layoutId:layout?.id,
+            locationId: location.id,
+            layoutId: layout?.id ?? null,
             coordinates,
             start,
             end
@@ -73,6 +74,7 @@ export function useMutatePositions({ unitId }) {
             const { status, errors } = result
             return { status, errors }
         }
+        return { status: 'ERROR', errors: [{ message: 'Removing the position returned no data.' }] }
     }
 
 

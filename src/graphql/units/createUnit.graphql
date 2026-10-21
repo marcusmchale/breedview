@@ -1,6 +1,6 @@
 mutation unitsCreateUnit(
   $unit: UnitInput!
-  $position: PositionInput!
+  $position: PositionInput
   $controlTeamId: ID!
   $release: ReadRelease
 ) {
