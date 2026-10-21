@@ -12,6 +12,7 @@ export function useUnitNodeQueries({unitId}) {
     } = useUnitQuery(unitId)
 
     const {
+        units: childUnits,
         loadChildUnits,
         unitsLoading: childUnitsLoading,
         unitsError: childUnitsError
@@ -23,6 +24,7 @@ export function useUnitNodeQueries({unitId}) {
         unitError,
         refetchUnit,
 
+        childUnits,
         loadChildUnits,
         childUnitsLoading,
         childUnitsError

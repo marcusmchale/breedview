@@ -34,6 +34,10 @@ export const perf = manifest.perf
 // the replicates study (record group extent and replicate aggregation): program, trial, study, groupings, datasets,
 // units, concepts and the expected outcomes; breedgraph docs/test-databases.md, "The replicates study"
 export const replicates = manifest.replicates
+// units that came to locations at dated positions (arrivals), with what comes down to them: locations, units by name,
+// datasets and the expected arrivals per viewer, germplasm and factor values; breedgraph docs/test-databases.md,
+// "The arrivals". Null for a manifest built before them, or another database's: their tests skip.
+export const arrivals = manifest.arrivals ?? null
 
 // the concept of the scenario's datasets, as the app names it
 export const concept = manifest.perf.concept

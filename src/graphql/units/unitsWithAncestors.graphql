@@ -9,6 +9,7 @@ query unitsWithAncestors($unitIds: [ID!]) {
       ancestors {
         id
         name
+        parents { id }
         positions {
           location { id name }
           layout { id name axes type { id versionId view name } }

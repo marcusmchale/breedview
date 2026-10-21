@@ -8,9 +8,9 @@ import LocationTree from './LocationTree.vue'
 import LocationCard from './LocationCard.vue'
 import CreateLocationTreeModal from "@/components/locations/createLocationTreeModal.vue";
 import LocationLayoutsPanel from '@/components/layouts/LocationLayoutsPanel.vue'
-import LocationUnitsPanel from '@/components/units/LocationUnitsPanel.vue'
 import { useLayoutRootsQuery } from '@/composables/layouts/layoutRootsQuery'
 import { useUnitRootsQuery } from '@/composables/units/unitRootsQuery'
+import { useUnitArrivalsQuery } from '@/composables/units/unitArrivalsQuery'
 
 import { useMutateLocations } from "@/composables/locations/mutateLocations";
 import { useLocationTreeQueries } from "@/composables/locations/locationTreeQueries";
@@ -26,19 +26,21 @@ const route = useRoute()
 const router = useRouter()
 
 const enableCountries = ref(false)
-// ?location=<id> opens a location's card and content, e.g. from a link elsewhere; ?tab=units its units
+// ?location=<id> opens a location's card and layouts, e.g. from a link elsewhere; the address follows the selection
 const displayedLocationId = ref(route.query.location ? String(route.query.location) : null)
-const contentTab = ref(route.query.tab === 'units' ? 'units' : 'layouts')
-watch([displayedLocationId, contentTab], ([location, tab]) => {
-  const query = location ? { location, ...(tab === 'units' ? { tab } : {}) } : {}
-  if (query.location !== route.query.location || query.tab !== route.query.tab) router.replace({ query })
+watch(displayedLocationId, (location) => {
+  if ((location ?? undefined) !== route.query.location) router.replace({ query: location ? { location } : {} })
+})
+watch(() => route.query.location, (location) => {
+  displayedLocationId.value = location ? String(location) : null
 })
 
-// The tab counts: the layout trees and unit graphs at the location (the panels' own root queries, from the cache)
+// The layout trees at the location (the panel's own root query, from the cache), and what the Units page has there
 const { arrangements: layoutRoots } = useLayoutRootsQuery(displayedLocationId)
-const { blocks: unitRoots } = useUnitRootsQuery({
-  locationIds: computed(() => (displayedLocationId.value ? [displayedLocationId.value] : []))
-})
+const displayedLocationIds = computed(() => (displayedLocationId.value ? [displayedLocationId.value] : []))
+const { blocks: unitRoots } = useUnitRootsQuery({ locationIds: displayedLocationIds })
+const { arrivals } = useUnitArrivalsQuery({ locationIds: displayedLocationIds })
+const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
 // drawing sets the selected location's coordinates, so the tools are offered only to those who can change it
 const canCreate = useCanCreate()
 const canCurateDisplayed = useCanCurate({ entityLabel: 'LOCATION', entityId: displayedLocationId })
@@ -166,18 +168,15 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
         />
       </div>
 
-      <!-- What is at the selected location: only the open tab's content is loaded -->
+      <!-- What is at the selected location: its layouts here, its units on the Units page -->
       <div v-if="displayedLocationId" class="location-content">
-        <div class="content-tabs" role="tablist">
-          <button class="content-tab" role="tab" :class="{ active: contentTab === 'layouts' }" @click="contentTab = 'layouts'">
-            Layouts ({{ layoutRoots.length }})
-          </button>
-          <button class="content-tab" role="tab" :class="{ active: contentTab === 'units' }" @click="contentTab = 'units'">
-            Units ({{ unitRoots.length }})
-          </button>
+        <div class="content-header">
+          <h3 class="content-title">Layouts ({{ layoutRoots.length }})</h3>
+          <router-link class="units-link" :to="{ name: 'Units', query: { location: displayedLocationId } }">
+            Units at this location: {{ plural(unitRoots.length, 'unit graph') }}, {{ plural(arrivals.length, 'arrival') }}
+          </router-link>
         </div>
-        <LocationLayoutsPanel v-if="contentTab === 'layouts'" :location-id="displayedLocationId" />
-        <LocationUnitsPanel v-else :location-id="displayedLocationId" />
+        <LocationLayoutsPanel :location-id="displayedLocationId" />
       </div>
     </div>
 
@@ -243,28 +242,27 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
   width: 100%;
 }
 
-.content-tabs {
+.content-header {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
   margin-bottom: 16px;
+  padding-bottom: 8px;
   border-bottom: 2px solid #dee2e6;
 }
 
-.content-tab {
-  padding: 10px 18px;
-  border: none;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
-  background: none;
+.content-title {
+  margin: 0;
   font-size: 1rem;
-  font-weight: 500;
-  color: #6c757d;
-  cursor: pointer;
+  font-weight: 600;
+  color: #212529;
 }
 
-.content-tab.active {
-  color: #212529;
-  border-bottom-color: #4caf50;
+.units-link {
+  font-size: 0.9rem;
+  color: #1565c0;
 }
 
 /* too narrow for the tree beside the map: the map goes below it */

@@ -1,4 +1,4 @@
-// What someone who is not signed in sees: the germplasm, programs, regions, arrangements, blocks and datasets pages
+// What someone who is not signed in sees: the germplasm, programs, locations, units and datasets pages
 // are open to them, showing what has been released to the public, with placeholders and skipped members as for anyone
 // else (breedgraph docs/read-access.md), and no badges or write actions. They see no people at all: no contributors or
 // contacts, and no people page (docs/person.md §3). Other pages, the people page among them, send them to log in. The
@@ -24,7 +24,7 @@ test('the navigation offers the open pages and a way to log in, and the privacy 
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['Programs', 'Locations', 'Germplasm', 'Log in'])
+  assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Log in'])
   await page.click('.app-footer a')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
 })
@@ -97,7 +97,7 @@ test('programs: no one is credited or named as a contact for signed-out visitors
 
 test('units: the public tree under a placeholder for its hidden unit graph root, without the registered one', async () => {
   const mark = page.mark()
-  await page.goto(`${config.appUrl}/locations?tab=units`)
+  await page.goto(`${config.appUrl}/units`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
   // open the tree until the field is listed (a click while the tree first renders can be lost)
   const fieldListed = `[...document.querySelectorAll('.location-name')].some((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)})`
@@ -141,8 +141,8 @@ test('locations: a public location is found by part of its name and opened, a hi
   assert.deepEqual(await failedRequests(mark), [])
 })
 
-test('locations and programs: no request fails', async () => {
-  for (const route of ['locations', 'programs']) {
+test('locations, units and programs: no request fails', async () => {
+  for (const route of ['locations', 'units', 'programs']) {
     const mark = page.mark()
     await page.goto(`${config.appUrl}/${route}`)
     await page.sleep(4000)
@@ -152,7 +152,7 @@ test('locations and programs: no request fails', async () => {
 
 test('the browser contacts no third party: maps and place searches come from our servers', async () => {
   const mark = page.mark()
-  for (const route of ['programs', 'locations', 'germplasm', 'privacy']) {
+  for (const route of ['programs', 'locations', 'units', 'germplasm', 'privacy']) {
     await page.goto(`${config.appUrl}/${route}`)
     await page.sleep(3000)
   }

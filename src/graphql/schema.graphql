@@ -2203,6 +2203,20 @@ input PositionInput {
   end: DateTime
 }
 
+""" An arrival: the units that came to a location from one start (UnitArrival) 
+"""
+input ArrivalInput {
+  locationId: ID!
+
+  """ The start as entered, e.g. 2025-03 for an arrival of March 2025; null for the units there without one 
+  """
+  start: DateTime
+
+  """ Only the arrival's units at, below or above this unit, e.g. the samples of one tree 
+  """
+  unitId: ID
+}
+
 input UnitInput {
   """ID of Subject in the ontology"""
   subjectId: ID!
@@ -4693,6 +4707,12 @@ type SubjectUnitsPayload {
   errors: [Error!]
 }
 
+type UnitArrivalsPayload {
+  status: QueryStatus!
+  result: [UnitArrival!]
+  errors: [Error!]
+}
+
 type UnitPayload {
   status: QueryStatus!
   result: Unit
@@ -5201,10 +5221,21 @@ type Query {
   layoutsLayouts(ids: [ID!]): LayoutsPayload!
 
   """
-  Get a list of unit graph "root" units.
-  These are the top-level units of the unit graphs.
+  Get a list of unit graph "root" units: the top-level units of the unit graphs, here those with a position of their
+  own at these locations, at any time. None at a location you cannot read.
   """
   unitsRoots(locationIds: [ID!]): UnitsPayload!
+
+  """
+  The arrivals at these locations: units, not unit graph roots, that came there together from elsewhere in their unit
+  graphs (UnitArrival); newest first, undated last. With unitId, only the units at, below or above it, e.g. where the
+  samples of a tree went. None at a location you cannot read.
+  """
+  unitsArrivals(locationIds: [ID!]!, unitId: ID): UnitArrivalsPayload!
+
+  """ A page of an arrival's units, by name: limit at most 1000 (default 100) 
+  """
+  unitsArrivalUnits(arrival: ArrivalInput!, offset: Int, limit: Int): UnitsPayload!
 
   """ Get units by ID. """
   unitsUnits(ids: [ID!]): UnitsPayload!
@@ -5504,6 +5535,29 @@ type Unit {
 type SubjectUnits {
   subject: Subject
   units: [Unit!]!
+}
+
+"""
+Units that came to a location together from elsewhere in their unit graphs, e.g. samples sent to a lab: the readable
+units, not unit graph roots, with a position at the location from the same start, as entered, whose parents were not
+there then. A unit is where its own position at a time puts it, else where its parent is. Positions have no identity,
+so an arrival is known by its location and start: read its units with unitsArrivalUnits.
+"""
+type UnitArrival {
+  location: Location!
+
+  """ The start of their positions there, as entered; null for units there without one 
+  """
+  start: DateTime
+  unitCount: Int!
+
+  """ The roots of the unit graphs they came from, placeholders where hidden 
+  """
+  roots: [Unit!]!
+
+  """ Its units by subject, as id and name, e.g. for selecting them all at once 
+  """
+  unitsBySubject: [SubjectUnits!]!
 }
 
 scalar DateTime

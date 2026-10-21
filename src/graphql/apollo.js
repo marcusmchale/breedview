@@ -120,8 +120,12 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Term', 'subjects'),
     // controllers have no id: the badge's release, the curation table's teams and the full details share one entry
     ...createPositionalMergePolicy('ControllersPayload'),
+    // nor have arrivals: the Units page's and the dataset unit picker's reads of a location's arrivals share one
+    ...createPositionalMergePolicy('UnitArrivalsPayload'),
      // disable cache for RecordGroup as id is not unique per RecordGroup, it is the id of the grouping
-    RecordGroup: { keyFields: false }
+    RecordGroup: { keyFields: false },
+    // an arrival has no id: it is known by its location and start, within the list of a location's arrivals
+    UnitArrival: { keyFields: false }
   }
 })
 

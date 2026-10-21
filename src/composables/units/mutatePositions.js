@@ -1,13 +1,17 @@
 import { toValue } from "vue";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates"
+import { evictUnitsByLocation } from "@/composables/units/unitPlaces"
 
 import UNIT_FRAGMENT from '@/graphql/units/unitFragment.graphql'
 import ADD_POSITION_MUTATION from '@/graphql/units/addPosition.graphql'
 import REMOVE_POSITION_MUTATION from '@/graphql/units/removePosition.graphql'
 
-import { useMutation } from '@vue/apollo-composable'
+import { useApolloClient, useMutation } from '@vue/apollo-composable'
 
 export function useMutatePositions({ unitId }) {
+
+    const { resolveClient } = useApolloClient()
+    const client = resolveClient()
 
     const {
         addPosition: addPositionToCache,
@@ -37,6 +41,7 @@ export function useMutatePositions({ unitId }) {
                     unitId: toValue(unitId),
                     position: position
                 })
+                evictUnitsByLocation(client.cache)
             }
             const { status, errors } = result
             return { status, errors }
@@ -70,6 +75,7 @@ export function useMutatePositions({ unitId }) {
                     unitId: toValue(unitId),
                     position: position
                 })
+                evictUnitsByLocation(client.cache)
             }
             const { status, errors } = result
             return { status, errors }

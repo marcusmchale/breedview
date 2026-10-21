@@ -1,4 +1,4 @@
-// Measure the blocks page on one field: listing its blocks, expanding the root, expanding the largest child.
+// Measure the Units page on one field: listing its unit graphs, expanding the root, expanding the largest child.
 // node tests/e2e/perf/blocks.mjs  (env: FIELD, by default the test database manifest's perf.field, plus the lib/app.mjs settings)
 import { launchBrowser } from '../lib/browser.mjs'
 import { config, login } from '../lib/app.mjs'
@@ -9,7 +9,7 @@ const browser = await launchBrowser()
 const page = browser.page
 try {
   await login(page, config.adminUser, config.adminPassword)
-  await page.goto(`${config.appUrl}/locations?tab=units`)
+  await page.goto(`${config.appUrl}/units`)
   await page.waitFor(`document.querySelector('.regions-tree .location-node')`, 30000)
   await page.sleep(1000)
   for (let depth = 0; depth < 5; depth++) {

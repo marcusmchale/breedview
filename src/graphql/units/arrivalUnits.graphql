@@ -1,0 +1,9 @@
+#import "./unitFragment.graphql"
+# A page of an arrival's units, by name
+query unitsArrivalUnits ($arrival: ArrivalInput!, $offset: Int, $limit: Int) {
+    unitsArrivalUnits (arrival: $arrival, offset: $offset, limit: $limit) {
+        status
+        result { ...UnitFields }
+        errors { message }
+    }
+}

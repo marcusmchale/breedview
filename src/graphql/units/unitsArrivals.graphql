@@ -1,0 +1,14 @@
+# The arrivals at locations: units that came there together from elsewhere in their unit graphs, newest first;
+# with unitId, only those at, below or above it
+query unitsArrivals ($locationIds: [ID!]!, $unitId: ID) {
+    unitsArrivals (locationIds: $locationIds, unitId: $unitId) {
+        status
+        result {
+            location { id name }
+            start
+            unitCount
+            roots { id name }
+        }
+        errors { message }
+    }
+}

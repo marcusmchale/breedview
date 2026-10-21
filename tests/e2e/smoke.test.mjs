@@ -11,7 +11,7 @@ after(async () => { await logout(page); await browser?.close() })
 
 const pages = [
   ['/people', 'People'], ['/access', 'Bulk control[\\s\\S]*Transfer offers[\\s\\S]*What a team you administer controls'],
-  ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'],
+  ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'], ['/units', 'Select a location'],
   ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Create a team tree'],
   ['/privacy', '[Pp]rivacy notice']
 ]
@@ -37,7 +37,8 @@ test('the dataset submission opens for the first study', async () => {
   await page.waitFor(`document.querySelector('.trial-card .studies-header')`, 30000)
   await page.sleep(500)
   await page.evaluate(`document.querySelectorAll('.studies-header').forEach((e) => e.click())`)
-  await page.waitFor(`document.querySelector('.study-card .section-toggle')`, 30000)
+  // each study card loads its study by itself: wait for the first one's
+  await page.waitFor(`document.querySelector('.study-card')?.querySelector('.section-toggle')`, 30000)
   await page.evaluate(`[...document.querySelector('.study-card').querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.includes('Create New Dataset'))`, 30000)
   const mark = page.mark()

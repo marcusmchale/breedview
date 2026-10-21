@@ -105,6 +105,9 @@ onMounted(async () => {
           <router-link to="/locations" class="nav-link" active-class="active">
             Locations
           </router-link>
+          <router-link to="/units" class="nav-link" active-class="active">
+            Units
+          </router-link>
           <router-link to="/germplasm" class="nav-link" active-class="active">
             Germplasm
           </router-link>

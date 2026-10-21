@@ -7,7 +7,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, flat } from './lib/app.mjs'
-import { entities as e, teams, concept, replicates } from './lib/fixture.mjs'
+import { entities as e, teams, concept, replicates, arrivals } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => {
@@ -107,7 +107,7 @@ test('locations: readable locations joined past hidden ones, a hidden root as a 
 })
 
 test('units: the readable trees under a placeholder for their hidden unit graph root, hidden units between skipped', async () => {
-  await page.goto(`${config.appUrl}/locations?tab=units`)
+  await page.goto(`${config.appUrl}/units`)
   await page.waitFor(`document.querySelector('.location-header .expand-btn')`, 30000)
   await expandAll('.location-header .expand-btn:not(.expanded)')
   await page.evaluate(`[...document.querySelectorAll('.location-name')].find((e) => e.innerText.trim() === ${JSON.stringify(e.field.name)}).click()`)
@@ -139,8 +139,9 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await page.waitFor(levelLoaded, 30000)
-  // the replicates program is released to every registered account
-  assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name, replicates.program.name].sort(),
+  // the replicates and arrivals programs are released to every registered account
+  const released = [replicates.program.name, ...(arrivals ? [arrivals.program.name] : [])]
+  assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name, ...released].sort(),
     'the hidden program is a placeholder')
   await openOption('REDACTED')
   assert.deepEqual(await optionLabels(), ['REDACTED'], 'and so is its trial')

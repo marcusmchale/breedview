@@ -109,7 +109,7 @@ test('unit: Edit removes its germplasm with the clear button', async () => {
   assert.deepEqual(unit.parents, [], `${unit.name} is a root unit, listed as a unit graph`)
   await updateUnit({ germplasmId: ENTRY })
   const card = '.location-units-panel .details-card'
-  await page.goto(`${config.appUrl}/locations?location=${unit.positions[0].location.id}&tab=units`)
+  await page.goto(`${config.appUrl}/units?location=${unit.positions[0].location.id}`)
   const block = `[...document.querySelectorAll('.block-item')].find((b) => b.querySelector('.block-name').innerText.trim() === ${q(unit.name)})`
   await page.waitFor(block, 30000)
   await page.evaluate(`${block}.click()`)

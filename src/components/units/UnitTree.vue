@@ -1,20 +1,33 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 
 import UnitTreeNode from './UnitTreeNode.vue'
 
 import { useUnitQuery } from '@/composables/units/unitQuery'
 
+// A unit graph's tree: its parent gives it a new key for another graph
 const props = defineProps({
   blockId: {
     type: String,
     required: true
+  },
+  // the location the tree is shown at, for the units now elsewhere
+  contextLocationId: {
+    type: String,
+    default: null
+  },
+  selectedNodeId: {
+    type: String,
+    default: null
+  },
+  // the units to open, e.g. the way down to the selected unit
+  expandIds: {
+    type: Set,
+    default: () => new Set()
   }
 })
 
 const emit = defineEmits(['node-selected'])
-
-const unitTreeKey = ref(0)
 
 const {
   unit: block,
@@ -22,25 +35,12 @@ const {
   unitError: blockError
 } = useUnitQuery(props.blockId)
 
-// a tree is mounted for one unit graph: its parent gives it a new key for another
-const selectedNodeId = ref(null)
-
-const handleNodeSelected = ({ nodeId, parentId }) => {
-  selectedNodeId.value = nodeId
-  emit('node-selected', { nodeId, parentId })
-}
-
-const handleRefresh = () => {
-  unitTreeKey.value++
-}
-
-// Automatically select the root block when loaded
+// The root is selected when the tree opens without a unit to show
 watch(block, (newBlock) => {
-  if (newBlock && !selectedNodeId.value) {
-    selectedNodeId.value = props.blockId
-    emit('node-selected', { nodeId: props.blockId, parentId: null })
+  if (newBlock && !props.selectedNodeId) {
+    emit('node-selected', { nodeId: props.blockId })
   }
-})
+}, { immediate: true })
 </script>
 
 <template>
@@ -53,12 +53,11 @@ watch(block, (newBlock) => {
     </div>
     <div v-else-if="block">
       <UnitTreeNode
-        :key="unitTreeKey"
         :unitId="blockId"
-        :blockId="blockId"
         :selectedNodeId="selectedNodeId"
-        @node-selected="handleNodeSelected"
-        @refresh="handleRefresh"
+        :contextLocationId="contextLocationId"
+        :expandIds="expandIds"
+        @node-selected="emit('node-selected', $event)"
       />
     </div>
   </div>

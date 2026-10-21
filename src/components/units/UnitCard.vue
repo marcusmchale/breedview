@@ -16,9 +16,10 @@ const props = defineProps({
     type: String,
     default: null
   },
+  // the unit's graph, for the parents it can be given
   blockId: {
     type: String,
-    required: true
+    default: null
   },
   locationId: {
     type: String,
@@ -30,7 +31,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['refresh-tree', 'node-deleted'])
+const emit = defineEmits(['refresh-tree', 'node-deleted', 'go-to-unit'])
 
 const {
   unit,
@@ -196,7 +197,12 @@ const handleAddPositionSuccess = async () => {
       <div v-if="currentPosition" class="section">
         <h3 class="section-title">{{ current.ended ? 'Last position, ended' : 'Current position' }}</h3>
         <div class="position-info">
-          <div><strong>Location:</strong> {{ currentPosition.location?.name }}</div>
+          <div>
+            <strong>Location: </strong>
+            <router-link :to="{ name: 'Units', query: { location: currentPosition.location?.id, unit: unitId } }">
+              {{ currentPosition.location?.name }}
+            </router-link>
+          </div>
           <div v-if="currentPosition.layout">
             <strong>Layout:</strong> {{ currentPosition.layout.name || currentPosition.layout.id }}
           </div>
@@ -223,23 +229,34 @@ const handleAddPositionSuccess = async () => {
         />
       </div>
 
-      <!-- Parents -->
+      <!-- Parents and children: each opens where it is now -->
       <div v-if="parentsList.length > 0" class="section">
         <h3 class="section-title">Parent Units</h3>
         <div class="tag-list">
-          <span v-for="parent in parentsList" :key="parent.id" class="tag">
+          <button
+            v-for="parent in parentsList"
+            :key="parent.id"
+            type="button"
+            class="tag tag-link"
+            @click="emit('go-to-unit', parent.id)"
+          >
             {{ parent.name || `${parent.subject?.name || 'Unit'} ${parent.id}` }}
-          </span>
+          </button>
         </div>
       </div>
 
-      <!-- Children -->
       <div v-if="childrenList.length > 0" class="section">
         <h3 class="section-title">Child Units</h3>
         <div class="tag-list">
-          <span v-for="child in childrenList" :key="child.id" class="tag">
+          <button
+            v-for="child in childrenList"
+            :key="child.id"
+            type="button"
+            class="tag tag-link"
+            @click="emit('go-to-unit', child.id)"
+          >
             {{ child.name || `${child.subject?.name || 'Unit'} ${child.id}` }}
-          </span>
+          </button>
         </div>
       </div>
     </div>
@@ -286,6 +303,17 @@ const handleAddPositionSuccess = async () => {
 </template>
 
 <style scoped>
+.tag-link {
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tag-link:hover {
+  border-color: #1565c0;
+  color: #1565c0;
+}
+
 .card-empty {
   padding: 40px 20px;
   color: #999;

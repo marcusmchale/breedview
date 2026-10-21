@@ -81,7 +81,7 @@ run it while these tests rely on it, and restore the dump afterwards.
 npm run test:e2e                 # all tests, one file at a time
 node --test tests/e2e/invitation.test.mjs
 npm run perf:curation            # STUDY and CONCEPT (default: the manifest's perf); PAGE_SIZE, START and END narrow the records
-npm run perf:blocks              # FIELD (default: the manifest's perf.field, a field of 5,001 units): its Units tab on the Locations page
+npm run perf:blocks              # FIELD (default: the manifest's perf.field, a field of 5,001 units): its unit graph on the Units page
 npm run perf:analysis            # STUDY and CONCEPT (default: the manifest's perf): dataset selection in the analysis editor
 npm run perf:programs            # every study panel's dataset summary on the programs page, opened at once
 ```
@@ -109,8 +109,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   counts, level by level and by subject.
 - `outsiderAccess.test.mjs`: what the outsider sees: placeholders for the hidden program and trial above readable
   studies, no write actions, stand-in teams and placeholder controllers in the controller modal, locations joined
-  past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units tab of the
-  Locations page), and the curation selection, units filter and table with hidden units as placeholders.
+  past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units page), and the
+  curation selection, units filter and table with hidden units as placeholders.
 - `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in
   the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
   without controller badges or write actions, and no one credited or named as a contact; the map's search finds a
@@ -135,6 +135,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
   It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
   20 analyses.
+- `unitsPage.test.mjs`, on the arrivals (manifest `arrivals`; skipped without them): the lab's arrivals newest first as
+  the writer and the outsider see them, a tree's samples elsewhere as links from its field to the arrivals that have
+  them, a sample taken at the lab below its sample, the moved-on, used-up and visiting units marked, the hidden sample's
+  extract in its place for the outsider, the Locations page's link to a location's units, and a child added with its
+  parent listed below it (deleted afterwards).
 - `writeActions.test.mjs`: write actions follow the backend's checks (`composables/controls/useWriteAccess.js`):
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to

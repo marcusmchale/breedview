@@ -10,6 +10,7 @@ import CommitHistoryPage from '@/components/ontology/CommitHistoryPage.vue'
 import OntologyRolePage from '@/components/user/OntologyRolePage.vue'
 import GermplasmManagement from '@/components/germplasm/GermplasmManagement.vue'
 import LocationsPage from '@/components/locations/LocationsPage.vue'
+import UnitsPage from '@/components/units/UnitsPage.vue'
 import AnalysisWorkspace from "@/components/analysis/AnalysisWorkspace.vue";
 import PeoplePage from '@/components/people/PeoplePage.vue'
 import ProfilePage from '@/components/user/ProfilePage.vue'
@@ -96,6 +97,17 @@ const routes = [
       // anyone may read what has been released to the public; signing in shows more
       allowAnonymous: true,
       title: 'Locations'
+    }
+  },
+  {
+    // units by location: ?location=, and graph, arrival, from and unit for what is selected there
+    path: '/units',
+    name: 'Units',
+    component: UnitsPage,
+    meta: {
+      // anyone may read what has been released to the public; signing in shows more
+      allowAnonymous: true,
+      title: 'Units'
     }
   },
   {

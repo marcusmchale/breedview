@@ -12,6 +12,10 @@ const props = defineProps({
   locationId: {
     type: String,
     required: true
+  },
+  selectedBlockId: {
+    type: String,
+    default: null
   }
 })
 
@@ -41,10 +45,7 @@ const handleAddUnitSuccess = () => {
   refetchBlocks()
 }
 
-// Selected block
-const selectedBlockId = ref(null)
 const handleBlockClick = (block) => {
-  selectedBlockId.value = block.id
   emit('block-selected', block.id)
 }
 </script>

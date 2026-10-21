@@ -16,7 +16,8 @@ export function useLocationNodeQueries({ locationId }) {
     } = useQuery(
       LOCATIONS_QUERY,
         ()=>({ locationIds: [toValue(locationId)] }),
-        { enabled: () => !!toValue(locationId) }
+        // a ref: given a function, the option is always truthy and the query asked for no location
+        { enabled: computed(() => !!toValue(locationId)) }
     )
 
     const location = computed( () => {

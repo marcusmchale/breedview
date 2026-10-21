@@ -71,7 +71,10 @@ const formatDate = (dateString) => {
       :key="index"
       class="history-item"
   >
-      <div>Location: {{ pos.location.name }}</div>
+      <div>
+        Location:
+        <router-link :to="{ name: 'Units', query: { location: pos.location.id, unit: unitId } }">{{ pos.location.name }}</router-link>
+      </div>
       <div v-if="pos.layout">Layout: {{ pos.layout.name || `${pos.layout.type.name} ${pos.layout.type.id}`}}</div>
       <div v-if="pos.coordinates && pos.coordinates.length > 0">
         Coordinates: {{ pos.coordinates.join(', ') }}

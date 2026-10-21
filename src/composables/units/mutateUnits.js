@@ -1,6 +1,7 @@
 import {ref, toValue} from 'vue'
 import { useApolloClient, useLazyQuery, useMutation } from '@vue/apollo-composable'
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
+import { evictUnitsByLocation } from "@/composables/units/unitPlaces";
 
 import UNITS_QUERY from '@/graphql/units/units.graphql'
 import UNIT_FRAGMENT from '@/graphql/units/unitFragment.graphql'
@@ -82,14 +83,10 @@ export function useMutateUnits() {
             if (response?.data?.unitsCreateUnit) {
                 const result = response.data.unitsCreateUnit
                 if (result.status === 'SUCCESS') {
-                    // the parents list the new unit among their children; a new unit graph is found by its location
+                    // the parents list the new unit among their children; it may be a new unit graph or arrival
                     const parentIds = unitData.parentIds ?? (unitData.parentId ? [unitData.parentId] : [])
-                    if (parentIds.length) {
-                        reloadUnits(parentIds)
-                    } else {
-                        client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'unitsRoots' })
-                        client.cache.gc()
-                    }
+                    if (parentIds.length) reloadUnits(parentIds)
+                    evictUnitsByLocation(client.cache)
                 }
                 const { status, errors } = result
                 return { status, errors }
@@ -122,6 +119,8 @@ export function useMutateUnits() {
                 const result = response.data.unitsUpdateUnit
                 if (result.status === 'SUCCESS') {
                     updateCache(unitData)
+                    // a unit given other parents may join or leave an arrival, or become a unit graph's root
+                    if (unitData.parentIds || unitData.childrenIds) evictUnitsByLocation(client.cache)
                 }
                 const { status, errors} = result
                 return { status, errors }
@@ -154,6 +153,7 @@ export function useMutateUnits() {
                 const result = response.data.unitsDeleteUnit
                 if (result.status === 'SUCCESS') {
                     deleteFromCache({id: unitId})
+                    evictUnitsByLocation(client.cache)
                 }
                 const {status, errors} = result
                 return {status, errors}
