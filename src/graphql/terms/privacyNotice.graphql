@@ -1,0 +1,11 @@
+query privacyNotice {
+  privacyNotice {
+    status
+    result {
+      text
+    }
+    errors {
+      message
+    }
+  }
+}

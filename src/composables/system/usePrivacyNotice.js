@@ -1,9 +1,11 @@
 import { ref } from 'vue'
+import apolloClient from '@/graphql/apollo'
 import { renderMarkdown } from '@/composables/system/markdown'
+import PRIVACY_NOTICE from '@/graphql/terms/privacyNotice.graphql'
 
-// The published privacy notice (public/privacy_notice.md) as HTML, loaded once and shared by the registration form
-// and the privacy page. It is our own static file, rendered by the shared markdown renderer. The notice is written in
-// breedgraph docs/legal/privacy-notice.md and copied here, from its title to the end of "Changes to this notice".
+// The privacy notice as HTML, loaded once and shared by the registration form and the privacy page. The API serves
+// it to anyone, before the Terms of Use are accepted too, as it does the Terms (breedgraph docs/licences.md §4); it is
+// written in breedgraph docs/legal/privacy-notice.md and rendered by the shared markdown renderer.
 const html = ref('')
 const loading = ref(false)
 const error = ref(false)
@@ -14,9 +16,10 @@ export function usePrivacyNotice() {
     loading.value = true
     error.value = false
     try {
-      const response = await fetch('/privacy_notice.md')
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      html.value = renderMarkdown(await response.text())
+      const { data } = await apolloClient.query({ query: PRIVACY_NOTICE })
+      const result = data?.privacyNotice?.result
+      if (!result) throw new Error(data?.privacyNotice?.errors?.[0]?.message || 'The privacy notice could not be read')
+      html.value = renderMarkdown(result.text)
     } catch (e) {
       console.error('Failed to load privacy notice:', e)
       error.value = true

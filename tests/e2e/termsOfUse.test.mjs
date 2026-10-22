@@ -30,8 +30,13 @@ test('the Terms and the privacy notice can be read before accepting', async () =
   await page.click('.app-footer a[href="/terms"]')
   await page.waitFor(`location.pathname === '/terms' && document.querySelector('.terms-page .terms-content h1')`, 15000)
   assert.ok(!(await page.exists('.terms-page .accepted-note')), 'not yet accepted')
+  const mark = page.mark()
   await page.click('.app-footer a[href="/privacy"]')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 15000)
+  assert.equal(await page.text('.privacy-content h1'), 'BreedGraph privacy notice')
+  // the API gives the notice, as it does the Terms
+  assert.deepEqual(page.graphql(mark).map((r) => r.op), ['privacyNotice'])
+  assert.deepEqual(await page.graphqlErrors(mark), [], 'no request was refused')
   assert.equal(await termsState(), 'asked')
 })
 

@@ -5559,6 +5559,10 @@ type Query {
   """ The Terms of Use, and whether the request's user has accepted them: open before they are accepted 
   """
   termsOfUse: TermsOfUsePayload!
+
+  """ The privacy notice: open to everyone, before the Terms of Use are accepted too 
+  """
+  privacyNotice: PrivacyNoticePayload!
 }
 
 interface ReferenceInterface {
@@ -5758,6 +5762,19 @@ type TermsOfUse {
 type TermsOfUsePayload {
   status: QueryStatus!
   result: TermsOfUse
+  errors: [Error!]
+}
+
+""" How BreedGraph uses personal data, for anyone to read, before accepting the Terms of Use too 
+"""
+type PrivacyNotice {
+  """ The published text, in markdown """
+  text: String!
+}
+
+type PrivacyNoticePayload {
+  status: QueryStatus!
+  result: PrivacyNotice
   errors: [Error!]
 }
 
