@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
+import { useReferencesQuery } from '@/composables/references/referencesQuery'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
 
 import ReferenceItem from './ReferenceItem.vue'
@@ -83,6 +84,14 @@ const { recentFileReferences, refetchRecentFiles } = useRecentFileReferencesQuer
     .map(({ key }) => key)
 )
 
+// The references selected may be given by id alone, as a dataset's records read them: those are read in full, to be
+// shown while the modal is open
+const undescribedIds = computed(() => props.visible
+  ? selectedReferencesData.value.filter(ref => ref.description === undefined).map(ref => ref.id)
+  : []
+)
+const { references: describedReferences } = useReferencesQuery(undescribedIds)
+
 // Computed
 const filteredSearchResults = computed(() => {
   return searchResults.value.filter(ref => !selectedIds.value.includes(ref.id))
@@ -117,6 +126,12 @@ watch(() => props.selectedReferenceIds, (newIds) => {
 
 watch(() => props.initialReferences, (newRefs) => {
   selectedReferencesData.value = [...newRefs]
+})
+
+watch(describedReferences, (described) => {
+  if (described.length === 0) return
+  const byId = new Map(described.map(ref => [ref.id, ref]))
+  selectedReferencesData.value = selectedReferencesData.value.map(ref => byId.get(ref.id) ?? ref)
 })
 
 watch(() => props.visible, (visible) => {

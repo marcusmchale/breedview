@@ -1,0 +1,13 @@
+#import "./referenceFragment.graphql"
+query references($referenceIds: [ID!]) {
+  references(ids: $referenceIds) {
+    status
+    result {
+      ...ReferenceFields
+    }
+    errors {
+      name
+      message
+    }
+  }
+}
