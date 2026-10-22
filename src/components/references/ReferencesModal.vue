@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useApolloClient } from '@vue/apollo-composable'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
 import { useReferencesQuery } from '@/composables/references/referencesQuery'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
+import { RELEASE_LABELS } from '@/composables/controls/releases'
+import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
 import ReferenceItem from './ReferenceItem.vue'
 import LegalReferenceForm from './LegalReferenceForm.vue'
@@ -57,6 +60,17 @@ const props = defineProps({
   title: {
     type: String,
     default: 'Manage References'
+  },
+  // only public references can be chosen, e.g. for the ontology, which is shared: others are shown but can't be
+  // chosen, and those made here are public. Those chosen already stay until removed, as the API lets them.
+  publicOnly: {
+    type: Boolean,
+    default: false
+  },
+  // a note above the tabs, e.g. why only public references can be chosen
+  notice: {
+    type: String,
+    default: null
   }
 })
 
@@ -106,6 +120,45 @@ const filteredRecentFiles = computed(() => {
 
 // The recent files of a tab's type, shown under that tab
 const recentFilesOf = (tab) => filteredRecentFiles.value.filter(ref => ref.__typename === tab.typename)
+
+// Only public references can be chosen: the releases of those offered, by id, read as they are offered (null when
+// they couldn't be read), and again each time the modal opens
+const { resolveClient } = useApolloClient()
+const releases = ref({})
+const offeredIds = computed(() => props.visible && props.publicOnly
+  ? [...new Set([...filteredSearchResults.value, ...filteredRecentFiles.value].map(ref => ref.id))]
+  : []
+)
+watch(offeredIds, async (ids) => {
+  if (ids.length === 0) {
+    releases.value = {}
+    return
+  }
+  const unread = ids.filter(id => !(id in releases.value))
+  if (unread.length === 0) return
+  let controllers = []
+  try {
+    const { data } = await resolveClient().query({
+      query: CONTROLLER_RELEASE_QUERY,
+      variables: { entityLabel: 'REFERENCE', entityIds: unread },
+      fetchPolicy: 'network-only'
+    })
+    controllers = data?.controlsControllers?.result ?? []
+  } catch (error) {
+    console.error('Reading the releases of references failed:', error)
+  }
+  // the controllers come in the order of the ids
+  releases.value = { ...releases.value, ...Object.fromEntries(unread.map((id, i) => [id, controllers[i]?.release ?? null])) }
+}, { immediate: true })
+
+const choosable = (reference) => !props.publicOnly || releases.value[reference.id] === 'PUBLIC'
+// why a reference can't be chosen
+const unchoosableNote = (reference) => {
+  if (choosable(reference)) return null
+  if (!(reference.id in releases.value)) return 'Checking its release…'
+  const release = releases.value[reference.id]
+  return release ? `${RELEASE_LABELS[release]}: only public references can be chosen` : 'Its release could not be read'
+}
 
 const selectedReferences = computed(() => {
   return selectedReferencesData.value.filter(ref => selectedIds.value.includes(ref.id))
@@ -175,6 +228,8 @@ const handleReferenceUpdated = (reference) => {
 }
 
 const toggleSelection = (referenceId, reference = null) => {
+  // one that can't be chosen isn't added, though one chosen already can be let go
+  if (reference && !selectedIds.value.includes(referenceId) && !choosable(reference)) return
   if (isSingleMode.value) {
     // In single mode, replace selection
     selectedIds.value = [referenceId]
@@ -247,6 +302,8 @@ const getFormComponent = (typeKey) => {
           <button class="close-btn" @click="handleClose">&times;</button>
         </div>
 
+        <p v-if="notice" class="modal-notice">{{ notice }}</p>
+
         <!-- Tabs (only if multiple types) -->
         <div v-if="orderedTabs.length > 1 || allowSearch" class="tabs">
           <button
@@ -285,6 +342,7 @@ const getFormComponent = (typeKey) => {
                 :is="getFormComponent(tab.id)"
                 :reference="editingReference?.__typename === tab.typename ? editingReference : null"
                 :mode="editingReference?.__typename === tab.typename ? 'edit' : 'create'"
+                :fixed-release="publicOnly ? 'PUBLIC' : undefined"
                 @created="handleReferenceCreated"
                 @success="handleReferenceUpdated"
                 @cancel="cancelEditing"
@@ -303,6 +361,8 @@ const getFormComponent = (typeKey) => {
                     :reference="ref"
                     :selectable="true"
                     :selected="selectedIds.includes(ref.id)"
+                    :disabled="!choosable(ref)"
+                    :note="unchoosableNote(ref)"
                     @toggle-select="toggleSelection(ref.id, ref)"
                   />
                 </div>
@@ -343,6 +403,8 @@ const getFormComponent = (typeKey) => {
                   :reference="ref"
                   :selectable="true"
                   :selected="selectedIds.includes(ref.id)"
+                  :disabled="!choosable(ref)"
+                  :note="unchoosableNote(ref)"
                   @toggle-select="toggleSelection(ref.id, ref)"
                 />
               </div>
@@ -436,6 +498,15 @@ const getFormComponent = (typeKey) => {
   cursor: pointer;
   color: #666;
   padding: 4px 8px;
+}
+
+.modal-notice {
+  margin: 0;
+  padding: 10px 24px;
+  background: #fff8e1;
+  color: #6d4c00;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
 }
 
 .close-btn:hover {

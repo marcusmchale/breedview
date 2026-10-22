@@ -18,6 +18,11 @@ const props = defineProps({
         type: String,
         default: 'create',
         validator: (v) => ['create', 'edit'].includes(v)
+    },
+    // the release a new reference must have, e.g. PUBLIC where only public references can be chosen
+    fixedRelease: {
+        type: String,
+        default: undefined
     }
 })
 
@@ -247,6 +252,7 @@ const resetForm = () => {
                     v-if="!isEditing"
                     v-model:controlTeamId="selectedControlTeamId"
                     v-model:readRelease="selectedRelease"
+                    :fixed-release="fixedRelease"
                     class="form-control"
                     @error="handleControlTeamError"
                 />

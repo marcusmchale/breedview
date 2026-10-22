@@ -367,6 +367,7 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 </div>
               </div>
               <p v-else class="no-references">No references selected.</p>
+              <p class="references-help">Public references only, as the ontology is shared.</p>
             </div>
 
             <!-- Footer actions -->
@@ -416,6 +417,8 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
       :selected-reference-ids="selectedReferenceIds"
       :initial-references="selectedReferences"
       :reference-types="REFERENCE_TYPE_GROUPS.EXTERNAL"
+      public-only
+      notice="The ontology is shared, so the references it cites must be public."
       @save="handleReferencesSave"
       @close="showReferencesModal = false"
     />
@@ -645,6 +648,12 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
   font-style: italic;
   font-size: 0.875rem;
   margin: 0;
+}
+
+.references-help {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0;
 }
 
 /* Form actions */

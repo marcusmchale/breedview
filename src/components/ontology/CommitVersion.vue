@@ -24,6 +24,8 @@ const selectedCopyright = ref(null)
 const isCopyrightModalOpen = ref(false)
 
 const legalReferenceTypes = [REFERENCE_TYPE_CONFIGS.LEGAL]
+// the ontology is shared, so the API refuses a licence or copyright that isn't public
+const PUBLIC_ONLY = 'The ontology is shared, so its licence and copyright must be public references.'
 
 // Licence handlers
 const handleLicenceSave = ({ references }) => {
@@ -92,6 +94,8 @@ const handleCancel = () => {
           placeholder="Enter version comment"
         />
 
+        <p class="reference-help">The licence and copyright must be public references, as the ontology is shared.</p>
+
         <!-- Licence Section -->
         <div class="reference-section">
           <label class="section-label">Licence (Optional)</label>
@@ -148,6 +152,8 @@ const handleCancel = () => {
     :initialReferences="selectedLicence ? [selectedLicence] : []"
     selectionMode="single"
     title="Select Licence"
+    public-only
+    :notice="PUBLIC_ONLY"
     @close="isLicenceModalOpen = false"
     @save="handleLicenceSave"
   />
@@ -160,6 +166,8 @@ const handleCancel = () => {
     :initialReferences="selectedCopyright ? [selectedCopyright] : []"
     selectionMode="single"
     title="Select Copyright"
+    public-only
+    :notice="PUBLIC_ONLY"
     @close="isCopyrightModalOpen = false"
     @save="handleCopyrightSave"
   />
@@ -221,6 +229,12 @@ const handleCancel = () => {
 
 .btn-version:hover {
   background-color: #45a049;
+}
+
+.reference-help {
+  margin: 16px 0 0;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .reference-section {

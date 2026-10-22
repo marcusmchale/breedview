@@ -32,6 +32,11 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    // why it can't be chosen, beside its description
+    note: {
+        type: String,
+        default: null
+    },
     showActions: {
         type: Boolean,
         default: false
@@ -79,6 +84,7 @@ const toggleExpand = () => {
                 <span class="reference-externalId">
                     {{ reference.description || 'No description' }}
                 </span>
+                <span v-if="note" class="reference-note">{{ note }}</span>
             </div>
             <div class="reference-actions-header">
                 <FileDownloadButton
@@ -241,6 +247,12 @@ const toggleExpand = () => {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: #333;
+}
+
+.reference-note {
+    color: #8a5300;
+    font-size: 0.85em;
+    white-space: nowrap;
 }
 
 .data-badge {
