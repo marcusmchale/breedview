@@ -41,11 +41,11 @@ async function completed (submissionId) {
 }
 
 // The curated record cites its own file, as built: put back after a run, and before one, should the last have stopped
-// part way. A record update gives its start, end and value with its references.
+// part way
 async function restoreRecord () {
   if (q(await citedBy(s.dataset.id, RECORD.id)) === q([fileId(FIRST)])) return
   const payload = await graphql(page, 'mutation ($d: DatasetUpdate!) { datasetsUpdate(dataset: $d) { status result errors { message } } }', {
-    d: { id: String(s.dataset.id), records: [{ id: String(RECORD.id), start: RECORD.start, end: null, value: null, referenceIds: [fileId(FIRST)] }] }
+    d: { id: String(s.dataset.id), records: [{ id: String(RECORD.id), referenceIds: [fileId(FIRST)] }] }
   })
   assert.equal(payload.status, 'SUCCESS', q(payload.errors))
   await completed(payload.result)
