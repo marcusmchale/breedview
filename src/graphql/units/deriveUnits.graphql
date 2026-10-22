@@ -1,13 +1,16 @@
 #import "./unitFragment.graphql"
-# A unit derived from each of the units, by id or an arrival's, under parentIds or each a root at the position; the
-# units created come back, in the order of the units they came from
+# A unit derived from each of the units, by id or an arrival's, under parentIds or each a root at the position, with
+# the germplasm given, else each source's copied unless copyGermplasm is false; the units created come back, in the order
+# of the units they came from
 mutation unitsDeriveUnits (
     $units: UnitsSelection!
     $parentIds: [ID!]
     $position: PositionInput
     $subjectId: ID
-    $sourceType: GermplasmSourceType
+    $stage: DerivationStage
     $description: String
+    $germplasmId: ID
+    $copyGermplasm: Boolean
     $controlTeamId: ID!
     $release: ReadRelease
 ) {
@@ -16,15 +19,17 @@ mutation unitsDeriveUnits (
         parentIds: $parentIds
         position: $position
         subjectId: $subjectId
-        sourceType: $sourceType
+        stage: $stage
         description: $description
+        germplasmId: $germplasmId
+        copyGermplasm: $copyGermplasm
         controlTeamId: $controlTeamId
         release: $release
     ) {
         status
         result {
             ...UnitFields
-            derivedFrom { unit { id name } sourceType description }
+            derivedFrom { unit { id name } stage description }
         }
         errors { message }
     }

@@ -6,7 +6,7 @@ import { useSelectUnitsQuery } from '@/composables/datasets/selectUnitsQueries'
 import { useDefinePositionQueries } from '@/composables/units/definePositionQueries'
 import { useCachedName } from '@/composables/queryBase/cachedName'
 import { useMutateUnits } from '@/composables/units/mutateUnits'
-import { SOURCE_TYPES } from '@/composables/units/derivations'
+import { DERIVATION_STAGES } from '@/composables/units/derivations'
 
 // The units a unit's material came from (derivedFrom), e.g. linking plantlets recorded already to the microcuttings
 // they grew from. Unlike parents they pass nothing down. Units to add are chosen where they are now, as when units are
@@ -17,7 +17,7 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  // as Unit.derivedFrom lists them: { unit: { id, name }, sourceType, description }
+  // as Unit.derivedFrom lists them: { unit: { id, name }, stage, description }
   derivedFrom: {
     type: Array,
     required: true
@@ -32,7 +32,7 @@ const unitNameOf = useCachedName('Unit')
 const rows = ref(props.derivedFrom.map((derivation) => ({
   unitId: derivation.unit.id,
   name: derivation.unit.name || `Unit ${derivation.unit.id}`,
-  sourceType: derivation.sourceType,
+  stage: derivation.stage,
   description: derivation.description ?? ''
 })))
 const pick = ref({ fromLocationId: null, unitIds: [] })
@@ -63,7 +63,7 @@ const addPicked = () => {
   const listed = new Set(rows.value.map((row) => String(row.unitId)))
   for (const unitId of pick.value.unitIds ?? []) {
     if (listed.has(String(unitId)) || String(unitId) === String(props.unit.id)) continue
-    rows.value.push({ unitId, name: unitNameOf(unitId), sourceType: 'UNKNOWN', description: '' })
+    rows.value.push({ unitId, name: unitNameOf(unitId), stage: 'UNKNOWN', description: '' })
   }
   pick.value = { ...pick.value, unitIds: [] }
 }
@@ -78,7 +78,7 @@ const submit = async () => {
     id: props.unit.id,
     derivedFrom: rows.value.map((row) => ({
       unitId: row.unitId,
-      sourceType: row.sourceType,
+      stage: row.stage,
       description: row.description || null
     }))
   })
@@ -105,15 +105,15 @@ const submit = async () => {
       <div v-if="rows.length === 0" class="empty-state">Not derived from any unit</div>
       <div v-for="(row, index) in rows" :key="row.unitId" class="derivation-row">
         <span class="derivation-name">{{ row.name }}</span>
-        <select v-model="row.sourceType" class="derivation-type" :name="`sourceType_${index}`">
-          <option v-for="option in SOURCE_TYPES" :key="option.value" :value="option.value">{{ option.label }}</option>
+        <select v-model="row.stage" class="derivation-type" :name="`stage_${index}`" title="The stage the material was at">
+          <option v-for="option in DERIVATION_STAGES" :key="option.value" :value="option.value" :title="option.help">{{ option.label }}</option>
         </select>
         <input
           v-model="row.description"
           type="text"
           class="derivation-description"
           :name="`description_${index}`"
-          placeholder="How (optional)"
+          placeholder="Description (optional)"
         />
         <button type="button" class="btn-remove" title="Remove" @click="removeRow(index)">&times;</button>
       </div>

@@ -1,9 +1,9 @@
 // Units derived from an arrival's on the Units page, on the test database's arrivals (manifest `arrivals`; skipped
 // without them): signed in as the stranger, who reads the lab's arrivals but writes only to its own team, Arrival
 // Sample Own (at the lab from 2024-11, germplasm crop_line of its own) is derived from as a unit graph of the stranger's.
-// The new unit takes the sample's name and germplasm, and its card says what it came from; the sample's lists it among
-// its derivatives and stays where it was, and its arrival is settled. The derivation is then removed from the new
-// unit's card. The units derived are deleted afterwards.
+// The new unit takes the sample's name and germplasm, and its card says what it came from, at which stage; the sample's
+// lists it among its derivatives and stays where it was, and its arrival is settled. The derivation is then removed
+// from the new unit's card, and another unit derived with no germplasm. The units derived are deleted afterwards.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -15,7 +15,7 @@ const q = JSON.stringify
 const LAB = a && String(a.locations.lab.id)
 const SAMPLE = a && String(a.units['Arrival Sample Own'])
 
-const DERIVATIONS = 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { id positions { location { id } start end } derivedFrom { unit { id } sourceType description } derivatives { unit { id } } } } }'
+const DERIVATIONS = 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { id positions { location { id } start end } derivedFrom { unit { id } stage description } derivatives { unit { id } } } } }'
 
 let browser, page, derivedId = null
 before(async () => { browser = await launchBrowser({ height: 1600 }); page = browser.page; await loginAs(page, 'stranger') })
@@ -54,11 +54,11 @@ test('an arrival\'s sample derived from as a unit graph of the stranger\'s', { s
   // the stranger curates none of the lab's units, so may only derive from them
   await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].map((b) => b.innerText.trim()).join() === 'Derive…'`, 30000)
   await page.evaluate(`document.querySelector('.arrival-actions button').click()`)
-  await page.waitFor(`document.querySelector('.modal-overlay .modal') && document.querySelector('.modal-overlay select[name=sourceType]')`, 30000)
+  await page.waitFor(`document.querySelector('.modal-overlay .modal') && document.querySelector('.modal-overlay select[name=stage]')`, 30000)
   // the team to write the new unit in is chosen once the user's teams are read
   await page.waitFor(`document.querySelector('.modal-overlay .control-selector select')?.value`, 30000)
   await page.sleep(500)
-  await fill('sourceType', 'TISSUE')
+  await fill('stage', 'PLANTLET')
   await fill('description', 'Micropropagation')
   await page.click('.modal-overlay button[type=submit]')
   await page.waitFor(`!document.querySelector('.modal-overlay') || document.querySelector('.modal-overlay .error-message')`, 30000)
@@ -78,14 +78,14 @@ test('an arrival\'s sample derived from as a unit graph of the stranger\'s', { s
   await page.evaluate(`document.querySelector('.notice a').click()`)
   await page.waitFor(`location.search.includes('unit=${derivedId}') && document.querySelector('.details-card .derived-from .tag')`, 30000)
   assert.equal(await page.evaluate(`document.querySelector('.details-card h2').innerText.trim()`), 'Arrival Sample Own')
-  assert.deepEqual(await cardTags('derived-from'), ['Arrival Sample Own (Tissue: Micropropagation)'])
+  assert.deepEqual(await cardTags('derived-from'), ['Arrival Sample Own (Plantlet: Micropropagation)'])
   const germplasm = await page.evaluate(`[...document.querySelectorAll('.details-card .field')].find((f) => f.querySelector('.field-label').innerText.trim().toUpperCase() === 'GERMPLASM')?.querySelector('.field-value').innerText.trim() ?? null`)
   assert.equal(germplasm, e.crop_line.name, 'its own germplasm, copied from the sample')
 
   // the sample's card lists it among its derivatives
   await page.goto(`${config.appUrl}/units?location=${LAB}&unit=${SAMPLE}`)
   await page.waitFor(`document.querySelector('.details-card .derivatives .tag')`, 30000)
-  assert.deepEqual(await cardTags('derivatives'), ['Arrival Sample Own (Tissue: Micropropagation)'])
+  assert.deepEqual(await cardTags('derivatives'), ['Arrival Sample Own (Plantlet: Micropropagation)'])
 })
 
 test('the derivation removed from the new unit\'s card', { skip }, async () => {
@@ -104,4 +104,23 @@ test('the derivation removed from the new unit\'s card', { skip }, async () => {
   await page.waitFor(`!document.querySelector('.details-card .derived-from')`, 30000)
   const { result } = await graphql(page, DERIVATIONS, { ids: [derivedId, SAMPLE] })
   assert.deepEqual(result.map((unit) => [unit.id, unit.derivedFrom.length, unit.derivatives.length]), [[derivedId, 0, 0], [SAMPLE, 0, 0]])
+})
+
+test('a unit derived with no germplasm has none, though the sample has its own', { skip }, async () => {
+  await page.goto(`${config.appUrl}/units?location=${LAB}&arrival=2024-11`)
+  await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].some((b) => b.innerText.includes('Derive'))`, 30000)
+  await page.evaluate(`[...document.querySelectorAll('.arrival-actions button')].find((b) => b.innerText.includes('Derive')).click()`)
+  await page.waitFor(`document.querySelector('.modal-overlay input[name=germplasm][value=none]')`, 30000)
+  await page.waitFor(`document.querySelector('.modal-overlay .control-selector select')?.value`, 30000)
+  await page.sleep(500)
+  await fill('stage', 'SEED')
+  await page.click('.modal-overlay input[name=germplasm][value=none]')
+  await page.click('.modal-overlay button[type=submit]')
+  await page.waitFor(`!document.querySelector('.modal-overlay') || document.querySelector('.modal-overlay .error-message')`, 30000)
+  const error = await page.evaluate(`document.querySelector('.modal-overlay .error-message')?.innerText ?? null`)
+  assert.equal(error, null, error)
+  const { result } = await graphql(page, 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { derivatives { unit { id germplasm { id } } stage } } } }', { ids: [SAMPLE] })
+  const derived = result[0].derivatives.filter((derivation) => derivation.stage === 'SEED')
+  assert.equal(derived.length, 1)
+  assert.equal(derived[0].unit.germplasm, null)
 })

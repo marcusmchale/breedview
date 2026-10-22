@@ -8,14 +8,15 @@ import { useDefinePositionQueries } from '@/composables/units/definePositionQuer
 import { useUnitRootsQuery } from '@/composables/units/unitRootsQuery'
 import { useUnitsLazyQuery } from '@/composables/units/unitsLazyQuery'
 import { useUnitQuery } from '@/composables/units/unitQuery'
-import { SOURCE_TYPES, useDeriveUnits } from '@/composables/units/derivations'
+import { STAGE_OPTIONS, useDeriveUnits } from '@/composables/units/derivations'
+import { useSelectGermplasmQueries } from '@/composables/germplasm/selectGermplasmQueries'
 import { today } from '@/composables/units/unitPositions'
 
 // Derives a unit from each of the units, by id or an arrival's ({ unitIds } or { arrival }, as unitsDeriveUnits takes
 // them): material that starts a context of its own, e.g. plantlets grown from microcuttings that arrived from a lab.
 // Each new unit goes under a unit at the location (e.g. a field-season unit), or is the root of a unit graph of its
-// own there, in the team chosen. It takes its source's name, subject (unless one is chosen) and germplasm; the units
-// derived from are left as they are (breedgraph README, Unit).
+// own there, in the team chosen. It takes its source's name and subject (unless one is chosen), and its germplasm (or
+// one for them all, or none); the units derived from are left as they are (breedgraph README, Unit).
 const props = defineProps({
   units: {
     type: Object,
@@ -47,8 +48,10 @@ const formData = ref({
   layoutId: null,
   start: today(),
   subjectId: null,
-  sourceType: 'UNKNOWN',
-  description: null
+  stage: 'UNKNOWN',
+  description: null,
+  germplasm: 'copy',  // 'copy', 'one' or 'none'
+  germplasmId: null
 })
 const controlTeamId = ref(null)
 const release = ref(null)
@@ -77,6 +80,21 @@ const { blocks } = useUnitRootsQuery({
 const { units: childUnits, unitsLoading: childUnitsLoading, loadChildUnits } = useUnitsLazyQuery()
 const { unit: parent } = useUnitQuery(() => formData.value.parentId)
 
+// the germplasm for them all, when one is chosen
+const {
+  germplasm,
+  crops,
+  currentChildGermplasm,
+  childGermplasmLoading,
+  loadChildGermplasm,
+  hasChildren
+} = useSelectGermplasmQueries({ germplasmId: () => formData.value.germplasmId })
+const GERMPLASM_CHOICES = [
+  { value: 'copy', label: 'Each unit\'s own, copied: what the unit it came from has or takes' },
+  { value: 'one', label: 'One for them all' },
+  { value: 'none', label: 'None' }
+]
+
 const subjectOptions = computed(() => [
   { value: null, label: '-- The subject of each unit derived from --' },
   ...props.subjects.map((subject) => ({ value: subject.id, label: subject.name }))
@@ -98,8 +116,10 @@ const submit = async () => {
     parentIds,
     position,
     subjectId: formData.value.subjectId,
-    sourceType: formData.value.sourceType,
+    stage: formData.value.stage,
     description: formData.value.description,
+    germplasmId: formData.value.germplasm === 'one' ? formData.value.germplasmId : null,
+    copyGermplasm: formData.value.germplasm === 'copy',
     controlTeamId,
     release
   })
@@ -198,15 +218,36 @@ const submit = async () => {
       />
       <FormKit
         type="select"
-        name="sourceType"
-        label="Derived as:"
-        :options="SOURCE_TYPES"
+        name="stage"
+        label="Stage:"
+        help="The form the material was in when it became the new units"
+        :options="STAGE_OPTIONS"
       />
       <FormKit
         type="text"
         name="description"
-        label="How (optional):"
-        help="e.g. micropropagation, then hardening off"
+        label="Description (optional):"
+        help="e.g. the approximate stage of a plant, how it was propagated, or how a graft was formed"
+      />
+      <FormKit
+        type="radio"
+        name="germplasm"
+        label="Germplasm:"
+        :options="GERMPLASM_CHOICES"
+      />
+      <FormKit
+        v-if="formData.germplasm === 'one'"
+        type="hierarchical-select"
+        name="germplasmId"
+        label="Germplasm for them all:"
+        :selected="germplasm"
+        :rootNodes="crops"
+        :hasChildrenFn="hasChildren"
+        :loadChildrenFn="loadChildGermplasm"
+        :childrenLoading="childGermplasmLoading"
+        :currentChildren="currentChildGermplasm"
+        :get-node-label-fn="(entry) => entry.name || `${entry.type?.name} ${entry.id}`"
+        validation="required"
       />
 
       <div v-if="deriveError" class="error-message">{{ deriveError }}</div>

@@ -13,16 +13,27 @@ import DERIVE_UNITS_MUTATION from '@/graphql/units/deriveUnits.graphql'
  * down: the derived unit is in a unit graph of its own, and the link is its history.
  */
 
-// how the material came from the unit, as for germplasm sources (GermplasmSourceType)
-export const SOURCE_TYPES = [
+// the stage the material was at when it became the unit (DerivationStage): a physical form, not the genetic
+// relationship germplasm entries describe. A graft is derived from several units, each at its own stage.
+export const DERIVATION_STAGES = [
     { value: 'UNKNOWN', label: 'Unknown' },
-    { value: 'TISSUE', label: 'Tissue (e.g. a cutting or microcutting)' },
-    { value: 'SEED', label: 'Seed' },
-    { value: 'MATERNAL', label: 'Maternal (seed of a cross)' },
-    { value: 'PATERNAL', label: 'Paternal (pollen of a cross)' }
+    { value: 'SEED', label: 'Seed', help: 'Seed, or a seed lot' },
+    { value: 'SEEDLING', label: 'Seedling', help: 'A young plant grown from seed' },
+    { value: 'CUTTING', label: 'Cutting', help: 'An unrooted vegetative piece: a stem or nodal cutting, budwood, a scion, a bud chip' },
+    { value: 'ROOTED_CUTTING', label: 'Rooted cutting', help: 'A rooted vegetative piece' },
+    { value: 'PLANT', label: 'Plant', help: 'An established whole plant: give its approximate stage in the description' },
+    {
+        value: 'IN_VITRO', label: 'In vitro',
+        help: 'Material in culture: an explant, callus, somatic embryos, embryo rescue, anther or microspore culture, a micro-graft, a cryopreserved shoot tip'
+    },
+    { value: 'PLANTLET', label: 'Plantlet', help: 'In vitro material acclimatised ex vitro' }
 ]
-export const sourceTypeLabel = (sourceType) =>
-    sourceType && sourceType !== 'UNKNOWN' ? sourceType.charAt(0) + sourceType.slice(1).toLowerCase() : null
+const STAGE_LABELS = Object.fromEntries(DERIVATION_STAGES.map((stage) => [stage.value, stage.label]))
+export const stageLabel = (stage) => (stage && stage !== 'UNKNOWN' ? STAGE_LABELS[stage] ?? stage : null)
+// for a select: each stage with its meaning
+export const STAGE_OPTIONS = DERIVATION_STAGES.map(({ value, label, help }) => ({
+    value, label: help ? `${label}: ${help.charAt(0).toLowerCase()}${help.slice(1)}` : label
+}))
 
 /** What a unit's material came from and the units derived from it that the user can read */
 export function useUnitDerivationsQuery(unitId) {
@@ -81,15 +92,19 @@ export function useDeriveUnits() {
 
     const { mutate: deriveUnitsMutation, loading: deriveUnitsLoading } = useMutation(DERIVE_UNITS_MUTATION)
 
-    const deriveUnits = async ({ units, parentIds, position, subjectId, sourceType, description, controlTeamId, release }) => {
+    const deriveUnits = async ({
+        units, parentIds, position, subjectId, stage, description, germplasmId, copyGermplasm = true, controlTeamId, release
+    }) => {
         try {
             const response = await deriveUnitsMutation({
                 units,
                 parentIds: parentIds?.length ? parentIds : null,
                 position: position ?? null,
                 subjectId: subjectId || null,
-                sourceType: sourceType || 'UNKNOWN',
+                stage: stage || 'UNKNOWN',
                 description: description || null,
+                germplasmId: germplasmId || null,
+                copyGermplasm,
                 controlTeamId: toValue(controlTeamId),
                 release: toValue(release)
             })

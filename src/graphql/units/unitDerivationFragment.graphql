@@ -3,12 +3,12 @@
 fragment UnitDerivationFields on Unit {
     derivedFrom {
         unit { id name }
-        sourceType
+        stage
         description
     }
     derivatives {
         unit { id name }
-        sourceType
+        stage
         description
     }
 }

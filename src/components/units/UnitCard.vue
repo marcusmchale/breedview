@@ -15,7 +15,7 @@ import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
 import { currentPosition as currentPositionOf } from '@/composables/units/unitPositions'
 import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 import { positionMatch } from '@/composables/units/mutatePositions'
-import { sourceTypeLabel, useUnitDerivationsQuery } from '@/composables/units/derivations'
+import { stageLabel, useUnitDerivationsQuery } from '@/composables/units/derivations'
 
 const props = defineProps({
   unitId: {
@@ -87,7 +87,7 @@ const parentsList = computed(() => {
 const { derivedFrom, derivatives, refetchDerivations } = useUnitDerivationsQuery(() => props.unitId)
 const derivationLabel = (derivation) => {
   const name = derivation.unit.name || `Unit ${derivation.unit.id}`
-  const how = [sourceTypeLabel(derivation.sourceType), derivation.description].filter(Boolean).join(': ')
+  const how = [stageLabel(derivation.stage), derivation.description].filter(Boolean).join(': ')
   return how ? `${name} (${how})` : name
 }
 const derivationModal = ref(null)  // 'derive' or 'edit'
