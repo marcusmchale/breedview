@@ -15,13 +15,14 @@ defineEmits(['submit'])
 <template>
   <div class="table-footer">
     <span v-if="savedAt && !hasUnsavedChanges && !isSubmitting" class="saved-note">✓ Saved at {{ timeOf(savedAt) }}</span>
+    <!-- the table stays open after a save, and a change made since can be saved in turn -->
     <button
       class="btn btn-primary"
       @click="$emit('submit')"
-      :disabled="isSubmitting || !hasUnsavedChanges || allSubmitted"
+      :disabled="isSubmitting || !hasUnsavedChanges"
     >
       <span v-if="isSubmitting">Submitting...</span>
-      <span v-else-if="allSubmitted">All Saved</span>
+      <span v-else-if="allSubmitted && !hasUnsavedChanges">All Saved</span>
       <span v-else>Save Changes</span>
     </button>
   </div>
