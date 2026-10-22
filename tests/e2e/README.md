@@ -74,8 +74,8 @@ belongs to `child` and is private.
 Some tests write: the invitation test registers a new account with a unique name and address at `example.com`
 (`E2E_MAIL_DOMAIN` to change), the write actions test grants the admin curate access to `child` and removes it
 afterwards, the germplasm unit test gives `crop_line` a unit and creates an entry, then puts the unit back and
-deletes the entry, and the record references test submits a dataset to the spectra's submission study and removes its
-record afterwards (datasets can't be deleted, so each run leaves one there, empty). Restore the dump when a clean state
+deletes the entry, and the record references test submits a dataset to the spectra's submission study and deletes its
+record in curation (datasets can't be deleted, so each run leaves one there, empty). Restore the dump when a clean state
 matters. The backend's own pytest suite flushes the database: never run it while these tests rely on it, and restore
 the dump afterwards.
 
@@ -151,8 +151,9 @@ browser: that the pages render it, which actions they offer, the modals and labe
   files of records on a complex scale, chosen in the references modal. In curation, the modal opens with the cell's
   file selected and listed by its description, a search for the files leaves it out, and the record cites the files
   saved, a second one added and saved, then removed and saved in turn. In the dataset submission, the file chosen is
-  selected when the modal opens again, and the submitted record cites it. The curated record is put back before and
-  after.
+  selected when the modal opens again, and the submitted record cites it. Curated, that record's only file can't be
+  removed: the cell says to delete the record instead, and saved anyway the record is refused and keeps its file; marked
+  for deletion it needs none, and it is deleted. The curated record is put back before and after.
 - `positionGrouping.test.mjs`, on the positions (manifest `positions`; skipped without them), signed in as the writer:
   the analysis editor's location types, the fields the height records are at with their layouts' axes, results by
   field and by row (each row labelled with its layout) as the manifest's `expected` cases give them with the records

@@ -612,7 +612,8 @@ export function useDatasetCurationTable() {
       recordsToDelete.value[datasetId] = new Set()
     }
     recordsToDelete.value[datasetId].add(metadata.recordId)
-
+    // deleted, a record on a complex scale needs no file
+    if (isComplexScale(conceptData.value[conceptId]?.concept)) validateCellReferences(rowIndex, conceptId)
   }
 
     /**
@@ -633,6 +634,8 @@ export function useDatasetCurationTable() {
 
       // Restore the original value
       updateCell(rowIndex, `concept_${conceptId}`, metadata.originalValue ?? '')
+      // and check the files of a record on a complex scale again, which updateCell does not
+      if (isComplexScale(conceptData.value[conceptId]?.concept)) validateCellReferences(rowIndex, conceptId)
     }
   }
 
@@ -1048,6 +1051,7 @@ export function useDatasetCurationTable() {
       const row = tableData.value.find((r) => r._rowId === rowId)
       if (row) row[`concept_${conceptId}`] = ''
       delete cellMetadata.value[cellKey]
+      delete cellReferences.value[cellKey]
     }
     delete recordsToDelete.value[datasetId]
   }
@@ -1204,6 +1208,21 @@ export function useDatasetCurationTable() {
 
     const cellKey = `${row._rowId}-${conceptId}`
     cellReferences.value[cellKey] = references || []
+    validateCellReferences(rowIndex, conceptId)
+  }
+
+  /**
+   * A record on a complex scale cites at least one file, so one left with none is refused when saved: its last file
+   * goes with the record, deleted instead
+   */
+  const validateCellReferences = (rowIndex, conceptId) => {
+    const row = tableData.value[rowIndex]
+    const errorKey = `${rowIndex}-concept_${conceptId}`
+    delete cellErrors.value[errorKey]
+    if (!row || !cellHasRecord(rowIndex, conceptId) || isMarkedForDeletion(rowIndex, conceptId)) return
+    if ((cellReferences.value[`${row._rowId}-${conceptId}`] ?? []).length === 0) {
+      cellErrors.value[errorKey] = { message: 'A record on a complex scale cites at least one file: delete the record instead' }
+    }
   }
 
   /**

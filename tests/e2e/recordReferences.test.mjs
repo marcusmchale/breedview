@@ -1,9 +1,10 @@
 // The files of records on a complex scale, chosen in the references modal of the curation and dataset submission tables
 // (f834a6c), on the spectra (manifest `spectra`; skipped without them), signed in as the writer, who curates them: the
 // modal opens with the cell's files selected and listed by their descriptions, and the files saved are those the
-// records cite, in curation over two saves in turn. The curated record is put back to cite its own file before and
-// after, and the record of the dataset submitted here is removed afterwards (datasets can't be deleted, so the dataset
-// stays, empty, in the submission study).
+// records cite, in curation over two saves in turn. A record cites at least one file, so its last can't be removed: the
+// record is deleted instead, as the one submitted here is in curation. The curated record is put back to cite its own
+// file before and after, and the submission study is left without records (datasets can't be deleted, so the dataset
+// submitted stays there, empty).
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -20,7 +21,7 @@ const fileId = (name) => String(s.files[name].reference_id)
 const SEARCH = 'Readpolicy canopy spectrum'
 
 let browser, page
-const submitted = []  // the datasets submitted here, whose records are removed afterwards
+let submitted = null  // the dataset the submission test submits, whose record the last test deletes
 
 const recordsOf = async (datasetId) => (await graphql(page,
   'query ($ids: [ID!]) { datasets(ids: $ids) { result { records { id unit { id } references { id } } } } }',
@@ -50,23 +51,34 @@ async function restoreRecord () {
   await completed(payload.result)
 }
 
+// The datasets in the submission study, which holds only what these tests submit
+const submissionDatasets = async () => (await graphql(page,
+  'query ($studies: [ID!], $concepts: [ID!]) { datasets(studyIds: $studies, conceptIds: $concepts) { result { id } } }',
+  { studies: [String(s.submission_study.id)], concepts: [String(s.concept.id)] })).result.map((dataset) => dataset.id)
+
+// The submission study's datasets have no records before and after the tests (the last test deletes the one it submits)
+async function emptySubmissionStudy () {
+  for (const datasetId of await submissionDatasets()) {
+    const recordIds = (await recordsOf(datasetId)).map((record) => record.id)
+    if (recordIds.length) {
+      await graphql(page, 'mutation ($id: ID!, $records: [ID!]!) { datasetsRemoveRecords(id: $id, recordIds: $records) { status } }',
+        { id: String(datasetId), records: recordIds })
+    }
+  }
+}
+
 before(async () => {
   if (skip) return
   browser = await launchBrowser({ height: 1600 }); page = browser.page
   await loginAs(page, 'writer')
   await restoreRecord()
+  await emptySubmissionStudy()
 })
 after(async () => {
   if (skip) return
   try {
     await restoreRecord()
-    for (const datasetId of submitted) {
-      const recordIds = (await recordsOf(datasetId)).map((record) => record.id)
-      if (recordIds.length) {
-        await graphql(page, 'mutation ($id: ID!, $records: [ID!]!) { datasetsRemoveRecords(id: $id, recordIds: $records) { status } }',
-          { id: String(datasetId), records: recordIds })
-      }
-    }
+    await emptySubmissionStudy()
   } finally {
     await logout(page); await browser?.close()
   }
@@ -136,22 +148,27 @@ async function saveCuration () {
   await page.waitFor(`document.querySelector('.table-footer .saved-note')`, 60000)
 }
 
-test("curation: the modal opens with the cell's files selected, and the record cites those saved", { skip }, async () => {
+// Curate the spectra study named, with the variable, until the table shows tree_public's row
+async function curate (study) {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
   await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
-  await pick([s.program.name, s.trial.name], s.study.name)
+  await pick([s.program.name, s.trial.name], study)
   await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 60000)
   await select('select[name=variableIds]', s.concept.name)
   await page.waitFor(`document.querySelector('.record-filters select[name=pageSize]')`, 30000)
   const loadTable = `[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))`
   await page.waitFor(`!${loadTable}.disabled`, 30000)
-  const mark = page.mark()
   await page.evaluate(`${loadTable}.click()`)
   await page.waitFor(curationCell(e.tree_public.name), 60000)
+}
+
+test("curation: the modal opens with the cell's files selected, and the record cites those saved", { skip }, async () => {
+  const mark = page.mark()
+  await curate(s.study.name)
 
   const unit = e.tree_public.name
   assert.equal(await page.evaluate(`${curationCell(unit)}.querySelector('.file-count').innerText.trim()`), '1 file(s)')
@@ -196,9 +213,6 @@ const openHeader = (card, header) => page.evaluate(`(() => {
 })()`)
 
 const tableModal = `[...document.querySelectorAll('.modal-container')].find((m) => m.querySelector('.modal-header h2')?.innerText.trim().startsWith('Submit Datasets for'))`
-const submissionDatasets = async () => (await graphql(page,
-  'query ($studies: [ID!], $concepts: [ID!]) { datasets(studyIds: $studies, conceptIds: $concepts) { result { id } } }',
-  { studies: [String(s.submission_study.id)], concepts: [String(s.concept.id)] })).result.map((dataset) => dataset.id)
 const submissionCell = (unit) => `[...${tableModal}.querySelectorAll('.dataset-table tbody tr')].find((r) => r.querySelector('td')?.innerText.trim() === ${q(unit)})?.querySelector('.complex-cell')`
 
 test("submission: the modal opens with the cell's files selected, and those saved are submitted", { skip }, async () => {
@@ -255,11 +269,50 @@ test("submission: the modal opens with the cell's files selected, and those save
   assert.ok(!(await page.evaluate(`!!(${tableModal})`)), `the submission failed: ${await page.evaluate(`${tableModal}?.querySelector('.status-indicator')?.title`)}`)
   const [datasetId] = (await submissionDatasets()).filter((id) => !before.includes(id))
   assert.ok(datasetId, 'a dataset was submitted')
-  submitted.push(datasetId)
+  submitted = datasetId
   assert.deepEqual(
     (await recordsOf(datasetId)).map((record) => ({ unit: record.unit.id, references: record.references.map((reference) => reference.id) })),
     [{ unit: String(e.tree_public.id), references: [fileId(FIRST)] }]
   )
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
   assert.deepEqual(await page.graphqlErrors(mark), [], 'no request was refused')
+})
+
+test("curation: a record's last file can't be removed, but the record can be deleted, as the one submitted is", { skip }, async (t) => {
+  if (!submitted) return t.skip('the submission test submitted nothing')
+  const mark = page.mark()
+  await curate(s.submission_study.name)
+  const unit = e.tree_public.name
+  const cell = curationCell(unit)
+  const td = `${cell}.closest('td')`
+  const recordId = (await recordsOf(submitted))[0].id
+  assert.equal(await page.evaluate(`${cell}.querySelector('.file-count').innerText.trim()`), '1 file(s)')
+
+  // its only file removed, the cell says to delete the record instead
+  await page.evaluate(`${cell}.click()`)
+  await page.waitFor(refs)
+  await openSelected()
+  const only = `${refs}.querySelector('.tab-content .reference-item')`
+  await page.evaluate(`${only}.querySelector('.reference-header').click()`)
+  await page.waitFor(`${only}.querySelector('.reference-actions .btn-warning')`)
+  await page.evaluate(`${only}.querySelector('.reference-actions .btn-warning').click()`)
+  await save()
+  assert.equal(await page.evaluate(`${cell}.querySelector('.file-count').innerText.trim()`), '0 file(s)')
+  assert.match(await page.evaluate(`${td}.title`), /cites at least one file: delete the record instead/)
+
+  // saved anyway, the record is refused, and keeps its file
+  await page.evaluate(`${saveChanges}.click()`)
+  await page.waitFor(`document.querySelector('.curation-table thead .status-indicator.status-error')`, 60000)
+  assert.match(await page.evaluate(`${td}.title`), /at least one reference: remove the record instead/)
+  assert.deepEqual(await citedBy(submitted, recordId), [fileId(FIRST)])
+
+  // marked for deletion it needs no file, and unmarked it does again; deleted, it is gone
+  await page.evaluate(`${curationRow(unit)}.querySelector('.action-btn.delete').click()`)
+  assert.ok(await page.evaluate(`${td}.classList.contains('marked-for-deletion') && !${td}.classList.contains('error-cell')`))
+  await page.evaluate(`${curationRow(unit)}.querySelector('.action-btn.undo').click()`)
+  assert.match(await page.evaluate(`${td}.title`), /delete the record instead/)
+  await page.evaluate(`${curationRow(unit)}.querySelector('.action-btn.delete').click()`)
+  await saveCuration()
+  assert.deepEqual(await recordsOf(submitted), [])
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })

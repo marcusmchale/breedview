@@ -79,6 +79,26 @@ const handleKeyDown = (event) => {
         <span class="file-count">{{ referenceCount }} file(s)</span>
         <span v-if="isEditable" class="manage-link">Manage</span>
       </div>
+
+      <!-- the record cites at least one file: its last goes with the record -->
+      <template v-if="isEditable">
+        <button
+          v-if="hasRecord && !isMarkedForDeletion"
+          class="action-btn delete"
+          @click.stop="$emit('mark-for-deletion', rowIndex, conceptId)"
+          title="Delete record"
+        >
+          🗑️
+        </button>
+        <button
+          v-else-if="isMarkedForDeletion"
+          class="action-btn undo"
+          @click.stop="$emit('unmark-for-deletion', rowIndex, conceptId)"
+          title="Undo delete"
+        >
+          ↩️
+        </button>
+      </template>
     </template>
 
     <!-- Editable value -->
