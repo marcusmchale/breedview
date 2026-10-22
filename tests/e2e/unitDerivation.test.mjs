@@ -51,8 +51,8 @@ const cardTags = (section) => page.evaluate(`[...document.querySelectorAll('.det
 test('an arrival\'s sample derived from as a unit graph of the stranger\'s', { skip }, async () => {
   await page.goto(`${config.appUrl}/units?location=${LAB}&arrival=2024-11`)
   await page.waitFor(`document.querySelector('.arrival-tree .node-name') && !document.querySelector('.arrival-tree > .loading')`, 30000)
-  // the stranger curates none of the lab's units, so may only derive from them
-  await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].map((b) => b.innerText.trim()).join() === 'Derive…'`, 30000)
+  // the stranger curates none of the lab's units, so may only derive from them or add children to them
+  await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].map((b) => b.innerText.trim()).join() === 'Derive…,Add children…'`, 30000)
   await page.evaluate(`document.querySelector('.arrival-actions button').click()`)
   await page.waitFor(`document.querySelector('.modal-overlay .modal') && document.querySelector('.modal-overlay select[name=stage]')`, 30000)
   // the team to write the new unit in is chosen once the user's teams are read

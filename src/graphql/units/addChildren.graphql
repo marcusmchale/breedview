@@ -1,0 +1,32 @@
+#import "./unitFragment.graphql"
+# count children of the subject added to each of the parents, by id or an arrival's, named from the template; with a
+# start, each at its parent's place then, from then. The children come back, by parent in the order given
+mutation unitsAddChildren (
+    $parents: UnitsSelection!
+    $subjectId: ID!
+    $count: Int
+    $name: String
+    $description: String
+    $germplasmId: ID
+    $start: DateTime
+    $controlTeamId: ID!
+    $release: ReadRelease
+) {
+    unitsAddChildren (
+        parents: $parents
+        subjectId: $subjectId
+        count: $count
+        name: $name
+        description: $description
+        germplasmId: $germplasmId
+        start: $start
+        controlTeamId: $controlTeamId
+        release: $release
+    ) {
+        status
+        result {
+            ...UnitFields
+        }
+        errors { message }
+    }
+}

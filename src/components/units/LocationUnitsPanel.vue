@@ -6,9 +6,11 @@ import UnitArrivalsBox from './UnitArrivalsBox.vue'
 import UnitTree from './UnitTree.vue'
 import UnitArrivalTree from './UnitArrivalTree.vue'
 import UnitCard from './UnitCard.vue'
+import addChildrenModal from './addChildrenModal.vue'
 
 import { useUnitGraphsBoxQueries } from '@/composables/units/unitGraphsBoxQueries'
 import { arrivalParam, pathFrom, useUnitWithAncestors } from '@/composables/units/unitPlaces'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
 
 // The units at one location: its unit graphs and arrivals, the selected one's tree, and the selected unit's card.
 // What is selected is the page's, in its address: the panel asks for changes with update.
@@ -105,6 +107,17 @@ const onArrivalDerived = ({ units, location, parent }) => {
     to: { name: 'Units', query: { location: location?.id, unit: units[0]?.id } }
   }
 }
+// After children are added, e.g. the leaves sampled from a field's trees, the first of them
+const onChildrenAdded = ({ units }) => {
+  notice.value = {
+    text: `Added ${units.length} ${units.length !== 1 ? 'children' : 'child'}`,
+    to: { name: 'Units', query: { location: props.locationId, unit: units[0]?.id } }
+  }
+  treeKey.value++
+}
+// children for units picked here, e.g. a leaf for each tree of the selected unit graph
+const canCreate = useCanCreate()
+const addingChildren = ref(false)
 const onArrivalChanged = ({ start }) => {
   if (arrivalParam(start) !== props.arrival) emit('update', { arrival: arrivalParam(start), unit: null })
 }
@@ -137,6 +150,9 @@ const handleNodeDeleted = () => {
           {{ notice.text }} · <router-link :to="notice.to">Show them there</router-link>
           <button type="button" class="notice-close" title="Dismiss" @click="notice = null">×</button>
         </div>
+        <div v-if="graph && canCreate" class="tree-actions">
+          <button type="button" class="btn btn-sm btn-secondary" @click="addingChildren = true">Add children…</button>
+        </div>
         <UnitTree
           v-if="graph"
           :key="`graph_${graph}_${treeKey}`"
@@ -160,12 +176,22 @@ const handleNodeDeleted = () => {
           @units-loaded="arrivalTops = $event"
           @arrival-moved="onArrivalMoved"
           @arrival-derived="onArrivalDerived"
+          @children-added="onChildrenAdded"
           @arrival-changed="onArrivalChanged"
         />
         <div v-else class="empty-selection">
           <p>Select a unit graph or an arrival to view its units</p>
         </div>
       </div>
+    </div>
+
+    <div v-if="addingChildren" class="modal-overlay" @click="addingChildren = false">
+      <addChildrenModal
+        :subjects="subjects"
+        :locationId="locationId"
+        @added="onChildrenAdded"
+        @close="addingChildren = false"
+      />
     </div>
 
     <div v-if="unit" class="card-panel">
@@ -222,6 +248,12 @@ const handleNodeDeleted = () => {
   background: #e8f5e9;
   color: #2e7d32;
   font-size: 13px;
+}
+
+.tree-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .notice-close {

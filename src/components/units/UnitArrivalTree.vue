@@ -5,6 +5,7 @@ import UnitTreeNode from './UnitTreeNode.vue'
 import moveUnitsModal from './moveUnitsModal.vue'
 import changePositionsModal from './changePositionsModal.vue'
 import deriveUnitsModal from './deriveUnitsModal.vue'
+import addChildrenModal from './addChildrenModal.vue'
 
 import { useArrivalUnitsQuery } from '@/composables/units/arrivalUnitsQuery'
 import { useUnitQuery } from '@/composables/units/unitQuery'
@@ -38,7 +39,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'node-selected', 'go-to-unit', 'clear-from', 'units-loaded', 'arrival-moved', 'arrival-changed', 'arrival-derived'
+  'node-selected', 'go-to-unit', 'clear-from', 'units-loaded', 'arrival-moved', 'arrival-changed', 'arrival-derived',
+  'children-added'
 ])
 
 const arrivalInput = computed(() => ({
@@ -78,9 +80,9 @@ const description = computed(() => {
     ? `${count} that arrived at ${props.arrival.location.name} on ${props.arrival.start}`
     : `${count} at ${props.arrival.location.name}, undated`
 })
-const modal = ref(null)  // 'move', 'end', 'correct' or 'derive'
-// Units derived from the arrival's, e.g. plantlets from microcuttings, need only read access to them and a team to
-// write the new units in; the arrival's units stay as they are
+const modal = ref(null)  // 'move', 'end', 'correct', 'derive' or 'children'
+// Units derived from the arrival's, e.g. plantlets from microcuttings, or children added to them, e.g. extracts of
+// samples, need only read access to them and a team to write the new units in; the arrival's units stay as they are
 const canDerive = useCanCreate()
 // how many of its units have units derived from them, and how many are still there with none
 const settledLabel = computed(() => [
@@ -100,7 +102,10 @@ const onChanged = ({ change }) => emit('arrival-changed', { start: 'start' in ch
         <button type="button" class="from-clear" title="Show all of the arrival" @click="emit('clear-from')">×</button>
       </span>
       <span v-if="canWrite || canDerive" class="arrival-actions">
-        <button v-if="canDerive" type="button" class="btn btn-sm btn-secondary" @click="modal = 'derive'">Derive…</button>
+        <template v-if="canDerive">
+          <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'derive'">Derive…</button>
+          <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'children'">Add children…</button>
+        </template>
         <template v-if="canWrite">
           <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'move'">Move on…</button>
           <button type="button" class="btn btn-sm btn-secondary" @click="modal = 'end'">End here…</button>
@@ -116,6 +121,16 @@ const onChanged = ({ change }) => emit('arrival-changed', { start: 'start' in ch
         :subjects="subjects"
         :locationId="arrival.location.id"
         @derived="emit('arrival-derived', $event)"
+        @close="modal = null"
+      />
+    </div>
+    <div v-else-if="modal === 'children'" class="modal-overlay" @click="modal = null">
+      <addChildrenModal
+        :units="selection"
+        :description="description"
+        :exampleName="units[0] ? unitName(units[0]) : null"
+        :subjects="subjects"
+        @added="emit('children-added', $event)"
         @close="modal = null"
       />
     </div>
