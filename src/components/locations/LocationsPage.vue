@@ -176,6 +176,14 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
             Units at this location: {{ plural(unitRoots.length, 'unit graph') }}, {{ plural(arrivals.length, 'arrival') }}
           </router-link>
         </div>
+        <p class="content-help">
+          Layouts are coordinate spaces within the location, for places the map can't tell apart. Typically they place
+          units relative to one another, such as the rows and columns of plots in a field or the benches of a
+          greenhouse, but any space units have a place in will do, such as the wells of a plate. A layout names its axes
+          (e.g. Row, Column), and a unit's position in it gives a value on each, in order. A layout can hold others,
+          each at a position on its parent's axes, e.g. trays on the shelves of a growth room, each tray a grid of its
+          own. Analyses can group records by layout axes, e.g. by row.
+        </p>
         <LocationLayoutsPanel :location-id="displayedLocationId" />
       </div>
     </div>
@@ -258,6 +266,14 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
   font-size: 1rem;
   font-weight: 600;
   color: #212529;
+}
+
+.content-help {
+  max-width: 90ch;
+  margin: 0 0 16px;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .units-link {
