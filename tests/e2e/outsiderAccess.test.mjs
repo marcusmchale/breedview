@@ -7,7 +7,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, flat } from './lib/app.mjs'
-import { entities as e, teams, concept, replicates, arrivals, positions } from './lib/fixture.mjs'
+import { entities as e, teams, concept, replicates, arrivals, positions, licences } from './lib/fixture.mjs'
 
 let browser, page
 before(async () => {
@@ -144,8 +144,8 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)
   await page.waitFor(levelLoaded, 30000)
-  // the replicates, arrivals and positions programs are released to every registered account
-  const released = [replicates.program.name, ...[arrivals, positions].filter(Boolean).map((s) => s.program.name)]
+  // the replicates, arrivals, positions and licences programs are released to every registered account
+  const released = [replicates.program.name, ...[arrivals, positions, licences].filter(Boolean).map((s) => s.program.name)]
   assert.deepEqual((await optionLabels()).sort(), ['REDACTED', e.program_public.name, ...released].sort(),
     'the hidden program is a placeholder')
   await openOption('REDACTED')
@@ -176,6 +176,8 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.click('.btn-done')
   await page.sleep(300)
 
+  // enabled once what the datasets' licences ask of the user is known (LicenceAgreement)
+  await page.waitFor(`!([...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))?.disabled ?? true)`, 30000)
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row)')`, 60000)
   const rows = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row)')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)

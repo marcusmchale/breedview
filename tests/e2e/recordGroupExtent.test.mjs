@@ -236,6 +236,8 @@ async function loadCuration(concepts, day, factors = []) {
     await page.type('.record-filters input[name=start]', day)
     await page.type('.record-filters input[name=end]', day)
   }
+  // enabled once what the datasets' licences ask of the user is known (LicenceAgreement)
+  await page.waitFor(`!([...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))?.disabled ?? true)`, 30000)
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row):not(.section-header)')`, 60000)
   await page.sleep(1000)

@@ -77,6 +77,8 @@ const handleClick = () => {
             <span class="progress-fill" :style="{ width: progress + '%' }"></span>
         </span>
     </button>
+    <!-- why the download was refused, e.g. a study licence not accepted yet; an icon has the reason as its title -->
+    <span v-if="phase === 'failed' && errorMessage && !iconOnly" class="download-error">{{ errorMessage }}</span>
 </template>
 
 <style scoped>
@@ -148,5 +150,12 @@ a.download-btn:hover {
     background: #2196f3;
     border-radius: 2px;
     transition: width 0.3s ease;
+}
+
+.download-error {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #a94442;
 }
 </style>

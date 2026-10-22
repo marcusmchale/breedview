@@ -9,6 +9,7 @@ import { useCachedName } from '@/composables/queryBase/cachedName'
 import { isPartialDatetime } from '@/plugins/formkitRules'
 import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
+import LicenceAgreement from '@/components/licences/LicenceAgreement.vue'
 
 const props = defineProps({
   loading: {
@@ -175,10 +176,14 @@ const isSelectable = (node) => {
   return node.__typename === 'Study'
 }
 
+// The datasets Load Table would load, whose studies' licences must be accepted first (LicenceAgreement)
+const datasetIdsToLoad = computed(() => (canLoadTable.value ? getDatasetIdsForConcepts(conceptIds.value) : []))
+const licencesBlocking = ref(false)
+
 // Load table
 const handleLoadTable = () => {
-  if (canLoadTable.value) {
-    const datasetIds = getDatasetIdsForConcepts(conceptIds.value)
+  if (canLoadTable.value && !licencesBlocking.value) {
+    const datasetIds = datasetIdsToLoad.value
     const datasetStudyIds = Object.fromEntries(
       summaries.value
         .filter((s) => datasetIds.includes(s.id))
@@ -312,10 +317,12 @@ defineExpose({ reset })
       </fieldset>
     </FormKit>
 
+    <LicenceAgreement v-model:blocked="licencesBlocking" :dataset-ids="datasetIdsToLoad" />
+
     <div class="selection-actions">
       <button
         class="btn btn-primary"
-        :disabled="!canLoadTable || loading"
+        :disabled="!canLoadTable || loading || licencesBlocking"
         @click="handleLoadTable"
       >
         {{ loading ? 'Loading...' : 'Load Table' }}

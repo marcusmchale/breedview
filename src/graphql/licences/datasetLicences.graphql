@@ -1,0 +1,24 @@
+query datasetLicences($datasetIds: [ID!]) {
+  datasets(ids: $datasetIds) {
+    status
+    result {
+      id
+      studyId
+      licenceRequired
+      licence {
+        id
+        description
+        text
+        textFormat
+        contentHash
+        filename
+        contentType
+        fileId
+        accepted
+      }
+    }
+    errors {
+      message
+    }
+  }
+}

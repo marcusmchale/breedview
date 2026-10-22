@@ -67,6 +67,8 @@ try {
   await page.sleep(300)
   mark = page.mark()
   const heapBefore = await page.heapMB()
+  // enabled once what the datasets' licences ask of the user is known (LicenceAgreement)
+  await page.waitFor(`!([...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))?.disabled ?? true)`, 30000)
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   const rowsMs = await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row)')`, 600000)
   await page.sleep(2000)

@@ -1,0 +1,9 @@
+mutation licencesAccept($licences: [LicenceAcceptanceInput!]!) {
+  licencesAccept(licences: $licences) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

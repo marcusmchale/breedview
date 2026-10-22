@@ -42,6 +42,10 @@ export const arrivals = manifest.arrivals ?? null
 // of the scenario, its grouping and terms and the levels each viewer finds; breedgraph docs/test-databases.md,
 // "The positions". Null for a manifest built before them: their tests skip.
 export const positions = manifest.positions ?? null
+// studies with licences given as files (a markdown one, PUBLIC, and a PDF one, REGISTERED), each with its dataset, and
+// the data file a record of the public one cites; breedgraph docs/test-databases.md, "The licences". Null for a
+// manifest built before them.
+export const licences = manifest.licences ?? null
 
 // the concept of the scenario's datasets, as the app names it
 export const concept = manifest.perf.concept

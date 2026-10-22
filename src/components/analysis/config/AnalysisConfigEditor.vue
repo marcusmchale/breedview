@@ -11,6 +11,7 @@ import GroupingSection from '@/components/analysis/config/GroupingSection.vue'
 import TermsSection from '@/components/analysis/config/TermsSection.vue'
 import ModelOptionsSection from '@/components/analysis/config/ModelOptionsSection.vue'
 import ExclusionsSection from '@/components/analysis/config/ExclusionsSection.vue'
+import LicenceAgreement from '@/components/licences/LicenceAgreement.vue'
 
 /**
  * Editor for a new analysis, or for editing and resubmitting an earlier one.
@@ -46,8 +47,11 @@ const { messagesAt, unpathed, exclusionFeedback } = useAnalysisMessages(messages
 const blocking = computed(() => blockingProblems(props.form))
 const hints = computed(() => analysisHints(props.form, data.conceptsById, data.groupingsById).filter((h) => !blocking.value.includes(h)))
 
+// the chosen datasets' licences, accepted before the analysis can read their records (LicenceAgreement)
+const licencesBlocking = ref(false)
+
 const submit = async () => {
-  if (blocking.value.length > 0 || submitLoading.value) return
+  if (blocking.value.length > 0 || submitLoading.value || licencesBlocking.value) return
   submitErrors.value = []
   requestError.value = null
   submitted.value = true
@@ -143,12 +147,13 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
         <li v-for="p in blocking" :key="p" class="blocking">{{ p }}</li>
         <li v-for="h in hints" :key="h">{{ h }}</li>
       </ul>
+      <LicenceAgreement v-model:blocked="licencesBlocking" :dataset-ids="form.datasetIds" />
       <div class="submit-actions">
         <button type="button" class="btn btn-secondary" @click="emit('cancel')">Cancel</button>
         <button
           type="button"
           class="btn btn-primary"
-          :disabled="blocking.length > 0 || submitLoading"
+          :disabled="blocking.length > 0 || submitLoading || licencesBlocking"
           @click="submit"
         >
           {{ submitLoading ? 'Submitting…' : 'Submit analysis' }}
