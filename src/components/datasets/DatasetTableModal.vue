@@ -559,22 +559,22 @@ const showFileReferenceModal = ref(false);
 const editingFileReferenceCell = ref(null);
 
 
-// Add method to open file reference modal
+// A references cell holds its references as JSON: submitted by their ids (useDatasetTable), and given back to the
+// references modal, which takes the ids as its selection and the references to show them
 const openFileReferenceModal = (rowIndex, columnId) => {
   const currentValue = tableData.value[rowIndex][columnId];
-  // Parse the value as an array of reference IDs
-  const referenceIds = currentValue ? JSON.parse(currentValue) : [];
+  const references = currentValue ? JSON.parse(currentValue) : [];
+  const referenceIds = references.map((reference) => reference.id);
 
-  editingFileReferenceCell.value = { rowIndex, columnId, referenceIds };
+  editingFileReferenceCell.value = { rowIndex, columnId, references, referenceIds };
   showFileReferenceModal.value = true;
 };
 
-// Add method to handle file reference update
-const handleFileReferenceUpdate = (references) => {
+// The modal saves the ids and the references; the cell keeps the references
+const handleFileReferenceUpdate = ({ references }) => {
   if (editingFileReferenceCell.value) {
     const { rowIndex, columnId } = editingFileReferenceCell.value;
-    const value = JSON.stringify(references.map(({id, __typename}) => ({id, __typename})));
-    updateCell(rowIndex, columnId, value);
+    updateCell(rowIndex, columnId, JSON.stringify(references));
     editingFileReferenceCell.value = null;
   }
 };
@@ -974,6 +974,7 @@ const getFileReferenceDisplay = (value) => {
       :visible="showFileReferenceModal"
       :referenceTypes="DATA_REFERENCE_TYPE_CONFIGS"
       :selectedReferenceIds="editingFileReferenceCell?.referenceIds || []"
+      :initialReferences="editingFileReferenceCell?.references || []"
       @close="showFileReferenceModal = false"
       @save="handleFileReferenceUpdate"
 

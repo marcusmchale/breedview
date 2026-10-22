@@ -324,12 +324,16 @@ const openFileReferenceModal = (rowIndex, conceptId) => {
   showFileReferenceModal.value = true
 }
 
-const getSelectedReferenceIds = () => {
+// The edited cell's references, and their ids, which the references modal takes as its selection: computed, so the
+// modal keeps the selection being made while the table updates
+const editedCellReferences = computed(() => {
   if (fileReferenceRowIndex.value === null || fileReferenceConceptId.value === null) return []
   return getCellReferences(fileReferenceRowIndex.value, fileReferenceConceptId.value)
-}
+})
+const editedCellReferenceIds = computed(() => editedCellReferences.value.map((reference) => reference.id))
 
-const handleFileReferenceSave = (references) => {
+// The modal saves the ids and the references; the cell keeps the references, as read with the records
+const handleFileReferenceSave = ({ references }) => {
   if (fileReferenceRowIndex.value !== null && fileReferenceConceptId.value !== null) {
     updateCellReferences(fileReferenceRowIndex.value, fileReferenceConceptId.value, references)
   }
@@ -624,7 +628,8 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
     <ReferencesModal
       :visible="showFileReferenceModal"
       :referenceTypes="DATA_REFERENCE_TYPE_CONFIGS"
-      :selectedReferenceIds="getSelectedReferenceIds()"
+      :selectedReferenceIds="editedCellReferenceIds"
+      :initialReferences="editedCellReferences"
       @close="closeFileReferenceModal"
       @save="handleFileReferenceSave"
     />
