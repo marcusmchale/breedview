@@ -7,6 +7,18 @@ query referencesFileDownloadState($fileId: ID!) {
         startedAt
         progress
       }
+      # the study licences to accept before the download: those of the datasets citing the file, seen or not
+      licences {
+        id
+        description
+        text
+        textFormat
+        contentHash
+        filename
+        contentType
+        fileId
+        accepted
+      }
     }
     errors {
       message

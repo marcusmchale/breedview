@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useReferencesFileDownloadLazy } from '@/composables/references/referencesFileDownloadLazyQuery'
+import FileLicenceAgreement from '@/components/licences/FileLicenceAgreement.vue'
 
 const props = defineProps({
     fileId: {
@@ -22,9 +23,12 @@ const props = defineProps({
     }
 })
 
-const { phase, progress, downloadUrl, errorMessage, startDownload } = useReferencesFileDownloadLazy()
+const {
+    phase, progress, downloadUrl, errorMessage, licences, startDownload, cancelLicences
+} = useReferencesFileDownloadLazy()
 
-const isActive = computed(() => !['idle', 'ready', 'failed'].includes(phase.value))
+// asking for licences to be accepted is not busy: the button starts the download again once they are
+const isActive = computed(() => !['idle', 'licence', 'ready', 'failed'].includes(phase.value))
 
 const statusLabel = computed(() => {
     switch (phase.value) {
@@ -77,6 +81,17 @@ const handleClick = () => {
             <span class="progress-fill" :style="{ width: progress + '%' }"></span>
         </span>
     </button>
+    <!-- the study licences of the data in the file, accepted before it is downloaded -->
+    <Teleport v-if="phase === 'licence'" to="body">
+        <div class="modal-overlay" @click="cancelLicences">
+            <FileLicenceAgreement
+                :licences="licences"
+                :filename="filename"
+                @accepted="startDownload(fileId)"
+                @close="cancelLicences"
+            />
+        </div>
+    </Teleport>
     <!-- why the download was refused, e.g. a study licence not accepted yet; an icon has the reason as its title -->
     <span v-if="phase === 'failed' && errorMessage && !iconOnly" class="download-error">{{ errorMessage }}</span>
 </template>

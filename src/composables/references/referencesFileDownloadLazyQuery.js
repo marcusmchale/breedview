@@ -7,9 +7,12 @@ import REQUEST_FILE_RETRIEVAL from "@/graphql/references/requestFileRetrieval.gr
 
 const POLL_INTERVAL_MS = 3000
 
-// phase: 'idle' | 'checking' | 'requesting' | 'retrieving' | 'ready' | 'failed'
+// phase: 'idle' | 'checking' | 'licence' | 'requesting' | 'retrieving' | 'ready' | 'failed'
+// In 'licence', the file holds data under study licences still to accept (licences): once they are accepted, the
+// download starts again (breedgraph docs/licences.md §5)
 export function useReferencesFileDownloadLazy() {
   const phase = ref('idle')
+  const licences = ref([])
   const progress = ref(null)
   const downloadUrl = ref(null)
   const expiresAt = ref(null)
@@ -92,20 +95,26 @@ export function useReferencesFileDownloadLazy() {
   }
 
   const startDownload = async (fileId) => {
-    if (!['idle', 'ready', 'failed'].includes(phase.value)) return
+    if (!['idle', 'licence', 'ready', 'failed'].includes(phase.value)) return
     stopPolling()
     currentFileId = fileId
     phase.value = 'checking'
     progress.value = null
     errorMessage.value = null
     downloadUrl.value = null
+    licences.value = []
 
     try {
       const payload = await queryState(fileId)
-      console.log('queryState:', payload)
       if (!payload || payload.status !== 'SUCCESS') {
         phase.value = 'failed'
         errorMessage.value = payload?.errors?.[0]?.message || 'Failed to check file state'
+        return
+      }
+      // licences first: nothing is retrieved or linked until they are accepted
+      if (payload.result?.licences?.length) {
+        licences.value = payload.result.licences
+        phase.value = 'licence'
         return
       }
       const status = payload.result?.status
@@ -136,7 +145,14 @@ export function useReferencesFileDownloadLazy() {
     }
   }
 
+  // the licences not accepted: back to where the download can be started again
+  const cancelLicences = () => {
+    if (phase.value !== 'licence') return
+    licences.value = []
+    phase.value = 'idle'
+  }
+
   onUnmounted(stopPolling)
 
-  return { phase, progress, downloadUrl, expiresAt, errorMessage, startDownload }
+  return { phase, progress, downloadUrl, expiresAt, errorMessage, licences, startDownload, cancelLicences }
 }
