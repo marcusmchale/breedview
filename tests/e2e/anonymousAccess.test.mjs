@@ -25,7 +25,7 @@ test('the navigation offers the open pages and a way to log in, and the privacy 
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
   assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Log in'])
-  await page.click('.app-footer a')
+  await page.click('.app-footer a[href="/privacy"]')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
 })
 

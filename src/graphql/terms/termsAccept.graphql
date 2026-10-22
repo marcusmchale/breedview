@@ -1,0 +1,9 @@
+mutation termsAccept($contentHash: String!) {
+  termsAccept(contentHash: $contentHash) {
+    status
+    result
+    errors {
+      message
+    }
+  }
+}

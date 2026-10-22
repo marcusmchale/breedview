@@ -16,7 +16,8 @@ async function freePort() {
   })
 }
 
-export async function launchBrowser({ headless = true, width = 1280, height = 900 } = {}) {
+// acceptTerms: accept BreedView's Terms of Use when a page asks for them, as a person would (see goto)
+export async function launchBrowser({ headless = true, width = 1280, height = 900, acceptTerms = true } = {}) {
   const port = await freePort()
   const profile = mkdtempSync(join(tmpdir(), 'breedview-e2e-'))
   const args = [
@@ -30,7 +31,7 @@ export async function launchBrowser({ headless = true, width = 1280, height = 90
     try { version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json() } catch { /* not up yet */ }
   }
   if (!version) { chrome.kill(); rmSync(profile, { recursive: true, force: true }); throw new Error(`Chrome did not start (${CHROME})`) }
-  const page = await connectPage(port)
+  const page = await connectPage(port, { acceptTerms })
   return {
     page,
     close: async () => { try { page.close() } catch { /* ignore */ } chrome.kill(); await sleep(300); rmSync(profile, { recursive: true, force: true }) }
@@ -43,7 +44,7 @@ export async function launchBrowser({ headless = true, width = 1280, height = 90
 // session carries over to the new tab.
 const LOADS_PER_TAB = 10
 
-async function connectPage(port) {
+async function connectPage(port, { acceptTerms = true } = {}) {
   const events = []  // every tab's events in one list, so marks stay valid across tabs
   let ws, target, nextId = 0
   const pending = new Map()
@@ -91,11 +92,37 @@ async function connectPage(port) {
   }
   const q = JSON.stringify
 
+  // BreedView shows the Terms of Use in place of any page until they are accepted, saying so on its root's data-terms
+  // (unknown, asked or accepted): accept them as a person would, which loads the page again. Pages without it
+  // (MailHog, the API) are left alone.
+  const acceptTermsIfAsked = async () => {
+    const terms = () => evaluate(`document.querySelector('[data-terms]')?.dataset.terms ?? null`)
+    const start = Date.now()
+    let state = await terms()
+    while (state !== 'asked' && state !== 'accepted' && Date.now() - start < (state === null ? 3000 : 15000)) {
+      await sleep(150); state = await terms()
+    }
+    if (state !== 'asked') return
+    while (!(await evaluate(`!!document.querySelector('.terms-gate input[name=termsAgreed]')`))) {
+      if (Date.now() - start > 15000) throw new Error('The Terms of Use were asked for, but not shown')
+      await sleep(150)
+    }
+    await evaluate(`(() => { const box = document.querySelector('.terms-gate input[name=termsAgreed]'); if (!box.checked) box.click() })()`)
+    await sleep(100)
+    await evaluate(`document.querySelector('.terms-gate button.accept').click()`)
+    const accepted = Date.now()
+    while ((await terms().catch(() => null)) !== 'accepted') {
+      if (Date.now() - accepted > 20000) throw new Error('The Terms of Use were not accepted')
+      await sleep(150)
+    }
+  }
+
   return {
     send, events, sleep, evaluate,
     goto: async (url) => {
       if (++loads > LOADS_PER_TAB) { await freshTab(); loads = 1 }
       await send('Page.navigate', { url }); await sleep(1500)
+      if (acceptTerms) await acceptTermsIfAsked()
     },
     url: () => evaluate('location.href'),
     text: (selector = 'body') => evaluate(`document.querySelector(${q(selector)})?.innerText ?? null`),

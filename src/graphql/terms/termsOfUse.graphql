@@ -1,0 +1,13 @@
+query termsOfUse {
+  termsOfUse {
+    status
+    result {
+      text
+      contentHash
+      accepted
+    }
+    errors {
+      message
+    }
+  }
+}

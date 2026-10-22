@@ -5,6 +5,7 @@ import { createUploadLink } from 'apollo-upload-client'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { useCsrf } from '@/composables/system/useCsrf'
+import { termsAccepted } from '@/composables/system/termsOfUseState'
 
 import possibleTypes from './possibleTypes.json';
 
@@ -36,7 +37,13 @@ const authLink = setContext(async (_, { headers }) => {
 })
 
 // the docs for apollo don't match what we get, networkError is there and error is not!
-const errorLink = onError(({ networkError, operation, forward }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  // The API refuses everything until the Terms of Use are accepted (they changed, or a signed-out acceptance lapsed):
+  // App then shows them in place of the page
+  if (graphQLErrors?.some((error) => error.extensions?.code === 'TERMS_NOT_ACCEPTED')) {
+    termsAccepted.value = false
+  }
+
   if (networkError && networkError.statusCode === 403) {
     const newToken =
       networkError.result?.headers?.['x-csrf-token'] ||

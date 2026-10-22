@@ -1425,6 +1425,14 @@ type Mutation {
   teamsCreateTeam(team: TeamInput!): BooleanPayload!
   teamsDeleteTeam(id: ID!): BooleanPayload!
   teamsUpdateTeam(team: TeamUpdate!): BooleanPayload!
+
+  """
+  Accept the Terms of Use, named by their contentHash; refused if they have changed since they were read. Everything
+  but reading and accepting the Terms, and introspection, is refused until they are accepted (TERMS_NOT_ACCEPTED).
+  The acceptance is kept in a cookie for the user, or for a visitor who isn't signed in, and nothing is stored about
+  who accepted.
+  """
+  termsAccept(contentHash: String!): BooleanPayload!
   unitsCreateUnit(unit: UnitInput!, controlTeamId: ID!, release: ReadRelease, position: PositionInput): BooleanPayload!
   unitsUpdateUnit(unit: UnitUpdate!): BooleanPayload!
   unitsDeleteUnit(id: ID!): BooleanPayload!
@@ -5521,6 +5529,10 @@ type Query {
   """ Get the IDs of the user's analysis submissions that have not expired, most recently updated first 
   """
   analysisRecentSubmissions: AnalysisSubmissionIdsPayload!
+
+  """ The Terms of Use, and whether the request's user has accepted them: open before they are accepted 
+  """
+  termsOfUse: TermsOfUsePayload!
 }
 
 interface ReferenceInterface {
@@ -5694,6 +5706,27 @@ type UserAccess {
   write: [Team!]
   admin: [Team!]
   curate: [Team!]
+}
+
+""" The Terms of Use, which everyone accepts before using BreedGraph, through the website or the API (docs/licences.md §4) 
+"""
+type TermsOfUse {
+  """ The published text, in markdown """
+  text: String!
+
+  """ Its SHA-256, which termsAccept names: it changes with the text, and everyone is then asked again 
+  """
+  contentHash: String!
+
+  """ Whether the request carries an acceptance of this text, for its user or for a visitor who isn't signed in 
+  """
+  accepted: Boolean!
+}
+
+type TermsOfUsePayload {
+  status: QueryStatus!
+  result: TermsOfUse
+  errors: [Error!]
 }
 
 type Position {

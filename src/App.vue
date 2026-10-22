@@ -5,6 +5,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useMutation, useApolloClient } from '@vue/apollo-composable'
 import { useCsrf } from './composables/system/useCsrf'
 import { useAuthStore } from './composables/user/useAuthStore'
+import { useTermsOfUse } from './composables/system/useTermsOfUse'
+import TermsGate from './components/user/TermsGate.vue'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
 const router = useRouter()
@@ -29,6 +31,12 @@ onLogoutError((err) => {
 const hideNavigation = computed(() => {
   return route.meta?.hideNavigation || false
 })
+
+// The Terms of Use come before any page but those open before them (the Terms and the privacy notice): the API refuses
+// everything else until they are accepted. data-terms on the root says which, for the e2e tests.
+const { accepted: termsAccepted } = useTermsOfUse()
+const termsAsked = computed(() => termsAccepted.value === false && !route.meta?.openBeforeTerms)
+const termsState = computed(() => (termsAccepted.value === null ? 'unknown' : (termsAccepted.value ? 'accepted' : 'asked')))
 
 const clearApolloCache = async () => {
   try {
@@ -86,7 +94,7 @@ onMounted(async () => {
 
 
 <template>
-  <div id="app">
+  <div id="app" :data-terms="termsState">
     <!-- Navigation Bar -->
     <nav v-if="!hideNavigation" class="navbar">
       <div class="nav-container">
@@ -137,10 +145,12 @@ onMounted(async () => {
 
     <!-- Main Content -->
     <main class="main-content">
-      <router-view></router-view>
+      <TermsGate v-if="termsAsked" />
+      <router-view v-else></router-view>
     </main>
 
     <footer v-if="!hideNavigation" class="app-footer">
+      <router-link to="/terms">Terms of Use</router-link>
       <router-link to="/privacy">Privacy notice</router-link>
     </footer>
   </div>
@@ -180,6 +190,7 @@ onMounted(async () => {
 
 .app-footer a {
   color: #666;
+  margin: 0 0.75rem;
 }
 
 @media (max-width: 768px) {

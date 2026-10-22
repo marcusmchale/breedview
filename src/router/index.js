@@ -17,6 +17,8 @@ import ProfilePage from '@/components/user/ProfilePage.vue'
 import OrcidCallbackPage from '@/components/user/OrcidCallbackPage.vue'
 import AccessControlPage from '@/components/controls/AccessControlPage.vue'
 import PrivacyNoticePage from '@/components/user/PrivacyNoticePage.vue'
+import TermsOfUsePage from '@/components/user/TermsOfUsePage.vue'
+import { useTermsOfUse } from '@/composables/system/useTermsOfUse'
 
 const routes = [
   {
@@ -137,7 +139,19 @@ const routes = [
     component: PrivacyNoticePage,
     meta: {
       allowAnonymous: true,
+      // shown before the Terms of Use are accepted, as the Terms themselves are
+      openBeforeTerms: true,
       title: 'Privacy notice'
+    }
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: TermsOfUsePage,
+    meta: {
+      allowAnonymous: true,
+      openBeforeTerms: true,
+      title: 'Terms of Use'
     }
   },
   {
@@ -206,6 +220,14 @@ router.beforeEach(async (to, from, next) => {
   // Set page title
   if (to.meta.title) {
     document.title = `${to.meta.title} - BreedView`
+  }
+
+  // Until the Terms of Use are accepted the API refuses all else, sign-in checks included: App shows the Terms in place
+  // of the page, and accepting them loads the page again (breedgraph docs/licences.md §4)
+  const { load: loadTerms } = useTermsOfUse()
+  if (!(await loadTerms())) {
+    next()
+    return
   }
 
   const { authenticate } = useAuthStore()

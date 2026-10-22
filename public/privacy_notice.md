@@ -9,7 +9,7 @@
 - Your email address is not shown to other users.
 - People are credited only where signed-in users can see it. Pages open to everyone show no one's name, and there is no public directory of people or organisations.
 - You can erase a record that credits you, or ask us to, and you can delete your account at any time.
-- BreedGraph sets only the cookies it needs to sign you in and protect your requests. Maps and place searches come from our own server, so using BreedGraph sends nothing from your browser to other companies, unless you choose to link your ORCID iD.
+- BreedGraph sets only the cookies it needs to sign you in, protect your requests and remember that you accepted its Terms of Use and any study licences. Maps and place searches come from our own server, so using BreedGraph sends nothing from your browser to other companies, unless you choose to link your ORCID iD.
 
 ## Who we are
 
@@ -86,10 +86,11 @@ Research data, such as datasets, files and analyses, is controlled by the teams 
 
 ### Cookies
 
-BreedGraph sets two cookies. Both are needed for the service to work, so they do not need your consent.
+BreedGraph sets three kinds of cookie. All are needed for the service to work, so they do not need your consent.
 
 - auth_token keeps you signed in, for 7 days or until you sign out.
 - csrf_token protects your requests against forgery by other websites, for an hour.
+- acceptances remembers that you accepted the Terms of Use and the licences of the studies whose data you opened: which versions, by their fingerprints, and, if you are signed in, your account number, so that it holds for your account alone. It lasts 7 days if you are not signed in and a year if you are, and is set again when you accept something more. We keep no record of what you accepted.
 
 We use no analytics, advertising or tracking cookies.
 
