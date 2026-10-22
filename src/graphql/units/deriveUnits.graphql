@@ -1,0 +1,31 @@
+#import "./unitFragment.graphql"
+# A unit derived from each of the units, by id or an arrival's, under parentIds or each a root at the position; the
+# units created come back, in the order of the units they came from
+mutation unitsDeriveUnits (
+    $units: UnitsSelection!
+    $parentIds: [ID!]
+    $position: PositionInput
+    $subjectId: ID
+    $sourceType: GermplasmSourceType
+    $description: String
+    $controlTeamId: ID!
+    $release: ReadRelease
+) {
+    unitsDeriveUnits (
+        units: $units
+        parentIds: $parentIds
+        position: $position
+        subjectId: $subjectId
+        sourceType: $sourceType
+        description: $description
+        controlTeamId: $controlTeamId
+        release: $release
+    ) {
+        status
+        result {
+            ...UnitFields
+            derivedFrom { unit { id name } sourceType description }
+        }
+        errors { message }
+    }
+}

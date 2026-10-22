@@ -1,5 +1,6 @@
 # The arrivals at locations: units that came there together from elsewhere in their unit graphs, newest first;
-# with unitId, only those at, below or above it
+# with unitId, only those at, below or above it. Each counts its units derived from and those pending: still there,
+# with nothing derived from them
 query unitsArrivals ($locationIds: [ID!]!, $unitId: ID) {
     unitsArrivals (locationIds: $locationIds, unitId: $unitId) {
         status
@@ -7,6 +8,8 @@ query unitsArrivals ($locationIds: [ID!]!, $unitId: ID) {
             location { id name }
             start
             unitCount
+            derivedUnitCount
+            pendingUnitCount
             roots { id name }
         }
         errors { message }

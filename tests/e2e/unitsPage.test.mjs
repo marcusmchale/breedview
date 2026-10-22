@@ -54,6 +54,9 @@ const startLabel = (start) => (start ? `Arrived ${start}` : 'Undated')
 const nodeHeader = (name) => `[...document.querySelectorAll('.node-header')].find((h) => h.querySelector('.node-name').innerText.trim() === ${q(name)})`
 
 async function openArrival(start) {
+  // settled arrivals are folded below the others: unfold them, as they come in the one list
+  await page.waitFor(`document.querySelector('.arrival-item')`, 30000)
+  await page.evaluate(`document.querySelector('.settled-toggle:not(.open)')?.click()`)
   await page.waitFor(`[...document.querySelectorAll('.arrival-item .arrival-start')].some((s) => s.innerText.trim() === ${q(startLabel(start))})`, 30000)
   await page.evaluate(`[...document.querySelectorAll('.arrival-item')].find((i) => i.querySelector('.arrival-start').innerText.trim() === ${q(startLabel(start))}).click()`)
   await page.waitFor(`document.querySelector('.arrival-tree .node-name') && !document.querySelector('.arrival-tree > .loading')`, 30000)
@@ -86,10 +89,17 @@ async function expand(name) {
 }
 
 for (const who of ['writer', 'outsider']) {
-  test(`the lab's arrivals, newest first, as the ${who} sees them`, { skip }, async () => {
+  test(`the lab's arrivals, newest first, the settled folded below, as the ${who} sees them`, { skip }, async () => {
     await signInAs(who)
-    const expected = a.expected.arrivals.lab[who]
+    const listed = a.expected.arrivals.lab[who]
+    // settled: none of its units still there with nothing derived from them, as Tree B back at its field
+    const { result: counts } = await graphql(page, 'query ($ids: [ID!]!) { unitsArrivals(locationIds: $ids) { result { start pendingUnitCount } } }', { ids: [LAB] })
+    const settled = new Set(counts.filter((arrival) => arrival.pendingUnitCount === 0).map((arrival) => arrival.start))
+    assert.ok(settled.has('2024-06'), 'Tree B\'s visit is settled')
+    const expected = [...listed.filter((arrival) => !settled.has(arrival.start)), ...listed.filter((arrival) => settled.has(arrival.start))]
     await page.goto(`${config.appUrl}/units?location=${LAB}`)
+    await page.waitFor(`document.querySelectorAll('.arrival-item').length === ${expected.length - settled.size} && document.querySelector('.settled-toggle')`, 30000)
+    await page.evaluate(`document.querySelector('.settled-toggle').click()`)
     await page.waitFor(`document.querySelectorAll('.arrival-item').length === ${expected.length}`, 30000)
     const items = await arrivalItems()
     assert.deepEqual(items.map((i) => i.start), expected.map((arrival) => startLabel(arrival.start)))

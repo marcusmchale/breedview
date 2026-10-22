@@ -1,0 +1,14 @@
+# What a unit's material came from, and the units derived from it that you can read (breedgraph README, Unit). Unlike
+# parents, these pass nothing down. Kept out of UnitFields, as each is read only for the unit shown on its own.
+fragment UnitDerivationFields on Unit {
+    derivedFrom {
+        unit { id name }
+        sourceType
+        description
+    }
+    derivatives {
+        unit { id name }
+        sourceType
+        description
+    }
+}

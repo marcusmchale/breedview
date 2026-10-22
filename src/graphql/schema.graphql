@@ -1472,6 +1472,17 @@ type Mutation {
   where a unit has none or several matching, unless you curate every unit. Returns the units changed.
   """
   unitsChangePositions(units: UnitsSelection!, at: PositionMatchInput!, change: PositionChangeInput!): UnitsPayload!
+
+  """
+  Creates a unit derived from each of the units, e.g. plantlets in a field from the microcuttings of an arrival:
+  each a child of parentIds (e.g. a field-season unit), or with no parents the root of a unit graph of its own at
+  the position. Each takes its source's name and subject (or subjectId), and the germplasm its source has or takes
+  from the units above it, where you can read it; set them apart afterwards with unitsUpdateUnit and the positions
+  of each with unitsAddPosition. The units derived from are left as they are: end or move them with
+  unitsChangePositions or unitsMoveUnits. Needs read access to every unit. Returns the units created, in the order
+  of the units they came from.
+  """
+  unitsDeriveUnits(units: UnitsSelection!, parentIds: [ID!], position: PositionInput, subjectId: ID, sourceType: GermplasmSourceType = UNKNOWN, description: String, controlTeamId: ID!, release: ReadRelease): UnitsPayload!
 }
 
 enum VersionChange {
@@ -2373,6 +2384,19 @@ input UnitInput {
 
   """IDs of child Units, which represent a component of this unit."""
   childrenIds: [ID]
+
+  """
+  The units its material came from, which pass nothing down, unlike parents: e.g. plantlets in a field grown from
+  microcuttings that arrived from a lab. Each needs read access.
+  """
+  derivedFrom: [UnitDerivationInput!]
+}
+
+input UnitDerivationInput {
+  """ The unit the material came from """
+  unitId: ID!
+  sourceType: GermplasmSourceType = UNKNOWN
+  description: String
 }
 
 input UnitUpdate {
@@ -2387,6 +2411,10 @@ input UnitUpdate {
   description: String
   parentIds: [ID!]
   childrenIds: [ID!]
+
+  """ Omitted, the units it is derived from are unchanged; an empty list removes them all 
+  """
+  derivedFrom: [UnitDerivationInput!]
 }
 
 enum OntologyRole {
@@ -5824,6 +5852,28 @@ type Unit {
   Read for every unit of the request at once.
   """
   inheritedGermplasm: InheritedGermplasm
+
+  """
+  The units its material came from, e.g. the microcuttings plantlets grew from: unlike parents, they pass nothing
+  down (germplasm, place, factors), so the unit starts a context of its own. Placeholders where hidden.
+  Empty for a unit you cannot read.
+  """
+  derivedFrom: [UnitDerivation!]!
+
+  """
+  The units derived from it that you can read. Read for every unit of the request that asks, at once.
+  """
+  derivatives: [UnitDerivation!]!
+}
+
+""" A unit's material came from another: the unit at the other end of the link, and how 
+"""
+type UnitDerivation {
+  """ The unit it came from in derivedFrom, the unit derived from it in derivatives 
+  """
+  unit: Unit!
+  sourceType: GermplasmSourceType!
+  description: String
 }
 
 """ Germplasm a unit takes from the units above it """
@@ -5853,6 +5903,16 @@ type UnitArrival {
   """
   start: DateTime
   unitCount: Int!
+
+  """ Its units with units derived from them that you can read, e.g. microcuttings planted as plantlets 
+  """
+  derivedUnitCount: Int!
+
+  """
+  Its units still there, with nothing derived from them: none when the arrival is settled, its units derived from,
+  moved on or used up
+  """
+  pendingUnitCount: Int!
 
   """ The roots of the unit graphs they came from, placeholders where hidden 
   """

@@ -1,0 +1,11 @@
+#import "./unitDerivationFragment.graphql"
+query unitDerivations ($unitIds: [ID!]) {
+    unitsUnits (ids: $unitIds) {
+        status
+        result {
+            id
+            ...UnitDerivationFields
+        }
+        errors { message }
+    }
+}

@@ -57,8 +57,8 @@ const optionLoaded = (label) => `!document.querySelector('.dropdown-panel .loadi
 async function openArrival(location, start) {
   await page.goto(`${config.appUrl}/units?location=${location}&arrival=${start}`)
   await page.waitFor(`document.querySelector('.arrival-tree .node-name') && !document.querySelector('.arrival-tree > .loading')`, 30000)
-  // the actions show once the user is known to curate the units listed
-  await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].length === 3`, 30000)
+  // the actions show once the user is known to curate the units listed (Derive… needs only a team to write in)
+  await page.waitFor(`[...document.querySelectorAll('.arrival-actions button')].some((b) => b.innerText.includes('Move on'))`, 30000)
 }
 
 async function action(label) {

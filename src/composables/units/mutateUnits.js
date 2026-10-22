@@ -3,6 +3,7 @@ import { useApolloClient, useLazyQuery, useMutation } from '@vue/apollo-composab
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 import { evictUnitsByLocation } from "@/composables/units/unitPlaces";
 import { refreshInheritedGermplasm } from "@/composables/units/lineages";
+import { cachedDerivedFrom, evictDerivations } from "@/composables/units/derivations";
 
 import UNITS_QUERY from '@/graphql/units/units.graphql'
 import UNIT_FRAGMENT from '@/graphql/units/unitFragment.graphql'
@@ -125,12 +126,23 @@ export function useMutateUnits() {
             && String(unitData.germplasmId ?? '') !== String(cached?.germplasm?.id ?? '')
         const parentsChanged = unitData.parentIds !== undefined
             && (!cached || !sameIds(unitData.parentIds, cached.parents?.map((parent) => parent.id)))
+        // the units it was derived from, which list it among their derivatives
+        const derivedFromChanged = unitData.derivedFrom !== undefined
+        const formerSources = derivedFromChanged
+            ? (cachedDerivedFrom(client.cache, unitData.id) ?? []).map((derivation) => derivation.unit.id)
+            : []
         try {
             const response = await updateUnitMutation({unit: unitData})
             if (response?.data?.unitsUpdateUnit) {
                 const result = response.data.unitsUpdateUnit
                 if (result.status === 'SUCCESS') {
-                    updateCache(unitData)
+                    // derivedFrom is given as input, unlike the cached field: its derivations are read again instead
+                    updateCache({ ...unitData, derivedFrom: undefined })
+                    if (derivedFromChanged) {
+                        evictDerivations(client.cache, [
+                            unitData.id, ...formerSources, ...unitData.derivedFrom.map((derivation) => derivation.unitId)
+                        ])
+                    }
                     // a unit given other parents may join or leave an arrival, or become a unit graph's root
                     if (parentsChanged || unitData.childrenIds) evictUnitsByLocation(client.cache)
                     // and what it and the units below it inherit may change, as with its germplasm
@@ -164,6 +176,7 @@ export function useMutateUnits() {
 
     const deleteUnit = async (unitId) => {
         const childIds = (getCached({ id: unitId })?.children ?? []).map((child) => child.id)
+        const sourceIds = (cachedDerivedFrom(client.cache, unitId) ?? []).map((derivation) => derivation.unit.id)
         try {
             const response = await deleteUnitMutation({
                 unitId: unitId
@@ -173,6 +186,7 @@ export function useMutateUnits() {
                 if (result.status === 'SUCCESS') {
                     deleteFromCache({id: unitId})
                     evictUnitsByLocation(client.cache)
+                    evictDerivations(client.cache, sourceIds)
                     refreshInheritedGermplasm(client, childIds)
                 }
                 const {status, errors} = result

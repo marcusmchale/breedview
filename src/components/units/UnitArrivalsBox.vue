@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { useUnitArrivalsQuery } from '@/composables/units/unitArrivalsQuery'
 import { arrivalParam } from '@/composables/units/unitPlaces'
@@ -36,8 +36,21 @@ const {
 // the panel opens the first when it was asked where a unit went
 watch(arrivals, (list) => emit('arrivals-loaded', list), { immediate: true })
 
+// An arrival is settled when none of its units is pending: each was derived from (e.g. microcuttings planted as
+// plantlets in a unit graph of their own), moved on or used up. Settled arrivals are folded away below the others,
+// except when following a unit, where every arrival of its units is where it went.
+const isSettled = (arrival) => arrival.pendingUnitCount === 0
+const folding = computed(() => !props.unitId)
+const openArrivals = computed(() => (folding.value ? arrivals.value.filter((a) => !isSettled(a)) : arrivals.value))
+const settledArrivals = computed(() => (folding.value ? arrivals.value.filter(isSettled) : []))
+const showSettled = ref(false)
+watch([() => props.selectedArrival, settledArrivals], ([selected, settled]) => {
+  if (settled.some((arrival) => arrivalParam(arrival.start) === selected)) showSettled.value = true
+}, { immediate: true })
+
 const startLabel = (arrival) => (arrival.start ? `Arrived ${arrival.start}` : 'Undated')
 const fromLabel = (arrival) => arrival.roots.map((root) => root.name || `Unit ${root.id}`).join(', ')
+const derivedLabel = (arrival) => (arrival.derivedUnitCount ? ` · ${arrival.derivedUnitCount} derived from` : '')
 </script>
 
 <template>
@@ -56,18 +69,35 @@ const fromLabel = (arrival) => arrival.roots.map((root) => root.name || `Unit ${
       {{ unitId ? 'None of these units came here' : 'No units came here from elsewhere' }}
     </div>
     <div v-else class="arrivals-list">
-      <div
-        v-for="arrival in arrivals"
-        :key="`arrival_${arrivalParam(arrival.start)}`"
-        class="arrival-item"
-        :class="{ selected: selectedArrival === arrivalParam(arrival.start) }"
-        @click="emit('arrival-selected', arrival)"
+      <template v-for="arrival in [...openArrivals, ...(showSettled ? settledArrivals : [])]" :key="`arrival_${arrivalParam(arrival.start)}`">
+        <button
+          v-if="arrival === settledArrivals[0]"
+          type="button"
+          class="settled-toggle open"
+          @click="showSettled = false"
+        >
+          ▾ Settled ({{ settledArrivals.length }})
+        </button>
+        <div
+          class="arrival-item"
+          :class="{ selected: selectedArrival === arrivalParam(arrival.start), settled: folding && isSettled(arrival) }"
+          @click="emit('arrival-selected', arrival)"
+        >
+          <span class="arrival-start">{{ startLabel(arrival) }}</span>
+          <span class="arrival-meta">
+            {{ arrival.unitCount }} unit{{ arrival.unitCount !== 1 ? 's' : '' }} · from {{ fromLabel(arrival) }}{{ derivedLabel(arrival) }}
+          </span>
+        </div>
+      </template>
+      <button
+        v-if="settledArrivals.length && !showSettled"
+        type="button"
+        class="settled-toggle"
+        title="Arrivals whose units were all derived from, moved on or used up"
+        @click="showSettled = true"
       >
-        <span class="arrival-start">{{ startLabel(arrival) }}</span>
-        <span class="arrival-meta">
-          {{ arrival.unitCount }} unit{{ arrival.unitCount !== 1 ? 's' : '' }} · from {{ fromLabel(arrival) }}
-        </span>
-      </div>
+        ▸ Settled ({{ settledArrivals.length }})
+      </button>
     </div>
   </div>
 </template>
@@ -145,5 +175,23 @@ const fromLabel = (arrival) => arrival.roots.map((root) => root.name || `Unit ${
 .arrival-meta {
   font-size: 11px;
   color: #666;
+}
+
+.arrival-item.settled {
+  background: #fafafa;
+}
+
+.arrival-item.settled .arrival-start {
+  color: #777;
+}
+
+.settled-toggle {
+  align-self: flex-start;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: #1565c0;
+  cursor: pointer;
+  font-size: 12px;
 }
 </style>

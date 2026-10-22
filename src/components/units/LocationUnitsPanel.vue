@@ -97,6 +97,14 @@ const onArrivalMoved = ({ units, position, location }) => {
     to: { name: 'Units', query: { location: position.locationId, arrival: arrivalParam(position.start) } }
   }
 }
+// After units are derived from an arrival's, where the new units are: the arrival's units stay as they were
+const onArrivalDerived = ({ units, location, parent }) => {
+  const where = parent ? parent.name || `Unit ${parent.id}` : location?.name ?? 'another location'
+  notice.value = {
+    text: `Derived ${units.length} unit${units.length !== 1 ? 's' : ''} at ${where}`,
+    to: { name: 'Units', query: { location: location?.id, unit: units[0]?.id } }
+  }
+}
 const onArrivalChanged = ({ start }) => {
   if (arrivalParam(start) !== props.arrival) emit('update', { arrival: arrivalParam(start), unit: null })
 }
@@ -142,6 +150,7 @@ const handleNodeDeleted = () => {
           v-else-if="selectedArrival"
           :key="`arrival_${arrival}_${from}_${treeKey}`"
           :arrival="selectedArrival"
+          :subjects="subjects"
           :unitId="from"
           :selectedNodeId="unit"
           :expandIds="expandIds"
@@ -150,6 +159,7 @@ const handleNodeDeleted = () => {
           @clear-from="emit('update', { from: null })"
           @units-loaded="arrivalTops = $event"
           @arrival-moved="onArrivalMoved"
+          @arrival-derived="onArrivalDerived"
           @arrival-changed="onArrivalChanged"
         />
         <div v-else class="empty-selection">

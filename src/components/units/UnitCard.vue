@@ -8,11 +8,14 @@ import AddPositionModal from '@/components/units/addPositionModal.vue'
 import MoveUnitsModal from '@/components/units/moveUnitsModal.vue'
 import ChangePositionsModal from '@/components/units/changePositionsModal.vue'
 import PositionDetails from '@/components/units/positionDetails.vue'
+import DeriveUnitsModal from '@/components/units/deriveUnitsModal.vue'
+import EditDerivationsModal from '@/components/units/editDerivationsModal.vue'
 
 import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
 import { currentPosition as currentPositionOf } from '@/composables/units/unitPositions'
 import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
 import { positionMatch } from '@/composables/units/mutatePositions'
+import { sourceTypeLabel, useUnitDerivationsQuery } from '@/composables/units/derivations'
 
 const props = defineProps({
   unitId: {
@@ -78,6 +81,19 @@ const parentsList = computed(() => {
   if (!unit.value) return []
   return unit.value.parents ?? []
 })
+
+// What its material came from and the units derived from it: history, apart from its parents and children, as
+// nothing comes down a derivation
+const { derivedFrom, derivatives, refetchDerivations } = useUnitDerivationsQuery(() => props.unitId)
+const derivationLabel = (derivation) => {
+  const name = derivation.unit.name || `Unit ${derivation.unit.id}`
+  const how = [sourceTypeLabel(derivation.sourceType), derivation.description].filter(Boolean).join(': ')
+  return how ? `${name} (${how})` : name
+}
+const derivationModal = ref(null)  // 'derive' or 'edit'
+const handleDerivationsChanged = async () => {
+  await refetchDerivations()
+}
 
 // The unit's own position now, or the last one it had when that has ended
 const current = computed(() => currentPositionOf(positionsList.value))
@@ -207,6 +223,17 @@ const openPositionModal = (mode, position = null) => {
         >
           End…
         </button>
+        <button
+          v-if="canCreate"
+          @click="derivationModal = 'derive'"
+          class="btn btn-sm btn-outline"
+          title="New units from this one's material, e.g. plants grown from it elsewhere"
+        >
+          Derive…
+        </button>
+        <button v-if="canCurate" @click="derivationModal = 'edit'" class="btn btn-sm btn-outline">
+          Derived from…
+        </button>
         <ControllerBadge entityLabel="UNIT" :entityId="unit.id" />
       </div>
     </div>
@@ -296,6 +323,37 @@ const openPositionModal = (mode, position = null) => {
           </button>
         </div>
       </div>
+
+      <!-- Derivations: where its material came from and went, each opens where it is now -->
+      <div v-if="derivedFrom.length > 0" class="section derived-from">
+        <h3 class="section-title">Derived From</h3>
+        <div class="tag-list">
+          <button
+            v-for="derivation in derivedFrom"
+            :key="derivation.unit.id"
+            type="button"
+            class="tag tag-link tag-derivation"
+            @click="emit('go-to-unit', derivation.unit.id)"
+          >
+            {{ derivationLabel(derivation) }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="derivatives.length > 0" class="section derivatives">
+        <h3 class="section-title">Derived Units ({{ derivatives.length }})</h3>
+        <div class="tag-list">
+          <button
+            v-for="derivation in derivatives"
+            :key="derivation.unit.id"
+            type="button"
+            class="tag tag-link tag-derivation"
+            @click="emit('go-to-unit', derivation.unit.id)"
+          >
+            {{ derivationLabel(derivation) }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="isDeleteModalOpen" class="modal-overlay" @click="closeDeleteModal">
@@ -342,6 +400,25 @@ const openPositionModal = (mode, position = null) => {
       />
     </div>
 
+    <div v-if="derivationModal === 'derive'" class="modal-overlay" @click="derivationModal = null">
+      <DeriveUnitsModal
+        :units="thisUnit"
+        :description="unitName"
+        :subjects="subjects"
+        :locationId="locationId"
+        @derived="handleDerivationsChanged"
+        @close="derivationModal = null"
+      />
+    </div>
+    <div v-else-if="derivationModal === 'edit'" class="modal-overlay" @click="derivationModal = null">
+      <EditDerivationsModal
+        :unit="unit"
+        :derivedFrom="derivedFrom"
+        @success="handleDerivationsChanged"
+        @close="derivationModal = null"
+      />
+    </div>
+
     <div v-if="isAddPositionModalOpen" class="modal-overlay" @click="closeAddPositionModal">
       <AddPositionModal
         :unitId="unitId"
@@ -363,6 +440,11 @@ const openPositionModal = (mode, position = null) => {
 .tag-link:hover {
   border-color: #1565c0;
   color: #1565c0;
+}
+
+.tag.tag-derivation {
+  background: #f3e5f5;
+  color: #6a1b9a;
 }
 
 .inherited-from {
