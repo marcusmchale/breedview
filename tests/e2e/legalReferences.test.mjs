@@ -159,3 +159,24 @@ test('a licence released less widely than the study and its datasets is refused'
   assert.match(await page.text('.modal .error-message'), /is released as PRIVATE, so it cannot be the licence of data released as REGISTERED/)
   await page.click('.modal .btn-secondary')
 })
+
+// The licence files uploaded above are among the writer's recent files, which a File tab leaves out: it offers recent
+// file references only
+test("the study's references offer as recent files only those of the File tab's type", async () => {
+  await openStudy()
+  await page.evaluate(`${studyCard}.querySelector('.study-actions button').click()`)
+  await page.waitFor(`document.querySelector('.modal .reference-section')`)
+  const mark = page.mark()
+  // Manage, or Add References, beside the licence
+  await page.evaluate(`[...document.querySelectorAll('.modal .reference-section')]
+    .find((s) => s.querySelector('.section-label')?.innerText.trim() === 'References').querySelector('button').click()`)
+  await page.waitFor(`document.querySelector('.modal-container .tabs')`)
+  await page.evaluate(`[...document.querySelectorAll('.modal-container .tabs .tab')].find((t) => t.innerText.includes('File')).click()`)
+  // the recent files are read as the modal opens
+  for (let i = 0; i < 100 && !page.graphql(mark).some((r) => r.op === 'referencesRecentFiles'); i++) await page.sleep(100)
+  await page.sleep(500)
+  const recent = await page.evaluate(`[...document.querySelectorAll('.modal-container .recent-section .reference-item')].map((e) => e.innerText)`)
+  assert.deepEqual(recent.filter((text) => descriptions.some((description) => text.includes(description))), [])
+  await page.click('.modal-container .close-btn')
+  await page.click('.modal .btn-secondary')
+})

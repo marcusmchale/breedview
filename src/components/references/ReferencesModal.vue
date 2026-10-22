@@ -95,6 +95,9 @@ const filteredRecentFiles = computed(() => {
   )
 })
 
+// The recent files of a tab's type, shown under that tab
+const recentFilesOf = (tab) => filteredRecentFiles.value.filter(ref => ref.__typename === tab.typename)
+
 const selectedReferences = computed(() => {
   return selectedReferencesData.value.filter(ref => selectedIds.value.includes(ref.id))
 })
@@ -274,13 +277,13 @@ const getFormComponent = (typeKey) => {
 
               <!-- Recent section for file-like types -->
               <div
-                v-if="showRecent && (tab.id === 'FILE' || tab.id === 'DATA_FILE') && filteredRecentFiles.length > 0 && !editingReference"
+                v-if="showRecent && (tab.id === 'FILE' || tab.id === 'DATA_FILE') && recentFilesOf(tab).length > 0 && !editingReference"
                 class="recent-section"
               >
                 <h4>Recent References</h4>
                 <div class="reference-list">
                   <ReferenceItem
-                    v-for="ref in filteredRecentFiles"
+                    v-for="ref in recentFilesOf(tab)"
                     :key="ref.id"
                     :reference="ref"
                     :selectable="true"

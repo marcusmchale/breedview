@@ -1,6 +1,6 @@
 #import "./referenceFragment.graphql"
-query referencesRecentFiles {
-  referencesRecentFiles {
+query referencesRecentFiles($referenceTypes: [ReferenceType!]) {
+  referencesRecentFiles(referenceTypes: $referenceTypes) {
     status
     result {
         ...ReferenceFields
