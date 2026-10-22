@@ -6,6 +6,7 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { useCsrf } from '@/composables/system/useCsrf'
 import { termsAccepted } from '@/composables/system/termsOfUseState'
+import { explainUploadTooLarge } from '@/apolloConfig/uploadLimit'
 
 import possibleTypes from './possibleTypes.json';
 
@@ -62,6 +63,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
       return forward(operation);
     }
   }
+
+  // A file over the server's upload limit: the forms show the error's message, which says so
+  explainUploadTooLarge(networkError)
 
   // Log GraphQL errors if present
   if (networkError?.result?.errors) {
