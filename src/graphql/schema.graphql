@@ -966,6 +966,8 @@ input RecordInput {
 """A record's changes: a field not given is left as it is"""
 input RecordUpdate {
   id: ID!
+
+  """ Moves the record to this unit, which the user must be able to read """
   unitId: ID
   value: String
 
