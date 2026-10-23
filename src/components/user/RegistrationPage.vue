@@ -65,7 +65,8 @@ const submitHandler = async (formData) => {
     fullname: formData.fullname?.trim() || null,
     // registration requires the invited address, so take it from the invitation rather than the form
     email: invitation.value?.email ?? formData.email,
-    password: formData.password
+    password: formData.password,
+    privacyConsent: formData.privacyConsent === true
   }
   if (hasToken.value) {
     variables.invitationToken = props.token
@@ -208,22 +209,20 @@ const submitHandler = async (formData) => {
           </div>
         </div>
 
-        <!-- confirming the notice was read, not consent: consent is not the lawful basis (breedgraph docs/legal/privacy-notice.md) -->
         <div class="gdpr-consent">
           <FormKit
             type="checkbox"
-            name="privacyNoticeRead"
+            name="privacyConsent"
             validation="accepted"
             :validation-messages="{
-              accepted: 'Please confirm you have read the privacy notice'
+              accepted: 'Registering needs your consent to the processing of your personal data'
             }"
           >
             <template #label>
               <span class="gdpr-label">
-                I have read the
-                <a href="#" @click.prevent="showPrivacyModal = true" class="privacy-link">
-                  privacy notice
-                </a>
+                I consent to the processing of my personal data as the
+                <a href="#" @click.prevent="showPrivacyModal = true" class="privacy-link">privacy notice</a>
+                describes
               </span>
             </template>
           </FormKit>

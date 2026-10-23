@@ -17,7 +17,7 @@ export function useMutatePeople() {
   const { mutate: updateMutation, loading: updatePersonLoading } = useMutation(UPDATE_PERSON_MUTATION)
   const { mutate: eraseMutation, loading: erasePersonLoading } = useMutation(ERASE_PERSON_MUTATION)
 
-  // personData: { name, institution, teamIds, informedAttestation }
+  // personData: { name, institution, teamIds, consentAttestation }
   const createPerson = async ({ personData, controlTeamId, release }) => {
     const response = await createMutation({
       person: personData,

@@ -5,8 +5,8 @@ import { useMutatePeople } from '@/composables/people/mutatePeople'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { RELEASE_CEILINGS } from '@/composables/controls/releases'
 
-// Create a Person (person null) or update one. Creating needs a control team and confirmation that the person was
-// told about the record and the privacy notice. Persons are released at most to registered users.
+// Create a Person (person null) or update one. Creating needs a control team and confirmation that the person consented
+// to the record, having been told about it and the privacy notice. Persons are released at most to registered users.
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -27,7 +27,7 @@ const emit = defineEmits(['close', 'saved'])
 
 const isUpdate = computed(() => !!props.person)
 
-const form = ref({ name: '', institution: '', teamIds: [], informed: false })
+const form = ref({ name: '', institution: '', teamIds: [], consented: false })
 const errorMessage = ref('')
 const controlTeamId = ref(null)
 const release = ref(null)
@@ -57,7 +57,7 @@ watch(() => props.isOpen, (isOpen) => {
       name: props.person?.name ?? '',
       institution: props.person?.institution ?? '',
       teamIds: (props.person?.teams ?? []).filter(({ standIn }) => !standIn).map(({ team }) => String(team.id)),
-      informed: false
+      consented: false
     }
     errorMessage.value = ''
   }
@@ -65,7 +65,7 @@ watch(() => props.isOpen, (isOpen) => {
 
 const canSubmit = computed(() => {
   if (busy.value || !form.value.name.trim()) return false
-  if (!isUpdate.value) return form.value.informed && !!controlTeamId.value
+  if (!isUpdate.value) return form.value.consented && !!controlTeamId.value
   return true
 })
 
@@ -90,7 +90,7 @@ const submitForm = async () => {
           name: form.value.name.trim(),
           institution: form.value.institution.trim() || null,
           teamIds: form.value.teamIds,
-          informedAttestation: form.value.informed
+          consentAttestation: form.value.consented
         },
         controlTeamId,
         release
@@ -168,11 +168,11 @@ const closeModal = () => {
           </template>
 
           <div v-if="!isUpdate" class="form-group">
-            <label class="informed-attestation">
-              <input v-model="form.informed" type="checkbox" :disabled="busy" />
+            <label class="consent-attestation">
+              <input v-model="form.consented" type="checkbox" :disabled="busy" />
               <span>
-                I confirm this person took part in the research and has been told about this record and the
-                <router-link to="/privacy" target="_blank">BreedGraph privacy notice</router-link>
+                They agreed to be recorded, having been told about the record and the
+                <router-link to="/privacy" target="_blank">privacy notice</router-link>
               </span>
             </label>
           </div>
@@ -230,7 +230,7 @@ const closeModal = () => {
 }
 
 .team-option,
-.informed-attestation {
+.consent-attestation {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -239,7 +239,7 @@ const closeModal = () => {
 }
 
 .team-option input,
-.informed-attestation input {
+.consent-attestation input {
   width: auto;
   margin-top: 3px;
 }

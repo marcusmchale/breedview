@@ -3,6 +3,7 @@ mutation accountsCreateAccount(
     $fullname: String,
     $email: String!,
     $password: String!,
+    $privacyConsent: Boolean!,
     $invitationToken: String,
     $acceptTeamIds: [ID!],
     $linkPerson: Boolean
@@ -12,6 +13,7 @@ mutation accountsCreateAccount(
         fullname: $fullname,
         email: $email,
         password: $password,
+        privacyConsent: $privacyConsent,
         invitationToken: $invitationToken,
         acceptTeamIds: $acceptTeamIds,
         linkPerson: $linkPerson

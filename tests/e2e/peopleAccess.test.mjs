@@ -8,7 +8,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, loginAs, logout, flat } from './lib/app.mjs'
+import { config, loginAs, logout, flat, graphql, uniqueName } from './lib/app.mjs'
 import { entities as e, teams, personView } from './lib/fixture.mjs'
 
 let browser, page
@@ -100,6 +100,43 @@ test('a curator of the controlling team can edit a Person', async () => {
   try {
     await openPeople('person_private')
     assert.match(await cardOf('person_private'), /Edit/)
+  } finally {
+    await logout(page)
+  }
+})
+
+test('a Person is added only on confirming they consented to the record, and the API keeps the attestation', async () => {
+  await loginAs(page, 'admin')
+  const name = uniqueName('E2E consented person ')
+  try {
+    await page.goto(`${config.appUrl}/people`)
+    await page.waitFor(`[...document.querySelectorAll('button')].some((b) => b.innerText.includes('Add Person'))`, 30000)
+    await page.clickText('Add Person')
+    await page.waitFor(`document.querySelector('#person-name')`)
+    await page.type('#person-name', name)
+    assert.equal(
+      flat(await page.text('.consent-attestation')),
+      'They agreed to be recorded, having been told about the record and the privacy notice'
+    )
+    const submit = `[...document.querySelectorAll('.modal button[type=submit]')].find((b) => b.innerText.includes('Add person'))`
+    await page.sleep(1000)
+    assert.equal(await page.evaluate(`${submit}.disabled`), true, 'not without their consent')
+    await page.check('.consent-attestation input', true)
+    // the control team loads too
+    await page.waitFor(`!${submit}.disabled`, 15000)
+    await page.evaluate(`${submit}.click()`)
+    await page.waitFor(`!document.querySelector('#person-name') && document.body.innerText.includes(${JSON.stringify(name)})`, 15000)
+
+    const people = await graphql(page, 'query ($name: String) { people(name: $name) { result { id consentAttestation } } }', { name })
+    assert.equal(people.result.length, 1)
+    assert.equal(people.result[0].consentAttestation, true)
+
+    // erase it, as an admin of its controlling team
+    await page.evaluate(`[...document.querySelectorAll('.person-card')].find((c) => c.innerText.includes(${JSON.stringify(name)}))
+      .querySelector('.btn-danger').click()`)
+    await page.check('.confirm-erase input', true)
+    await page.evaluate(`[...document.querySelectorAll('.modal .btn-danger')].find((b) => b.innerText.includes('Erase')).click()`)
+    await page.waitFor(`!document.querySelector('.confirm-erase')`, 15000)
   } finally {
     await logout(page)
   }

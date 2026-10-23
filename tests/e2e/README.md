@@ -72,7 +72,8 @@ a study per field with its datasets, the first of them, the perf scripts' defaul
 belongs to `child` and is private.
 
 Some tests write: the invitation test registers a new account with a unique name and address at `example.com`
-(`E2E_MAIL_DOMAIN` to change), the write actions test grants the admin curate access to `child` and removes it
+(`E2E_MAIL_DOMAIN` to change), the people test adds a Person and erases it (each run leaves an erased record), the
+write actions test grants the admin curate access to `child` and removes it
 afterwards, the germplasm unit test gives `crop_line` a unit and creates an entry, then puts the unit back and
 deletes the entry, and the record references test submits a dataset to the spectra's submission study and deletes its
 record in curation (datasets can't be deleted, so each run leaves one there, empty). Restore the dump when a clean state

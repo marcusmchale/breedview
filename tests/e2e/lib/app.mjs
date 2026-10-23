@@ -112,7 +112,7 @@ export async function register(page, { username, fullname = '', password = confi
   if (email && await page.evaluate(`!document.querySelector('input[name=email]').readOnly`)) await page.type('input[name=email]', email)
   await page.type('input[name=password]', password)
   if (acceptAllOffers) await page.evaluate(`[...document.querySelectorAll('input[name=acceptTeamIds]')].forEach((e) => { if (!e.checked) e.click() })`)
-  await page.check('input[name=privacyNoticeRead]', true)
+  await page.check('input[name=privacyConsent]', true)
   await page.sleep(200)
   await page.click('button[type=submit]')
   await page.waitFor(`document.querySelector('.form-container .success-message, .form-container .error-message')`, 15000)
