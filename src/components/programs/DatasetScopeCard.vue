@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { plural } from '@/composables/system/counts'
 import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
@@ -28,7 +29,7 @@ const totalRecords = computed(() =>
       <div class="scope-title">
         Scope {{ index + 1 }}
         <span class="scope-meta">
-          {{ datasets.length }} dataset{{ datasets.length === 1 ? '' : 's' }}, {{ totalRecords }} records
+          {{ plural(datasets.length, 'dataset') }}, {{ plural(totalRecords, 'record') }}
         </span>
       </div>
       <button type="button" class="btn-remove" title="Remove scope" @click="$emit('remove')">
@@ -42,7 +43,7 @@ const totalRecords = computed(() =>
           <strong>{{ d.summary.concept?.name || 'Unknown concept' }}</strong><RetiredTag :entry="d.summary.concept" />
           <span class="dataset-id">#{{ d.id }}</span>
           <span class="dataset-meta">
-            — {{ d.summary.unit_count ?? '—' }} units, {{ d.summary.record_count ?? '—' }} records
+            — {{ plural(d.summary.unit_count, 'unit') }}, {{ plural(d.summary.record_count, 'record') }}
             <template v-if="d.summary.start || d.summary.end">
               ({{ d.summary.start || '?' }} to {{ d.summary.end || '?' }})
             </template>

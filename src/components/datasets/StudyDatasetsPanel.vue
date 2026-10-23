@@ -28,7 +28,7 @@
               ▶
             </button>
             <span class="concept-name">{{ dataset.concept?.name || `Concept ${dataset.concept?.id}` }}<RetiredTag :entry="dataset.concept" /></span>
-            <span class="record-count">{{ dataset.record_count }} records</span>
+            <span class="record-count">{{ plural(dataset.record_count, 'record') }}</span>
           </div>
 
           <div v-if="isExpanded(dataset.id)" class="dataset-details">
@@ -70,6 +70,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { plural } from '@/composables/system/counts'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
 import { useCanCreate } from '@/composables/controls/useWriteAccess'
 import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'

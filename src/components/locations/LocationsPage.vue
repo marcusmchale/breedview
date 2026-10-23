@@ -2,6 +2,7 @@
 
 import { ref, shallowRef, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { plural } from '@/composables/system/counts'
 
 import LocationMap from './LocationMap.vue'
 import LocationTree from './LocationTree.vue'
@@ -40,7 +41,6 @@ const { arrangements: layoutRoots } = useLayoutRootsQuery(displayedLocationId)
 const displayedLocationIds = computed(() => (displayedLocationId.value ? [displayedLocationId.value] : []))
 const { blocks: unitRoots } = useUnitRootsQuery({ locationIds: displayedLocationIds })
 const { arrivals } = useUnitArrivalsQuery({ locationIds: displayedLocationIds })
-const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
 // drawing sets the selected location's coordinates, so the tools are offered only to those who can change it
 const canCreate = useCanCreate()
 const canCurateDisplayed = useCanCurate({ entityLabel: 'LOCATION', entityId: displayedLocationId })

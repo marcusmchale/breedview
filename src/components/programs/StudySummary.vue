@@ -73,7 +73,7 @@ const chipTitle = (entry) =>
     <template v-else>
       <p class="totals">
         <span><strong>{{ datasetSummaries.length }}</strong> dataset{{ datasetSummaries.length === 1 ? '' : 's' }}</span>
-        <span><strong>{{ recordCount }}</strong> records</span>
+        <span><strong>{{ recordCount }}</strong> record{{ recordCount === 1 ? '' : 's' }}</span>
         <span v-if="dateRange">{{ dateRange }}</span>
       </p>
 

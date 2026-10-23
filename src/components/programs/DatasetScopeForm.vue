@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { plural } from '@/composables/system/counts'
 
 const props = defineProps({
   summaries: { type: Array, default: () => [] },
@@ -81,7 +82,7 @@ const handleCancel = () => {
             <span class="dataset-id">#{{ ds.id }}</span>
           </div>
           <div class="dataset-meta">
-            {{ ds.unit_count ?? '—' }} units, {{ ds.record_count ?? '—' }} records
+            {{ plural(ds.unit_count, 'unit') }}, {{ plural(ds.record_count, 'record') }}
             <template v-if="ds.start || ds.end">
               · {{ ds.start || '?' }} to {{ ds.end || '?' }}
             </template>

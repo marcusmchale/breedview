@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { plural } from '@/composables/system/counts'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { removeTermReferences } from '@/composables/analysis/useAnalysisForm'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
@@ -52,8 +53,6 @@ const addOtherAxis = () => {
 const setTime = (value) => {
   position().time = value ? value : null
 }
-
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 </script>
 
 <template>

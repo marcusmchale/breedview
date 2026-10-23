@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { plural } from '@/composables/system/counts'
 import { useSelectStudyQueries } from '@/composables/datasets/selectStudyQueries'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { ANALYSIS_TYPES } from '@/composables/analysis/useAnalysisForm'
@@ -162,7 +163,7 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
           <input type="checkbox" :value="s.id" :checked="isSelected(s.id)" @change="toggleDataset(s.id)" />
           <span class="dataset-concept">{{ s.concept?.name ?? `Dataset ${s.id}` }}<RetiredTag :entry="s.concept" /></span>
           <span class="muted">
-            {{ s.record_count }} records · {{ s.unit_count }} units
+            {{ plural(s.record_count, 'record') }} · {{ plural(s.unit_count, 'unit') }}
             <template v-if="s.start || s.end"> · {{ formatDate(s.start) }} – {{ formatDate(s.end) }}</template>
           </span>
           <span v-if="isSelected(s.id)" class="order" title="Order of the dataset in the analysis">
