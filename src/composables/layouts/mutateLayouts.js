@@ -62,6 +62,7 @@ export function useMutateLayouts() {
             const { status, errors } = result
             return { status, errors }
         }
+        return { status: 'ERROR', errors: [{ message: 'No response from server' }] }
     }
 
     // Update a layout
@@ -82,6 +83,7 @@ export function useMutateLayouts() {
             const { status, errors} = result
             return { status, errors}
         }
+        return { status: 'ERROR', errors: [{ message: 'No response from server' }] }
     }
 
     // Delete a layout
@@ -103,6 +105,7 @@ export function useMutateLayouts() {
             const {status, errors} = result
             return {status, errors}
         }
+        return { status: 'ERROR', errors: [{ message: 'No response from server' }] }
     }
 
     return {
