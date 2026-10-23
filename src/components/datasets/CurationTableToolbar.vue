@@ -14,10 +14,14 @@ const props = defineProps({
   // true while the table holds unsaved changes, which a new page would discard
   pagingLocked: { type: Boolean, default: false },
   // more optional columns of the loaded datasets, [{ key, label }], shown until hidden
-  extraColumns: { type: Array, default: () => [] }
+  extraColumns: { type: Array, default: () => [] },
+  // how records are laid out in rows, from rowModes ([{ value, label }]); locked while changes are unsaved
+  rowMode: { type: String, default: null },
+  rowModes: { type: Array, default: () => [] },
+  rowModeLocked: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['back', 'export', 'update:columnVisibility', 'update:page'])
+const emit = defineEmits(['back', 'export', 'update:columnVisibility', 'update:page', 'update:rowMode'])
 
 // The optional columns, chosen under one Columns menu
 const OPTIONAL_COLUMNS = [
@@ -73,6 +77,19 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
 
     <div class="toolbar-spacer"></div>
 
+    <label v-if="rowModes.length" class="row-mode" title="Records of a unit that share a row; a row by period shows each value's own time when you point at it">
+      Rows
+      <select
+        name="rowMode"
+        :value="rowMode"
+        :disabled="rowModeLocked"
+        :title="rowModeLocked ? 'Save or discard your changes before laying out the rows again' : ''"
+        @change="emit('update:rowMode', $event.target.value)"
+      >
+        <option v-for="mode in rowModes" :key="mode.value" :value="mode.value">{{ mode.label }}</option>
+      </select>
+    </label>
+
     <details class="column-toggles">
       <summary class="btn btn-secondary btn-sm">Columns</summary>
       <div class="column-menu">
@@ -124,6 +141,19 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 12px;
+}
+
+.row-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+
+.row-mode select {
+  font-size: 13px;
+  padding: 3px 6px;
 }
 
 .column-toggles {

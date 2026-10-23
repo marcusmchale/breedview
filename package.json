@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js --fix",
     "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+    "test:unit": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/unit/*.test.mjs",
     "perf:curation": "node tests/e2e/perf/curation.mjs",
     "perf:blocks": "node tests/e2e/perf/blocks.mjs",
     "perf:analysis": "node tests/e2e/perf/analysis.mjs",

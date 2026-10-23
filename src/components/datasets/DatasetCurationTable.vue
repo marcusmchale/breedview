@@ -11,6 +11,7 @@ import {
 
 import { useDatasetRecordPages, DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
 import { useDatasetCurationTable } from '@/composables/datasets/useDatasetCurationTable'
+import { ROW_MODES } from '@/composables/datasets/curationRows'
 import { useStudiesGroupings } from '@/composables/programs/studiesGroupingsQuery'
 
 import CurationTableToolbar from './CurationTableToolbar.vue'
@@ -68,7 +69,8 @@ const {
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
   getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt,
-  appliedFactors, appliedKey, getAppliedFactor, refreshControllers
+  appliedFactors, appliedKey, getAppliedFactor, refreshControllers,
+  rowMode, canChangeRowMode, setRowMode, isTimeCellEditable, getCellTime, hasRowTimesChanged
 } = useDatasetCurationTable()
 
 // The units' germplasm and location fill their columns whenever the page's units arrive
@@ -240,34 +242,50 @@ const paddingBottom = computed(() => {
 })
 const columnCount = computed(() => table.value?.getFlatHeaders().length ?? 1)
 
-// ---- Grouping cell editing ----
-const editingGroupCell = ref(null) // { rowIndex, columnId }
-const editingGroupValue = ref('')
+// ---- Editing what a row's records share: its group codes, and its start and end where it holds one record ----
+const editingRowCell = ref(null) // { rowIndex, columnId }
+const editingRowCellValue = ref('')
 
 const isGroupingColumn = (cell) => cell.column.columnDef.meta?.type === 'grouping'
 const TIME_COLUMNS = new Set(['startTime', 'endTime'])
+const isRowCellEditable = (rowIndex, columnId) =>
+  (TIME_COLUMNS.has(columnId) ? isTimeCellEditable(rowIndex) : isGroupCellEditable(rowIndex, columnId))
 
-const isEditingGroupCell = (rowIndex, columnId) =>
-  editingGroupCell.value?.rowIndex === rowIndex && editingGroupCell.value?.columnId === columnId
+const isEditingRowCell = (rowIndex, columnId) =>
+  editingRowCell.value?.rowIndex === rowIndex && editingRowCell.value?.columnId === columnId
 
-const startGroupEdit = (rowIndex, columnId, value) => {
-  if (!isGroupCellEditable(rowIndex, columnId)) return
-  editingGroupCell.value = { rowIndex, columnId }
-  editingGroupValue.value = value ?? ''
-  nextTick(() => document.querySelector('.group-cell-input')?.focus())
+const startRowCellEdit = (rowIndex, columnId, value) => {
+  if (!isRowCellEditable(rowIndex, columnId)) return
+  editingRowCell.value = { rowIndex, columnId }
+  editingRowCellValue.value = value ?? ''
+  nextTick(() => document.querySelector('.row-cell-input')?.focus())
 }
 
-const commitGroupEdit = () => {
-  if (!editingGroupCell.value) return
-  const { rowIndex, columnId } = editingGroupCell.value
-  updateCell(rowIndex, columnId, editingGroupValue.value.trim())
-  editingGroupCell.value = null
-  editingGroupValue.value = ''
+const commitRowCellEdit = () => {
+  if (!editingRowCell.value) return
+  const { rowIndex, columnId } = editingRowCell.value
+  updateCell(rowIndex, columnId, editingRowCellValue.value.trim())
+  editingRowCell.value = null
+  editingRowCellValue.value = ''
 }
 
-const cancelGroupEdit = () => {
-  editingGroupCell.value = null
-  editingGroupValue.value = ''
+const cancelRowCellEdit = () => {
+  editingRowCell.value = null
+  editingRowCellValue.value = ''
+}
+// rows laid out again are not the rows being edited
+watch(rowMode, cancelRowCellEdit)
+
+// A cell's title: its error, else in a row by period what the period holds, or a value's own time
+const cellTitle = (row, cell) => {
+  const error = getCellError(row.index, cell.column.id)
+  if (error) return error.message
+  const conceptId = cell.column.columnDef.meta?.conceptId
+  if (conceptId) return getCellTime(row.index, conceptId) ?? undefined
+  if (cell.column.id === 'startTime' && row.original._period != null) {
+    return `Records of ${row.original._period}: point at a value for its own time`
+  }
+  return undefined
 }
 
 // ---- DATASET_SCOPED row sections ----
@@ -292,7 +310,9 @@ const getCellClasses = (row, cell) => {
     'grouping-cell': meta?.type === 'grouping',
     'locked-cell':
       (conceptId && !isCellEditable(row.index, conceptId))
-      || (meta?.type === 'grouping' && !isGroupCellEditable(row.index, cell.column.id)),
+      || (meta?.type === 'grouping' && !isGroupCellEditable(row.index, cell.column.id))
+      || (TIME_COLUMNS.has(cell.column.id) && rowMode.value === 'record' && !isTimeCellEditable(row.index)),
+    'time-changed': TIME_COLUMNS.has(cell.column.id) && hasRowTimesChanged(row.index),
     'empty-cell': conceptId && !cellHasRecord(row.index, conceptId),
     'deleted-cell': conceptId && isMarkedForDeletion(row.index, conceptId),
     'error-cell': error,
@@ -391,7 +411,7 @@ const submissionSucceeded = computed(() => {
 })
 
 const handleSubmit = async () => {
-  cancelGroupEdit()
+  cancelRowCellEdit()
   hasAttemptedSubmit.value = true
   await submitAllChanges()
 }
@@ -421,7 +441,7 @@ const handleExport = () => {
 }
 
 const performCleanup = () => {
-  cancelGroupEdit()
+  cancelRowCellEdit()
   hasAttemptedSubmit.value = false
   cleanup()
 }
@@ -439,10 +459,14 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       :filter-summary="filterSummary"
       :paging-locked="hasUnsavedChanges || isSubmitting"
       :extra-columns="appliedColumns"
+      :row-mode="rowMode"
+      :row-modes="ROW_MODES"
+      :row-mode-locked="!canChangeRowMode"
       @back="handleBack"
       @export="handleExport"
       @update:column-visibility="columnVisibility = $event"
       @update:page="page = $event"
+      @update:row-mode="setRowMode"
     />
 
     <CurationContributorsPanel
@@ -539,7 +563,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                 v-for="cell in row.getVisibleCells()"
                 :key="cell.id"
                 :class="getCellClasses(row, cell)"
-                :title="getCellError(row.index, cell.column.id)?.message"
+                :title="cellTitle(row, cell)"
                 :style="{ width: cell.column.columnDef.meta?.width }"
               >
                 <template v-if="cell.column.columnDef.meta?.isActions">
@@ -548,16 +572,16 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 
                 <!-- Grouping cell -->
                 <template v-else-if="isGroupingColumn(cell)">
-                  <template v-if="isEditingGroupCell(row.index, cell.column.id)">
+                  <template v-if="isEditingRowCell(row.index, cell.column.id)">
                     <input
-                      v-model="editingGroupValue"
+                      v-model="editingRowCellValue"
                       type="text"
-                      class="group-cell-input"
+                      class="group-cell-input row-cell-input"
                       placeholder="e.g. R1, Batch A"
                       :list="`group-options-${cell.column.id}`"
-                      @blur="commitGroupEdit"
-                      @keydown.enter="commitGroupEdit"
-                      @keydown.esc="cancelGroupEdit"
+                      @blur="commitRowCellEdit"
+                      @keydown.enter="commitRowCellEdit"
+                      @keydown.esc="cancelRowCellEdit"
                     />
                     <datalist :id="`group-options-${cell.column.id}`">
                       <option
@@ -570,7 +594,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                   <div
                     v-else
                     class="group-cell-display"
-                    @click="startGroupEdit(row.index, cell.column.id, cell.getValue())"
+                    @click="startRowCellEdit(row.index, cell.column.id, cell.getValue())"
                   >
                     <template v-if="cell.getValue()">{{ cell.getValue() }}</template>
                     <!-- a factor record without a code describes every level of the grouping -->
@@ -610,11 +634,32 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                   :title="getAppliedFactor(row.original, cell.column.columnDef.meta.appliedConceptId)?.title"
                 >{{ getAppliedFactor(row.original, cell.column.columnDef.meta.appliedConceptId)?.value }}</span>
 
-                <!-- a factor record without a start or end describes every time -->
-                <span
-                  v-else-if="row.original._kind === 'factor' && TIME_COLUMNS.has(cell.column.id) && !cell.getValue()"
-                  class="applies-to-all"
-                >all times</span>
+                <!-- Start and end: a row by period shows the period, and a row by record can be given other times -->
+                <template v-else-if="TIME_COLUMNS.has(cell.column.id)">
+                  <input
+                    v-if="isEditingRowCell(row.index, cell.column.id)"
+                    v-model="editingRowCellValue"
+                    type="text"
+                    class="time-cell-input row-cell-input"
+                    placeholder="YYYY-MM-DD"
+                    @blur="commitRowCellEdit"
+                    @keydown.enter="commitRowCellEdit"
+                    @keydown.esc="cancelRowCellEdit"
+                  />
+                  <div
+                    v-else
+                    class="time-cell-display"
+                    :class="{ editable: isTimeCellEditable(row.index) }"
+                    @click="startRowCellEdit(row.index, cell.column.id, cell.getValue())"
+                  >
+                    <span v-if="row.original._period != null && cell.column.id === 'startTime'" class="period">
+                      {{ cell.getValue() }}
+                    </span>
+                    <template v-else-if="cell.getValue()">{{ cell.getValue() }}</template>
+                    <!-- a factor record without a start or end describes every time -->
+                    <span v-else-if="row.original._kind === 'factor'" class="applies-to-all">all times</span>
+                  </div>
+                </template>
                 <template v-else>{{ cell.getValue() }}</template>
               </td>
             </tr>
@@ -796,7 +841,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 .grouping-cell { background: #fcfcf5; }
 .group-cell-display { min-height: 18px; cursor: text; }
 .locked-cell .group-cell-display { cursor: not-allowed; color: #888; }
-.group-cell-input {
+.group-cell-input, .time-cell-input {
   width: 100%;
   padding: 3px;
   border: 1px solid #2196f3;
@@ -805,6 +850,12 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
   box-sizing: border-box;
 }
 .row-groups-changed td.grouping-cell { background: #e3f2fd; }
+.time-cell-display { min-height: 18px; }
+.time-cell-display.editable { cursor: text; }
+.locked-cell .time-cell-display { cursor: not-allowed; color: #888; }
+/* a row by period: the period, whose values have times of their own */
+.time-cell-display .period { font-style: italic; color: #555; }
+td.time-changed { background: #e3f2fd; }
 
 .grouping-badge {
   font-size: 10px;

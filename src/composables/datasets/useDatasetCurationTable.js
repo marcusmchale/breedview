@@ -2,11 +2,12 @@ import { contributionsInput, contributionsKey } from '@/composables/people/perso
 import { ref, computed } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { useMutateDatasets } from './mutateDatasets'
-import { useDatetimeUtils } from '@/composables/parsers/partialDatetime'
+import { useDatetimeUtils, periodStart, periodEnd } from '@/composables/parsers/partialDatetime'
 import { useValueParser } from '@/composables/parsers/valueParser'
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates";
 import { timeSpan, codeKey, describingRecords } from './factorApplication'
+import { DEFAULT_ROW_MODE, layoutRows, recordTimeLabel } from './curationRows'
 import { placeAt } from '@/composables/units/unitPositions'
 
 import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
@@ -24,10 +25,13 @@ export function useDatasetCurationTable() {
     fragment: RECORD_FRAGMENT
   })
 
-  // Table data - each row represents a unique (unitId, start, end) combination
+  // Table data: each row holds a unit's records at one time, within one period, or one record, as rowMode lays them out
   const tableData = ref([])
+  // How records are laid out in rows (curationRows.js): by record, time, day, month or year
+  const rowMode = ref(DEFAULT_ROW_MODE)
 
-  // Cell metadata: { [rowId-conceptId]: { recordId, datasetId, originalValue, canEdit } }
+  // Cell metadata: { [rowId-conceptId]: { recordId, datasetId, originalValue, canEdit, start, end } }, with the
+  // record's own times, which a row by period doesn't show
   const cellMetadata = ref({})
 
   // Row metadata: { [rowId]: { originalStart, originalEnd, unitId } }
@@ -227,134 +231,40 @@ export function useDatasetCurationTable() {
         conceptData.value[conceptId].datasetIds.push(dataset.id)
       })
 
-      // Build rows from records, grouping by (unitId, start, end)
-      // Map: `${unitId}-${start}-${end}` -> array of row data (for disambiguation)
-      const rowsByKey = new Map() // rowKey -> array of { rowId, rowData, conceptIds: Set }
-
+      // Every record, laid out in rows by the chosen view
+      const entries = []
       datasets.forEach(dataset => {
         const conceptId = dataset.concept?.id
-        const datasetId = dataset.id
         if (conceptId == null) return
         // Factor records describe a unit and the units below it (for every time when undated), not an observation:
         // they never share a row with variable records
         const kind = dataset.concept?.__typename === 'Factor' ? 'factor' : 'variable'
+        const complex = isComplexScale(dataset.concept)
 
-        const records = dataset.records || []
-        records.forEach(record => {
+        ;(dataset.records || []).forEach(record => {
           const unitId = record.unit?.id
           if (unitId == null) return
-
-          const start = record.start || null
-          const end = record.end || null
-          const codes = recordGroupCodes(record)
-          const groupSig = groupingColumns.value.map((c) => codes[c.id] ?? '').join('|')
-          // Records with different group codes must not share a row
-          const rowKey = `${kind === 'factor' ? 'factor:' : ''}${unitId}-${start || 'null'}-${end || 'null'}`
-            + (groupingColumns.value.length ? `-${groupSig}` : '')
-
-          // Get or create the array of rows for this key
-          if (!rowsByKey.has(rowKey)) {
-            rowsByKey.set(rowKey, [])
-          }
-          const rowsForKey = rowsByKey.get(rowKey)
-
-          // Find an existing row that doesn't have this concept yet
-          let targetRow = rowsForKey.find(r => !r.conceptIds.has(conceptId))
-
-          if (!targetRow) {
-            // Need to create a new row
-            const disambiguator = rowsForKey.length
-            const rowId = disambiguator === 0 ? rowKey : `${rowKey}-${disambiguator}`
-
-            targetRow = {
-              rowId,
-              rowData: {
-                _rowId: rowId,
-                _kind: kind,
-                unitId: unitId,
-                unitLabel: record.unit?.name || `Unit ${unitId}`,
-                // as the API gives them, so that display and comparison use one form
-                startTime: start ?? '',
-                endTime: end ?? '',
-              },
-              conceptIds: new Set()
-            }
-            groupingColumns.value.forEach((c) => {
-              targetRow.rowData[c.key] = codes[c.id] ?? ''
-            })
-            rowsForKey.push(targetRow)
-
-            // Store row metadata
-            rowMetadata.value[rowId] = {
-              originalStart: start,
-              originalEnd: end,
-              unitId: unitId,
-              originalGroups: Object.fromEntries(
-                groupingColumns.value.map((c) => [c.key, codes[c.id] ?? ''])
-              ),
-              datasetIds: new Set()
-            }
-          }
-
-          // Track that this concept is now in this row
-          targetRow.conceptIds.add(conceptId)
-          rowMetadata.value[targetRow.rowId].datasetIds.add(datasetId)
-
-          // Add cell metadata
-          const cellKey = `${targetRow.rowId}-${conceptId}`
-          cellMetadata.value[cellKey] = {
+          const references = (record.references ?? []).filter(r => r != null)
+          entries.push({
+            kind,
+            unitId,
+            unitLabel: record.unit?.name || `Unit ${unitId}`,
+            conceptId,
+            datasetId: dataset.id,
             recordId: record.id,
-            datasetId: datasetId,
+            // as the API gives them, so that display and comparison use one form
+            start: record.start || null,
+            end: record.end || null,
+            codes: recordGroupCodes(record),
+            value: record.value ?? '',
             originalValue: record.value,
-            originalReferences: record.references
-              ? record.references.filter(r => r != null).map(r => r.id)
-              : [],
-            canEdit: datasetControllers.value[datasetId]?.canEdit || false
-          }
-
-          // Add value to row
-          targetRow.rowData[`concept_${conceptId}`] = record.value ?? ''
-
-          // Store references for complex scale types
-          const concept = dataset.concept
-          if (isComplexScale(concept) && record.references) {
-            const refCellKey = `${targetRow.rowId}-${conceptId}`
-            cellReferences.value[refCellKey] = record.references
-              .filter(r => r != null)
-              .map(({id, __typename}) => ({id, __typename}))
-          }
+            originalReferences: references.map(r => r.id),
+            references: complex && record.references ? references.map(({ id, __typename }) => ({ id, __typename })) : null,
+            canEdit: datasetControllers.value[dataset.id]?.canEdit || false
+          })
         })
       })
-
-      // Flatten all rows and sort
-      const allRows = []
-      for (const rowsForKey of rowsByKey.values()) {
-        for (const { rowData } of rowsForKey) {
-          allRows.push(rowData)
-        }
-      }
-
-      tableData.value = allRows.sort((a, b) => {
-        // Factor records first, in a section of their own
-        if (a._kind !== b._kind) return a._kind === 'factor' ? -1 : 1
-        // Keep DATASET_SCOPED sections contiguous (by every candidate grouping, as tableData isn't set yet)
-        const sa = sectionKey(sectionColumns.value, a)
-        const sb = sectionKey(sectionColumns.value, b)
-        if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
-        // Units by id, as their pages are made (useDatasetRecordPages): ids compared as numbers, not text, which put 10
-        // before 2
-        if (a.unitId !== b.unitId) return Number(a.unitId) - Number(b.unitId)
-        const byTime = (a.startTime || '').localeCompare(b.startTime || '')
-          || (a.endTime || '').localeCompare(b.endTime || '')
-        if (byTime) return byTime
-        // A unit's replicates stay together, in code order
-        for (const c of withinUnitColumns.value) {
-          const byCode = normalizeCode(a[c.key]).localeCompare(normalizeCode(b[c.key]), undefined, { numeric: true })
-          if (byCode) return byCode
-        }
-        return 0
-      })
-      applyUnitDetails()
+      layout(entries)
 
       // Initialize column status for each dataset
       datasetIds.forEach(datasetId => {
@@ -365,6 +275,109 @@ export function useDatasetCurationTable() {
       isLoading.value = false
     }
   }
+
+  // What a row's records share of their group codes, as a key: records with different codes never share a row
+  const codesKey = (codes) => groupingColumns.value.map((c) => codes[c.id] ?? '').join('|')
+
+  const compareRows = (a, b) => {
+    // Factor records first, in a section of their own
+    if (a._kind !== b._kind) return a._kind === 'factor' ? -1 : 1
+    // Keep DATASET_SCOPED sections contiguous (by every candidate grouping, as tableData isn't set yet)
+    const sa = sectionKey(sectionColumns.value, a)
+    const sb = sectionKey(sectionColumns.value, b)
+    if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
+    // Units by id, as their pages are made (useDatasetRecordPages): ids compared as numbers, not text, which put 10
+    // before 2
+    if (a.unitId !== b.unitId) return Number(a.unitId) - Number(b.unitId)
+    const byTime = (a.startTime || '').localeCompare(b.startTime || '')
+      || (a.endTime || '').localeCompare(b.endTime || '')
+    if (byTime) return byTime
+    // A unit's replicates stay together, in code order
+    for (const c of withinUnitColumns.value) {
+      const byCode = normalizeCode(a[c.key]).localeCompare(normalizeCode(b[c.key]), undefined, { numeric: true })
+      if (byCode) return byCode
+    }
+    return 0
+  }
+
+  /**
+   * Lay records out in rows by rowMode, each row and cell with its baseline. A record is an entry, as
+   * initializeFromDatasets reads them and entriesFromTable gives them back: { kind, unitId, unitLabel, conceptId,
+   * datasetId, recordId, start, end, codes, value, originalValue, originalReferences, references, canEdit }
+   */
+  const layout = (entries) => {
+    cellMetadata.value = {}
+    rowMetadata.value = {}
+    cellErrors.value = {}
+    cellReferences.value = {}
+    tableData.value = layoutRows(entries, rowMode.value, (entry) => codesKey(entry.codes))
+      .map(({ rowId, start, end, period, entries: recordsOfRow }) => {
+        const [{ kind, unitId, unitLabel, codes }] = recordsOfRow
+        const rowData = {
+          _rowId: rowId,
+          _kind: kind,
+          // the period the row stands for, whose records have times of their own (in their cells' metadata)
+          _period: period,
+          unitId,
+          unitLabel,
+          startTime: start ?? '',
+          endTime: end ?? '',
+        }
+        groupingColumns.value.forEach((c) => {
+          rowData[c.key] = codes[c.id] ?? ''
+        })
+        rowMetadata.value[rowId] = {
+          originalStart: start,
+          originalEnd: end,
+          unitId,
+          originalGroups: Object.fromEntries(groupingColumns.value.map((c) => [c.key, codes[c.id] ?? ''])),
+          datasetIds: new Set(recordsOfRow.map((entry) => entry.datasetId))
+        }
+        recordsOfRow.forEach((entry) => {
+          const cellKey = `${rowId}-${entry.conceptId}`
+          cellMetadata.value[cellKey] = {
+            recordId: entry.recordId,
+            datasetId: entry.datasetId,
+            originalValue: entry.originalValue,
+            originalReferences: entry.originalReferences,
+            canEdit: entry.canEdit,
+            start: entry.start,
+            end: entry.end
+          }
+          rowData[`concept_${entry.conceptId}`] = entry.value
+          // the files a record on a complex scale cites
+          if (entry.references) cellReferences.value[cellKey] = entry.references
+        })
+        return rowData
+      })
+      .sort(compareRows)
+    applyUnitDetails()
+  }
+
+  // The records as the table holds them, with their values as shown and baselines as last saved, to lay them out again
+  const entriesFromTable = () => tableData.value.flatMap((row) => {
+    const codes = Object.fromEntries(groupingColumns.value.map((c) => [c.id, normalizeCode(row[c.key])]))
+    return Object.keys(conceptData.value).flatMap((conceptId) => {
+      const cellKey = `${row._rowId}-${conceptId}`
+      const metadata = cellMetadata.value[cellKey]
+      if (!metadata) return []
+      return [{
+        kind: row._kind,
+        unitId: row.unitId,
+        unitLabel: row.unitLabel,
+        conceptId,
+        datasetId: metadata.datasetId,
+        recordId: metadata.recordId,
+        ...recordTimes(row, metadata),
+        codes,
+        value: row[`concept_${conceptId}`] ?? '',
+        originalValue: metadata.originalValue,
+        originalReferences: metadata.originalReferences,
+        references: cellReferences.value[cellKey] ?? null,
+        canEdit: datasetControllers.value[metadata.datasetId]?.canEdit ?? metadata.canEdit
+      }]
+    })
+  })
 
   /**
    * Fetch controllers for all datasets and determine edit permissions. Visitors edit nothing and are shown no
@@ -567,18 +580,9 @@ export function useDatasetCurationTable() {
       return true
     }
 
-    if (value == null || value === '') return true
+    if (columnKey === 'startTime' || columnKey === 'endTime') return validateTimes(rowIndex)
 
-    // Validate datetime columns
-    if (columnKey === 'startTime' || columnKey === 'endTime') {
-      if (!validatePartialDatetime(value)) {
-        cellErrors.value[errorKey] = {
-          message: 'Invalid datetime format. Use: YYYY, YYYY-MM, YYYY-MM-DD, or YYYY-MM-DDTHH:MM'
-        }
-        return false
-      }
-      return true
-    }
+    if (value == null || value === '') return true
 
     // Validate concept columns
     if (columnKey.startsWith('concept_')) {
@@ -599,6 +603,34 @@ export function useDatasetCurationTable() {
     }
 
     return true
+  }
+
+  /**
+   * A row's start and end, checked together: each changed one a partial datetime, and the end not before the start.
+   * Times as the API gives them are not checked again (a time of day comes with a space for the T).
+   */
+  const validateTimes = (rowIndex) => {
+    const row = tableData.value[rowIndex]
+    const meta = rowMetadata.value[row?._rowId]
+    const times = { startTime: rowTime(row?.startTime), endTime: rowTime(row?.endTime) }
+    const original = { startTime: meta?.originalStart ?? null, endTime: meta?.originalEnd ?? null }
+    let valid = true
+    for (const key of Object.keys(times)) {
+      delete cellErrors.value[`${rowIndex}-${key}`]
+      if (times[key] && times[key] !== original[key] && !validatePartialDatetime(times[key])) {
+        cellErrors.value[`${rowIndex}-${key}`] = {
+          message: 'Invalid datetime format. Use: YYYY, YYYY-MM, YYYY-MM-DD, or YYYY-MM-DDTHH:MM'
+        }
+        valid = false
+      }
+    }
+    const from = periodStart(times.startTime?.replace(' ', 'T'))
+    const to = periodEnd(times.endTime?.replace(' ', 'T'))
+    if (valid && from != null && to != null && to <= from) {
+      cellErrors.value[`${rowIndex}-endTime`] = { message: 'The end is before the start' }
+      valid = false
+    }
+    return valid
   }
 
   /**
@@ -700,19 +732,19 @@ export function useDatasetCurationTable() {
   // { [unitId]: Unit } of the loaded page, as they arrive (before or after the records)
   const unitDetails = ref({})
 
-  const applyUnitDetails = () => {
-    for (const row of tableData.value) {
-      const unit = unitDetails.value[String(row.unitId)]
-      // where the unit was at the row's time: its own position then, or that of the nearest unit above it
-      const position = placeAt([unit, ...(unit?.ancestors ?? [])], row.startTime || row.endTime)
-      // its own germplasm, else what it inherits from the units above it
-      const germplasm = unit?.germplasm ?? unit?.inheritedGermplasm?.germplasm
-      row.germplasmName = germplasm?.name ?? ''
-      row.germplasmId = germplasm?.id ?? ''
-      row.locationName = position?.location?.name ?? ''
-      row.locationId = position?.location?.id ?? ''
-    }
+  const describeUnit = (row) => {
+    const unit = unitDetails.value[String(row.unitId)]
+    // where the unit was at the row's time: its own position then, or that of the nearest unit above it
+    const position = placeAt([unit, ...(unit?.ancestors ?? [])], row.startTime || row.endTime)
+    // its own germplasm, else what it inherits from the units above it
+    const germplasm = unit?.germplasm ?? unit?.inheritedGermplasm?.germplasm
+    row.germplasmName = germplasm?.name ?? ''
+    row.germplasmId = germplasm?.id ?? ''
+    row.locationName = position?.location?.name ?? ''
+    row.locationId = position?.location?.id ?? ''
   }
+
+  const applyUnitDetails = () => tableData.value.forEach(describeUnit)
 
   const setUnitDetails = (unitsById) => {
     unitDetails.value = unitsById ?? {}
@@ -761,8 +793,7 @@ export function useDatasetCurationTable() {
           datasetId: metadata?.datasetId ?? conceptData.value[conceptId]?.datasetIds[0],
           unitId: String(row.unitId),
           unitName: row.unitLabel,
-          start: rowTime(row.startTime),
-          end: rowTime(row.endTime),
+          ...recordTimes(row, metadata),
           codes: Object.fromEntries(groupingColumns.value.map((c) => [c.id, row[c.key]])),
           value
         })
@@ -820,6 +851,33 @@ export function useDatasetCurationTable() {
 
   // A row's time as shown, or null when empty: an unchanged time is sent back exactly as the API gave it
   const rowTime = (value) => String(value ?? '').trim() || null
+
+  // A record's times as they stand: its row's, as edited, unless the row stands for a period, whose records keep their
+  // own
+  const recordTimes = (row, metadata) => (row._period != null
+    ? { start: metadata?.start ?? null, end: metadata?.end ?? null }
+    : { start: rowTime(row.startTime), end: rowTime(row.endTime) })
+
+  /**
+   * A row's start and end can be edited where it holds one record, as rows by record do, which the user can curate
+   * and which is neither being saved nor marked for deletion
+   */
+  const isTimeCellEditable = (rowIndex) => {
+    const row = tableData.value[rowIndex]
+    if (!row || rowMode.value !== 'record' || isSubmitting.value) return false
+    const conceptId = Object.keys(conceptData.value).find((id) => cellMetadata.value[`${row._rowId}-${id}`])
+    const metadata = conceptId != null && cellMetadata.value[`${row._rowId}-${conceptId}`]
+    return !!metadata && metadata.canEdit && !activeSubmissions.value[metadata.datasetId]
+      && !isMarkedForDeletion(rowIndex, conceptId)
+  }
+
+  /** A cell's record's own time, for its title where its row stands for a period; null elsewhere */
+  const getCellTime = (rowIndex, conceptId) => {
+    const row = tableData.value[rowIndex]
+    if (row?._period == null) return null
+    const metadata = cellMetadata.value[`${row._rowId}-${conceptId}`]
+    return metadata ? recordTimeLabel(metadata.start, metadata.end) : null
+  }
 
   /**
    * Check if row times have changed
@@ -889,6 +947,18 @@ export function useDatasetCurationTable() {
     return false
   })
 
+  // The rows can be laid out again while no change waits to be saved or is being saved: changes are kept by row
+  const canChangeRowMode = computed(() =>
+    !hasUnsavedChanges.value && !isSubmitting.value && Object.keys(activeSubmissions.value).length === 0
+  )
+
+  const setRowMode = (mode) => {
+    if (mode === rowMode.value || !canChangeRowMode.value) return
+    const entries = entriesFromTable()
+    rowMode.value = mode
+    layout(entries)
+  }
+
   /**
    * Prepare updates for a specific dataset
    */
@@ -917,11 +987,7 @@ export function useDatasetCurationTable() {
       const groupsChanged = hasRowGroupsChanged(i)
 
       if (valueChanged || timesChanged || groupsChanged) {
-        const update = {
-          id: metadata.recordId,
-          start: rowTime(row.startTime),
-          end: rowTime(row.endTime)
-        }
+        const update = { id: metadata.recordId, ...recordTimes(row, metadata) }
         // Only send groups when changed (full set for the record)
         if (groupsChanged) {
           update.groups = buildGroupsInput(row, datasetId)
@@ -1041,13 +1107,16 @@ export function useDatasetCurationTable() {
       if (!row) return
       const meta = rowMetadata.value[row._rowId]
       if (meta) {
-        meta.originalStart = update.start
-        meta.originalEnd = update.end
+        // the row's times as shown, which for a row by period are not its records' own
+        meta.originalStart = rowTime(row.startTime)
+        meta.originalEnd = rowTime(row.endTime)
         meta.originalGroups = Object.fromEntries(groupingColumns.value.map((c) => [c.key, normalizeCode(row[c.key])]))
       }
       const cellKey = `${row._rowId}-${conceptId}`
       const cell = cellMetadata.value[cellKey]
       if (!cell) return
+      cell.start = update.start
+      cell.end = update.end
       if (update.referenceIds) {
         cell.originalReferences = (cellReferences.value[cellKey] ?? []).map((reference) => reference.id)
       } else {
@@ -1163,11 +1232,31 @@ export function useDatasetCurationTable() {
     startPolling()
   }
 
+  // The rows to export: as shown, but with a row that stands for a period split by its records' own times, so an export
+  // keeps every record's time whatever the view
+  const exportRows = () => tableData.value.flatMap((row) => {
+    if (row._period == null) return [row]
+    const byTime = new Map()
+    for (const conceptId of Object.keys(conceptData.value)) {
+      const metadata = cellMetadata.value[`${row._rowId}-${conceptId}`]
+      if (!metadata) continue
+      const key = `${metadata.start ?? ''}\u0000${metadata.end ?? ''}`
+      if (!byTime.has(key)) {
+        const split = { ...row, _period: null, startTime: metadata.start ?? '', endTime: metadata.end ?? '' }
+        Object.keys(conceptData.value).forEach((id) => { split[`concept_${id}`] = '' })
+        describeUnit(split)
+        byTime.set(key, split)
+      }
+      byTime.get(key)[`concept_${conceptId}`] = row[`concept_${conceptId}`] ?? ''
+    }
+    return [...byTime.values()].sort(compareRows)
+  })
+
   /**
    * Export visible data as CSV
    */
   const exportToCSV = (visibleColumns, filename = 'dataset_curation.csv') => {
-    const rows = tableData.value
+    const rows = exportRows()
     if (rows.length === 0) return
 
     // Build header row
@@ -1313,6 +1402,12 @@ export function useDatasetCurationTable() {
     isMarkedForDeletion,
     hasValueChanged,
     hasRowTimesChanged,
+    // How records are laid out in rows, and their times
+    rowMode,
+    canChangeRowMode,
+    setRowMode,
+    isTimeCellEditable,
+    getCellTime,
     setUnitDetails,
     // Factors applied to variable rows
     appliedFactors,
