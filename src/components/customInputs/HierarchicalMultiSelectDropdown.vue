@@ -41,6 +41,11 @@ const props = defineProps({
     required: true,
     default: false
   },
+  // Whether the root nodes are loading, e.g. the unit graphs and arrivals at locations just chosen
+  rootsLoading: {
+    type: Boolean,
+    default: false
+  },
   currentChildren: {
     type: Array,
     required: true,
@@ -131,7 +136,8 @@ const currentOptions = computed(() => {
   }
 })
 
-const isLoading = computed(() => !!currentParentNode.value && props.childrenLoading)
+// "Loading..." in place of the options, not "No options available", while they load
+const isLoading = computed(() => (currentParentNode.value ? props.childrenLoading : props.rootsLoading))
 
 const updateCurrentOptions = async () => {
   if (!currentParentNode.value) return

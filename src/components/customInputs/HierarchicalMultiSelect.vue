@@ -21,6 +21,7 @@
           :hasChildrenFn="context.hasChildrenFn"
           :loadChildrenFn="context.loadChildrenFn"
           :childrenLoading="context.childrenLoading"
+          :roots-loading="!!context.rootsLoading"
           :currentChildren="context.currentChildren"
           :load-type-groups-fn="context.loadTypeGroupsFn"
           :label-fn="context.labelFn"

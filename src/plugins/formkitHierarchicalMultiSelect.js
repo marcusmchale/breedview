@@ -16,6 +16,7 @@ export const hierarchicalMultiSelectInput = {
   props: [
     'selectedNodes',      // Array of selected node objects
     'rootNodes',
+    'rootsLoading',       // Optional: whether the root nodes are loading
     'loadChildrenFn',
     'childrenLoading',
     'currentChildren',
@@ -37,6 +38,7 @@ export const hierarchicalMultiSelectPlugin = (node) => {
   node.addProps([
     'selectedNodes',
     'rootNodes',
+    'rootsLoading',
     'loadChildrenFn',
     'childrenLoading',
     'currentChildren',

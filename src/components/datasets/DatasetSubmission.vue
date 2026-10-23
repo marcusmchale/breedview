@@ -76,6 +76,7 @@ const {
 
 const {
   rootNodes: unitRootNodes,
+  rootsLoading: unitRootsLoading,
   selectedUnits,
   loadChildren: loadDisplayedChildUnits,
   childrenLoading: displayedUnitsLoading,
@@ -296,6 +297,7 @@ const closeModal = () => {
             :value="selectionData.unitIds"
             :label-fn="unitNameOf"
             :rootNodes="unitRootNodes"
+            :rootsLoading="unitRootsLoading"
             :loadChildrenFn="loadDisplayedChildUnits"
             :childrenLoading="displayedUnitsLoading"
             :currentChildren="displayedUnits"

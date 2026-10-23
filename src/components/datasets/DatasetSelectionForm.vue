@@ -299,6 +299,7 @@ defineExpose({ reset })
           :value="selectionData.unitIds"
           :label-fn="unitNameOf"
           :rootNodes="unitRoots"
+          :rootsLoading="unitRootsLoading"
           :loadChildrenFn="loadDisplayedChildUnits"
           :childrenLoading="displayedUnitsLoading"
           :currentChildren="displayedUnits"

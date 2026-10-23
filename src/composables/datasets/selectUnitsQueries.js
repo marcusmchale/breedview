@@ -61,7 +61,7 @@ export function useSelectUnitsQuery({locationIds, unitIds}) {
         unitsLoading: displayedUnitsLoading
     } = useUnitsLazyQuery()
 
-    const { result: arrivalsResult } = useQuery(
+    const { result: arrivalsResult, loading: arrivalsLoading } = useQuery(
         UNITS_ARRIVALS_PICKER_QUERY,
         () => ({ locationIds: toValue(locationIds) ?? [] }),
         { enabled: computed(() => (toValue(locationIds)?.length ?? 0) > 0) }
@@ -69,6 +69,7 @@ export function useSelectUnitsQuery({locationIds, unitIds}) {
     const arrivals = computed(() => (toValue(locationIds)?.length ? arrivalsResult.value?.unitsArrivals?.result ?? [] : [])
         .map(arrivalNode))
     const rootNodes = computed(() => [...blocks.value, ...arrivals.value])
+    const rootsLoading = computed(() => blocksLoading.value || arrivalsLoading.value)
 
     // An opened arrival lists its units, read in full so that those holding others can be opened in turn
     const openedArrival = ref(null)
@@ -103,6 +104,7 @@ export function useSelectUnitsQuery({locationIds, unitIds}) {
         blocksError,
         arrivals,
         rootNodes,
+        rootsLoading,
 
         selectedUnits,
         selectedUnitsLoading,
