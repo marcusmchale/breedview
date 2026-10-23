@@ -65,7 +65,8 @@ const routes = [
     name: 'Ontology',
     component: OntologyManagementPage,
     meta: {
-      requiresAuth: true,
+      // anyone may read the published ontology; signing in shows drafts, the commit history and roles
+      allowAnonymous: true,
       title: 'Ontology'
     }
   },

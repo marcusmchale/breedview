@@ -39,10 +39,10 @@ export async function launchBrowser({ headless = true, width = 1280, height = 90
 }
 
 // After this many full page loads, goto() moves to a fresh tab: with the dev server's unbundled modules (hundreds of
-// requests per load), Chrome refuses further loads in a tab after a dozen or so (net::ERR_INSUFFICIENT_RESOURCES) and
-// the app no longer renders; the production build does not have this problem. Cookies live in the profile, so the
-// session carries over to the new tab.
-const LOADS_PER_TAB = 10
+// requests per load), Chrome refuses further loads in a tab after ten or so (net::ERR_INSUFFICIENT_RESOURCES; seen at
+// the tenth, after the ontology page) and the app no longer renders; the production build does not have this problem.
+// Cookies live in the profile, so the session carries over to the new tab.
+const LOADS_PER_TAB = 8
 
 async function connectPage(port, { acceptTerms = true } = {}) {
   const events = []  // every tab's events in one list, so marks stay valid across tabs

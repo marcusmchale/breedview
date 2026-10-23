@@ -119,7 +119,7 @@ onMounted(async () => {
           <router-link to="/germplasm" class="nav-link" active-class="active">
             Germplasm
           </router-link>
-          <router-link v-if="isAuthenticated" to="/ontology" class="nav-link" active-class="active">
+          <router-link to="/ontology" class="nav-link" active-class="active">
             Ontology
           </router-link>
           <router-link v-if="isAuthenticated" to="/people" class="nav-link" active-class="active">

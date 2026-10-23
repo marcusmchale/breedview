@@ -1,6 +1,7 @@
 // What someone who is not signed in sees: the germplasm, programs, locations, units and datasets pages
 // are open to them, showing what has been released to the public, with placeholders and skipped members as for anyone
-// else (breedgraph docs/read-access.md), and no badges or write actions. They see no people at all: no contributors or
+// else (breedgraph docs/read-access.md), and no badges or write actions. The ontology page shows them the published
+// version, without its drafts, commit history or roles. They see no people at all: no contributors or
 // contacts, and no people page (docs/person.md §3). Other pages, the people page among them, send them to log in. The
 // browser contacts no third party: maps and place searches come from our own servers. What the API returns is tested
 // in breedgraph; here, that the pages show it without failing requests.
@@ -24,7 +25,7 @@ test('the navigation offers the open pages and a way to log in, and the privacy 
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Log in'])
+  assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Ontology', 'Log in'])
   await page.click('.app-footer a[href="/privacy"]')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
 })
@@ -35,6 +36,18 @@ test('pages that need an account still send anonymous users to log in', async ()
     await page.waitFor(`location.pathname === '/login'`, 30000)
     assert.match(await page.url(), new RegExp(`redirect=(%2F|/)${path}`))
   }
+})
+
+test('the ontology: the published version, without the commit history, roles or editing', async () => {
+  const mark = page.mark()
+  await page.goto(`${config.appUrl}/ontology`)
+  await page.waitFor(`document.querySelectorAll('g.node').length > 0`, 30000)
+  assert.equal(new URL(await page.url()).pathname, '/ontology')
+  const text = await pageText()
+  assert.match(text, /published/i, text)
+  assert.ok(!/Ontology Role|Commit/.test(text), `no role or commit history: ${text}`)
+  assert.equal(await page.exists('.buttons-panel, .version-actions'), false, 'no create or commit actions')
+  assert.deepEqual(await failedRequests(mark), [])
 })
 
 test('home, and an address that is no page, are the programs for anonymous users', async () => {
