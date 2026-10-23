@@ -1,10 +1,11 @@
 // The curation table: a record's 🔒 opens its dataset's controller in full, with its controls and writes, for a
-// signed-in user, who reads the record; a visitor is shown no controllers and none is asked for.
+// signed-in user, who reads the record; a visitor is shown no controllers and none is asked for; and rows come in
+// the order of their units' ids, compared as numbers (as text, 10 came before 2).
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout } from './lib/app.mjs'
-import { entity, concept, licences } from './lib/fixture.mjs'
+import { entity, concept, perf, manifest, licences } from './lib/fixture.mjs'
 
 let browser, page
 const q = JSON.stringify
@@ -75,4 +76,33 @@ test('a visitor is shown no controllers, and none is asked for', async () => {
   assert.equal(await page.evaluate(`document.querySelectorAll('.controller-badge-mini').length`), 0)
   const controllerRequests = page.graphql(mark).filter((request) => request.op.startsWith('controlsController'))
   assert.deepEqual(controllerRequests, [], 'no controller is asked for')
+})
+
+// the scale study's first page of units, whose ids run past a power of ten; a database built without --scale has none
+const scale = manifest.scale?.names
+
+test('rows come in unit id order', { skip: !scale && 'the test database was built without --scale' }, async () => {
+  await loginAs(page, 'admin')
+  try {
+    await curate([scale.scale_program, scale.scale_trial], perf.study, perf.concept)
+    // the table draws only the rows in view: scroll through it, collecting each unit id as its row is drawn
+    const ids = await page.evaluate(`(async () => {
+      const wrapper = document.querySelector('.table-wrapper'), seen = new Map()
+      for (let top = 0; top <= wrapper.scrollHeight; top += wrapper.clientHeight / 2) {
+        wrapper.scrollTop = top
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        for (const row of wrapper.querySelectorAll('tbody tr:not(.section-header):not(.spacer-row)')) {
+          // a unit's rows (its records at several times) count once, where first drawn: rows are drawn top down
+          const unit = row.querySelectorAll('td')[0]?.innerText.trim(), id = Number(row.querySelectorAll('td')[1]?.innerText.trim())
+          if (unit && !Number.isNaN(id) && !seen.has(id)) seen.set(id, unit)
+        }
+      }
+      return [...seen.keys()]
+    })()`)
+    assert.ok(ids.length > 1, 'rows are shown')
+    assert.deepEqual(ids, [...ids].sort((a, b) => a - b), 'the unit ids are in order')
+    assert.ok(new Set(ids.map((id) => String(id).length)).size > 1, `the ids shown run past a power of ten (${ids[0]}..${ids.at(-1)})`)
+  } finally {
+    await logout(page)
+  }
 })

@@ -341,7 +341,9 @@ export function useDatasetCurationTable() {
         const sa = sectionKey(sectionColumns.value, a)
         const sb = sectionKey(sectionColumns.value, b)
         if (sa !== sb) return sa.localeCompare(sb, undefined, { numeric: true })
-        if (a.unitId !== b.unitId) return String(a.unitId).localeCompare(String(b.unitId))
+        // Units by id, as their pages are made (useDatasetRecordPages): ids compared as numbers, not text, which put 10
+        // before 2
+        if (a.unitId !== b.unitId) return Number(a.unitId) - Number(b.unitId)
         const byTime = (a.startTime || '').localeCompare(b.startTime || '')
           || (a.endTime || '').localeCompare(b.endTime || '')
         if (byTime) return byTime

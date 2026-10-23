@@ -121,7 +121,9 @@ browser: that the pages render it, which actions they offer, the modals and labe
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
 - `curationTable.test.mjs`: in the curation table, a record's 🔒 shows its dataset's controller in full (controls and
-  writes) to the writer, and a visitor is shown no controllers and none is asked for.
+  writes) to the writer, a visitor is shown no controllers and none is asked for, and rows come in unit id order,
+  ids compared as numbers (on the scale study's first page, whose ids run past a power of ten; skipped without
+  `--scale`).
 - `curationUnitsFilter.test.mjs`: the units filter of the curation selection lists only units with records, with
   counts, level by level and by subject.
 - `outsiderAccess.test.mjs`: what the outsider sees: placeholders for the hidden program and trial above readable
