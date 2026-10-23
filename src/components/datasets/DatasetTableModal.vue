@@ -10,6 +10,7 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
+import { categoryLabel } from '@/composables/ontology/scaleCategories';
 import { useDatasetSubmissionWithGroupings } from '@/composables/datasets/useDatasetSubmissionWithGroupings';
 
 import ReferencesModal from '@/components/references/ReferencesModal.vue'
@@ -781,10 +782,10 @@ const getFileReferenceDisplay = (value) => {
                           <option value="">-- Select --</option>
                           <option
                             v-for="cat in getCategories(cell.column.columnDef.meta.concept)"
-                            :key="cat.id || cat.name"
-                            :value="cat.name || cat.id"
+                            :key="cat.name"
+                            :value="cat.name"
                           >
-                            {{ cat.name || cat.abbreviation }}
+                            {{ categoryLabel(cat) }}
                           </option>
                         </select>
 

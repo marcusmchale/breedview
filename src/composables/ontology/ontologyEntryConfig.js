@@ -45,6 +45,14 @@ const AXES_OPTIONS = [
   { label: 'Cartesian', value: 'CARTESIAN' }
 ]
 
+// The scale types that have categories
+const CATEGORICAL_SCALE_TYPES = new Set(['NOMINAL', 'ORDINAL'])
+
+// A scale's categories as the API takes them, in order; rows left without a name are dropped
+const scaleCategories = (rows) => (rows ?? [])
+  .map(row => ({ name: (row.name ?? '').trim(), description: (row.description ?? '').trim() || null }))
+  .filter(row => row.name)
+
 const RECORD_GROUP_EXTENT_OPTIONS = [
   { label: '', value: null },
   ...Object.entries(RECORD_GROUP_EXTENT_LABELS).map(([value, label]) => ({ label, value }))
@@ -77,7 +85,6 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       multi('childIds', 'Child Terms', 'Term', true, 'children'),
       multi('subjectIds', 'Subjects', 'Subject'),
       multi('scaleIds', 'Scales', 'Scale', false),
-      multi('categoryIds', 'Categories', 'Category', false, 'categories'),
       multi('observationMethodIds', 'Observation Methods', 'ObservationMethod', false),
       multi('traitIds', 'Traits', 'Trait', false),
       multi('variableIds', 'Variables', 'Variable', false),
@@ -100,7 +107,6 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         childIds: processIdArray(formData.childIds),
         subjectIds: processIdArray(formData.subjectIds),
         scaleIds: processIdArray(formData.scaleIds),
-        categoryIds: processIdArray(formData.categoryIds),
         observationMethodIds: processIdArray(formData.observationMethodIds),
         traitIds: processIdArray(formData.traitIds),
         variableIds: processIdArray(formData.variableIds),
@@ -125,7 +131,6 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         childIds: formData.childIds ?? [],
         subjectIds: formData.subjectIds ?? [],
         scaleIds: formData.scaleIds ?? [],
-        categoryIds: formData.categoryIds ?? [],
         observationMethodIds: formData.observationMethodIds ?? [],
         traitIds: formData.traitIds ?? [],
         variableIds: formData.variableIds ?? [],
@@ -263,9 +268,10 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       multi('childIds', 'Child Scales', 'Scale', true, 'children'),
       multi('termIds', 'Terms', 'Term', false),
       {
-        ...multi('categoryIds', 'Categories', 'Category', false, 'categories'),
-        labelFn: (formData) => formData.scaleType === 'ORDINAL' ? 'Categories (rank order)' : 'Categories',
-        ordered: true,
+        type: 'categoriesBuilder', name: 'categories', locks: true,
+        labelFn: (formData) => formData.scaleType === 'ORDINAL' ? 'Categories (in rank order)' : 'Categories',
+        showFn: (formData) => CATEGORICAL_SCALE_TYPES.has(formData.scaleType),
+        help: "Records hold a category's name, so names must differ, and a name records hold can't be removed or renamed."
       },
     ],
     processCreate: (formData, referenceIds) => ({
@@ -277,7 +283,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         parentIds: processIdArray(formData.parentIds),
         childIds: processIdArray(formData.childIds),
         termIds: processIdArray(formData.termIds),
-        categoryIds: processIdArray(formData.categoryIds),
+        categories: CATEGORICAL_SCALE_TYPES.has(formData.scaleType) ? scaleCategories(formData.categories) : undefined,
       }
     }),
     processUpdate: (entry, formData, referenceIds) => ({
@@ -290,41 +296,8 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
         termIds: formData.termIds ?? [],
-        categoryIds: formData.categoryIds ?? [],
-      }
-    }),
-  },
-
-  Category: {
-    typename: 'Category',
-    createTitle: 'Create Category',
-    updateTitle: 'Update Category',
-    fields: [
-      nameField,
-      descriptionField,
-      multi('parentIds', 'Parent Categories', 'Category'),
-      multi('childIds', 'Child Categories', 'Category', true, 'children'),
-      multi('termIds', 'Terms', 'Term', false),
-    ],
-    processCreate: (formData, referenceIds) => ({
-      category: {
-        name: formData.name,
-        description: formData.description || undefined,
-        referenceIds: referenceIds?.length ? referenceIds : undefined,
-        parentIds: processIdArray(formData.parentIds),
-        childIds: processIdArray(formData.childIds),
-        termIds: processIdArray(formData.termIds),
-      }
-    }),
-    processUpdate: (entry, formData, referenceIds) => ({
-      category: {
-        id: entry.id,
-        name: formData.name,
-        description: clearable(formData.description, entry.description),
-        referenceIds: referenceIds?.length ? referenceIds : [],
-        parentIds: formData.parentIds ?? [],
-        childIds: formData.childIds ?? [],
-        termIds: formData.termIds ?? [],
+        // given, they replace the scale's: none for a scale type without categories
+        categories: CATEGORICAL_SCALE_TYPES.has(formData.scaleType) ? scaleCategories(formData.categories) : [],
       }
     }),
   },
@@ -735,8 +708,9 @@ for (const config of Object.values(ONTOLOGY_ENTRY_CONFIGS)) {
 }
 
 /*
- * A locked entry keeps its name, abbreviation, description and source, and the relationships that define it; its
- * synonyms, references, parents, children and terms stay editable (a Term's relationships all point to it, so stay too)
+ * A locked entry keeps its name, abbreviation, description and source, a scale its categories, and the relationships
+ * that define it; its synonyms, references, parents, children and terms stay editable (a Term's relationships all point
+ * to it, so stay too)
  */
 const OPEN_WHEN_LOCKED = new Set(['parentIds', 'childIds', 'termIds'])
 export const isLockedField = (config, field) => {

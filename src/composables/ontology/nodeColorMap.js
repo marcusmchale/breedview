@@ -1,12 +1,6 @@
 
 // Map from ontology enum labels (e.g., CONTROL_METHOD) to their display properties
 export const ontologyLabelsMap = {
-  CATEGORY: {
-    text: 'Category',
-    PascalCase: 'Category',
-    code: 'Cat',
-    color: '#E63946'  // Vivid red
-  },
   CONDITION: {
     text: 'Condition',
     PascalCase: 'Condition',

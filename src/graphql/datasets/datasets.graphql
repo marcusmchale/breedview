@@ -19,8 +19,8 @@ query Datasets(
             name
             scaleType
             categories {
-              id
               name
+              description
             }
           }
         }
@@ -30,8 +30,8 @@ query Datasets(
             name
             scaleType
             categories {
-              id
               name
+              description
             }
           }
         }

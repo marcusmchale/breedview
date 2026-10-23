@@ -1319,7 +1319,6 @@ type Mutation {
   ontologyCreateTrait(trait: TraitInput!): BooleanPayload!
   ontologyCreateCondition(condition: ConditionInput!): BooleanPayload!
   ontologyCreateScale(scale: ScaleInput!): BooleanPayload!
-  ontologyCreateCategory(category: CategoryInput!): BooleanPayload!
   ontologyCreateObservationMethod(observationMethod: ObservationMethodInput!): BooleanPayload!
   ontologyCreateVariable(variable: VariableInput!): BooleanPayload!
   ontologyCreateControlMethod(controlMethod: ControlMethodInput!): BooleanPayload!
@@ -1335,7 +1334,6 @@ type Mutation {
   ontologyUpdateTrait(trait: TraitUpdate!): BooleanPayload!
   ontologyUpdateCondition(condition: ConditionUpdate!): BooleanPayload!
   ontologyUpdateScale(scale: ScaleUpdate!): BooleanPayload!
-  ontologyUpdateCategory(category: CategoryUpdate!): BooleanPayload!
   ontologyUpdateObservationMethod(observationMethod: ObservationMethodUpdate!): BooleanPayload!
   ontologyUpdateVariable(variable: VariableUpdate!): BooleanPayload!
   ontologyUpdateControlMethod(controlMethod: ControlMethodUpdate!): BooleanPayload!
@@ -1551,7 +1549,6 @@ input TermInput {
   childIds: [ID!]
   subjectIds: [ID!]
   scaleIds: [ID!]
-  categoryIds: [ID!]
   observationMethodIds: [ID!]
   traitIds: [ID!]
   variableIds: [ID!]
@@ -1622,22 +1619,18 @@ input ScaleInput {
   scaleType: ScaleType!
 
   """
-  When defining a scale using existing categories, their identifiers may be listed in their proposed rank order.
+  The categories of a nominal or ordinal scale, in order: an ordinal scale's order is the rank of its categories.
+  Names must differ, ignoring case. Other scales have none.
   """
-  categoryIds: [ID!]
+  categories: [ScaleCategoryInput!]
 }
 
-input CategoryInput {
+"""
+A category of a nominal or ordinal scale: a name, as records hold it, and what it means on this scale
+"""
+input ScaleCategoryInput {
   name: String!
   description: String
-  abbreviation: String
-  synonyms: [String!]
-  referenceIds: [ID!]
-  sourceUrl: String
-  sourceAttribution: String
-  parentIds: [ID!]
-  childIds: [ID!]
-  termIds: [ID!]
 }
 
 input ObservationMethodInput {
@@ -1799,7 +1792,6 @@ input TermUpdate {
   childIds: [ID!]
   subjectIds: [ID!]
   scaleIds: [ID!]
-  categoryIds: [ID!]
   observationMethodIds: [ID!]
   traitIds: [ID!]
   variableIds: [ID!]
@@ -1872,7 +1864,10 @@ input ConditionUpdate {
 
 """
 Fields left out are unchanged; null, or an empty string, clears abbreviation, description, sourceUrl or
-sourceAttribution, and null or an empty list clears synonyms (a locked entry refuses it)
+sourceAttribution, and null or an empty list clears synonyms (a locked entry refuses it).
+Categories given replace the scale's, in order, and null or an empty list clears them. A locked scale refuses a change,
+and the scale must keep every category records cite: categories can be added, reordered and described, but a name
+records hold can't be removed or renamed.
 """
 input ScaleUpdate {
   id: ID!
@@ -1887,25 +1882,7 @@ input ScaleUpdate {
   childIds: [ID!]
   termIds: [ID!]
   scaleType: ScaleType!
-  categoryIds: [ID!]
-}
-
-"""
-Fields left out are unchanged; null, or an empty string, clears abbreviation, description, sourceUrl or
-sourceAttribution, and null or an empty list clears synonyms (a locked entry refuses it)
-"""
-input CategoryUpdate {
-  id: ID!
-  name: String
-  description: String
-  abbreviation: String
-  synonyms: [String!]
-  referenceIds: [ID!]
-  sourceUrl: String
-  sourceAttribution: String
-  parentIds: [ID!]
-  childIds: [ID!]
-  termIds: [ID!]
+  categories: [ScaleCategoryInput!]
 }
 
 """
@@ -3951,20 +3928,11 @@ enum OntologyNodeLabel {
   Scale entries describe units or classes used for values in a Dataset.
   These are linked to Variable or Factor .
   Scale entries require a ScaleType.
-  For Nominal and Ordinal types, additional Category references may be provided.
+  Nominal and Ordinal scales have categories, in order: an ordinal scale's order is the rank of its categories.
   Examples:
   "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
   """
   SCALE
-
-  """
-  Category entries describe classes for Scale entries with type Nominal or Ordinal.
-  These are linked to Scale entries.
-  Ordinal scales require a "rank" parameter on relationships to categories
-  that determine their order in the attribute.
-  Examples: "High", "Medium", "Low" with ranks 2, 1 and 0, respectively.
-  """
-  CATEGORY
 
   """
   Observation method entries describe the way a value is determined.
@@ -4082,9 +4050,6 @@ enum OntologyRelationshipLabel {
 
   """Any => Term"""
   HAS_TERM
-
-  """Scale -> Category"""
-  HAS_CATEGORY
 
   """Trait/Condition -> Subject"""
   DESCRIBES_SUBJECT
@@ -4283,7 +4248,6 @@ Example: "Metabolism" may be a term used to relate trait "Glycine" with Observat
 interface TermRelationships {
   subjects: [Subject!]
   scales: [Scale!]
-  categories: [Category!]
   observationMethods: [ObservationMethod!]
   traits: [Trait!]
   variables: [Variable!]
@@ -4320,7 +4284,6 @@ type Term implements OntologyNodeInterface & OntologyRelationships & TermRelatio
   children: [Term!]
   subjects: [Subject!]
   scales: [Scale!]
-  categories: [Category!]
   observationMethods: [ObservationMethod!]
   traits: [Trait!]
   variables: [Variable!]
@@ -4451,11 +4414,10 @@ type Condition implements OntologyNodeInterface & OntologyRelationships & Relate
 """
 Scale entries describe the units, classes or dimensions for values associated with a Variable or Factor.
 Scale entries require a ScaleType.
-For Nominal and Ordinal types, additional Category references may be provided.
-Ordinal scales represent the rank of categories by their presentation order.
+Nominal and Ordinal scales have categories, in order: an ordinal scale's order is the rank of its categories.
 
 Complex scales allow for the description of data that cannot be represented by simple values (integer, float, string), nor by
-internal references like Categorical (nominal or ordinal) scales.
+the categories of nominal or ordinal scales.
 Examples:
 "Centimeters", "Counts per million", "Micro-Einsteins" are all ScaleType numerical.
 "MAG abundance" would be ScaleType complex, with associated datasets or records each providing references to stored files, e.g. in HDF5 format.
@@ -4465,7 +4427,6 @@ interface ScaleInterface {
 }
 
 interface ScaleRelationships {
-  categories: [Category!]
   variables: [Variable!]
   factors: [Factor!]
 }
@@ -4485,50 +4446,31 @@ type Scale implements OntologyNodeInterface & ScaleInterface & OntologyRelations
   sourceUrl: String
   sourceAttribution: String
 
-  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
+  """ A locked scale keeps its name, abbreviation, description, source, categories and defining relationships, and cannot be deprecated 
   """
   locked: Boolean!
   references: [ReferenceInterface!]
   scaleType: ScaleType!
+
+  """
+  The categories of a nominal or ordinal scale, in order: an ordinal scale's order is the rank of its categories.
+  Records hold a category's name.
+  """
+  categories: [ScaleCategory!]!
   parents: [Scale!]
   children: [Scale!]
   terms: [Term!]
-  categories: [Category!]
   variables: [Variable!]
   factors: [Factor!]
 }
 
 """
-Category entries describe classes for Scale entries with type Nominal or Ordinal.
-These are linked to Scale entries.
+A category of a nominal or ordinal scale: part of the scale, not an ontology entry.
+Its name is unique on the scale, ignoring case, and its description says what it means on this scale.
 """
-interface CategoryRelationships {
-  scales: [Scale!]
-}
-
-type Category implements OntologyNodeInterface & OntologyRelationships & RelatedToTerms & CategoryRelationships {
-  id: ID!
-  versionId: ID!
-  view: OntologyView!
-  phase: LifecyclePhase!
+type ScaleCategory {
   name: String!
   description: String
-  abbreviation: String
-  synonyms: [String!]
-
-  """ For an entry taken from an external standard or ontology: its URL, and how to attribute it 
-  """
-  sourceUrl: String
-  sourceAttribution: String
-
-  """ A locked entry keeps its name, abbreviation, description, source and defining relationships, and cannot be deprecated 
-  """
-  locked: Boolean!
-  references: [ReferenceInterface!]
-  parents: [Category!]
-  children: [Category!]
-  terms: [Term!]
-  scales: [Scale!]
 }
 
 """
@@ -4891,7 +4833,7 @@ type RecordGroupType implements OntologyNodeInterface & OntologyRelationships & 
   defaultExtent: RecordGroupExtent
 }
 
-union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | Category | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType | Role
+union OntologyEntryUnion = Term | Subject | Trait | Condition | Scale | ObservationMethod | Variable | ControlMethod | Factor | Event | LocationType | LayoutType | Design | RecordGroupType | Role
 
 type OntologyRelationship {
   id: ID!

@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { categoryLabel } from '@/composables/ontology/scaleCategories'
 
 const props = defineProps({
   rowIndex: { type: Number, required: true },
@@ -114,8 +115,8 @@ const handleKeyDown = (event) => {
           @keydown="handleKeyDown"
         >
           <option value="">-- Select --</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.name">
-            {{ cat.name }}
+          <option v-for="cat in categories" :key="cat.name" :value="cat.name">
+            {{ categoryLabel(cat) }}
           </option>
         </select>
         <input

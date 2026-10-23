@@ -20,8 +20,6 @@ import CREATE_CONDITION from '@/graphql/ontology/createCondition.graphql'
 import UPDATE_CONDITION from '@/graphql/ontology/updateCondition.graphql'
 import CREATE_SCALE from '@/graphql/ontology/createScale.graphql'
 import UPDATE_SCALE from '@/graphql/ontology/updateScale.graphql'
-import CREATE_CATEGORY from '@/graphql/ontology/createCategory.graphql'
-import UPDATE_CATEGORY from '@/graphql/ontology/updateCategory.graphql'
 import CREATE_OBSERVATION_METHOD from '@/graphql/ontology/createObservationMethod.graphql'
 import UPDATE_OBSERVATION_METHOD from '@/graphql/ontology/updateObservationMethod.graphql'
 import CREATE_VARIABLE from '@/graphql/ontology/createVariable.graphql'
@@ -201,17 +199,6 @@ export function useMutateOntology({ versionId, view }) {
     return extractResult(response, 'ontologyUpdateScale')
   }
 
-  const { mutate: createCategoryMutation } = useMutation(CREATE_CATEGORY)
-  const { mutate: updateCategoryMutation } = useMutation(UPDATE_CATEGORY)
-  const createCategory = async (variables, controlTeamId) => {
-    const response = await createCategoryMutation({ ...variables, controlTeamId })
-    return extractResult(response, 'ontologyCreateCategory')
-  }
-  const updateCategory = async (variables) => {
-    const response = await updateCategoryMutation(variables)
-    return extractResult(response, 'ontologyUpdateCategory')
-  }
-
   const { mutate: createObservationMethodMutation } = useMutation(CREATE_OBSERVATION_METHOD)
   const { mutate: updateObservationMethodMutation } = useMutation(UPDATE_OBSERVATION_METHOD)
   const createObservationMethod = async (variables, controlTeamId) => {
@@ -345,7 +332,6 @@ export function useMutateOntology({ versionId, view }) {
     createTrait, updateTrait,
     createCondition, updateCondition,
     createScale, updateScale,
-    createCategory, updateCategory,
     createObservationMethod, updateObservationMethod,
     createVariable, updateVariable,
     createControlMethod, updateControlMethod,

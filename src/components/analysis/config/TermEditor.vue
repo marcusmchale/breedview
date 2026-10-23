@@ -345,7 +345,7 @@ const summary = computed(() => {
       <div v-if="orderable" class="field">
         <span class="field-label">Level order</span>
         <p v-if="term.levelOrder == null" class="hint">
-          <template v-if="scaleType === 'ORDINAL'">Uses the scale's category rank.</template>
+          <template v-if="scaleType === 'ORDINAL'">Uses the order of the scale's categories.</template>
           <template v-else>Levels are ordered by the server.</template>
           <button type="button" class="btn-link" @click="enableLevelOrder">Set an explicit order</button>
         </p>

@@ -5,7 +5,6 @@
     "Trait",
     "Condition",
     "Scale",
-    "Category",
     "ObservationMethod",
     "Variable",
     "ControlMethod",
@@ -23,7 +22,6 @@
     "Trait",
     "Condition",
     "Scale",
-    "Category",
     "ObservationMethod",
     "Variable",
     "ControlMethod",
@@ -43,7 +41,6 @@
     "Trait",
     "Condition",
     "Scale",
-    "Category",
     "ObservationMethod",
     "Variable",
     "ControlMethod",
@@ -69,9 +66,6 @@
   ],
   "ScaleRelationships": [
     "Scale"
-  ],
-  "CategoryRelationships": [
-    "Category"
   ],
   "ObservationMethodInterface": [
     "ObservationMethod"
@@ -124,7 +118,6 @@
     "Trait",
     "Condition",
     "Scale",
-    "Category",
     "ObservationMethod",
     "Variable",
     "ControlMethod",

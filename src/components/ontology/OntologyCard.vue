@@ -56,7 +56,8 @@ const relatedEntries = computed(() => {
   push('Subjects', e.subjects)
   push('Traits', e.traits)
   push('Scales', e.scales)
-  push('Categories', e.categories)
+  // a scale's categories, in order, with what each means
+  push('Categories', e.categories?.map(c => ({ name: c.description ? `${c.name}: ${c.description}` : c.name })))
   push('Observation Methods', e.observationMethods)
   push('Variables', e.variables)
   push('Control Methods', e.controlMethods)

@@ -40,7 +40,7 @@ export function registerNames(kind, entries) {
   }
 }
 
-/** Datasets as {id, studyId, conceptId, conceptName, scaleType, categories}, from the dataset query. */
+/** Datasets as {id, studyId, conceptId, conceptName, scaleType}, from the dataset query. */
 export const datasetConcepts = reactive({})
 
 const registerDatasets = (datasets) => {
@@ -51,8 +51,7 @@ const registerDatasets = (datasets) => {
       studyId: d.studyId,
       conceptId: d.concept?.id,
       conceptName: d.concept?.name,
-      scaleType: scale?.scaleType ?? null,
-      categories: scale?.categories ?? []
+      scaleType: scale?.scaleType ?? null
     }
     if (d.concept) store.concept[d.concept.id] = d.concept.name
   }

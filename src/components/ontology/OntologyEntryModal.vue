@@ -55,13 +55,19 @@ const title = computed(() =>
 const formData = ref({})
 const controlTeamId = ref(props.controlTeamId)
 
-// Tracks selection order for `ordered` multiselect fields: { [fieldName]: string[] }
-const selectionOrders = ref({})
+// A scale's categories, edited here rather than as FormKit inputs and added to the form data on submit:
+// { [fieldName]: { name, description }[] }
+const categoryRows = ref({})
 
 const initFormData = () => {
   const data = {}
-  const orders = {}
+  const rows = {}
   for (const field of props.config.fields) {
+    if (field.type === 'categoriesBuilder') {
+      rows[field.name] = (isUpdateMode.value ? props.entry?.[field.name] ?? [] : [])
+        .map(({ name, description }) => ({ name, description: description ?? '' }))
+      continue
+    }
     if (field.type === 'axesBuilder') {
       data[field.name] = isUpdateMode.value
         ? [...(props.entry?.[field.name] ?? [])]
@@ -80,9 +86,6 @@ const initFormData = () => {
           ids = Array.isArray(relArr) ? relArr.map(r => r.id) : []
         }
         data[field.name] = ids
-        if (field.ordered) {
-          orders[field.name] = [...ids]
-        }
       } else if (field.type === 'singleselect') {
         const relKey = field.name.replace(/Id$/, '')
         data[field.name] = entry[relKey]?.id ?? entry[field.name] ?? null
@@ -91,31 +94,13 @@ const initFormData = () => {
       }
     } else {
       data[field.name] = field.type === 'multiselect' ? [] : ''
-      if (field.ordered) {
-        orders[field.name] = []
-      }
     }
   }
   formData.value = data
-  selectionOrders.value = orders
+  categoryRows.value = rows
 }
 
 watch(() => [props.config, props.entry], initFormData, { immediate: true })
-
-// ── Ordered multiselect change handler ───────────────────────────────────────
-const handleMultiselectChange = (field, newSelectedIds) => {
-  const ids = Array.isArray(newSelectedIds) ? newSelectedIds : []
-  const prev = selectionOrders.value[field.name] ?? []
-  // Keep existing order, remove deselected
-  const filtered = prev.filter(id => ids.includes(id))
-  // Append newly selected in the order they appear
-  for (const id of ids) {
-    if (!filtered.includes(id)) filtered.push(id)
-  }
-  selectionOrders.value[field.name] = filtered
-  // Rewrite formData to match the preserved order
-  formData.value[field.name] = [...filtered]
-}
 
 // ── Axes builder ──────────────────────────────────────────────────────────────
 const addAxis = (fieldName, value) => {
@@ -132,6 +117,24 @@ const removeAxis = (fieldName, index) => {
 const getAxisLabel = (options, value) => {
   return options.find(o => o.value === value)?.label ?? value
 }
+
+// ── Categories builder ────────────────────────────────────────────────────────
+const addCategory = (fieldName) => {
+  categoryRows.value[fieldName].push({ name: '', description: '' })
+}
+
+const removeCategory = (fieldName, index) => {
+  categoryRows.value[fieldName].splice(index, 1)
+}
+
+const moveCategory = (fieldName, index, step) => {
+  const rows = categoryRows.value[fieldName]
+  const [row] = rows.splice(index, 1)
+  rows.splice(index + step, 0, row)
+}
+
+// A field shown only for some values of the others, as a scale's categories for nominal and ordinal scales
+const isShown = (field) => typeof field.showFn !== 'function' || field.showFn(formData.value)
 
 // ── References ────────────────────────────────────────────────────────────────
 const showReferencesModal = ref(false)
@@ -171,18 +174,6 @@ const getMultiselectOptions = (field) => {
     })
     .map(e => ({ label: e.name, value: e.id }))
 
-  if (field.ordered) {
-    const order = selectionOrders.value[field.name] ?? []
-    return options.sort((a, b) => {
-      const aIdx = order.indexOf(a.value)
-      const bIdx = order.indexOf(b.value)
-      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx   // both selected: by selection order
-      if (aIdx !== -1) return -1                            // only a selected: a first
-      if (bIdx !== -1) return 1                             // only b selected: b first
-      return a.label.localeCompare(b.label)                 // neither: alphabetical
-    })
-  }
-
   return options.sort((a, b) => {
     const aSelected = formData.value[field.name]?.includes(a.value) ? -1 : 1
     const bSelected = formData.value[field.name]?.includes(b.value) ? -1 : 1
@@ -207,13 +198,10 @@ const getFieldLabel = (field) => {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 const handleSubmit = () => {
-  // For ordered fields, ensure submitted array respects selection order
   const data = { ...formData.value }
   for (const field of props.config.fields) {
-    if (field.type === 'multiselect' && field.ordered) {
-      const order = selectionOrders.value[field.name] ?? []
-      const selected = new Set(data[field.name] ?? [])
-      data[field.name] = order.filter(id => selected.has(id))
+    if (field.type === 'categoriesBuilder') {
+      data[field.name] = categoryRows.value[field.name].map(row => ({ ...row }))
     }
   }
   emit('submit', {
@@ -258,8 +246,9 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
             @submit="handleSubmit"
           >
             <p v-if="isLocked" class="locked-note">
-              🔒 This entry is locked: its name, description, source and defining relationships can't change, and it
-              can't be deprecated. Its synonyms, references, parents, children and terms stay editable.
+              🔒 This entry is locked: its name, description, source, defining relationships and a scale's categories
+              can't change, and it can't be deprecated. Its synonyms, references, parents, children and terms stay
+              editable.
             </p>
 
             <!-- Rendered fields -->
@@ -300,6 +289,50 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 <FormKit type="hidden" :name="field.name" />
               </div>
 
+              <!-- Categories builder: a scale's categories in order, each a name, as records hold it, and what it means -->
+              <div v-else-if="field.type === 'categoriesBuilder'" v-show="isShown(field)" class="categories-builder-field">
+                <label class="field-label">{{ getFieldLabel(field) }}</label>
+                <div v-if="categoryRows[field.name]?.length" class="axes-list">
+                  <div v-for="(category, idx) in categoryRows[field.name]" :key="idx" class="category-row">
+                    <span class="axis-index">{{ idx + 1 }}.</span>
+                    <input
+                      v-model="category.name"
+                      class="category-name"
+                      placeholder="Name"
+                      :aria-label="`Name of category ${idx + 1}`"
+                      :disabled="lockedOut(field)"
+                    />
+                    <input
+                      v-model="category.description"
+                      class="category-description"
+                      placeholder="What it means on this scale (optional)"
+                      :aria-label="`Description of category ${idx + 1}`"
+                      :disabled="lockedOut(field)"
+                    />
+                    <button
+                      type="button" class="category-btn" title="Move up"
+                      :disabled="lockedOut(field) || idx === 0"
+                      @click="moveCategory(field.name, idx, -1)"
+                    >↑</button>
+                    <button
+                      type="button" class="category-btn" title="Move down"
+                      :disabled="lockedOut(field) || idx === categoryRows[field.name].length - 1"
+                      @click="moveCategory(field.name, idx, 1)"
+                    >↓</button>
+                    <button
+                      type="button" class="category-btn category-remove" title="Remove"
+                      :disabled="lockedOut(field)"
+                      @click="removeCategory(field.name, idx)"
+                    >×</button>
+                  </div>
+                </div>
+                <div v-else class="empty-axes">No categories yet</div>
+                <button type="button" class="add-axis-btn" :disabled="lockedOut(field)" @click="addCategory(field.name)">
+                  + Category
+                </button>
+                <p v-if="field.help" class="category-help">{{ field.help }}</p>
+              </div>
+
               <!-- Enum select -->
               <FormKit
                 v-else-if="field.type === 'enumselect'"
@@ -310,18 +343,6 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 :validation="field.validation"
                 :options="field.options"
                 :help="field.help"
-              />
-
-              <!-- Ordered multiselect (selection-order preserved) -->
-              <FormKit
-                v-else-if="field.type === 'multiselect' && field.ordered"
-                :disabled="lockedOut(field)"
-                type="select"
-                :name="field.name"
-                :label="getFieldLabel(field)"
-                multiple
-                :options="getMultiselectOptions(field)"
-                @input="(val) => handleMultiselectChange(field, val)"
               />
 
               <!-- Standard multiselect -->
@@ -604,6 +625,60 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
   background: #f9f9f9;
   border: 2px dashed #ddd;
   border-radius: 4px;
+}
+
+/* Categories builder */
+.categories-builder-field {
+  margin-bottom: 1.25rem;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.category-row input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.category-name {
+  flex: 0 1 10rem;
+}
+
+.category-description {
+  flex: 1 1 auto;
+}
+
+.category-btn {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.category-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.category-remove {
+  color: #f44336;
+}
+
+.category-help {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #666;
 }
 
 /* References */

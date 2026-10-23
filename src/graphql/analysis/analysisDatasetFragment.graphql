@@ -6,10 +6,10 @@ fragment AnalysisDatasetFields on Dataset {
     name
     phase
     ... on Variable {
-      scale { id versionId view name scaleType categories { id name } }
+      scale { id versionId view name scaleType categories { name description } }
     }
     ... on Factor {
-      scale { id versionId view name scaleType categories { id name } }
+      scale { id versionId view name scaleType categories { name description } }
     }
   }
 }

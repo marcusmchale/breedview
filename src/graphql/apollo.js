@@ -127,7 +127,6 @@ const cache = new InMemoryCache({
     ...createReplaceOnMergePolicy('Location', 'children'),
     ...createReplaceOnMergePolicy('Layout', 'children'),
     ...createReplaceOnMergePolicy('Scale', 'categories'),
-    ...createReplaceOnMergePolicy('Category', 'scales'),
     ...createReplaceOnMergePolicy('Term', 'subjects'),
     // controllers have no id: the badge's release, the curation table's teams and the full details share one entry
     ...createPositionalMergePolicy('ControllersPayload'),

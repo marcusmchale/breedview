@@ -24,20 +24,14 @@ export function useValueParser() {
     return normalized.trim();
   };
 
+  // A category's name, matched ignoring case as the API does (names on a scale differ ignoring case)
   const parseCategory = (value, categories) => {
-    const valFold = value.toLowerCase().trim();
-    // Match against names (case-insensitive)
-    const matches = categories.filter(c => {
-      const names = [c.name, ...(c.synonyms || []), c.id?.toString()].filter(Boolean);
-      return names.some(n => n.toLowerCase() === valFold);
-    });
-
-    if (matches.length === 0) {
+    const valFold = value.toString().trim().toLowerCase();
+    const match = categories.find(c => c.name.toLowerCase() === valFold);
+    if (!match) {
       throw new Error(`"${value}" does not match any valid category`);
-    } else if (matches.length > 1) {
-      throw new Error(`"${value}" is ambiguous (matches multiple categories)`);
     }
-    return matches[0].name; // Return canonical name
+    return match.name; // Return canonical name
   };
 
   const parseValue = (value, scale, categories = []) => {

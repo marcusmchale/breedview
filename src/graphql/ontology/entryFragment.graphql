@@ -18,7 +18,6 @@ fragment OntologyEntryFields on OntologyNodeInterface {
     ... on Term {
         subjects { id versionId view name }
         scales { id versionId view name }
-        categories { id versionId view name }
         observationMethods { id versionId view name }
         traits { id versionId view name }
         variables { id versionId view name }
@@ -50,11 +49,10 @@ fragment OntologyEntryFields on OntologyNodeInterface {
     }
     ... on Scale {
         scaleType
-        categories  { id versionId view name }
+        categories { name description }
         variables { id versionId view name }
         factors { id versionId view name }
     }
-    ... on Category { scales  { id versionId view name } }
     ... on ObservationMethod {
         observationType
         variables  { id versionId view name }
@@ -65,7 +63,7 @@ fragment OntologyEntryFields on OntologyNodeInterface {
         scale  {
             id versionId view name
             scaleType
-            categories { id versionId view name }
+            categories { name description }
         }
     }
     ... on ControlMethod { controlType factors { id versionId view name } }
@@ -75,7 +73,7 @@ fragment OntologyEntryFields on OntologyNodeInterface {
         scale {
             id versionId view name
             scaleType
-            categories { id versionId view name } } }
+            categories { name description } } }
     ... on Event {
         variables { id versionId view name }
         factors { id versionId view name }

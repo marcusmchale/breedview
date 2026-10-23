@@ -76,7 +76,6 @@ export function cancelledWith(ids, { entries = [], relationships = [] }) {
 const DEFINITION_FIELDS = {
   Variable: ['trait', 'observationMethod', 'scale'],
   Factor: ['condition', 'controlMethod', 'scale'],
-  Scale: ['categories'],
   Trait: ['subjects'],
   Condition: ['subjects'],
   Event: ['variables', 'factors']
