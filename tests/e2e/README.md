@@ -138,8 +138,9 @@ browser: that the pages render it, which actions they offer, the modals and labe
   fails apart from the sign-in check, and the open pages request nothing from hosts other than the app and the API
   (maps come from the API's `/tiles`, so the test database needs `scripts/map_tiles.py` run for the world file).
 - `germplasmAccess.test.mjs`: the germplasm page draws, for each viewer, the entries the manifest says they can read.
-- `germplasmGraph.test.mjs`, as the admin, at `crop_leaf`: collapsing an entry's sinks in the pedigree graph hides
-  every entry below it, and expanding them shows its own sinks again; its sources likewise above it; a double-click
+- `germplasmGraph.test.mjs`, as the admin, in a window too narrow for the pedigree at full size: the graph opens zoomed
+  to fit its box, and a zoom while it first settles is kept. At `crop_leaf`, collapsing an entry's sinks hides every
+  entry below it, and expanding them shows its own sinks again; its sources likewise above it; a double-click
   collapses its sinks when they are all shown and shows them otherwise; through each, the entry stays where it is on
   the screen, in the view as it was zoomed, while the graph settles; and a double-click on an entry does not zoom.
 - `peopleAccess.test.mjs`: the people page needs an account; it lists the Persons each viewer sees in full or by

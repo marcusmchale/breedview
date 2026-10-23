@@ -1,5 +1,6 @@
-// The germplasm page's pedigree graph, as the admin, at the test database's crop_leaf: collapsing an entry's sinks
-// hides every entry below it and expanding them shows its own sinks again, and its sources likewise above it; a
+// The germplasm page's pedigree graph, as the admin, in a window too narrow for the test database's pedigree at full
+// size: it opens zoomed to fit its box, and a zoom while it first settles is kept. At crop_leaf: collapsing an entry's
+// sinks hides every entry below it and expanding them shows its own sinks again, and its sources likewise above it; a
 // double-click collapses its sinks when they are all shown and shows them otherwise; the entry stays where it is on
 // the screen through each, in the view as it was zoomed, while the graph settles around it; and a double-click on an
 // entry does not zoom. What is below and above comes from the API's sources and sinks, as the page reads them.
@@ -14,7 +15,7 @@ const ENTRY = entities.crop_leaf.name
 
 let browser, page, family
 before(async () => {
-  browser = await launchBrowser({ height: 1400 }); page = browser.page
+  browser = await launchBrowser({ width: 720, height: 1400 }); page = browser.page
   await loginAs(page, 'admin')
   family = await pedigree()
 })
@@ -77,14 +78,14 @@ const centre = (name) => page.evaluate(`(() => { const r = ${circle(name)}.getBo
 const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1
 const view = () => page.evaluate(`document.querySelector('${graph} svg > g').getAttribute('transform')`)
 
-// the layout runs for a few seconds after each change
+// the layout runs for a few seconds after each change, until nothing moves at all (the first drawing's fit with it)
 async function settled() {
-  const positions = () => page.evaluate(`[...document.querySelectorAll('${graph} circle')].map((c) => { const r = c.getBoundingClientRect(); return [r.x, r.y] })`)
+  const positions = () => page.evaluate(`JSON.stringify([...document.querySelectorAll('${graph} circle')].map((c) => { const r = c.getBoundingClientRect(); return [r.x, r.y] }))`)
   let last = await positions()
   for (let i = 0; i < 40; i++) {
     await page.sleep(500)
     const now = await positions()
-    if (now.length === last.length && now.every((position, j) => Math.hypot(position[0] - last[j][0], position[1] - last[j][1]) < 0.5)) return
+    if (now === last) return
     last = now
   }
   throw new Error('the graph did not settle')
@@ -96,6 +97,31 @@ async function drawnAs(expected) {
     .catch(() => {})
   assert.deepEqual(await drawn(), expected)
 }
+
+test('the pedigree opens zoomed to fit its box', async () => {
+  const all = await open()
+  await settled()
+  const outside = await page.evaluate(`(() => {
+    const box = document.querySelector('${graph}').getBoundingClientRect()
+    return [...document.querySelectorAll('${graph} circle, ${graph} text')].filter((e) => {
+      const r = e.getBoundingClientRect()
+      return r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1
+    }).map((e) => e.textContent.trim() || e.__data__?.name)
+  })()`)
+  assert.deepEqual(outside, [], `all ${all.length} entries are in the box`)
+})
+
+test('a zoom while the pedigree first settles is kept', async () => {
+  await open()
+  // the layout runs for a few seconds after the first drawing
+  await page.evaluate(`(() => {
+    const svg = document.querySelector('${graph} svg'), r = svg.getBoundingClientRect()
+    svg.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -300, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 }))
+  })()`)
+  const zoomed = await view()
+  await settled()
+  assert.equal(await view(), zoomed)
+})
 
 test('collapsing an entry\'s sinks hides every entry below it, and expanding them shows its own sinks again', async () => {
   const all = await open()

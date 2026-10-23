@@ -32,6 +32,9 @@ const contextMenu = ref({
 let simulation = null
 let svgElement = null
 let zoomBehavior = null
+// While set, the first drawing is zoomed to fit its box on each tick of its layout: until the viewer zooms, pans,
+// drags a node or goes to one from the search
+let fitting = false
 // Each entry's node as last drawn, by id: a new drawing starts each node from where it was
 const nodeMap = new Map()
 // The node last expanded or collapsed, held where it is while the graph settles around what was shown or hidden
@@ -63,10 +66,22 @@ const toggleExpanded = (node) => {
 }
 
 
+const SCALE_EXTENT = [0.1, 10]
+
+// The view that shows the whole of a drawing's box in the container, within a margin, and never above full size
+const fitted = (box, width, height, margin = 20) => {
+  const scale = Math.min(1, (width - 2 * margin) / box.width, (height - 2 * margin) / box.height)
+  return d3.zoomIdentity
+    .translate(width / 2, height / 2)
+    .scale(Math.max(SCALE_EXTENT[0], scale))
+    .translate(-(box.x + box.width / 2), -(box.y + box.height / 2))
+}
+
 const recenterOnNode = (result) => {
   if (!svgElement || !zoomBehavior || !graphContainer.value) {
     return
   }
+  fitting = false
 
   const node = nodeMap.get(result.id)
 
@@ -124,8 +139,10 @@ const renderGraph = async () => {
       entryMap.set(entryData.id, entry)
     }
   })
-  // The first drawing is laid out afresh and centred; a later one settles from where its nodes were
+  // The first drawing is laid out afresh, kept zoomed to fit as it settles; a later one settles from where its nodes
+  // were, in the view of the one it replaces
   const redrawn = entrys.some(node => node.x != null)
+  fitting = !redrawn
   // an entry not drawn before (one just created) starts beside one it is linked to
   entrys.filter(node => node.x == null).forEach(node => {
     const linkedIds = [
@@ -223,8 +240,6 @@ const renderGraph = async () => {
     .force("collision", d3.forceCollide(30))
   if (redrawn) {
     simulation.alpha(0.3)
-  } else {
-    simulation.force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2))
   }
 
   // Create links
@@ -320,7 +335,8 @@ const renderGraph = async () => {
     })
   }
 
-  // Simulation tick event; drawn at once too, so the nodes are not at the origin until the first tick
+  // The nodes and links where the layout has them: on each tick, and at once, so they are not at the origin until the
+  // first tick
   const draw = () => {
     link
       .attr("x1", d => d.source.x)
@@ -339,12 +355,11 @@ const renderGraph = async () => {
       .attr("x", d => d.x)
       .attr("y", d => d.y)
   }
-  simulation.on("tick", draw)
-  draw()
 
   // Drag functions
   function dragstarted(event, d) {
     if (!event.active) simulation.alphaTarget(0.3).restart()
+    fitting = false
     d.fx = d.x
     d.fy = d.y
   }
@@ -361,18 +376,26 @@ const renderGraph = async () => {
 
   // Add zoom functionality
   const zoom = d3.zoom()
-    .scaleExtent([0.1, 10])
+    .scaleExtent(SCALE_EXTENT)
     .on('zoom', (event) => {
       g.attr('transform', event.transform)
+      // the viewer's own zoom or pan, not the fitting's
+      if (event.sourceEvent) fitting = false
     })
 
   zoomBehavior = zoom
 
   svg.call(zoom)
-  if (view) {
+  const fit = () => svg.call(zoom.transform, fitted(g.node().getBBox(), containerWidth, containerHeight))
+  simulation.on("tick", () => {
+    draw()
+    if (fitting) fit()
+  })
+  draw()
+  if (redrawn && view) {
     svg.call(zoom.transform, view)
   } else {
-    svg.call(zoom.translateTo, containerWidth / 2, containerHeight / 2)
+    fit()
   }
 }
 
