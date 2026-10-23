@@ -4,8 +4,8 @@
 // lab listed below its sample, the samples that moved on or were used up marked so, the tree that visited the lab
 // marked back at its field; the hidden sample's extract listed in its place for whoever can't read the sample; the
 // germplasm the samples inherit from their trees, none for one pooled from trees of two varieties or below the hidden
-// sample; the Locations page's link to a location's units; and a child added with its parent staying in its parent's
-// tree.
+// sample; the location tree fitting the page's narrow panel, down to the lab's store; the Locations page's link to a
+// location's units; and a child added with its parent staying in its parent's tree.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -205,6 +205,25 @@ test('germplasm given to a sample comes down to the units below it, without read
   await page.waitFor(`${nodeHeader('Arrival Extract A1')}?.querySelector('.inherited-germplasm-badge')?.title === 'From Arrival Sample A1'`, 30000)
   assert.deepEqual(await germplasmBadges('Arrival Extract A1'), { own: null, inherited: e.crop_line.name, from: 'From Arrival Sample A1' })
   assert.equal((await germplasmBadges('Arrival Sample A1')).own, e.crop_line.name)
+})
+
+test('the location tree fits its panel, down to the lab\'s store', { skip }, async () => {
+  await signInAs('writer')
+  const store = a.locations.lab_store
+  await page.goto(`${config.appUrl}/units?location=${store.id}`)
+  await page.waitFor(`[...document.querySelectorAll('.locations-panel .location-name')].some((n) => n.innerText.trim() === ${q(store.name)})`, 30000)
+  // five levels down, the store's name and type ran out of the panel when each level was indented by a name's width
+  const { overflowing, scrolls } = await page.evaluate(`(() => {
+    const panel = document.querySelector('.locations-panel')
+    const right = panel.getBoundingClientRect().left + panel.clientLeft + panel.clientWidth - parseFloat(getComputedStyle(panel).paddingRight)
+    return {
+      overflowing: [...panel.querySelectorAll('.location-name, .location-meta > *')]
+        .filter((e) => e.getBoundingClientRect().right > right + 0.5).map((e) => e.innerText.trim()),
+      scrolls: panel.scrollWidth > panel.clientWidth
+    }
+  })()`)
+  assert.deepEqual(overflowing, [])
+  assert.equal(scrolls, false, 'the panel does not scroll sideways')
 })
 
 test('the Locations page links to the units at a location', { skip }, async () => {

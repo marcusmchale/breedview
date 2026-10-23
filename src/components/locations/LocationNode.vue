@@ -123,8 +123,8 @@ const children = computed( () => {
 
 .location-header.selected {
   background-color: #e3f2fd;
-  border-left: 4px solid #007bff;
-  padding-left: 12px;
+  /* the bar is drawn inside the row, so the selected location keeps its place and its width */
+  box-shadow: inset 4px 0 0 #007bff;
 }
 
 .location-header.selected:hover {
@@ -185,6 +185,8 @@ const children = computed( () => {
 
 .location-info {
   flex: 1;
+  /* shrinks to what the panel leaves at its depth, and the name wraps */
+  min-width: 0;
 }
 
 .location-name {
@@ -192,6 +194,7 @@ const children = computed( () => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  overflow-wrap: anywhere;
 }
 
 .location-description {
@@ -227,10 +230,12 @@ const children = computed( () => {
   white-space: nowrap;
 }
 
+/* each level is indented by about its arrow's width, its line under the parent's arrow, so a deep tree fits a
+   narrow panel */
 .children {
-  margin-left: 36px;
+  margin-left: 11px;
   margin-top: 12px;
-  padding-left: 12px;
+  padding-left: 9px;
   border-left: 2px solid #e0e0e0;
 }
 
