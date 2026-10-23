@@ -17,23 +17,30 @@ async function freePort() {
 }
 
 // acceptTerms: accept BreedView's Terms of Use when a page asks for them, as a person would (see goto)
-export async function launchBrowser({ headless = true, width = 1280, height = 900, acceptTerms = true } = {}) {
+// args: more of Chrome's command-line switches; loadsPerTab: full page loads before goto() moves to a fresh tab (see
+// LOADS_PER_TAB), Infinity for one tab throughout, as recordings need with the production build
+export async function launchBrowser({
+  headless = true, width = 1280, height = 900, acceptTerms = true, args = [], loadsPerTab = LOADS_PER_TAB
+} = {}) {
   const port = await freePort()
   const profile = mkdtempSync(join(tmpdir(), 'breedview-e2e-'))
-  const args = [
+  const chromeArgs = [
     headless ? '--headless=new' : '', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-    `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, `--window-size=${width},${height}`, 'about:blank'
+    `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, `--window-size=${width},${height}`, ...args,
+    'about:blank'
   ].filter(Boolean)
-  const chrome = spawn(CHROME, args, { stdio: 'ignore' })
+  const chrome = spawn(CHROME, chromeArgs, { stdio: 'ignore' })
   let version = null
   for (let attempt = 0; attempt < 50 && !version; attempt++) {
     await sleep(200)
     try { version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json() } catch { /* not up yet */ }
   }
   if (!version) { chrome.kill(); rmSync(profile, { recursive: true, force: true }); throw new Error(`Chrome did not start (${CHROME})`) }
-  const page = await connectPage(port, { acceptTerms })
+  const page = await connectPage(port, { acceptTerms, loadsPerTab })
   return {
     page,
+    // the browser's own DevTools endpoint, beside the page's
+    browserWsUrl: version.webSocketDebuggerUrl,
     close: async () => { try { page.close() } catch { /* ignore */ } chrome.kill(); await sleep(300); rmSync(profile, { recursive: true, force: true }) }
   }
 }
@@ -44,8 +51,12 @@ export async function launchBrowser({ headless = true, width = 1280, height = 90
 // Cookies live in the profile, so the session carries over to the new tab.
 const LOADS_PER_TAB = 8
 
-async function connectPage(port, { acceptTerms = true } = {}) {
+// Events too large or too frequent to keep in the list: screencast frames are megabytes a second (see on())
+const UNKEPT = new Set(['Page.screencastFrame'])
+
+async function connectPage(port, { acceptTerms = true, loadsPerTab = LOADS_PER_TAB } = {}) {
   const events = []  // every tab's events in one list, so marks stay valid across tabs
+  const listeners = new Map()  // method -> [fn], called with each event's params as it comes
   let ws, target, nextId = 0
   const pending = new Map()
 
@@ -59,7 +70,8 @@ async function connectPage(port, { acceptTerms = true } = {}) {
         const { resolve, reject } = pending.get(msg.id); pending.delete(msg.id)
         msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result)
       } else if (msg.method) {
-        events.push(msg)
+        if (!UNKEPT.has(msg.method)) events.push(msg)
+        for (const fn of listeners.get(msg.method) ?? []) fn(msg.params)
         // a native dialog blocks the page, and with it every evaluate, until it is answered: accept it (a confirm is
         // confirmed); an alert is reported among the console errors
         if (msg.method === 'Page.javascriptDialogOpening') send('Page.handleJavaScriptDialog', { accept: true }).catch(() => {})
@@ -119,8 +131,13 @@ async function connectPage(port, { acceptTerms = true } = {}) {
 
   return {
     send, events, sleep, evaluate,
+    // call fn with the params of each event of a method, as it comes (on every tab); returns a function that stops it
+    on: (method, fn) => {
+      listeners.set(method, [...(listeners.get(method) ?? []), fn])
+      return () => listeners.set(method, listeners.get(method).filter((f) => f !== fn))
+    },
     goto: async (url) => {
-      if (++loads > LOADS_PER_TAB) { await freshTab(); loads = 1 }
+      if (++loads > loadsPerTab) { await freshTab(); loads = 1 }
       await send('Page.navigate', { url }); await sleep(1500)
       if (acceptTerms) await acceptTermsIfAsked()
     },
