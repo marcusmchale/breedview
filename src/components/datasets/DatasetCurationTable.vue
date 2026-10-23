@@ -279,6 +279,7 @@ const isSectionStart = (rIdx) => {
 
 const sectionCount = (row) =>
   rowSections.value.find((s) => s.key === getRowSectionKey(row))?.rowIndices.length ?? 0
+const rowsLabel = (count) => `${count} row${count === 1 ? '' : 's'}`
 
 // ---- Cell classes ----
 const getCellClasses = (row, cell) => {
@@ -529,7 +530,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
             <!-- Section header for DATASET_SCOPED grouping values -->
             <tr v-if="isSectionStart(rIdx)" class="section-header">
               <td :colspan="row.getVisibleCells().length">
-                {{ getRowSectionLabel(row.original) }} ({{ sectionCount(row.original) }} rows)
+                {{ getRowSectionLabel(row.original) }} ({{ rowsLabel(sectionCount(row.original)) }})
               </td>
             </tr>
 

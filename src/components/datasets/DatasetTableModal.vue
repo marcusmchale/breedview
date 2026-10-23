@@ -633,7 +633,7 @@ const getFileReferenceDisplay = (value) => {
               class="split-chip"
               :class="{ unassigned: grp.unassigned }"
             >
-              {{ grp.label }} ({{ grp.rowIndices.length }} rows)
+              {{ grp.label }} ({{ grp.rowIndices.length }} row{{ grp.rowIndices.length === 1 ? '' : 's' }})
             </span>
           </div>
 
