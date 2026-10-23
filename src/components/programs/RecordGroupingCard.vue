@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
   grouping: {
@@ -60,7 +61,7 @@ const scopeCount = computed(() => {
     </div>
 
     <div class="card-content">
-      <p><strong>Type:</strong> {{ typeName }}</p>
+      <p><strong>Type:</strong> {{ typeName }}<RetiredTag :entry="grouping.type" /></p>
       <p v-if="grouping.scope === 'DATASET_SCOPED'" class="scopes-info">
         <strong>Dataset Scopes:</strong> {{ scopeCount || 'None configured' }}
       </p>

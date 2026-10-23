@@ -11,7 +11,7 @@ query programsTrial($trialId: ID, $studyId: ID) {
       start
       end
       contacts { ...PersonFields }
-      contributions { person { ...PersonFields } roles { id versionId view name } }
+      contributions { person { ...PersonFields } roles { id versionId view name phase } }
       references { ...ReferenceFields }
       studies { id name }
     }

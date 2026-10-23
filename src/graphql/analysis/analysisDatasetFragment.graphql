@@ -4,6 +4,7 @@ fragment AnalysisDatasetFields on Dataset {
   concept {
     id versionId view
     name
+    phase
     ... on Variable {
       scale { id versionId view name scaleType categories { id name } }
     }

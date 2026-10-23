@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 import { useLayoutNodeQueries } from "@/composables/layouts/layoutNodeQueries"
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
   layoutId: {
@@ -77,6 +78,7 @@ const handleChildNodeSelected = ( { nodeId, parentId } ) => {
           <span class="node-name">{{ layout.name || `${layout.type?.name || 'Layout'} ${layout.id}` }}</span>
           <div class="node-meta">
             <span v-if="layout.type" class="type-badge">{{ layout.type.name }}</span>
+            <RetiredTag :entry="layout.type" />
             <span v-if="layout.children && layout.children.length > 0" class="count">
               {{ layout.children.length }} child{{ layout.children.length !== 1 ? 'ren' : '' }}
             </span>

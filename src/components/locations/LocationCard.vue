@@ -7,6 +7,7 @@ import AddChildModal from "@/components/locations/addChildModal.vue";
 
 import { useLocationNodeQueries } from "@/composables/locations/locationNodeQueries";
 import { useCanCreate, useCanCurate } from '@/composables/controls/useWriteAccess'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
   locationId: {
@@ -69,7 +70,7 @@ const displayFields = computed(() => {
   const l = location.value
   return [
     { label: 'Name', value: l.name },
-    { label: 'Type', value: l.type?.name },
+    { label: 'Type', value: l.type?.name, entry: l.type },
     { label: 'Location tree', value: l.root?.name },
     { label: 'Parent', value: l.parent?.name },
     { label: 'Code', value: l.code },
@@ -162,7 +163,7 @@ const handleAddChildSuccess = async () => {
         <div class="fields-grid">
           <div v-for="field in displayFields" :key="field.label" class="field">
             <label class="field-label">{{ field.label }}</label>
-            <p class="field-value">{{ field.value }}</p>
+            <p class="field-value">{{ field.value }}<RetiredTag v-if="field.entry" :entry="field.entry" /></p>
           </div>
         </div>
       </div>

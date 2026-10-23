@@ -76,8 +76,11 @@ Some tests write: the invitation test registers a new account with a unique name
 write actions test grants the admin curate access to `child` and removes it
 afterwards, the germplasm unit test gives `crop_line` a unit and creates an entry, then puts the unit back and
 deletes the entry, and the record references test submits a dataset to the spectra's submission study and deletes its
-record in curation (datasets can't be deleted, so each run leaves one there, empty). Restore the dump when a clean state
-matters. The backend's own pytest suite flushes the database: never run it while these tests rely on it, and restore
+record in curation (datasets can't be deleted, so each run leaves one there, empty). Two commit ontology versions,
+which stay in its history and make every draft there current, those other tests leave included: the ontology
+retirement test, two or three each run, as it retires and restores an "E2E retired subject" and "E2E retired trait"
+(made by its first run) and a unit it makes and deletes; and the optional links test, once, for the design it makes,
+as a study can't be linked to a draft. Restore the dump when a clean state matters. The backend's own pytest suite flushes the database: never run it while these tests rely on it, and restore
 the dump afterwards.
 
 ## Running

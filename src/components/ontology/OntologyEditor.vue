@@ -125,11 +125,15 @@ const handleSetLocked = async (entryId, locked) => {
 }
 
 // ── Deprecate / Cancel Deprecate ──────────────────────────────────────────────
-const handleDeprecate = async (entryId) => {
+// several entries at once, as an entry goes with those defined by it; their relationships change too, so the ontology
+// is read again
+const handleDeprecate = async (entryIds) => {
   mutationLoading.value = true
+  mutationError.value = null
   try {
-    const { status, errors } = await deprecateEntries([entryId])
+    const { status, errors } = await deprecateEntries(entryIds)
     if (status === 'SUCCESS') {
+      await ontologyRefetch()
       closeModal()
     } else {
       mutationError.value = errors?.map(e => e.message).join(', ') ?? 'Deprecation failed'
@@ -141,10 +145,11 @@ const handleDeprecate = async (entryId) => {
   }
 }
 
-const handleCancelDeprecate = async (entryId) => {
+const handleCancelDeprecate = async (entryIds) => {
   mutationLoading.value = true
+  mutationError.value = null
   try {
-    const { status, errors } = await cancelDeprecateEntries([entryId])
+    const { status, errors } = await cancelDeprecateEntries(entryIds)
     if (status === 'SUCCESS') {
       closeModal()
     } else {
@@ -177,8 +182,10 @@ const handleCancelDeprecate = async (entryId) => {
       v-if="showModal && activeConfig"
       :config="activeConfig"
       :ontology-entries="ontology?.entries ?? []"
+      :ontology-relationships="ontology?.relationships ?? []"
       :entry="activeEntry"
       :loading="mutationLoading"
+      :error="mutationError"
       :can-lock="admin"
       @lock="handleSetLocked($event, true)"
       @unlock="handleSetLocked($event, false)"

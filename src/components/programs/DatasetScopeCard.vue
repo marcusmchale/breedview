@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
   scope: { type: Object, required: true },
@@ -38,7 +39,7 @@ const totalRecords = computed(() =>
     <ul class="dataset-list">
       <li v-for="d in datasets" :key="d.id">
         <template v-if="d.summary">
-          <strong>{{ d.summary.concept?.name || 'Unknown concept' }}</strong>
+          <strong>{{ d.summary.concept?.name || 'Unknown concept' }}</strong><RetiredTag :entry="d.summary.concept" />
           <span class="dataset-id">#{{ d.id }}</span>
           <span class="dataset-meta">
             — {{ d.summary.unit_count ?? '—' }} units, {{ d.summary.record_count ?? '—' }} records

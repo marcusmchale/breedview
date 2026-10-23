@@ -6,6 +6,7 @@ import {FormKit} from "@formkit/vue";
 import { useLocationUpdateQueries } from "@/composables/locations/locationUpdateQueries";
 import { useMutateLocations } from "@/composables/locations/mutateLocations";
 import { clearable } from "@/composables/system/clearable";
+import { optionLabel, withCurrent } from '@/composables/ontology/ontologyLifecycles'
 
 const props = defineProps({
   locationTypes: {
@@ -133,7 +134,7 @@ const submitUpdate = async () => {
       name="typeId"
       label="Location Type:"
       :placeholder="location.type.name ?? 'Select a location type'"
-      :options="locationTypes.map(type => ({ value: type.id, label: type.name }))"
+      :options="withCurrent(locationTypes, location.type).map(type => ({ value: type.id, label: optionLabel(type) }))"
       validation="required"
     />
 

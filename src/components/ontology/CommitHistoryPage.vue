@@ -8,6 +8,8 @@ import OntologyGraphTools from "@/components/ontology/OntologyGraphTools.vue";
 import ReferencesDisplay from "@/components/references/ReferencesDisplay.vue";
 
 import { useOntologyQuery } from "@/composables/ontology/ontologyQuery";
+import { useAuthStore } from '@/composables/user/useAuthStore'
+import RestoreEntriesModal from '@/components/ontology/RestoreEntriesModal.vue'
 
 // Pagination
 const lastVersionId = ref(null)
@@ -75,6 +77,11 @@ const {
     ontologyLoading,
     ontologyErrors
 } = useOntologyQuery({ versionId: selectedVersion, view: "PUBLISHED" })
+
+// An entry's phase is its phase now, so one removed since shows as REMOVED: editors and admins may restore it
+const { user } = useAuthStore()
+const canRestore = computed(() => ['ADMIN', 'EDITOR'].includes(user.value?.ontologyRole))
+const restoring = ref(null)
 
 </script>
 
@@ -151,12 +158,15 @@ const {
               :lifecycle-filters="false"
               :show-create-buttons="false"
               :show-edit-buttons="false"
+              :can-restore="canRestore"
+              @restore-entry="restoring = $event"
             />
           </div>
         </div>
       </div>
     </Teleport>
 
+    <RestoreEntriesModal v-if="restoring" :entry="restoring" @close="restoring = null" />
   </div>
 </template>
 

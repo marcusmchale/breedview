@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 
 import ReferencesModal from "@/components/references/ReferencesModal.vue";
+import LifecyclePanel from '@/components/ontology/LifecyclePanel.vue'
 import { isLockedField } from '@/composables/ontology/ontologyEntryConfig'
 import { REFERENCE_TYPE_GROUPS } from "@/composables/references/referenceTypes";
 
@@ -11,6 +12,11 @@ const props = defineProps({
     required: true
   },
   ontologyEntries: {
+    type: Array,
+    default: () => []
+  },
+  // the ontology's relationships, for the entries deprecated or restored with this one
+  ontologyRelationships: {
     type: Array,
     default: () => []
   },
@@ -30,6 +36,11 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // what the API refused, as it says
+  error: {
+    type: String,
+    default: null
   }
 })
 
@@ -213,9 +224,14 @@ const handleSubmit = () => {
 }
 
 // ── Deprecate / Cancel ────────────────────────────────────────────────────────
+// 'deprecate' or 'cancel', confirmed in a panel listing the entries that go with it
+const lifecycleAction = ref(null)
+watch(() => props.entry, () => { lifecycleAction.value = null })
 const phase = computed(() => props.entry?.phase ?? null)
 const canDeprecate = computed(() => isUpdateMode.value && ['DRAFT', 'ACTIVE'].includes(phase.value))
 const canCancelDeprecate = computed(() => isUpdateMode.value && phase.value === 'DEPRECATED')
+const lifecycleOntology = computed(() => ({ entries: props.ontologyEntries, relationships: props.ontologyRelationships }))
+const confirmLifecycle = (ids) => emit(lifecycleAction.value === 'deprecate' ? 'deprecate' : 'cancelDeprecate', ids)
 
 // ── Locked entries ────────────────────────────────────────────────────────────
 const isLocked = computed(() => isUpdateMode.value && !!props.entry?.locked)
@@ -382,9 +398,9 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 v-if="canDeprecate"
                 type="button"
                 class="btn btn-danger"
-                :disabled="loading || isLocked"
+                :disabled="loading || isLocked || !!lifecycleAction"
                 :title="isLocked ? 'A locked entry cannot be deprecated' : ''"
-                @click="emit('deprecate', entry.id)"
+                @click="lifecycleAction = 'deprecate'"
               >
                 Deprecate
               </button>
@@ -392,8 +408,8 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 v-if="canCancelDeprecate"
                 type="button"
                 class="btn btn-primary"
-                :disabled="loading"
-                @click="emit('cancelDeprecate', entry.id)"
+                :disabled="loading || !!lifecycleAction"
+                @click="lifecycleAction = 'cancel'"
               >
                 Cancel Deprecation
               </button>
@@ -407,6 +423,18 @@ const lockedOut = (field) => isLocked.value && isLockedField(props.config, field
                 {{ isLocked ? 'Unlock' : 'Lock' }}
               </button>
             </div>
+
+            <LifecyclePanel
+              v-if="lifecycleAction"
+              :entry="entry"
+              :ontology="lifecycleOntology"
+              :action="lifecycleAction"
+              :loading="loading"
+              @confirm="confirmLifecycle"
+              @back="lifecycleAction = null"
+            />
+
+            <div v-if="error" class="error-message">{{ error }}</div>
           </FormKit>
         </div>
       </div>

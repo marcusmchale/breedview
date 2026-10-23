@@ -1,8 +1,8 @@
 // An update removes an optional link with null (breedgraph 2026-10-20): a study's design and licence, a unit's
 // germplasm and a germplasm entry's origin. Each link is set through the API, removed in its edit form, and checked
 // through the API and on the page. Signed in as the writer, who curates the child team's study, unit and entry; the
-// links they had are put back afterwards. The test database publishes no design, so a draft design is created once and
-// stays.
+// links they had are put back afterwards. The test database publishes no design, and a study can't be linked to a draft
+// (breedgraph 2026-10-23), so a design is created and committed once, by the admin, an ontology admin, and stays.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -13,7 +13,7 @@ const q = JSON.stringify
 const STUDY = String(r.study.id)
 const UNIT = String(e.field_unit.id)
 const ENTRY = String(e.crop_middle.id)
-const DRAFT_DESIGN = 'E2E optional links design'
+const DESIGN = 'E2E optional links design'
 
 const studyLinks = async () => (await graphql(page, 'query ($id: ID!) { programsStudy(id: $id) { result { design { id } licence { id } } } }', { id: STUDY })).result
 const unitOf = async () => (await graphql(page, 'query ($ids: [ID!]) { unitsUnits(ids: $ids) { result { name germplasm { id } parents { id } positions { location { id } } } } }', { ids: [UNIT] })).result[0]
@@ -50,17 +50,25 @@ after(async () => {
   }
 })
 
-// a published design, or else the draft one this test creates
+// a published design, or else the one this test creates and the admin commits, signed in as the admin meanwhile
 async function aDesign() {
   const designs = async (view) => (await graphql(page, `query { ontologyEntries(labels: [DESIGN], view: ${view}) { result { ... on Design { id name } } } }`)).result
   const published = await designs('PUBLISHED')
   if (published.length) return published[0]
-  const draft = async () => (await designs('EDITORIAL')).find((d) => d.name === DRAFT_DESIGN)
-  if (!(await draft())) {
-    const payload = await graphql(page, 'mutation ($d: DesignInput!) { ontologyCreateDesign(design: $d) { status errors { message } } }', { d: { name: DRAFT_DESIGN } })
+  await logout(page)
+  await loginAs(page, 'admin')
+  try {
+    if (!(await designs('EDITORIAL')).some((d) => d.name === DESIGN)) {
+      const payload = await graphql(page, 'mutation ($d: DesignInput!) { ontologyCreateDesign(design: $d) { status errors { message } } }', { d: { name: DESIGN } })
+      assert.equal(payload.status, 'SUCCESS', q(payload.errors))
+    }
+    const payload = await graphql(page, 'mutation { ontologyCommitVersion(versionChange: PATCH, comment: "E2E: a design for the optional links test") { status errors { message } } }')
     assert.equal(payload.status, 'SUCCESS', q(payload.errors))
+  } finally {
+    await logout(page)
+    await loginAs(page, 'writer')
   }
-  return draft()
+  return (await designs('PUBLISHED')).find((d) => d.name === DESIGN)
 }
 
 const fieldValue = (card, label) => page.evaluate(`[...document.querySelectorAll(${q(`${card} .fields-grid .field`)})]

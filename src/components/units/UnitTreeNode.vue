@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 
 import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
 import { currentPosition } from '@/composables/units/unitPositions'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 import UnitTreeNode from "@/components/units/UnitTreeNode.vue";
 
 const props = defineProps({
@@ -130,6 +131,7 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
           </span>
           <div class="node-meta">
             <span v-if="unit.subject" class="type-badge">{{ unit.subject.name }}</span>
+            <RetiredTag :entry="unit.subject" />
             <span v-if="unit.germplasm" class="germplasm-badge">{{ unit.germplasm.name }}</span>
             <span
               v-else-if="unit.inheritedGermplasm"

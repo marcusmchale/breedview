@@ -2,7 +2,7 @@ fragment LocationFields on Location {
     id
     name
     code
-    type { id versionId view name }
+    type { id versionId view name phase }
     description
     address
     coordinates { latitude longitude }

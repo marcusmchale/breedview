@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
 import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const props = defineProps({
   studyId: {
@@ -85,6 +86,7 @@ const chipTitle = (entry) =>
           :title="chipTitle(entry)"
         >
           {{ entry.concept.name || `Concept ${entry.concept.id}` }}
+          <RetiredTag :entry="entry.concept" />
           <span class="chip-count">{{ entry.recordCount }}</span>
         </span>
       </div>

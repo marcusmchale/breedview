@@ -7,6 +7,7 @@ import { useUnitUpdateQueries } from "@/composables/units/unitUpdateQueries"
 import { useSelectGermplasmQueries } from "@/composables/germplasm/selectGermplasmQueries"
 import { useMutateUnits } from "@/composables/units/mutateUnits"
 import { clearable } from "@/composables/system/clearable"
+import { optionLabel, withCurrent } from '@/composables/ontology/ontologyLifecycles'
 
 const props = defineProps({
   subjects: {
@@ -160,7 +161,7 @@ const submitUpdate = async () => {
       type="select"
       name="subjectId"
       label="Subject Type:"
-      :options="subjects.map(subject => ({ value: subject.id, label: subject.name }))"
+      :options="withCurrent(subjects, unit.subject).map(subject => ({ value: subject.id, label: optionLabel(subject) }))"
       validation="required"
     />
 

@@ -7,6 +7,7 @@ import { datasetName, registerNames, studyName } from '@/composables/analysis/us
 import { useProgramsTree } from '@/composables/programs/programsTreeQuery'
 import TreeMultiPicker from '@/components/analysis/config/TreeMultiPicker.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const { form, data, messagesAt } = useAnalysisEditor()
 
@@ -159,7 +160,7 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
         </p>
         <label v-for="s in summariesByStudy[studyId] ?? []" :key="s.id" class="dataset-row">
           <input type="checkbox" :value="s.id" :checked="isSelected(s.id)" @change="toggleDataset(s.id)" />
-          <span class="dataset-concept">{{ s.concept?.name ?? `Dataset ${s.id}` }}</span>
+          <span class="dataset-concept">{{ s.concept?.name ?? `Dataset ${s.id}` }}<RetiredTag :entry="s.concept" /></span>
           <span class="muted">
             {{ s.record_count }} records · {{ s.unit_count }} units
             <template v-if="s.start || s.end"> · {{ formatDate(s.start) }} – {{ formatDate(s.end) }}</template>

@@ -16,7 +16,11 @@ const props = defineProps({
 })
 
 const shown = computed(() => (props.contributions ?? []).filter((c) => c?.person))
-const roleNames = (contribution) => (contribution.roles ?? []).map((role) => role?.name).filter(Boolean).join(', ')
+// a retired role, removed from the ontology since, is marked so
+const roleNames = (contribution) => (contribution.roles ?? [])
+  .filter((role) => role?.name)
+  .map((role) => role.phase === 'REMOVED' ? `${role.name} (retired)` : role.name)
+  .join(', ')
 </script>
 
 <template>

@@ -4,6 +4,7 @@ import PersonPicker from './PersonPicker.vue'
 import { usePeopleQuery } from '@/composables/people/peopleQuery'
 import { useOntologyEntriesQuery } from '@/composables/ontology/ontologyEntriesQuery'
 import { personLabel, SUGGESTED_ROLES } from '@/composables/people/personDisplay'
+import { optionLabel } from '@/composables/ontology/ontologyLifecycles'
 
 // The Persons credited for a record, each with the roles they had (Role entries). Roles are declared, not
 // exhaustive: a contribution may have none. v-model: [{ personId, roleIds }]
@@ -37,6 +38,14 @@ const picking = ref(false)
 
 const { people: readable } = usePeopleQuery()
 const { entries: roleEntries } = useOntologyEntriesQuery({ labels: ['ROLE'], view: 'PUBLISHED' })
+// roles the contributions have that are no longer published, e.g. retired, read as cited: shown, to be kept or let go
+const unlistedRoleIds = computed(() => {
+  const listed = new Set((roleEntries.value ?? []).map((r) => String(r.id)))
+  const held = new Set(model.value.flatMap((c) => (c.roleIds ?? []).map(String)))
+  const ids = [...held].filter((id) => !listed.has(id))
+  return ids.length ? ids : null
+})
+const { entries: unlistedRoles } = useOntologyEntriesQuery({ entryIds: unlistedRoleIds, view: 'REFERENTIAL' })
 
 // The roles that fit this kind of record first, then the others
 const roleGroups = computed(() => {
@@ -45,10 +54,14 @@ const roleGroups = computed(() => {
   const all = [...(roleEntries.value ?? [])].filter(Boolean)
   return [
     { key: 'suggested', roles: all.filter((r) => suggested.includes(r.name)).sort(byName) },
-    { key: 'other', roles: all.filter((r) => !suggested.includes(r.name)).sort(byName) }
+    { key: 'other', roles: all.filter((r) => !suggested.includes(r.name)).sort(byName) },
+    { key: 'unlisted', roles: unlistedRoleIds.value ? [...(unlistedRoles.value ?? [])].sort(byName) : [] }
   ].filter((group) => group.roles.length)
 })
-const roleName = (id) => roleEntries.value?.find((r) => String(r.id) === String(id))?.name ?? `Role ${id}`
+const roleName = (id) => {
+  const role = [...(roleEntries.value ?? []), ...(unlistedRoles.value ?? [])].find((r) => String(r.id) === String(id))
+  return role ? optionLabel(role) : `Role ${id}`
+}
 
 const personName = (id) => {
   const person = readable.value.find((p) => String(p.id) === String(id)) ??
@@ -110,7 +123,7 @@ const roleSummary = (contribution) =>
                   :disabled="disabled"
                   @change="toggleRole(contribution, role.id, $event.target.checked)"
                 />
-                {{ role.name }}
+                {{ optionLabel(role) }}
               </label>
             </template>
             <p v-if="!roleGroups.length" class="text-muted">No roles in the ontology.</p>

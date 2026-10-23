@@ -1,0 +1,12 @@
+mutation ontologyRestoreEntries(
+    $entryIds: [ID!]!
+) {
+    ontologyRestoreEntries(
+        ids: $entryIds,
+    ) {
+        status
+        errors {
+            message
+        }
+    }
+}

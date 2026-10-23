@@ -5,6 +5,7 @@ import { useUnitGraphsBoxQueries } from '@/composables/units/unitGraphsBoxQuerie
 
 import CreateUnitGraphModal from "@/components/units/createUnitGraphModal.vue"
 import { useCanCreate } from '@/composables/controls/useWriteAccess'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const canCreate = useCanCreate()
 
@@ -82,7 +83,7 @@ const handleBlockClick = (block) => {
         @click="handleBlockClick(block)"
       >
         <span class="block-name">{{ block.name || `${block.subject?.name} ${block.id}` }}</span>
-        <span class="block-subject">{{ block.subject?.name }}</span>
+        <span class="block-subject">{{ block.subject?.name }}<RetiredTag :entry="block.subject" /></span>
       </div>
     </div>
 

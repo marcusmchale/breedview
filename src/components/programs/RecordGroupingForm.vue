@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import DatasetScopeManager from './DatasetScopeManager.vue'
 import { RECORD_GROUP_EXTENT_DESCRIPTIONS, RECORD_GROUP_EXTENT_LABELS, extentLabel } from '@/composables/ontology/recordGroupExtent'
+import { optionLabel, withCurrent } from '@/composables/ontology/ontologyLifecycles'
 
 const props = defineProps({
   grouping: {
@@ -148,11 +149,11 @@ const handleScopesUpdate = (scopes) => {
         >
           <option value="">-- Select Type --</option>
           <option
-            v-for="type in recordGroupTypes"
+            v-for="type in withCurrent(recordGroupTypes, grouping?.type)"
             :key="type.id"
             :value="type.id"
           >
-            {{ type.name }}
+            {{ optionLabel(type) }}
           </option>
         </select>
         <span v-if="errors.typeId" class="error-text">{{ errors.typeId }}</span>

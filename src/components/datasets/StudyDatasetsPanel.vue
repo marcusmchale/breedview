@@ -27,7 +27,7 @@
             <button class="expand-btn" :class="{ expanded: isExpanded(dataset.id) }">
               ▶
             </button>
-            <span class="concept-name">{{ dataset.concept?.name || `Concept ${dataset.concept?.id}` }}</span>
+            <span class="concept-name">{{ dataset.concept?.name || `Concept ${dataset.concept?.id}` }}<RetiredTag :entry="dataset.concept" /></span>
             <span class="record-count">{{ dataset.record_count }} records</span>
           </div>
 
@@ -73,6 +73,7 @@ import { ref, computed } from 'vue'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
 import { useCanCreate } from '@/composables/controls/useWriteAccess'
 import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 const canCreate = useCanCreate()
 

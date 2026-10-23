@@ -10,6 +10,7 @@ import ChangePositionsModal from '@/components/units/changePositionsModal.vue'
 import PositionDetails from '@/components/units/positionDetails.vue'
 import DeriveUnitsModal from '@/components/units/deriveUnitsModal.vue'
 import EditDerivationsModal from '@/components/units/editDerivationsModal.vue'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 import { useUnitNodeQueries } from '@/composables/units/unitNodeQueries'
 import { currentPosition as currentPositionOf } from '@/composables/units/unitPositions'
@@ -60,7 +61,7 @@ const displayFields = computed(() => {
   const inherited = u.germplasm ? null : u.inheritedGermplasm
   return [
     { label: 'Name', value: u.name },
-    { label: 'Subject', value: u.subject?.name },
+    { label: 'Subject', value: u.subject?.name, entry: u.subject },
     { label: 'Germplasm', value: u.germplasm?.name ?? inherited?.germplasm?.name, from: inherited?.unit },
     { label: 'ID', value: u.id },
     { label: 'Description', value: u.description }
@@ -247,6 +248,7 @@ const openPositionModal = (mode, position = null) => {
             <label class="field-label">{{ field.label }}</label>
             <p class="field-value">
               {{ field.value }}
+              <RetiredTag v-if="field.entry" :entry="field.entry" />
               <span v-if="field.from" class="inherited-from">
                 (from <button type="button" class="from-link" @click="emit('go-to-unit', field.from.id)">{{
                   field.from.name || `Unit ${field.from.id}` }}</button>)

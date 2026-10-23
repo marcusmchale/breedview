@@ -11,10 +11,15 @@ const props = defineProps({
   showEditButtons: {
     type: Boolean,
     default: true
+  },
+  // ontology editors and admins restore a removed entry
+  canRestore: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['edit-entry'])
+defineEmits(['edit-entry', 'restore-entry'])
 
 const hasData = computed(() => !!props.entry)
 
@@ -86,6 +91,14 @@ const referencesList = computed(() => {
       <div class="card-actions">
         <button v-if="showEditButtons" @click="$emit('edit-entry')" class="btn btn-sm btn-outline">
           ✏️ Edit
+        </button>
+        <button
+          v-if="canRestore && entry.phase === 'REMOVED'"
+          class="btn btn-sm btn-outline restore-entry"
+          title="Removed from the ontology since: bring it back as a draft"
+          @click="$emit('restore-entry')"
+        >
+          Restore
         </button>
       </div>
     </div>

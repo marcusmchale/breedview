@@ -12,6 +12,7 @@ query Datasets(
       concept {
         id versionId view
         name
+        phase
         ... on Variable {
           scale {
             id versionId view
@@ -42,7 +43,7 @@ query Datasets(
       }
       contributions {
         person { ...PersonFields }
-        roles { id versionId view name }
+        roles { id versionId view name phase }
       }
       references {
         id

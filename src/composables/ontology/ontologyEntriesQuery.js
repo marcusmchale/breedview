@@ -32,7 +32,8 @@ export function useOntologyEntriesQuery({entryIds, labels, view}) {
         ONTOLOGY_ENTRIES_QUERY,
         variables,
         {
-            enabled: computed(() => Boolean(toValue(entryIds) || toValue(labels)))
+            // by id, the entries are read from the cache by version: until it is known the read policy can't find them
+            enabled: computed(() => Boolean(toValue(labels) || (toValue(entryIds) && version.value?.id)))
         }
     )
 

@@ -4,7 +4,7 @@ query StudyDatasetsSummaries($studyId: ID!){
     status
     result {
         id
-        concept { id versionId view name }
+        concept { id versionId view name phase }
         subjects { id versionId view name }
         record_count
         start

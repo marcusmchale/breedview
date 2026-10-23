@@ -1,6 +1,6 @@
 fragment UnitFields on Unit {
     id
-    subject { id versionId view name }
+    subject { id versionId view name phase }
     germplasm { id name }
     name
     description

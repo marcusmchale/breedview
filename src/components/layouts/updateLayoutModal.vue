@@ -6,6 +6,7 @@ import { FormKit } from "@formkit/vue"
 import { useLayoutUpdateQueries } from "@/composables/layouts/layoutUpdateQueries"
 import { useMutateLayouts } from "@/composables/layouts/mutateLayouts"
 import { clearable } from "@/composables/system/clearable"
+import { optionLabel, withCurrent } from '@/composables/ontology/ontologyLifecycles'
 
 const props = defineProps({
   layoutTypes: {
@@ -146,7 +147,7 @@ watch(parentLayout, (newParentLayout) => {
 
 // Compute the selected layout type from form data
 const selectedEditLayoutType = computed(() => {
-  return props.layoutTypes.find(type => type.id === updateFormData.value.typeId)
+  return withCurrent(props.layoutTypes, props.layout.type).find(type => type.id === updateFormData.value.typeId)
 })
 // Update the form accordingly
 watch(selectedEditLayoutType, (newLayoutType) => {
@@ -221,7 +222,7 @@ watch(selectedEditLayoutType, (newLayoutType) => {
       type="select"
       name="typeId"
       label="Layout Type:"
-      :options="layoutTypes.map(type => ({ value: type.id, label: type.name }))"
+      :options="withCurrent(layoutTypes, layout.type).map(type => ({ value: type.id, label: optionLabel(type) }))"
       validation="required"
     />
 

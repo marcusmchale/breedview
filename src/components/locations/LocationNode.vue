@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 
 import { useLocationNodeQueries } from "@/composables/locations/locationNodeQueries";
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
 
 const props = defineProps({
@@ -73,6 +74,7 @@ const children = computed( () => {
         <div class="location-meta">
           <span v-if="displayedLocation.id" class="address">{{ displayedLocation.id }}</span>
           <span v-if="displayedLocation.type" class="type-badge">{{ displayedLocation.type.name }}</span>
+          <RetiredTag :entry="displayedLocation.type" />
         </div>
       </div>
     </div>

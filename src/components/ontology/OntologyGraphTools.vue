@@ -33,6 +33,11 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Offer Restore on the card of a removed entry (the history page, to ontology editors and admins)
+  canRestore: {
+    type: Boolean,
+    default: false
+  },
   // Forwarded to OntologyEditor's mutation handlers via events
   mutationLoading: {
     type: Boolean,
@@ -48,7 +53,8 @@ const emit = defineEmits([
   'create-entry',
   'update-entry',
   'deprecate-entry',
-  'cancel-deprecate-entry'
+  'cancel-deprecate-entry',
+  'restore-entry'
 ])
 
 // ── Selected node card ────────────────────────────────────────────────────────
@@ -104,7 +110,9 @@ const handleEditFromCard = () => {
         <OntologyCard
           :entry="selectedEntry"
           :showEditButtons="showEditButtons"
+          :can-restore="canRestore"
           @edit-entry="handleEditFromCard"
+          @restore-entry="emit('restore-entry', selectedEntry)"
         />
       </div>
     </template>

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { FormKit } from '@formkit/vue'
 import { clearable } from '@/composables/system/clearable'
+import { optionLabel, withCurrent } from '@/composables/ontology/ontologyLifecycles'
 
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
@@ -21,18 +22,14 @@ const emit = defineEmits(['close', 'success'])
 const { updateStudy, updateStudyLoading } = useMutateStudies()
 const { designTypes, designTypesLoading } = useDesignTypesQuery()
 
-// An empty option, so a design can be removed, and the study's design if it isn't published (e.g. a draft)
-const designOptions = computed(() => {
-  const current = props.study.design
-  const designs = current && !designTypes.value.some(d => d.id === current.id) ? [...designTypes.value, current] : designTypes.value
-  return [
-    { value: '', label: '— None —' },
-    ...designs.map(design => ({
-      value: design.id,
-      label: design.name
-    }))
-  ]
-})
+// An empty option, so a design can be removed, and the study's design if it isn't published (e.g. retired)
+const designOptions = computed(() => [
+  { value: '', label: '— None —' },
+  ...withCurrent(designTypes.value, props.study.design).map(design => ({
+    value: design.id,
+    label: optionLabel(design)
+  }))
+])
 
 const formData = ref({
   name: props.study.name || '',

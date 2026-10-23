@@ -5,6 +5,7 @@ import { useStudyQuery } from '@/composables/programs/studyQuery'
 import { useCanCurate } from '@/composables/controls/useWriteAccess'
 
 import ControllerBadge from '@/components/controls/ControllerBadge.vue'
+import RetiredTag from '@/components/ontology/RetiredTag.vue'
 import ReferencesDisplay from '@/components/references/ReferencesDisplay.vue'
 import UpdateStudyModal from './UpdateStudyModal.vue'
 import DeleteStudyModal from './DeleteStudyModal.vue'
@@ -108,7 +109,7 @@ const handleDeleteSuccess = () => {
           <span v-if="study.start"><strong>Start:</strong> {{ study.start }}</span>
           <span v-if="study.end"><strong>End:</strong> {{ study.end }}</span>
         </p>
-        <p v-if="study.design"><strong>Design:</strong> {{ study.design.name }}</p>
+        <p v-if="study.design"><strong>Design:</strong> {{ study.design.name }}<RetiredTag :entry="study.design" /></p>
         <p v-if="study.practices"><strong>Practices:</strong> {{ study.practices }}</p>
 
         <!-- Licence Display -->
