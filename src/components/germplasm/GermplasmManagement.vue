@@ -71,122 +71,39 @@ const handleSelectEntry = async (entryId) => {
 }
 
 
-const handleExpandSources = async (entry) => {
+// The graph passes the node it drew for an entry; the entry's relationships are read from the entry as loaded
+const sourceIdsOf = (entryId) => loadedEntries.value.get(entryId)?.sources?.map(rel => rel.source?.id).filter(Boolean) ?? []
+const sinkIdsOf = (entryId) => loadedEntries.value.get(entryId)?.sinks?.map(rel => rel.sink?.id).filter(Boolean) ?? []
 
-  try {
-    // Get source IDs directly from the entry
-    const sourceIds = entry.data?.sources?.map(sourceRel => sourceRel.source.id).filter(Boolean) || []
-
-    if (sourceIds.length === 0) {
-      return
-    }
-    // First, unhide any already-loaded sources
-    sourceIds.forEach(sourceId => {
-      if (loadedEntries.value.has(sourceId)) {
-        hiddenEntryIds.value.delete(sourceId)
-      }
-    })
-
-  } catch (err) {
-    console.error('Error expanding sources:', err)
-  }
-}
-
-
-const handleExpandSinks = async (entry) => {
-  try {
-    // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
-    const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === entry.id)).map(e => e.id) || []
-
-    if (sinkIds.length === 0) {
-      return
-    }
-    // Unhide sinks
-    sinkIds.forEach(sinkId => {
-        hiddenEntryIds.value.delete(sinkId)
-    })
-
-  } catch (err) {
-    console.error('Error expanding sinks:', err)
-  }
-}
-
-const handleCollapseSources = (entry) => {
-  console.debug('Collapse sources for:', entry)
-
-  const entriesToHide = new Set()
-
-  // Recursive function to find all sources up the tree
-  const findSourcesRecursively = (currentEntry) => {
-    // Get source IDs directly from the current entry
-    const sourceIds = currentEntry.data?.sources?.map(sourceRel => sourceRel.source.id).filter(Boolean) || []
-
-    sourceIds.forEach(sourceId => {
-      if (sourceId !== entry.id) {
-        entriesToHide.add(sourceId)
-        // Recursively find sources of this source
-        const sourceEntry = loadedEntries.value.get(sourceId)
-        if (sourceEntry) {
-          findSourcesRecursively({ data: sourceEntry })
-        }
-      }
-    })
-  }
-
-  // Start the recursive search from the clicked entry
-  findSourcesRecursively(entry)
-
-  // Hide all the sources
-  entriesToHide.forEach(id => {
-    hiddenEntryIds.value.add(id)
+// Every entry reached from an entry by following one kind of relationship: all its sources up, or all its sinks down
+const reachedFrom = (entryId, nextIds) => {
+  const reached = new Set()
+  const visit = (id) => nextIds(id).forEach(nextId => {
+    if (nextId === entryId || reached.has(nextId)) return
+    reached.add(nextId)
+    visit(nextId)
   })
-
+  visit(entryId)
+  return reached
 }
 
-const handleCollapseSinks = (entry) => {
-  console.debug('Collapse sinks for:', entry)
+const show = (ids) => ids.forEach(id => hiddenEntryIds.value.delete(id))
+const hide = (ids) => ids.forEach(id => hiddenEntryIds.value.add(id))
 
-  const entriesToHide = new Set()
+// Expanding shows an entry's own sources or sinks; collapsing hides all of them, up or down the pedigree
+const handleExpandSources = (node) => show(sourceIdsOf(node.id))
+const handleExpandSinks = (node) => show(sinkIdsOf(node.id))
+const handleCollapseSources = (node) => hide(reachedFrom(node.id, sourceIdsOf))
+const handleCollapseSinks = (node) => hide(reachedFrom(node.id, sinkIdsOf))
 
-  // Recursive function to find all sinks down the tree
-  const findSinksRecursively = (currentEntry) => {
-
-    // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
-    const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === currentEntry.id)).map(e => e.id) || []
-
-    sinkIds.forEach(sinkId => {
-      entriesToHide.add(sinkId)
-      // Recursively find sinks of this sink
-      const sinkEntry = loadedEntries.value.get(sinkId)
-      if (sinkEntry) {
-        findSinksRecursively({ data: sinkEntry })
-      }
-    })
-  }
-
-  // Start the recursive search from the clicked entry
-  findSinksRecursively(entry)
-
-  // Hide all the sinks
-  entriesToHide.forEach(id => {
-    hiddenEntryIds.value.add(id)
-  })
-
-}
-
-const handleToggleExpanded = (entry) => {
-  console.debug('handleToggleExpanded', entry)
-  // Get sink IDs by finding entries in the loadedEntries map with current entry ID as a source:
-  const sinkIds = loadedEntries.value?.filter(e => e.data?.sources?.some(s => s.source.id === entry.id)).map(e => e.id) || []
-  if (sinkIds.length === 0) {
-    return
-  }
-  const visibleSinkIds = sinkIds.filter(id => !hiddenEntryIds.value.has(id))
-  const loadedEntryIds = sinkIds.filter(id => loadedEntries.value.has(id))
-  if (loadedEntryIds.length > 0 && visibleSinkIds.length === loadedEntryIds.length) {
-    handleCollapseSinks(entry)
+// Double-clicking an entry collapses its sinks when they are all shown, and shows them otherwise
+const handleToggleExpanded = (node) => {
+  const sinkIds = sinkIdsOf(node.id).filter(id => loadedEntries.value.has(id))
+  if (sinkIds.length === 0) return
+  if (sinkIds.every(id => !hiddenEntryIds.value.has(id))) {
+    handleCollapseSinks(node)
   } else {
-    handleExpandSinks(entry)
+    handleExpandSinks(node)
   }
 }
 
