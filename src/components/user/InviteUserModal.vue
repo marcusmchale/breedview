@@ -3,6 +3,9 @@ import { ref, computed, watch } from 'vue'
 import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useInvitationsQuery } from '@/composables/account/invitationsQuery'
 import { useMutateInvitations } from '@/composables/account/mutateInvitations'
+import { ACCESS_LEVELS, describeAccesses, offersByTeam } from '@/composables/account/invitationOffers'
+import { useOfferablePeople } from '@/composables/people/offerablePeopleQuery'
+import { personLabel } from '@/composables/people/personDisplay'
 
 const props = defineProps({
   isOpen: {
@@ -13,11 +16,11 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'invited'])
 
-const ACCESS_LEVELS = ['READ', 'WRITE', 'ADMIN', 'CURATE']
-
 const email = ref('')
-// teamId -> access level offered, or '' for no offer
+// teamId -> the access levels offered to it
 const offeredAccess = ref({})
+// a Person to offer for the invited user to link, or '' for none
+const personId = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 const busyInvitationId = ref(null)
@@ -39,19 +42,30 @@ const {
   resendInvitationLoading
 } = useMutateInvitations()
 
+const { offerablePeople } = useOfferablePeople({ enabled: computed(() => props.isOpen) })
+
 const busy = computed(() =>
   inviteLoading.value || cancelInvitationLoading.value || resendInvitationLoading.value
 )
 
+// One offer for each access ticked: the invited user accepts or declines each team, with every access offered to it
 const offeredTeams = computed(() =>
-  Object.entries(offeredAccess.value)
-    .filter(([, access]) => !!access)
-    .map(([teamId, access]) => ({ teamId, access }))
+  Object.entries(offeredAccess.value).flatMap(([teamId, levels]) =>
+    ACCESS_LEVELS.filter((level) => levels.includes(level)).map((access) => ({ teamId, access }))
+  )
 )
+
+const isOffered = (teamId, level) => (offeredAccess.value[teamId] ?? []).includes(level)
+
+const setOffered = (teamId, level, offered) => {
+  const levels = (offeredAccess.value[teamId] ?? []).filter((other) => other !== level)
+  offeredAccess.value = { ...offeredAccess.value, [teamId]: offered ? [...levels, level] : levels }
+}
 
 const resetForm = () => {
   email.value = ''
   offeredAccess.value = {}
+  personId.value = ''
   errorMessage.value = ''
   successMessage.value = ''
   busyInvitationId.value = null
@@ -82,11 +96,12 @@ const inviteUser = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    const result = await invite({ email: address, teams: offeredTeams.value })
+    const result = await invite({ email: address, teams: offeredTeams.value, personId: personId.value || null })
     if (showResult(result, `Invitation sent to ${address}.`, 'Failed to send invitation')) {
       emit('invited', address)
       email.value = ''
       offeredAccess.value = {}
+      personId.value = ''
     }
   } catch (error) {
     console.error('Invitation failed:', error)
@@ -127,9 +142,11 @@ const formatDate = (value) => {
 }
 
 const describeOffers = (invitation) => {
-  const parts = invitation.teams.map(({ team, access }) =>
-    `${team?.name ?? 'team'} (${access.toLowerCase()})`
-  )
+  const teams = offersByTeam(invitation.teams, {
+    teamId: (offer) => offer.team?.id,
+    teamName: (offer) => offer.team?.name
+  })
+  const parts = teams.map(({ teamName, accesses }) => `${teamName ?? 'team'} (${describeAccesses(accesses)})`)
   if (invitation.person) {
     parts.push(`link to ${invitation.person.name ?? 'a person record'}`)
   }
@@ -172,20 +189,42 @@ const closeModal = () => {
           <div v-if="adminTeams.length > 0" class="form-group">
             <label>Offer affiliations</label>
             <p class="help-text">
-              The invited user chooses which to accept when registering. Only teams you administer are listed.
+              The invited user chooses which teams to join when registering, with every access you tick for each.
+              Write alone gives no read access to a team's private records; Curate and Admin include Read. Only teams
+              you administer are listed.
             </p>
             <div v-if="accessLoading" class="loading-text">Loading teams...</div>
             <div v-else class="offer-list">
               <div v-for="team in adminTeams" :key="team.id" class="offer-item">
                 <span class="offer-team">{{ team.fullname || team.name }}</span>
-                <select v-model="offeredAccess[team.id]" :disabled="busy">
-                  <option value="">No offer</option>
-                  <option v-for="level in ACCESS_LEVELS" :key="level" :value="level">
+                <div class="offer-accesses">
+                  <label v-for="level in ACCESS_LEVELS" :key="level" class="offer-access">
+                    <input
+                      type="checkbox"
+                      :name="`offer-${team.id}-${level}`"
+                      :checked="isOffered(team.id, level)"
+                      :disabled="busy"
+                      @change="setOffered(team.id, level, $event.target.checked)"
+                    />
                     {{ level.charAt(0) + level.slice(1).toLowerCase() }}
-                  </option>
-                </select>
+                  </label>
+                </div>
               </div>
             </div>
+          </div>
+
+          <div v-if="offerablePeople.length > 0" class="form-group">
+            <label for="invite-person">Person record (optional)</label>
+            <select id="invite-person" v-model="personId" :disabled="busy">
+              <option value="">No person record</option>
+              <option v-for="person in offerablePeople" :key="person.id" :value="person.id">
+                {{ personLabel(person) }}
+              </option>
+            </select>
+            <p class="help-text">
+              A person record a team you administer controls, not yet linked to an account, such as one already
+              credited for their work. They can link it to their account when registering.
+            </p>
           </div>
 
           <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
@@ -274,9 +313,23 @@ const closeModal = () => {
   white-space: nowrap;
 }
 
-.offer-item select {
-  width: auto;
+.offer-accesses {
+  display: flex;
   flex: 0 0 auto;
+  gap: 10px;
+}
+
+.offer-access {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.offer-access input {
+  width: auto;
+  margin: 0;
 }
 
 .invitations-section {

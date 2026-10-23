@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useMutation } from '@vue/apollo-composable'
 import CREATE_ACCOUNT from '../../graphql/account/createAccount.graphql'
 import { useInvitationPreviewQuery } from '@/composables/account/invitationPreviewQuery'
+import { describeAccesses, offersByTeam } from '@/composables/account/invitationOffers'
 import { usePrivacyNotice } from '@/composables/system/usePrivacyNotice'
 
 const props = defineProps({
@@ -31,10 +32,11 @@ const {
 
 const hasToken = computed(() => !!props.token)
 
+// One option for each team offered: accepting a team accepts every access offered to it
 const teamOptions = computed(() =>
-  (invitation.value?.teams ?? []).map(team => ({
-    value: team.teamId,
-    label: `${team.teamName} (${team.access.toLowerCase()} access)`
+  offersByTeam(invitation.value?.teams).map(({ teamId, teamName, accesses }) => ({
+    value: teamId,
+    label: `${teamName} (${describeAccesses(accesses)} access)`
   }))
 )
 
@@ -183,7 +185,7 @@ const submitHandler = async (formData) => {
             name="acceptTeamIds"
             label="Team affiliations offered to you"
             :options="teamOptions"
-            help="Tick the affiliations you want. Those you leave unticked are declined."
+            help="Tick the teams you want to join, with the access offered for each. Those you leave unticked are declined."
           />
         </div>
 

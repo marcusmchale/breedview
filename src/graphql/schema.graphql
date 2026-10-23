@@ -1193,7 +1193,7 @@ type Mutation {
     privacyConsent: Boolean!
     invitationToken: String
 
-    """ Affiliations offered with the invitation to accept. Others are declined 
+    """ Teams offered with the invitation to accept, with every access offered to each. Others are declined 
     """
     acceptTeamIds: [ID!]
 
@@ -1226,8 +1226,8 @@ type Mutation {
   ): BooleanPayload!
 
   """
-  Invite someone to register. Teams must be administered by the inviting user,
-  and a Person must be controlled by a team they administer.
+  Invite someone to register. Teams must be administered by the inviting user, who can offer one or more
+  accesses to each, and a Person must be controlled by a team they administer.
   """
   accountsInvite(email: String!, teams: [TeamInvitationInput!], personId: ID): BooleanPayload!
   accountsCancelInvitation(id: ID!): BooleanPayload!
@@ -2583,7 +2583,7 @@ type Invitation {
   email: String!
 
   """
-  Affiliations offered, which the invited user can accept or decline when registering
+  Affiliations offered, one for each access to a team, which the invited user accepts or declines by team when registering
   """
   teams: [TeamInvitation!]!
 

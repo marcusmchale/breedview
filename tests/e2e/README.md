@@ -72,7 +72,7 @@ a study per field with its datasets, the first of them, the perf scripts' defaul
 belongs to `child` and is private.
 
 Some tests write: the invitation test registers a new account with a unique name and address at `example.com`
-(`E2E_MAIL_DOMAIN` to change), the people test adds a Person and erases it (each run leaves an erased record), the
+(`E2E_MAIL_DOMAIN` to change), which links `person_private` and unlinks it again, the people test adds a Person and erases it (each run leaves an erased record), the
 write actions test grants the admin curate access to `child` and removes it
 afterwards, the germplasm unit test gives `crop_line` a unit and creates an entry, then puts the unit back and
 deletes the entry, and the record references test submits a dataset to the spectra's submission study and deletes its
@@ -107,9 +107,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
 - `smoke.test.mjs`: every routed page renders for a signed-in user without console errors (access control with each
   of its tabs, the profile with its teams, locations, programs with curation), and the dataset submission opens from
   the first study's Datasets section on the programs page.
-- `invitation.test.mjs`: invite with a team offer, the emailed link, registration with the prefilled read-only email
-  and the accepted team, verification from the emailed link, login with the affiliation (listed with its access on the
-  profile, and badged under Teams in Access control), and refusal of the used link.
+- `invitation.test.mjs`: invite offering read and write access to a team and a person record (`person_private`), the
+  pending invitation describing both, the emailed link, registration with the prefilled read-only email, the team
+  offered once with both accesses and the record accepted, verification from the emailed link, login with the
+  affiliations (listed with their access on the profile, and badged under Teams in Access control) and the linked
+  record, unlinking it again, and refusal of the used link.
 - `affiliationRequests.test.mjs`: the outsider requests read access to the organisation from Teams, the first tab of
   Access control; the email to the organisation's admin links to the Affiliation requests tab, which lists the request
   (counted on the tab) for that admin and not for the stranger, who administers another organisation; the admin

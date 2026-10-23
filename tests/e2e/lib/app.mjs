@@ -105,13 +105,14 @@ export async function graphql(page, query, variables = {}) {
 }
 
 // Fill the registration form, with or without an invitation token in the page's URL, and submit
-export async function register(page, { username, fullname = '', password = config.password, email = null, acceptAllOffers = true }) {
+export async function register(page, { username, fullname = '', password = config.password, email = null, acceptAllOffers = true, linkPerson = false }) {
   await page.waitFor(`document.querySelector('input[name=name]')`)
   await page.type('input[name=name]', username)
   if (fullname) await page.type('input[name=fullname]', fullname)
   if (email && await page.evaluate(`!document.querySelector('input[name=email]').readOnly`)) await page.type('input[name=email]', email)
   await page.type('input[name=password]', password)
   if (acceptAllOffers) await page.evaluate(`[...document.querySelectorAll('input[name=acceptTeamIds]')].forEach((e) => { if (!e.checked) e.click() })`)
+  if (linkPerson) await page.check('input[name=linkPerson]', true)
   await page.check('input[name=privacyConsent]', true)
   await page.sleep(200)
   await page.click('button[type=submit]')
