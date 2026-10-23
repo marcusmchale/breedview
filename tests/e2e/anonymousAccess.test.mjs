@@ -123,12 +123,15 @@ test('units: the public tree under a placeholder for its hidden unit graph root,
   await page.waitFor(`document.querySelector('.block-item')`, 30000)
   await page.click('.block-item')
   await page.waitFor(`document.querySelector('.tree-node .expand-btn')`, 30000)
-  for (let level = 0; level < 4 && await page.exists('.tree-node .expand-btn:not(.expanded)'); level++) {
+  // open each level as it loads, its children coming some time after its button is pressed, until the tree is as
+  // expected or half a minute has passed
+  const expected = ['REDACTED', e.tree_public.name, e.rhizosphere_public.name]
+  const shown = () => page.evaluate(`[...document.querySelectorAll('.tree-node .node-name')].map((e) => e.innerText.trim())`)
+  for (const start = Date.now(); Date.now() - start < 30000 && JSON.stringify(await shown()) !== JSON.stringify(expected);) {
     await page.evaluate(`document.querySelectorAll('.tree-node .expand-btn:not(.expanded)').forEach((e) => e.click())`)
-    await page.sleep(2000)
+    await page.sleep(500)
   }
-  const nodes = await page.evaluate(`[...document.querySelectorAll('.tree-node .node-name')].map((e) => e.innerText.trim())`)
-  assert.deepEqual(nodes, ['REDACTED', e.tree_public.name, e.rhizosphere_public.name], 'the private leaf between is skipped')
+  assert.deepEqual(await shown(), expected, 'the private leaf between is skipped')
   assert.deepEqual(await writeActions(), [])
   assert.deepEqual(await failedRequests(mark), [], 'the location and unit types come from the published ontology')
 })
