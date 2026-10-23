@@ -20,7 +20,7 @@ const DIMENSIONS = {
   germplasm: {
     label: 'Germplasm',
     termTypes: () => [{ type: 'GERMPLASM' }],
-    description: "Assigns each unit's germplasm to itself or its closest selected ancestor.",
+    description: "Groups records by each unit's germplasm, or by the closest selected germplasm above it.",
     create: () => ({ germplasmIds: [] })
   },
   unit: {
@@ -107,7 +107,10 @@ const removeDimension = (i) => {
 
       <template v-if="key === 'germplasm' && form.grouping.germplasm">
         <GermplasmPicker v-model="form.grouping.germplasm.germplasmIds" />
-        <p class="hint">
+        <p v-if="!form.grouping.germplasm.germplasmIds.length" class="hint">
+          None selected: each unit's own germplasm is a level. Select germplasm to group the germplasm below it with it.
+        </p>
+        <p v-else class="hint">
           A germplasm whose selected ancestors lie on separate lineages (e.g. a cross of two selected parents) is
           unassigned.
         </p>

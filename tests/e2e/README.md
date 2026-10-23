@@ -31,9 +31,10 @@ confirmed) and reports an alert's message among the console errors.
    `VUE_PORT` set to the dev server's port, so emailed links open the app. MailHog itself on 1025/8025.
 2. The dev server: `npm run dev`. To test against a backend on another port: `VITE_API_HOST=http://localhost:8001 npm run dev`.
 3. Google Chrome installed (`CHROME_BIN` if it is not `google-chrome` on the path).
-4. For `recordGroupExtent.test.mjs` and `positionGrouping.test.mjs`, the analysis worker: analyses past validation
-   stay queued without it. From
-   breedgraph, with its env loaded: `cd src && ../.venv/bin/python -m analysis_worker.main`.
+4. For `recordGroupExtent.test.mjs`, `positionGrouping.test.mjs` and `analysisGermplasm.test.mjs`, the analysis
+   worker: analyses past validation stay queued without it. From breedgraph, with its env loaded:
+   `cd src && ../.venv/bin/python -m analysis_worker.main`. It polls the backend at `API_URL` (default
+   `http://localhost:8000`): set it for a backend on another port.
 5. Map tiles in the backend's `MAP_TILES_PATH`, for the maps: from breedgraph, with its env loaded,
    `scripts/map_tiles.py --build https://build.protomaps.com/YYYYMMDD.pmtiles --world-maxzoom 6` (about 45 MB; needs
    the `pmtiles` command, see breedgraph's README, Maps).
@@ -160,6 +161,10 @@ browser: that the pages render it, which actions they offer, the modals and labe
   replicates field, and the levels of a within-unit-graph grouping named with their field, merged by a shared level.
   It leaves two draft record group types per run, and deletes the groupings it creates. The slowest file: about
   20 analyses.
+- `analysisGermplasm.test.mjs`, signed in as the writer, on `dataset_public`: germplasm grouping with no germplasm
+  selected takes each unit's own germplasm, its own or inherited (`tree_public` and the units below it, and
+  `tree_registered`), named in the results and listed as each unit's own; and the control level of a contrast between
+  them is picked from the germplasm.
 - `datasetArrivalPicker.test.mjs`, on the arrivals (skipped without them): the dataset submission's units picker at the
   lab lists its arrivals, an arrival's tick selects the units that came, and opening it lists them.
 - `recordReferences.test.mjs`, on the spectra (manifest `spectra`; skipped without them), signed in as the writer: the

@@ -101,7 +101,7 @@ const dimensions = computed(() => {
   if (!g) return []
   const out = []
   if (g.time) out.push(`Time (${g.time.binning.labels?.length ?? g.time.binning.boundaries.length + 1} bins)`)
-  if (g.germplasm) out.push(`Germplasm (${g.germplasm.germplasmIds.length})`)
+  if (g.germplasm) out.push(g.germplasm.germplasmIds.length ? `Germplasm (${g.germplasm.germplasmIds.length})` : "Germplasm (each unit's own)")
   if (g.unit) out.push(`Parent unit (${g.unit.unitIds.length})`)
   if (g.position) out.push(['Location', ...(g.position.axes ?? [])].join(', '))
   g.recordGroups.forEach((d) => out.push(`Record group: ${d.name}`))

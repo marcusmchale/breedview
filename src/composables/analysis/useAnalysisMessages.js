@@ -24,7 +24,10 @@ export const MESSAGE_CODES = {
   UNUSED_DATASET: { hint: 'The dataset contributed nothing.', removeDataset: true },
   EXCLUDED_BY_CONFIG: { hint: 'Records matched by an exclusion rule.' },
   UNASSIGNED_TIME: { hint: 'Exclude these records, or adjust the time bins.', excludeRecords: true },
-  UNASSIGNED_GERMPLASM: { hint: 'Exclude these records, or adjust the selected germplasm.', excludeRecords: true },
+  UNASSIGNED_GERMPLASM: {
+    hint: 'Exclude these records, or adjust the selected germplasm or give their units germplasm.',
+    excludeRecords: true
+  },
   UNASSIGNED_UNIT: { hint: 'Exclude these records, or adjust the selected parent units.', excludeRecords: true },
   UNASSIGNED_POSITION: {
     hint: 'Exclude these records, or adjust the position grouping: other location types, place by a subject, or fewer axes.',

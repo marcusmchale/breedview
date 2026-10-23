@@ -5,6 +5,7 @@ import { createEstimatedMeans, sameTerm } from '@/composables/analysis/useAnalys
 import { categoricalTerms, knownLevels } from '@/composables/analysis/useTermRules'
 import { germplasmName, studyName } from '@/composables/analysis/useAnalysisNames'
 import TermChecklist from '@/components/analysis/config/TermChecklist.vue'
+import GermplasmPicker from '@/components/analysis/config/GermplasmPicker.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
 
 const { form, data } = useAnalysisEditor()
@@ -100,6 +101,13 @@ const remove = (i) => form.estimatedMeans.splice(i, 1)
             <option value="">Select the control level</option>
             <option v-for="o in controlOptions(em)" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
+          <!-- grouped by each unit's own germplasm, any germplasm: the one picked last -->
+          <GermplasmPicker
+            v-else-if="em.terms[0].type === 'GERMPLASM'"
+            :model-value="em.control ? [em.control] : []"
+            placeholder="Select the control germplasm"
+            @update:model-value="em.control = $event.at(-1) ?? null"
+          />
           <input
             v-else
             type="text"
