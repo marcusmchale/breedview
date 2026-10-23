@@ -112,7 +112,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   pending invitation describing both, the emailed link, registration with the prefilled read-only email, the team
   offered once with both accesses and the record accepted, verification from the emailed link, login with the
   affiliations (listed with their access on the profile, and badged under Teams in Access control) and the linked
-  record, unlinking it again, and refusal of the used link.
+  record, unlinking it again, and refusal of the used link; an inviter who administers no team is told why the dialog
+  offers no affiliations or person records.
 - `affiliationRequests.test.mjs`: the outsider requests read access to the organisation from Teams, the first tab of
   Access control; the email to the organisation's admin links to the Affiliation requests tab, which lists the request
   (counted on the tab) for that admin and not for the stranger, who administers another organisation; the admin

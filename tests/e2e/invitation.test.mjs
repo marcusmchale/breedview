@@ -1,12 +1,12 @@
 // The invitation and registration flow, end to end: an admin invites a new address, offering read and write access
 // to a team and a person record, the invitee registers from the emailed link, accepting both, verifies from the
 // emailed link, logs in and has the affiliations and the record, and the used link is refused afterwards. The invitee
-// unlinks the record at the end, leaving it as the test database has it. Needs the dev backend sending mail to MailHog
-// (see README).
+// unlinks the record at the end, leaving it as the test database has it. An inviter who administers no team is told
+// why nothing is offered. Needs the dev backend sending mail to MailHog (see README).
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, login, logout, register, waitForMail, verifyEmail, flat, uniqueName } from './lib/app.mjs'
+import { config, login, loginAs, logout, register, waitForMail, verifyEmail, flat, uniqueName } from './lib/app.mjs'
 import { entity } from './lib/fixture.mjs'
 
 let browser, page
@@ -114,4 +114,18 @@ test('the used invitation link is refused', async () => {
   await page.goto(inviteLink)
   await page.waitFor(`document.querySelector('.invitation-invalid') || document.querySelector('input[name=name]')`)
   assert.ok(await page.exists('.invitation-invalid'), 'the page explains the link is no longer valid')
+})
+
+test('an inviter who administers no team is told the invitation offers no affiliations or person records', async () => {
+  await loginAs(page, 'outsider')
+  try {
+    await page.goto(`${config.appUrl}/profile`)
+    await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.includes('Invite user'))`)
+    await page.clickText('Invite user')
+    await page.waitFor(`document.querySelector('.modal .no-offers')?.innerText.includes('You administer no teams')`, 20000)
+    assert.equal(await page.evaluate(`document.querySelectorAll('.offer-item').length`), 0, 'no team is offered')
+    assert.ok(!(await page.exists('#invite-person')), 'no person record is offered')
+  } finally {
+    await logout(page)
+  }
 })

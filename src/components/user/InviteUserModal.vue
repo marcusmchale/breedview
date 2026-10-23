@@ -186,6 +186,12 @@ const closeModal = () => {
             </p>
           </div>
 
+          <!-- affiliations and person records are offered by a team's admins: without them, say why there are none -->
+          <p v-if="!accessLoading && adminTeams.length === 0" class="form-group help-text no-offers">
+            You administer no teams, so this invitation offers no affiliations or person records. Once registered, they
+            can ask to join a team under Access control → Teams.
+          </p>
+
           <div v-if="adminTeams.length > 0" class="form-group">
             <label>Offer affiliations</label>
             <p class="help-text">
