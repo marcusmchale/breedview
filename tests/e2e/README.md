@@ -1,6 +1,6 @@
 # Front-end tests
 
-BreedView has no unit tests yet. What is here are **end-to-end tests**: they drive the real app in a real browser
+The few unit tests are in `tests/unit` (`npm run test:unit`). What is here are **end-to-end tests**: they drive the real app in a real browser
 against a running backend, the way a user would, and check what appears on the page. They were started from the
 scripts used to check the people and controls work in October 2026.
 
