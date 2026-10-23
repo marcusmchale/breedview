@@ -120,6 +120,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
 - `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.
+- `curationTable.test.mjs`: in the curation table, a record's 🔒 shows its dataset's controller in full (controls and
+  writes) to the writer, and a visitor is shown no controllers and none is asked for.
 - `curationUnitsFilter.test.mjs`: the units filter of the curation selection lists only units with records, with
   counts, level by level and by subject.
 - `outsiderAccess.test.mjs`: what the outsider sees: placeholders for the hidden program and trial above readable

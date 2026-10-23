@@ -11,6 +11,8 @@ const props = defineProps({
   categories: { type: Array, default: () => [] },
   isEditable: { type: Boolean, default: false },
   hasRecord: { type: Boolean, default: false },
+  // a record's controller, for signed-in users only
+  showController: { type: Boolean, default: true },
   isMarkedForDeletion: { type: Boolean, default: false },
   hasValueChanged: { type: Boolean, default: false },
   isComplexScale: { type: Boolean, default: false },
@@ -57,7 +59,7 @@ const handleKeyDown = (event) => {
 <template>
   <div class="concept-cell">
     <button
-      v-if="hasRecord"
+      v-if="hasRecord && showController"
       class="controller-badge-mini"
       :class="{ 'can-edit': isEditable }"
       @click.stop="$emit('open-controller', rowIndex, conceptId)"

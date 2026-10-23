@@ -19,6 +19,8 @@ import CurationTableCell from './CurationTableCell.vue'
 import CurationTableFooter from './CurationTableFooter.vue'
 import LoadingOverlay from '@/components/datasets/LoadingOverlay.vue'
 import ControllerModal from '@/components/controls/ControllerModal.vue'
+import { useControllerQuery } from '@/composables/controls/useControllerQuery'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 
 import ReferencesModal from '@/components/references/ReferencesModal.vue'
 import { DATA_REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
@@ -66,7 +68,7 @@ const {
   getCategories, isComplexScale, isCategoricalScale, isNumericScale,
   groupingColumns, rowSections, isGroupCellEditable, hasRowGroupsChanged,
   getGroupValueOptions, getRowSectionKey, getRowSectionLabel, setUnitDetails, lastSavedAt,
-  appliedFactors, appliedKey, getAppliedFactor
+  appliedFactors, appliedKey, getAppliedFactor, refreshControllers
 } = useDatasetCurationTable()
 
 // The units' germplasm and location fill their columns whenever the page's units arrive
@@ -298,18 +300,37 @@ const getCellClasses = (row, cell) => {
   }
 }
 
-// Controller modal state
+// Controllers are shown to signed-in users only, as ControllerBadge shows them
+const { isAuthenticated } = useAuthStore()
+
+// The record's dataset's controller, read in full (controls, teams, writes) when the modal opens, as ControllerBadge
+// reads it: the table itself reads only the access, to know which cells can be edited
 const showControllerModal = ref(false)
-const selectedController = ref(null)
 const selectedDatasetId = ref(null)
+const allControllerWrites = ref(false)
+const {
+  controller: selectedController,
+  loading: controllerLoading,
+  error: controllerError,
+  refetch: refetchController
+} = useControllerQuery({
+  entityLabel: 'DATASET',
+  entityId: selectedDatasetId,
+  enabled: showControllerModal,
+  variables: () => (allControllerWrites.value ? { lastWrites: null } : {})
+})
 
 const openControllerModal = (rowIndex, conceptId) => {
-  const info = getCellInfo(rowIndex, conceptId)
-  if (info?.controller) {
-    selectedController.value = info.controller
-    selectedDatasetId.value = info.datasetId
-    showControllerModal.value = true
-  }
+  const datasetId = getCellInfo(rowIndex, conceptId)?.datasetId
+  if (!isAuthenticated.value || datasetId == null) return
+  selectedDatasetId.value = String(datasetId)
+  allControllerWrites.value = false
+  showControllerModal.value = true
+}
+
+// a new release or a change of control can change which of the dataset's records the user can edit
+const handleControllerChanged = async () => {
+  await Promise.all([refetchController(), refreshControllers()])
 }
 
 // File reference modal state
@@ -568,6 +589,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                   :categories="getCategories(cell.column.columnDef.meta.concept)"
                   :is-editable="isCellEditable(row.index, cell.column.columnDef.meta.conceptId)"
                   :has-record="cellHasRecord(row.index, cell.column.columnDef.meta.conceptId)"
+                  :show-controller="isAuthenticated"
                   :is-marked-for-deletion="isMarkedForDeletion(row.index, cell.column.columnDef.meta.conceptId)"
                   :has-value-changed="hasValueChanged(row.index, cell.column.columnDef.meta.conceptId)"
                   :is-complex-scale="isComplexScale(cell.column.columnDef.meta.concept)"
@@ -618,11 +640,14 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
     <ControllerModal
       :is-visible="showControllerModal"
       :controller="selectedController"
-      :loading="false"
-      :error="''"
+      :loading="controllerLoading"
+      :error="controllerError?.message ?? ''"
       entity-label="DATASET"
       :entity-id="selectedDatasetId"
       @close="showControllerModal = false"
+      @release-updated="handleControllerChanged"
+      @controls-changed="handleControllerChanged"
+      @show-all-writes="allControllerWrites = true"
     />
 
     <ReferencesModal

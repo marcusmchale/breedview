@@ -10,10 +10,12 @@ import { timeSpan, codeKey, describingRecords } from './factorApplication'
 import { placeAt } from '@/composables/units/unitPositions'
 
 import CONTROLLER_ACCESS_QUERY from '@/graphql/controls/controllerAccess.graphql'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import RECORD_FRAGMENT from '@/graphql/datasets/recordFragment.graphql'
 
 export function useDatasetCurationTable() {
   const { resolveClient } = useApolloClient()
+  const { isAuthenticated } = useAuthStore()
   const { updateDataset, removeRecords } = useMutateDatasets()
   const { validatePartialDatetime } = useDatetimeUtils()
   const { parseValue } = useValueParser()
@@ -363,10 +365,17 @@ export function useDatasetCurationTable() {
   }
 
   /**
-   * Fetch controllers for all datasets and determine edit permissions
+   * Fetch controllers for all datasets and determine edit permissions. Visitors edit nothing and are shown no
+   * controllers, so nothing is asked for them.
    */
   const fetchControllers = async (datasetIds) => {
     if (!datasetIds || datasetIds.length === 0) return
+    if (!isAuthenticated.value) {
+      datasetIds.forEach((datasetId) => {
+        datasetControllers.value[datasetId] = { canEdit: false, controller: null }
+      })
+      return
+    }
 
     const client = resolveClient()
 
@@ -402,6 +411,9 @@ export function useDatasetCurationTable() {
       })
     }
   }
+
+  // Read again what the user may do with each loaded dataset, e.g. after a change of control
+  const refreshControllers = () => fetchControllers(Object.keys(datasetControllers.value))
 
   /**
    * Get concepts for column generation
@@ -1290,6 +1302,7 @@ export function useDatasetCurationTable() {
     cellHasRecord,
     getCellInfo,
     getDatasetIdForCell,
+    refreshControllers,
     updateCell,
     validateCell,
     getCellError,
