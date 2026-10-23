@@ -221,7 +221,8 @@ test('a child added with its parent is listed below it, where its parent is', { 
   await page.goto(`${config.appUrl}/units?location=${FIELD}&unit=${unitId('Arrival Move Tree')}`)
   await page.waitFor(`document.querySelector('.details-card h2')?.innerText.trim() === 'Arrival Move Tree'`, 30000)
   await page.evaluate(`[...document.querySelectorAll('.details-card .card-actions button')].find((b) => b.innerText.includes('Add Child')).click()`)
-  await page.waitFor(`document.querySelector('.modal select[name=subjectId]')`, 30000)
+  // the subjects load after the form opens
+  await page.waitFor(`[...(document.querySelector('.modal select[name=subjectId]')?.options ?? [])].some((o) => o.text === 'Sample')`, 30000)
   const name = `E2E child ${Date.now().toString(36)}`
   // "With its parent" is the default: no location is asked for
   assert.ok(await page.evaluate(`document.querySelector('.modal input[type=radio][value=parent]')?.checked`), 'with its parent')
