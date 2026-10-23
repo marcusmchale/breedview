@@ -298,6 +298,11 @@ const isSectionStart = (rIdx) => {
 const sectionCount = (row) =>
   rowSections.value.find((s) => s.key === getRowSectionKey(row))?.rowIndices.length ?? 0
 const rowsLabel = (count) => `${count} row${count === 1 ? '' : 's'}`
+// With variables chosen too, a page's factor rows are those that describe its variable rows (useDatasetRecordPages)
+const FACTOR_SECTION_TITLE = "The chosen factors' records on the units of the rows below and on the units above them, " +
+  'at any time: each applies to those rows, as their (applied) columns show'
+const APPLIED_TITLE = "The factor's value for this row: a record on its unit, else on the nearest unit above it with one, " +
+  'at its time. Point at a value to see where it comes from'
 
 // ---- Cell classes ----
 const getCellClasses = (row, cell) => {
@@ -476,10 +481,6 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
       @update="setContributors($event.datasetId, $event.contributions)"
     />
 
-    <p v-if="factorsApply && !tableLoading && !datasetsLoading" class="factor-note">
-      Factor records on these rows' units and the units above them, at any time. Choose the factors alone to curate
-      all their records.
-    </p>
     <p v-if="lineageError" class="factor-note warning">
       The units above these rows, or their factor records, could not be read, so no factor is shown as applied.
     </p>
@@ -504,6 +505,7 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
                 'sortable': header.column.getCanSort()
               }"
               :style="{ width: header.column.columnDef.meta?.width }"
+              :title="header.column.columnDef.meta?.type === 'applied' ? APPLIED_TITLE : undefined"
               @click="header.column.getToggleSortingHandler()?.($event)"
             >
               <div class="header-content">
@@ -553,8 +555,14 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
           <template v-for="{ key, rIdx, row } in virtualItems" :key="key">
             <!-- Section header for DATASET_SCOPED grouping values -->
             <tr v-if="isSectionStart(rIdx)" class="section-header">
-              <td :colspan="row.getVisibleCells().length">
+              <td
+                :colspan="row.getVisibleCells().length"
+                :title="row.original._kind === 'factor' && factorsApply ? FACTOR_SECTION_TITLE : undefined"
+              >
                 {{ getRowSectionLabel(row.original) }} ({{ rowsLabel(sectionCount(row.original)) }})
+                <span v-if="row.original._kind === 'factor' && factorsApply" class="section-note">
+                  — the ones that apply to the rows below. To curate all of a factor's records, choose the factors alone.
+                </span>
               </td>
             </tr>
 
@@ -874,6 +882,14 @@ td.time-changed { background: #e3f2fd; }
   color: #e65100;
   font-weight: 600;
   border-top: 2px solid #ff9800;
+  /* rows are a fixed height, so a long note is cut short, and its title gives it in full */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.section-note {
+  font-weight: normal;
+  color: #8a5a00;
 }
 
 .loading-state, .error-state, .empty-state {

@@ -326,7 +326,8 @@ test('curation: factor records come first, apart from the variable records, for 
   await loadCuration([r.concepts.height.name], null, [r.datasets.factor.concept_name])
   const rows = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row)')].map((tr) =>
     tr.classList.contains('section-header') ? { section: tr.innerText.trim() } : { cells: [...tr.querySelectorAll('td')].map((td) => td.innerText.trim()) })`)
-  assert.equal(rows[0].section, `Factor records (${r.datasets.factor.record_count} rows)`, 'the factor records are the first section')
+  // with variables chosen too, the section says its factor records are those that apply to the rows below
+  assert.equal(rows[0].section, `Factor records (${r.datasets.factor.record_count} rows) — the ones that apply to the rows below. To curate all of a factor's records, choose the factors alone.`, 'the factor records are the first section')
   const factorRows = rows.slice(1, 1 + r.datasets.factor.record_count)
   assert.ok(factorRows.every((row) => row.cells && row.cells[2] === 'all times' && row.cells[3] === 'all times'), `undated factor records apply at all times: ${q(factorRows.slice(0, 2))}`)
   assert.ok(rows[1 + r.datasets.factor.record_count].section, 'the variable records follow in their own section')
@@ -357,7 +358,8 @@ async function checkAppliedLight(day) {
 
   // the page counts the measured trees, not the plots holding only Light
   assert.match(await page.text('.page-summary'), new RegExp(`^${measured.size} units?,`), 'the units paged are the measured ones')
-  assert.match(await flatText('.factor-note') ?? '', /Choose the factors alone to curate all their records/)
+  // the factor rows' section says what they are
+  assert.match(await flatText('.section-header .section-note') ?? '', /To curate all of a factor's records, choose the factors alone/)
 
   const header = `${r.datasets.factor.concept_name} (applied)`
   const rows = await page.evaluate(`(() => {
