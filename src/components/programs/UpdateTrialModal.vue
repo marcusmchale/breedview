@@ -2,6 +2,7 @@
 import { contributionsInput } from '@/composables/people/personDisplay'
 import { ref } from 'vue'
 import { FormKit } from '@formkit/vue'
+import { clearable } from '@/composables/system/clearable'
 
 import { useMutateTrials } from '@/composables/programs/mutateTrials'
 
@@ -62,10 +63,10 @@ const submitForm = async (values) => {
     const cleanValues = {
       id: props.trial.id,
       name: values.name?.trim() || undefined,
-      fullname: values.fullname?.trim() || undefined,
-      description: values.description?.trim() || undefined,
-      start: values.start?.trim() || undefined,
-      end: values.end?.trim() || undefined,
+      fullname: clearable(values.fullname, props.trial.fullname),
+      description: clearable(values.description, props.trial.description),
+      start: clearable(values.start, props.trial.start),
+      end: clearable(values.end, props.trial.end),
       referenceIds: selectedReferenceIds.value,
       contactIds: selectedContactIds.value,
       contributions: contributions.value

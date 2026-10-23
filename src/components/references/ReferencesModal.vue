@@ -85,6 +85,8 @@ const activeTab = ref(defaultActiveTab.value)
 const selectedIds = ref([...props.selectedReferenceIds])
 const selectedReferencesData = ref([...props.initialReferences])
 const editingReference = ref(null)
+// a reference chosen to edit before it was read in full, edited once it is
+const pendingEditId = ref(null)
 
 // Queries
 const { searchResults, searchLoading, searchError } = useReferencesSearchQuery({
@@ -185,6 +187,7 @@ watch(describedReferences, (described) => {
   if (described.length === 0) return
   const byId = new Map(described.map(ref => [ref.id, ref]))
   selectedReferencesData.value = selectedReferencesData.value.map(ref => byId.get(ref.id) ?? ref)
+  if (byId.has(pendingEditId.value)) startEditing(byId.get(pendingEditId.value))
 })
 
 watch(() => props.visible, (visible) => {
@@ -194,6 +197,7 @@ watch(() => props.visible, (visible) => {
     }
     searchQuery.value = ''
     editingReference.value = null
+    pendingEditId.value = null
     activeTab.value = defaultActiveTab.value
   }
 })
@@ -258,7 +262,14 @@ const removeFromSelection = (referenceId) => {
   }
 }
 
+// A reference given by id alone is edited once read in full: its form would start blank, and saving it would clear
+// the description and the rest
 const startEditing = (reference) => {
+  if (reference.description === undefined) {
+    pendingEditId.value = reference.id
+    return
+  }
+  pendingEditId.value = null
   editingReference.value = reference
   // Switch to appropriate tab based on reference type
   const typeKey = Object.keys(FORM_COMPONENTS).find(
@@ -271,6 +282,7 @@ const startEditing = (reference) => {
 
 const cancelEditing = () => {
   editingReference.value = null
+  pendingEditId.value = null
 }
 
 const handleSave = () => {
@@ -429,6 +441,12 @@ const getFormComponent = (typeKey) => {
               />
             </div>
 
+            <div v-if="pendingEditId" class="editing-notice">
+              <p>Reading reference #{{ pendingEditId }} before editing it…</p>
+              <button class="btn btn-secondary btn-sm" @click="cancelEditing">
+                Cancel Edit
+              </button>
+            </div>
             <div v-if="editingReference" class="editing-notice">
               <p>Editing reference #{{ editingReference.id }} - switch to the appropriate tab to modify</p>
               <button class="btn btn-secondary btn-sm" @click="cancelEditing">

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { FormKit } from '@formkit/vue'
+import { clearable } from '@/composables/system/clearable'
 
 import { useMutateStudies } from '@/composables/programs/mutateStudies'
 import { useDesignTypesQuery } from '@/composables/programs/designTypesQuery'
@@ -93,11 +94,11 @@ const submitForm = async (values) => {
     const cleanValues = {
       id: props.study.id,
       name: values.name?.trim() || undefined,
-      fullname: values.fullname?.trim() || undefined,
-      description: values.description?.trim() || undefined,
-      practices: values.practices?.trim() || undefined,
-      start: values.start?.trim() || undefined,
-      end: values.end?.trim() || undefined,
+      fullname: clearable(values.fullname, props.study.fullname),
+      description: clearable(values.description, props.study.description),
+      practices: clearable(values.practices, props.study.practices),
+      start: clearable(values.start, props.study.start),
+      end: clearable(values.end, props.study.end),
       // null removes the design or licence, as undefined would leave it unchanged
       designId: values.designId || null,
       referenceIds: selectedReferenceIds.value,

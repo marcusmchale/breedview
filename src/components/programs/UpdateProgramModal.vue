@@ -1,5 +1,6 @@
 <script setup>
 import { contributionsInput } from '@/composables/people/personDisplay'
+import { clearable } from '@/composables/system/clearable'
 import { ref } from 'vue'
 import { FormKit } from '@formkit/vue'
 
@@ -57,15 +58,11 @@ const submitForm = async (values) => {
   try {
     formError.value = ''
 
-    const cleanValues = Object.fromEntries(
-      Object.entries(values)
-        .filter(([, value]) => value && value.toString().trim() !== '')
-        .map(([key, value]) => [key, value.toString().trim()])
-    )
-
     const { status, errors } = await updateProgram({
       id: props.program.id,
-      ...cleanValues,
+      name: values.name?.trim() || undefined,
+      fullname: clearable(values.fullname, props.program.fullname),
+      description: clearable(values.description, props.program.description),
       referenceIds: selectedReferenceIds.value,
       contactIds: selectedContactIds.value,
       contributions: contributions.value

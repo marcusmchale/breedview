@@ -6,6 +6,7 @@ import { FormKit } from "@formkit/vue";
 import { useUnitUpdateQueries } from "@/composables/units/unitUpdateQueries"
 import { useSelectGermplasmQueries } from "@/composables/germplasm/selectGermplasmQueries"
 import { useMutateUnits } from "@/composables/units/mutateUnits"
+import { clearable } from "@/composables/system/clearable"
 
 const props = defineProps({
   subjects: {
@@ -112,8 +113,8 @@ const submitUpdate = async () => {
       // null removes the link, as undefined would leave it unchanged
       subjectId: updateFormData.value.subjectId || null,
       germplasmId: updateFormData.value.germplasmId || null,
-      name: updateFormData.value.name || undefined,
-      description: updateFormData.value.description || undefined,
+      name: clearable(updateFormData.value.name, props.unit.name),
+      description: clearable(updateFormData.value.description, props.unit.description),
       parentIds: updateFormData.value.parentIds
     }
     const oldCachedUnit = getCached( props.unit )

@@ -1,4 +1,5 @@
 import { RECORD_GROUP_EXTENT_HELP, RECORD_GROUP_EXTENT_LABELS } from './recordGroupExtent'
+import { clearable } from '@/composables/system/clearable'
 
 const processIdArray = (ids) => {
   if (!ids || ids.length === 0) return undefined
@@ -118,7 +119,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       term: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -168,7 +169,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       subject: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -204,7 +205,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       trait: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -240,7 +241,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       condition: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         subjectIds: formData.subjectIds ?? [],
         parentIds: formData.parentIds ?? [],
@@ -283,7 +284,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       scale: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         scaleType: formData.scaleType,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
@@ -319,7 +320,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       category: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -355,7 +356,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       observationMethod: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         observationType: formData.observationType,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
@@ -396,7 +397,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       variable: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         traitId: formData.traitId || undefined,
         observationMethodId: formData.observationMethodId || undefined,
         scaleId: formData.scaleId || undefined,
@@ -435,7 +436,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       controlMethod: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         controlType: formData.controlType,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
@@ -476,7 +477,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       factor: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         conditionId: formData.conditionId || undefined,
         controlMethodId: formData.controlMethodId || undefined,
         scaleId: formData.scaleId || undefined,
@@ -517,7 +518,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       event: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -553,7 +554,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       locationType: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -587,7 +588,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       design: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -627,8 +628,8 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       recordGroupType: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
-        defaultExtent: formData.defaultExtent || undefined,
+        description: clearable(formData.description, entry.description),
+        defaultExtent: clearable(formData.defaultExtent, entry.defaultExtent),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -664,7 +665,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       role: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
         childIds: formData.childIds ?? [],
@@ -699,7 +700,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
       layoutType: {
         id: entry.id,
         name: formData.name,
-        description: formData.description || undefined,
+        description: clearable(formData.description, entry.description),
         axes: formData.axes?.length ? formData.axes : undefined,
         referenceIds: referenceIds?.length ? referenceIds : [],
         parentIds: formData.parentIds ?? [],
@@ -713,7 +714,7 @@ export const ONTOLOGY_ENTRY_CONFIGS = {
 /*
  * Every entry may be taken from an external standard or ontology: its source URL and how to attribute it (the CRediT
  * roles' licence requires the attribution). Added to each type's form after the description, and sent with its input;
- * on update an empty value clears it.
+ * on update, emptying one clears it.
  */
 const sourceFields = [
   { type: 'text', name: 'sourceUrl', label: 'Source URL', placeholder: 'https://… (for an entry from an external standard)', locks: true },
@@ -723,14 +724,14 @@ for (const config of Object.values(ONTOLOGY_ENTRY_CONFIGS)) {
   const at = config.fields.indexOf(descriptionField) + 1
   config.fields.splice(at, 0, ...sourceFields)
   const { processCreate, processUpdate } = config
-  const withSource = (variables, formData, keep) => {
+  const withSource = (variables, formData, entry) => {
     const input = Object.values(variables)[0]
-    input.sourceUrl = formData.sourceUrl?.trim() || (keep ? '' : undefined)
-    input.sourceAttribution = formData.sourceAttribution?.trim() || (keep ? '' : undefined)
+    input.sourceUrl = clearable(formData.sourceUrl, entry?.sourceUrl)
+    input.sourceAttribution = clearable(formData.sourceAttribution, entry?.sourceAttribution)
     return variables
   }
-  config.processCreate = (formData, ...rest) => withSource(processCreate(formData, ...rest), formData, false)
-  config.processUpdate = (entry, formData, ...rest) => withSource(processUpdate(entry, formData, ...rest), formData, true)
+  config.processCreate = (formData, ...rest) => withSource(processCreate(formData, ...rest), formData, null)
+  config.processUpdate = (entry, formData, ...rest) => withSource(processUpdate(entry, formData, ...rest), formData, entry)
 }
 
 /*

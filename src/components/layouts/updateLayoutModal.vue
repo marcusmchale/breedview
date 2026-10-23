@@ -5,6 +5,7 @@ import { FormKit } from "@formkit/vue"
 
 import { useLayoutUpdateQueries } from "@/composables/layouts/layoutUpdateQueries"
 import { useMutateLayouts } from "@/composables/layouts/mutateLayouts"
+import { clearable } from "@/composables/system/clearable"
 
 const props = defineProps({
   layoutTypes: {
@@ -91,7 +92,7 @@ const submitUpdate = async () => {
     const layoutData = {
         id: props.layout.id,
         locationId: updateFormData.value.locationId || undefined,
-        name: updateFormData.value.name || undefined,
+        name: clearable(updateFormData.value.name, props.layout.name),
         typeId: updateFormData.value.typeId || undefined,
         parentId: updateFormData.value.parentId || undefined,
         position: positions.length > 0 ? positions : undefined,

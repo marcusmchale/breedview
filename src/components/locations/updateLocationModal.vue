@@ -5,6 +5,7 @@ import {FormKit} from "@formkit/vue";
 
 import { useLocationUpdateQueries } from "@/composables/locations/locationUpdateQueries";
 import { useMutateLocations } from "@/composables/locations/mutateLocations";
+import { clearable } from "@/composables/system/clearable";
 
 const props = defineProps({
   locationTypes: {
@@ -59,9 +60,9 @@ const submitUpdate = async () => {
     const updateData = {
         id: props.location.id,
         name: updateFormData.value.name || undefined,
-        code: updateFormData.value.code || undefined,
-        address: updateFormData.value.address || undefined,
-        description: updateFormData.value.description || undefined,
+        code: clearable(updateFormData.value.code, props.location.code),
+        address: clearable(updateFormData.value.address, props.location.address),
+        description: clearable(updateFormData.value.description, props.location.description),
         typeId: updateFormData.value.typeId || undefined,
         parentId: updateFormData.value.parentId || undefined
       }
