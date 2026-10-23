@@ -6,6 +6,7 @@ import { useRecentFileReferencesQuery } from '@/composables/references/recentFil
 import { useReferencesQuery } from '@/composables/references/referencesQuery'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
 import { RELEASE_LABELS } from '@/composables/controls/releases'
+import { useAuthStore } from '@/composables/user/useAuthStore'
 import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
 import ReferenceItem from './ReferenceItem.vue'
@@ -94,10 +95,13 @@ const { searchResults, searchLoading, searchError } = useReferencesSearchQuery({
   referenceTypes: props.referenceTypes.map(({ key }) => key)
 })
 
+// a visitor has uploaded no files, and is refused them
+const { isAuthenticated } = useAuthStore()
 const { recentFileReferences, refetchRecentFiles } = useRecentFileReferencesQuery(
   props.referenceTypes
     .filter(type => ['FILE', 'DATA_FILE'].includes(type.key))
-    .map(({ key }) => key)
+    .map(({ key }) => key),
+  { enabled: isAuthenticated }
 )
 
 // The references selected may be given by id alone, as a dataset's records read them: those are read in full, to be
@@ -192,7 +196,7 @@ watch(describedReferences, (described) => {
 
 watch(() => props.visible, (visible) => {
   if (visible) {
-    if (props.showRecent) {
+    if (props.showRecent && isAuthenticated.value) {
       refetchRecentFiles()
     }
     searchQuery.value = ''

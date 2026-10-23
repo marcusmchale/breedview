@@ -77,6 +77,9 @@ test('a visitor is shown no controllers, and none is asked for', async () => {
   assert.equal(await page.evaluate(`document.querySelectorAll('.controller-badge-mini').length`), 0)
   const controllerRequests = page.graphql(mark).filter((request) => request.op.startsWith('controlsController'))
   assert.deepEqual(controllerRequests, [], 'no controller is asked for')
+  // nor anything else a visitor is refused, such as recent files: only the sign-in check, which says they are not
+  const refused = (await page.graphqlErrors(mark)).filter((failure) => !failure.startsWith('accountsAccount:'))
+  assert.deepEqual(refused, [], 'no request is refused')
 })
 
 // the scale study's first page of units, whose ids run past a power of ten; a database built without --scale has none

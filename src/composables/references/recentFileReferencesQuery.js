@@ -3,13 +3,14 @@ import { computed, toValue } from "vue";
 import RECENT_FILES from "@/graphql/references/recentFileReferences.graphql";
 
 // The user's recently uploaded files of the given file types. Given no types, the API returns files of every type, so
-// with none to show nothing is asked for.
-export function useRecentFileReferencesQuery(referenceTypes) {
+// with none to show nothing is asked for. Asked for only while enabled is true: a visitor has uploaded nothing, and the
+// API refuses them.
+export function useRecentFileReferencesQuery(referenceTypes, { enabled = true } = {}) {
   const types = toValue(referenceTypes);
   const { result, loading, error , refetch: refetchRecentFiles } = useQuery(
       RECENT_FILES,
       { referenceTypes: types },
-      { enabled: types.length > 0 }
+      () => ({ enabled: types.length > 0 && toValue(enabled) })
   );
 
   const recentFileReferences = computed(() => {
