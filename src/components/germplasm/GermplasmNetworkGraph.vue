@@ -32,7 +32,10 @@ const contextMenu = ref({
 let simulation = null
 let svgElement = null
 let zoomBehavior = null
+// Each entry's node as last drawn, by id: a new drawing starts each node from where it was
 const nodeMap = new Map()
+// The node last expanded or collapsed, held where it is while the graph settles around what was shown or hidden
+let anchorId = null
 
 
 const closeContextMenu = () => {
@@ -40,36 +43,23 @@ const closeContextMenu = () => {
   contextMenu.value.entry = null
 }
 
-const expandSources = () => {
-  if (contextMenu.value.entry) {
-    emit('expand-sources', contextMenu.value.entry)
+const fromMenu = (event) => {
+  const node = contextMenu.value.entry
+  if (node) {
+    anchorId = node.id
+    emit(event, node)
   }
   closeContextMenu()
 }
 
-const expandSinks = () => {
-  if (contextMenu.value.entry) {
-    emit('expand-sinks', contextMenu.value.entry)
-  }
-  closeContextMenu()
-}
+const expandSources = () => fromMenu('expand-sources')
+const expandSinks = () => fromMenu('expand-sinks')
+const collapseSources = () => fromMenu('collapse-sources')
+const collapseSinks = () => fromMenu('collapse-sinks')
 
-const toggleExpanded = (entry) => {
-  emit('toggle-expanded', entry)
-}
-
-const collapseSources = () => {
-  if (contextMenu.value.entry) {
-    emit('collapse-sources', contextMenu.value.entry)
-  }
-  closeContextMenu()
-}
-
-const collapseSinks = () => {
-  if (contextMenu.value.entry) {
-    emit('collapse-sinks', contextMenu.value.entry)
-  }
-  closeContextMenu()
+const toggleExpanded = (node) => {
+  anchorId = node.id
+  emit('toggle-expanded', node)
 }
 
 
@@ -105,6 +95,9 @@ const recenterOnNode = (result) => {
 const renderGraph = async () => {
   console.debug('Rendering graph')
   await nextTick()
+  // A drawing replaces the last: its layout stops, and the view it was zoomed and panned to is kept
+  simulation?.stop()
+  const view = svgElement ? d3.zoomTransform(svgElement) : null
   // Clear previous graph
   d3.select(graphContainer.value).selectAll("*").remove()
 
@@ -116,19 +109,36 @@ const renderGraph = async () => {
   const entrys = []
   const entryMap = new Map()
 
-  // First, create entrys for displayed entries
+  // First, create entrys for displayed entries, each where it was last drawn
   props.entries.forEach(entryData => {
     if (!entryMap.has(entryData.id)) {
+      const drawn = nodeMap.get(entryData.id)
       const entry = {
         id: entryData.id,
         name: entryData.name,
         description: entryData.description,
-        data: entryData
+        data: entryData,
+        ...(drawn && { x: drawn.x, y: drawn.y })
       }
       entrys.push(entry)
       entryMap.set(entryData.id, entry)
     }
   })
+  // The first drawing is laid out afresh and centred; a later one settles from where its nodes were
+  const redrawn = entrys.some(node => node.x != null)
+  // an entry not drawn before (one just created) starts beside one it is linked to
+  entrys.filter(node => node.x == null).forEach(node => {
+    const linkedIds = [
+      ...(node.data.sources ?? []).map(rel => rel.source?.id),
+      ...(node.data.sinks ?? []).map(rel => rel.sink?.id)
+    ]
+    const beside = linkedIds.map(id => entryMap.get(id)).find(other => other?.x != null)
+    if (beside) {
+      node.x = beside.x + 30
+      node.y = beside.y + 30
+    }
+  })
+  entrys.forEach(node => nodeMap.set(node.id, node))
 
   // Build the relationship map from ALL displayed entries
   const relationshipMap = new Map()
@@ -210,8 +220,12 @@ const renderGraph = async () => {
   simulation = d3.forceSimulation(entrys)
     .force("link", d3.forceLink(links).id(d => d.id).distance(150))
     .force("charge", d3.forceManyBody().strength(-300))
-    .force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2))
     .force("collision", d3.forceCollide(30))
+  if (redrawn) {
+    simulation.alpha(0.3)
+  } else {
+    simulation.force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2))
+  }
 
   // Create links
   const link = g.append("g")
@@ -251,7 +265,8 @@ const renderGraph = async () => {
     .enter().append("g")
     .call(d3.drag()
       .on("start", dragstarted)
-      .on("drag", dragged))
+      .on("drag", dragged)
+      .on("end", dragended))
 
   // Add circle to each entry group
   entry.append("circle")
@@ -272,6 +287,8 @@ const renderGraph = async () => {
       }
     })
     .on("dblclick", (event, d) => {
+      // toggles the entry's sinks, without the zoom a double-click elsewhere on the graph makes
+      event.stopPropagation()
       toggleExpanded(d)
     })
 
@@ -291,8 +308,20 @@ const renderGraph = async () => {
     .attr("font-weight", "500")
     .style("pointer-events", "none")
 
-  // Simulation tick event
-  simulation.on("tick", () => {
+  // The node expanded or collapsed is held where it is until the others have settled around it
+  const anchor = entryMap.get(anchorId)
+  anchorId = null
+  if (anchor?.x != null) {
+    anchor.fx = anchor.x
+    anchor.fy = anchor.y
+    simulation.on("end", () => {
+      anchor.fx = null
+      anchor.fy = null
+    })
+  }
+
+  // Simulation tick event; drawn at once too, so the nodes are not at the origin until the first tick
+  const draw = () => {
     link
       .attr("x1", d => d.source.x)
       .attr("y1", d => d.source.y)
@@ -309,12 +338,9 @@ const renderGraph = async () => {
     label
       .attr("x", d => d.x)
       .attr("y", d => d.y)
-
-      // Update node map with current positions
-    entrys.forEach(node => {
-      nodeMap.set(node.id, node)
-    })
-  })
+  }
+  simulation.on("tick", draw)
+  draw()
 
   // Drag functions
   function dragstarted(event, d) {
@@ -328,6 +354,11 @@ const renderGraph = async () => {
     d.fy = event.y
   }
 
+  // the layout cools down once the node is let go, which stays where it was dropped
+  function dragended(event) {
+    if (!event.active) simulation.alphaTarget(0)
+  }
+
   // Add zoom functionality
   const zoom = d3.zoom()
     .scaleExtent([0.1, 10])
@@ -338,7 +369,11 @@ const renderGraph = async () => {
   zoomBehavior = zoom
 
   svg.call(zoom)
-    .call(zoom.translateTo, containerWidth / 2, containerHeight / 2)
+  if (view) {
+    svg.call(zoom.transform, view)
+  } else {
+    svg.call(zoom.translateTo, containerWidth / 2, containerHeight / 2)
+  }
 }
 
 const handleResize = () => {

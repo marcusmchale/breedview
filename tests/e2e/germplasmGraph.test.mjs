@@ -1,7 +1,8 @@
 // The germplasm page's pedigree graph, as the admin, at the test database's crop_leaf: collapsing an entry's sinks
-// hides every entry below it and expanding them shows its own sinks again, and its sources likewise above it; and a
-// double-click collapses its sinks when they are all shown and shows them otherwise. What is below and above comes from
-// the API's sources and sinks, as the page reads them.
+// hides every entry below it and expanding them shows its own sinks again, and its sources likewise above it; a
+// double-click collapses its sinks when they are all shown and shows them otherwise; the entry stays where it is on
+// the screen through each, in the view as it was zoomed, while the graph settles around it; and a double-click on an
+// entry does not zoom. What is below and above comes from the API's sources and sinks, as the page reads them.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -66,7 +67,28 @@ async function fromMenu(item) {
   await page.evaluate(`${menuItem}.click()`)
 }
 
-const doubleClick = () => page.evaluate(`${circle(ENTRY)}.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))`)
+const doubleClick = (name = ENTRY) => page.evaluate(`(() => {
+  const c = ${circle(name)}, r = c.getBoundingClientRect()
+  c.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 }))
+})()`)
+
+// where an entry's circle is on the screen, and the view the graph is zoomed and panned to
+const centre = (name) => page.evaluate(`(() => { const r = ${circle(name)}.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()`)
+const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1
+const view = () => page.evaluate(`document.querySelector('${graph} svg > g').getAttribute('transform')`)
+
+// the layout runs for a few seconds after each change
+async function settled() {
+  const positions = () => page.evaluate(`[...document.querySelectorAll('${graph} circle')].map((c) => { const r = c.getBoundingClientRect(); return [r.x, r.y] })`)
+  let last = await positions()
+  for (let i = 0; i < 40; i++) {
+    await page.sleep(500)
+    const now = await positions()
+    if (now.length === last.length && now.every((position, j) => Math.hypot(position[0] - last[j][0], position[1] - last[j][1]) < 0.5)) return
+    last = now
+  }
+  throw new Error('the graph did not settle')
+}
 
 // the graph is drawn again once the entries shown change
 async function drawnAs(expected) {
@@ -114,4 +136,38 @@ test('a double-click collapses an entry\'s sinks when they are all shown, and sh
   await doubleClick()
   await drawnAs(without(all, below))
   assert.deepEqual(page.consoleErrors(mark), [])
+})
+
+test('the entry collapsed or expanded stays where it is, in the view as it was zoomed', async () => {
+  await open()
+  await settled()
+  // zoomed in about a point away from the entry, so the view is not the one a first drawing has
+  await page.evaluate(`(() => {
+    const svg = document.querySelector('${graph} svg'), r = svg.getBoundingClientRect()
+    svg.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -300, clientX: r.x + r.width / 4, clientY: r.y + r.height / 4 }))
+  })()`)
+  await page.sleep(300)
+  const zoomed = await view()
+  const at = await centre(ENTRY)
+  for (const action of ['Collapse Sinks', 'Expand Sinks', 'Collapse Sources', 'Expand Sources', 'double-click', 'double-click']) {
+    const before = await drawn()
+    if (action === 'double-click') await doubleClick()
+    else await fromMenu(action)
+    await page.waitFor(`JSON.stringify([...document.querySelectorAll('${graph} circle')].map((c) => c.__data__.name).sort()) !== ${q(q(before))}`, 10000)
+    assert.ok(near(await centre(ENTRY), at), `${action}: the entry is where it was, drawn again`)
+    await settled()
+    assert.ok(near(await centre(ENTRY), at), `${action}: the entry is where it was, the graph settled`)
+    assert.equal(await view(), zoomed, `${action}: the view is kept`)
+  }
+})
+
+test('a double-click on an entry does not zoom the graph', async () => {
+  const all = await open()
+  await settled()
+  const leaf = all.find((name) => family.own(name, 'sinks').length === 0)
+  const before = await view()
+  await doubleClick(leaf)
+  // a double-click's zoom takes 250ms
+  await page.sleep(600)
+  assert.equal(await view(), before, `double-clicking ${leaf}`)
 })
