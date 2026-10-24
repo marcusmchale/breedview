@@ -89,4 +89,11 @@ watch(collection, (c) => { document.title = c ? `${c.title} - BreedView` : 'User
 .guide-print :deep(li) {
   break-inside: avoid;
 }
+
+/* a heading stays with what follows it */
+.guide-print h2,
+.guide-print :deep(h2),
+.guide-print :deep(h3) {
+  break-after: avoid;
+}
 </style>
