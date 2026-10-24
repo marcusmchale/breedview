@@ -15,22 +15,26 @@ Open BreedView in your browser. You need nothing else.
 
 ## Steps
 
-1. **The Terms of Use come first.** BreedGraph shows them before anything else. The privacy notice is linked from the
-   same page. Tick "I have read and agree to the Terms of Use", then Accept. {#terms}
+1. **The Terms of Use come first.** BreedGraph shows them before anything else. Tick "I have read and agree to the
+   Terms of Use", then Accept. The privacy notice is linked from the same page: you consent to it only when you
+   register an account. {#terms}
 2. **Programs lists what teams have made public.** Open the Winter Wheat Breeding Programme, then its trial,
    Preliminary Yield Trial 2024, and its study, Long Meadow Yield Trial 2024. {#programmes}
 3. **A study's Datasets say what was recorded.** Each variable and factor is listed with its number of records and
    the dates they cover. {#datasets}
-4. **Curate shows the records themselves.** Choose the variables and the factor. The study's licence must be accepted
-   before the data loads: tick "I have read and agree to this licence", Accept, then Load Table. {#curate}
-5. **Same year puts each plot on one row.** Each value keeps its own date, shown when you point at it. The fungicide
-   programme was recorded once, for the whole trial area, so it applies to every plot. {#rows}
-6. **Locations shows the farm and its fields.** The maps come from BreedGraph's own server, so your browser contacts
-   no one else. Places a team keeps private are not shown. {#locations}
-7. **Germplasm shows how the lines were bred.** Search for a line to find it among its parents and offspring.
-   {#germplasm}
-8. **The ontology says what each variable means.** Each entry has a description, and variables link to their traits,
-   methods and scales. {#ontology}
+4. **View datasets shows the records themselves.** Choose the variables and the factor. The study's licence must be
+   accepted before the data loads: tick "I have read and agree to this licence", Accept, then Load Table.
+   [Exploring a study's data](/guide/exploring-data) shows what more the table can do. {#view}
+5. **Locations shows the farm and its fields.** Choose the farm to see its fields on the map. The maps come from
+   BreedGraph's own server, so your browser contacts no one else. Places a team keeps private are not shown.
+   {#locations}
+6. **Units shows what is at each place.** A unit graph links the levels at which an experiment is managed and
+   observed: here, the 2024 trial area holds its plots. Each unit inherits its location, germplasm and factors from
+   the units above it. {#units}
+7. **Germplasm shows how the lines were bred.** Search for a line, then drag it clear of its neighbours to see its
+   parents and offspring. {#germplasm}
+8. **The ontology says what each variable means.** Search for a variable and drag it clear to see the trait, method
+   and scale it links to. Its card gives its description. {#ontology}
 9. **Sign in to see more.** People, private studies and who controls each record are shown only to users who are
    signed in. {#log-in}
 
@@ -38,8 +42,9 @@ Open BreedView in your browser. You need nothing else.
 
 > [!SEES]
 > A visitor sees only what its team released publicly. In the demonstration, that means the 2024 programme, trial,
-> study and data, the farm and its fields, the public varieties and lines, and the published ontology. Records released
-> to registered users or kept private are not shown, and nor are Persons or the controllers of records.
+> study and data, the farm and its fields, the 2024 trial area and its plots, the public varieties and lines, and the
+> published ontology. Records released to registered users or kept private are not shown, and nor are Persons or the
+> controllers of records.
 
 > [!DATA]
 > No personal data is shown to visitors: Persons, who contributed to each dataset and who controls each record are

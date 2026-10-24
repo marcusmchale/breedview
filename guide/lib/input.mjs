@@ -32,12 +32,14 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
   const overlay = (call) => page.evaluate(`window.__recorderOverlay?.${call}`)
   let mouse = { x: 640, y: 400 }
 
-  const moveTo = async (x, y) => {
+  // pressed: the left button held, as in a drag
+  const moveTo = async (x, y, { pressed = false } = {}) => {
+    const held = pressed ? { button: 'left', buttons: 1 } : {}
     const from = mouse
     const distance = Math.hypot(x - from.x, y - from.y)
     if (fast || distance < 1) {
       mouse = { x, y }
-      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, ...held })
       return
     }
     const steps = Math.max(8, Math.round(Math.min(900, 280 + distance * 0.55) / 16))
@@ -51,7 +53,7 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
         x: (1 - t) ** 2 * from.x + 2 * (1 - t) * t * cx + t ** 2 * x,
         y: (1 - t) ** 2 * from.y + 2 * (1 - t) * t * cy + t ** 2 * y
       }
-      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: mouse.x, y: mouse.y })
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: mouse.x, y: mouse.y, ...held })
       await page.sleep(16)
     }
   }
@@ -72,8 +74,11 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
     return { x, y, rect: { left: r.left, top: r.top, width: r.width, height: r.height } }
   })()`)
 
-  /** A target's centre once it can be touched: scrolled into view if need be, and still for a moment */
-  const locate = async (target, { enabled = true, timeout = 20000 } = {}) => {
+  /**
+   * A target's centre once it can be touched: scrolled into view if need be, and still for a moment, unless still is
+   * false (a graph's node, drifting as its layout settles, is grabbed where it is)
+   */
+  const locate = async (target, { enabled = true, timeout = 20000, still = true } = {}) => {
     const deadline = Date.now() + timeout
     let found = null
     while (Date.now() < deadline) {
@@ -84,6 +89,7 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
         continue
       }
       if (!found.problem) {
+        if (!still) return found
         await page.sleep(fast ? 30 : 100)
         const again = await probe(target, enabled).catch(() => ({ problem: 'gone' }))
         if (!again.problem && Math.abs(again.x - found.x) < 1 && Math.abs(again.y - found.y) < 1) return again
@@ -132,6 +138,23 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
       await wait(140)
       await pressAt(x, y, { modifiers: modifiers.reduce((sum, m) => sum | MODIFIERS[m], 0) })
       await wait(380)
+    },
+
+    /** Drag a target by an offset, as a hand would: pressed, moved along a path and let go, e.g. a graph's node */
+    drag: async (target, { by }) => {
+      const found = await locate(target, { enabled: false, still: false })
+      await moveTo(found.x, found.y)
+      await wait(250)
+      // where it is now, should it have drifted on the way
+      const now = await probe(target, false).catch(() => found)
+      const { x, y } = now.problem ? found : now
+      await moveTo(x, y)
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1 })
+      await wait(150)
+      await moveTo(x + by.x, y + by.y, { pressed: true })
+      await wait(150)
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: mouse.x, y: mouse.y, button: 'left', clickCount: 1 })
+      await wait(500)
     },
 
     /** Click a point, e.g. on a map, given in the page's coordinates */

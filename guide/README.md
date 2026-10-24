@@ -38,8 +38,12 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
 
 - **Frames:** Chrome runs with a 1280x800 page at a scale of 1.5, so its screencast frames are 1920x1200. Chrome sends
   a frame only when the page changes, so each frame lasts until the next.
-- **Input** (`lib/input.mjs`): the mouse moves along eased paths and presses and releases, and keys are typed one at a
-  time. Each target is checked first: there, in view, visible, enabled, still and not covered.
+- **Input** (`lib/input.mjs`): the mouse moves along eased paths and presses and releases, drags (a graph's node is
+  grabbed where it is, as its layout settles), and keys are typed one at a time. Each target is checked first: there,
+  in view, visible, enabled, still and not covered.
+- **Storyboards** share `lib/storyboard.mjs`: elements found by their text, the ways into pages that more than one
+  chapter takes, and for a graph, a node dragged to the clearest spot near it (`clearOf`) and its linked nodes brought
+  beside it, so that each link and its label stand clear (`gatherLinked`).
 - **Overlay** (`lib/overlay.js`): the cursor and its clicks, and stand-ins for what headless frames don't show: a
   select's menu, confirm dialogs, key presses, tooltips, and cards for the clipboard, emails and files.
 - **Cuts** (`lib/recorder.mjs`): page loads and work done off camera are cut from the video. After off-camera work, a

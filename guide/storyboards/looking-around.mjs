@@ -1,7 +1,11 @@
 // Chapter 1, "Looking around as a visitor" (src/guide/chapters/looking-around.md): a visitor accepts the Terms, opens
-// the public 2024 study and its data, then looks at the places, plant material and ontology. Nothing is changed, so it
-// plays from any load of the demonstration database (manifest workflows.visitor_tour).
+// the public 2024 study and its data, then looks at the places, the units there, the plant material and the ontology.
+// Nothing is changed, so it plays from any load of the demonstration database (manifest workflows.visitor_tour).
+import { byText, clearOf, gatherLinked, loadStudyData, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
+
 const q = JSON.stringify
+// the 2024 trial's unit graph, which the Units step opens
+const TRIAL_AREA = 'unit:Long Meadow 2024 trial area'
 
 export const meta = {
   chapter: 'looking-around',
@@ -10,17 +14,9 @@ export const meta = {
   acceptTerms: false
 }
 
-// an element by its text, read as shown with its spaces and line breaks taken as one space
-const shown = 'e.innerText.replace(/\\s+/g, " ").trim()'
-const byText = (selector, text, within = 'document') =>
-  `[...${within}.querySelectorAll(${q(selector)})].find((e) => ${shown} === ${q(text)})`
-const startsWith = (selector, text, within = 'document') =>
-  `[...${within}.querySelectorAll(${q(selector)})].find((e) => ${shown}.startsWith(${q(text)}))`
-const navLink = (text) => byText('.nav-menu .nav-link', text)
-
 export async function check ({ manifest }) {
   const tour = manifest.workflows.visitor_tour
-  for (const key of [tour.programme, tour.trial, tour.study, tour.licence, tour.location]) {
+  for (const key of [tour.programme, tour.trial, tour.study, tour.licence, tour.location, 'farm', TRIAL_AREA]) {
     if (!manifest.entities[key]?.readable_by.includes('anonymous')) throw new Error(`A visitor can't read ${key}`)
   }
 }
@@ -28,9 +24,7 @@ export async function check ({ manifest }) {
 export async function run ({ page, input, recorder, step, manifest, app }) {
   const names = Object.fromEntries(Object.entries(manifest.entities).map(([key, entity]) => [key, entity.name]))
   const tour = manifest.workflows.visitor_tour
-  const programme = names[tour.programme]
-  const trial = names[tour.trial]
-  const study = names[tour.study]
+  const study = { programme: names[tour.programme], trial: names[tour.trial], study: names[tour.study] }
 
   // the app's first page, off camera until it shows the Terms
   await recorder.hold(async () => {
@@ -56,70 +50,27 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.restoreCursor()
   })
 
-  const programmeCard = `[...document.querySelectorAll('.program-card')].find((c) => c.querySelector('.program-card-header h3')?.innerText.trim() === ${q(programme)})`
-  const trialCard = `[...(${programmeCard})?.querySelectorAll('.trial-card') ?? []].find((c) => c.innerText.includes(${q(trial)}))`
-  const studyCard = `[...(${trialCard})?.querySelectorAll('.study-card') ?? []].find((c) => c.innerText.includes(${q(study)}))`
-
+  let cards
   await step('programmes', async () => {
-    await input.click(navLink('Programs'))
-    await page.waitFor(`${programmeCard}?.querySelector('.trials-header')`, 30000)
-    await input.pause(1500)
-    await input.click(`${programmeCard}.querySelector('.trials-header')`)
-    await page.waitFor(`${trialCard}?.querySelector('.studies-header')`, 30000)
-    await input.pause(1200)
-    await input.click(`${trialCard}.querySelector('.studies-header')`)
-    await page.waitFor(`${studyCard}?.querySelector('.section-toggle')`, 30000)
+    cards = await openStudy({ page, input, ...study })
     await input.pause(800)
     await input.scroll(null, 380)
     await input.pause(2500)
   })
 
   await step('datasets', async () => {
-    await input.click(startsWith('.section-toggle', '▶ Datasets', studyCard))
-    await page.waitFor(`${studyCard}?.querySelector('.view-datasets')`, 30000)
+    await input.click(startsWith('.section-toggle', '▶ Datasets', cards.studyCard))
+    await page.waitFor(`${cards.studyCard}?.querySelector('.view-datasets')`, 30000)
     await input.pause(800)
     await input.scroll(null, 260)
     await input.pause(3000)
   })
 
-  const loadTable = byText('.selection-actions button', 'Load Table')
-
-  await step('curate', async () => {
-    await input.click(`${studyCard}.querySelector('.view-datasets')`)
-    await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 30000)
-    await input.pause(1000)
-    // every variable: the first, then the last with Shift
-    const variable = (name) => `[...document.querySelector('select[name=variableIds]').options].find((o) => o.text.trim() === ${q(name)})`
-    const options = await page.evaluate(`[...document.querySelector('select[name=variableIds]').options].map((o) => o.text.trim())`)
-    await input.click(variable(options[0]))
-    await input.click(variable(options.at(-1)), { modifiers: ['Shift'] })
-    await input.pause(500)
-    await input.click(`[...document.querySelector('select[name=factorIds]').options][0]`)
-    await page.waitFor(`document.querySelector('.licence-agreement input')`, 30000)
-    await input.pause(800)
-    await input.hover('document.querySelector(".licence-agreement")', 2200)
-    await input.click('document.querySelector(".licence-agreement label.agree input")')
-    await input.click('document.querySelector(".licence-agreement button.accept-licences")')
-    await page.waitFor(`!document.querySelector('.licence-agreement input') && !(${loadTable})?.disabled`, 30000)
-    await input.click(loadTable)
-    await page.waitFor(`document.querySelector('.curation-table tbody tr td')`, 60000)
-    await input.pause(2500)
-  })
-
-  const plotRow = (name) => `[...document.querySelectorAll('.curation-table tbody tr')].find((tr) => tr.querySelector('td')?.innerText.trim() === ${q(name)})`
-  const columnOf = (header) => `[...document.querySelectorAll('.curation-table thead th')].findIndex((th) => th.textContent.trim().startsWith(${q(header)}))`
-  const cellOf = (row, header) => `(${plotRow(row)}).querySelectorAll('td')[${columnOf(header)}]`
-  // the 2024 trial's first plot
-  const firstPlot = Object.keys(manifest.units).filter((name) => name.startsWith('LM24-')).sort()[0]
-
-  await step('rows', async () => {
-    await input.choose('document.querySelector("select[name=rowMode]")', 'Same year')
-    await input.pause(1500)
-    await input.tooltip(cellOf(firstPlot, 'Plant height (cm)'), 2200)
-    await input.tooltip(cellOf(firstPlot, 'Grain yield (t/ha)'), 2000)
-    await input.tooltip(`(${plotRow(firstPlot)}).querySelector('.applied-factor')`, 2600)
-    await input.scroll('document.querySelector(".table-wrapper")', 600)
-    await input.pause(1500)
+  // the table, shown as it loads: what more it does is the next chapter's
+  await step('view', async () => {
+    await input.click(`${cards.studyCard}.querySelector('.view-datasets')`)
+    await loadStudyData({ page, input })
+    await input.pause(3500)
     await input.click(`${byText('button', 'Close')} ?? document.querySelector('.modal-close, .close-btn')`)
     await page.waitFor(`!document.querySelector('.curation-table')`, 15000)
   })
@@ -135,17 +86,41 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.click(navLink('Locations'))
     await page.waitFor(`document.querySelector('.leaflet-container')`, 30000)
     await input.pause(1200)
-    // the country first, which the map fits, then down to the field
+    // the country first, which the map fits, then the farm, which it shows with its fields
     await page.waitFor(`${locationHeader(names.ireland)}?.querySelector('.location-name')`, 30000)
     await input.click(`${locationHeader(names.ireland)}.querySelector('.location-name')`)
     await input.pause(2200)
     await expand(names.ireland)
     await expand('County Offaly')
-    await expand(names.farm)
-    await input.click(`${locationHeader(names[tour.location])}.querySelector('.location-name')`)
-    await input.pause(3500)
+    await input.click(`${locationHeader(names.farm)}.querySelector('.location-name')`)
+    await input.pause(4000)
     // the Cooperative's county is public, but its farm and field are not, so the county has nothing to open
     await input.click(`${locationHeader('County Kildare')}.querySelector('.location-name')`)
+    await input.pause(3500)
+  })
+
+  await step('units', async () => {
+    await input.click(navLink('Units'))
+    await page.waitFor(`document.querySelector('.units-note') && ${locationHeader(names.ireland)}?.querySelector('.expand-btn')`, 30000)
+    await input.pause(1000)
+    await input.hover('document.querySelector(".units-note")', 2500)
+    await expand(names.ireland)
+    await expand('County Offaly')
+    await expand(names.farm)
+    await input.click(`${locationHeader(names[tour.location])}.querySelector('.location-name')`)
+    const graph = byText('.block-item .block-name', names[TRIAL_AREA])
+    await page.waitFor(graph, 30000)
+    await input.pause(1200)
+    await input.click(graph)
+    // the trial area, opened to its plots
+    const root = `${byText('.tree-panel .node-name', names[TRIAL_AREA])}?.closest('.node-header')`
+    await page.waitFor(root, 30000)
+    await input.pause(1000)
+    const plot = `[...document.querySelectorAll('.tree-panel .node-name')].find((e) => e.innerText.trim().startsWith('LM24-'))`
+    if (!(await page.evaluate(`!!(${plot})`))) {
+      await input.click(`${root}.querySelector('.expand-btn')`)
+      await page.waitFor(plot, 30000)
+    }
     await input.pause(3500)
   })
 
@@ -153,10 +128,18 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.click(navLink('Germplasm'))
     await page.waitFor(`document.querySelector('.search-box .search-input')`, 30000)
     await input.pause(2500)
-    await input.type('document.querySelector(".search-box .search-input")', names[tour.germplasm])
+    const line = names[tour.germplasm]
+    await input.type('document.querySelector(".search-box .search-input")', line)
     await page.waitFor(`document.querySelector('.search-result-item')`, 15000)
-    await input.click(byText('.search-result-item .result-name', names[tour.germplasm]))
-    await input.pause(4000)
+    await input.click(byText('.search-result-item .result-name', line))
+    await input.pause(2500)
+    // clear of its neighbours, its parents and offspring show
+    const node = `[...document.querySelectorAll('.germplasm-network-graph circle')].find((c) => c.__data__?.name === ${q(line)})`
+    const by = await clearOf(page, {
+      node, nodes: '.germplasm-network-graph circle', links: '.germplasm-network-graph line', frame: '.germplasm-network-graph svg'
+    })
+    await input.drag(node, { by })
+    await input.pause(3500)
   })
 
   await step('ontology', async () => {
@@ -168,9 +151,19 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.click(byText('.search-result-item .result-name', 'Plant height (cm)'))
     await input.pause(1500)
     // the entry itself, whose card opens below the graph
-    await input.click(`[...document.querySelectorAll('g.node')].find((g) => g.__data__?.name === 'Plant height (cm)')?.querySelector('circle')`)
+    const node = `[...document.querySelectorAll('g.node')].find((g) => g.__data__?.name === 'Plant height (cm)')?.querySelector('circle')`
+    await input.click(node)
     await page.waitFor(`document.querySelector('.card-container')`, 15000)
     await input.pause(800)
+    // the graph is crowded: zoomed out a little, the variable to the clearest spot, then its trait, method and scale
+    // beside it, each link labelled
+    const graph = { nodes: '.ontology-network-graph g.node circle', frame: '.ontology-network-graph svg' }
+    await input.scroll(null, 250, { at: { x: 1150, y: 260 } })
+    await input.pause(800)
+    await input.drag(node, { by: await clearOf(page, { node, ...graph, margin: 170 }) })
+    await input.pause(1500)
+    await gatherLinked({ page, input, node, links: '.ontology-network-graph .links line', ...graph, radius: 150 })
+    await input.pause(3500)
     // down to the card, with the wheel in the page's margin: over the graph it zooms
     await input.scroll(null, 560, { at: { x: 1262, y: 560 } })
     await input.pause(4500)

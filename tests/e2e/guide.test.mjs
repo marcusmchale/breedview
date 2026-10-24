@@ -43,14 +43,14 @@ test('a chapter shows its text and steps, and Play on a step plays the video fro
   await page.waitFor(`document.querySelector('.guide-video video')?.textTracks[0]?.cues?.length ||
     document.querySelector('.guide-video .missing')`, 30000)
   if (await page.exists('.guide-video .missing')) return t.skip('public/guide-media has no looking-around.mp4')
-  await page.click('#step-curate .step-play')
-  await page.waitFor(`document.querySelector('.guide-steps li.current')?.id === 'step-curate'`, 15000)
+  await page.click('#step-view .step-play')
+  await page.waitFor(`document.querySelector('.guide-steps li.current')?.id === 'step-view'`, 15000)
   const { time, start } = await page.evaluate(`(() => {
     const video = document.querySelector('.guide-video video')
-    return { time: video.currentTime, start: [...video.textTracks[0].cues].find((cue) => cue.id === 'curate').startTime }
+    return { time: video.currentTime, start: [...video.textTracks[0].cues].find((cue) => cue.id === 'view').startTime }
   })()`)
   assert.ok(time >= start && time < start + 2, `plays from the step's start, ${start}s: at ${time}s`)
-  assert.equal(flat(await page.text('.caption-bar')), flat(await page.text('#step-curate .step-lead strong')), 'the bar shows the step')
+  assert.equal(flat(await page.text('.caption-bar')), flat(await page.text('#step-view .step-lead strong')), 'the bar shows the step')
 })
 
 test('a chapter not written says so, with a link to the contents', async () => {

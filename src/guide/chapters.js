@@ -6,7 +6,7 @@ const sources = import.meta.glob('./chapters/*.md', { query: '?raw', import: 'de
 const written = Object.fromEntries(Object.entries(sources).map(([path, text]) => [path.replace(/^.*\/(.*)\.md$/, '$1'), text]))
 
 export const PARTS = [
-  { title: 'Getting started', chapters: ['looking-around', 'joining', 'teams'] },
+  { title: 'Getting started', chapters: ['looking-around', 'exploring-data', 'joining', 'teams'] },
   { title: "Running this season's trial", chapters: ['setting-up', 'recording', 'checking', 'analysing'] },
   { title: 'Sharing and people', chapters: ['sharing', 'people', 'your-data'] },
   { title: 'Preparing next season', chapters: ['describing', 'places', 'plant-material', 'planting'] },
