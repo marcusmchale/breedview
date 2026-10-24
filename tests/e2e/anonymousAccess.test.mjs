@@ -17,7 +17,7 @@ after(async () => { await browser?.close() })
 
 const pageText = async () => flat(await page.text('main'))
 const writeActions = () => page.evaluate(`[...document.querySelectorAll('main button')].map((e) => e.innerText.trim())
-  .filter((t) => /(Create|Edit|Delete|Add|New|Register|Position)/.test(t))`)
+  .filter((t) => /(Create|Edit|Delete|Add|New|Register|Position|Submit)/.test(t))`)
 // the only request expected to fail: the check of who is signed in
 const failedRequests = async (mark) => (await page.graphqlErrors(mark)).filter((f) => !f.startsWith('accountsAccount:'))
 
@@ -94,6 +94,23 @@ test('programs: the public studies below placeholders, without badges or write a
   assert.ok(!(await page.exists('.controller-badge')), 'no controller badges')
   assert.deepEqual(await writeActions(), [])
   assert.deepEqual(await failedRequests(mark), [])
+})
+
+test('programs: a visitor is offered View datasets alone, on the page and on a public study', async () => {
+  await page.goto(`${config.appUrl}/programs`)
+  await page.waitFor(`document.querySelector('.programs-header .view-datasets')`, 30000)
+  assert.deepEqual(await page.evaluate(`[...document.querySelectorAll('.programs-header .header-actions > *')].map((e) => e.innerText.trim())`),
+    ['View datasets'])
+  for (let level = 0; level < 2; level++) {
+    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
+    await page.sleep(2500)
+  }
+  const card = `[...document.querySelectorAll('.study-card')].find((c) => c.innerText.includes(${JSON.stringify(e.study_public.name)}))`
+  await page.waitFor(`${card}?.querySelector('.section-toggle')`, 30000)
+  await page.evaluate(`[...${card}.querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
+  await page.waitFor(`${card}.querySelector('.dataset-actions .view-datasets')`, 30000)
+  assert.deepEqual(await page.evaluate(`[...${card}.querySelector('.dataset-actions').children].map((e) => e.innerText.trim())`),
+    ['View datasets'])
 })
 
 test('programs: no one is credited or named as a contact for signed-out visitors', async () => {

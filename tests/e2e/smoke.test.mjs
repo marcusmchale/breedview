@@ -31,6 +31,23 @@ for (const [path, expected] of pages) {
   })
 }
 
+// The dataset actions come in the order data goes (src/composables/datasets/datasetActions.js): submitted, viewed and
+// curated, then analysed. From the page, Submit data asks for the study in the form.
+test('the programs page offers Submit data, View & curate datasets and Analysis, in that order', async () => {
+  await page.goto(`${config.appUrl}/programs`)
+  await page.waitFor(`document.querySelector('.programs-header .submit-data')`, 30000)
+  const actions = await page.evaluate(`[...document.querySelectorAll('.programs-header .header-actions > *')].map((e) => e.innerText.trim())`)
+  assert.deepEqual(actions, ['Submit data', 'View & curate datasets', 'Analysis'])
+  const mark = page.mark()
+  await page.click('.programs-header .submit-data')
+  await page.waitFor(`document.querySelector('.dataset-submission-modal .hierarchical-select')`, 30000)
+  await page.sleep(1000)
+  assert.match(await page.text('.dataset-submission-modal'), /Submit data[\s\S]*Study:/, 'the study is chosen in the form')
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+  await page.click('.dataset-submission-modal .close-btn')
+  await page.waitFor(`!document.querySelector('.dataset-submission-modal')`, 15000)
+})
+
 // The dataset submission mounts its table as soon as a study is chosen, so it must open without errors
 test('the dataset submission opens for the first study', async () => {
   // the first study of the programs page: open the trials and studies of each program until one is listed
@@ -44,12 +61,14 @@ test('the dataset submission opens for the first study', async () => {
   // each study card loads its study by itself: wait for the first one's
   await page.waitFor(`document.querySelector('.study-card')?.querySelector('.section-toggle')`, 30000)
   await page.evaluate(`[...document.querySelector('.study-card').querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
-  await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.includes('Create New Dataset'))`, 30000)
+  await page.waitFor(`document.querySelector('.study-card .submit-data')`, 30000)
+  assert.deepEqual(await page.evaluate(`[...document.querySelector('.study-card .dataset-actions').children].map((e) => e.innerText.trim())`),
+    ['Submit data', 'View & curate datasets', 'Analyse'], "the study's actions, as the page's")
   const mark = page.mark()
-  await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.includes('Create New Dataset')).click()`)
+  await page.click('.study-card .submit-data')
   await page.waitFor(`document.querySelectorAll('.modal-overlay .hierarchical-multiselect .select-trigger').length >= 2`, 30000)
   await page.sleep(1000)
-  assert.match(await page.text('body'), /Create New Dataset[\s\S]*Study:/, 'the submission form shows the study')
+  assert.match(await page.text('body'), /Submit data[\s\S]*Study:/, 'the submission form shows the study')
   // the table mounts once a location, a unit and a concept are chosen: the test database's field, which holds blocks,
   // and the first unit there
   const optionIndex = (label) => `[...document.querySelectorAll('.options-list .option-item')].findIndex((o) => o.querySelector('.option-label')?.innerText.trim() === ${JSON.stringify(label)})`

@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import DatasetSelectionForm from './DatasetSelectionForm.vue'
 import DatasetCurationTable from './DatasetCurationTable.vue'
 import { DEFAULT_UNITS_PAGE_SIZE } from '@/composables/datasets/useDatasetRecordPages'
+import { useViewDatasetsLabel } from '@/composables/datasets/datasetActions'
 
 defineProps({
   visible: {
@@ -92,10 +93,8 @@ const handleUnsavedChanges = (hasChanges) => {
 
 }
 
-// Computed for modal title
-const modalTitle = computed(() => {
-  return phase.value === 'selection' ? 'View & Curate Datasets' : 'Curate Datasets'
-})
+// titled as the button that opens it
+const modalTitle = useViewDatasetsLabel()
 
 // Computed for showing table phase footer buttons
 const isSubmitting = computed(() => {

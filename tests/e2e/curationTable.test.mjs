@@ -20,8 +20,8 @@ const option = (label) => `[...document.querySelectorAll('.options-list .option-
 // Open curation from the programs page and choose a study through its program and trial, and a variable
 async function curate (path, study, variable) {
   await page.goto(`${config.appUrl}/programs`)
-  await page.waitFor(`[...document.querySelectorAll('button')].some((e) => e.innerText.toLowerCase().includes('curat'))`, 30000)
-  await page.evaluate(`[...document.querySelectorAll('button')].find((e) => e.innerText.toLowerCase().includes('curat')).click()`)
+  await page.waitFor(`document.querySelector('.programs-header .view-datasets')`, 30000)
+  await page.click('.programs-header .view-datasets')
   await page.waitFor(`document.querySelector('.hierarchical-multiselect .select-trigger')`)
   await page.sleep(800)
   await page.evaluate(`document.querySelector('.hierarchical-multiselect .select-trigger').click()`)

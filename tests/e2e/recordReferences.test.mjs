@@ -226,8 +226,8 @@ test("submission: the modal opens with the cell's files selected, and those save
   const card = `[...${trial}.querySelectorAll('.study-card')].find((c) => c.innerText.includes(${q(s.submission_study.name)}))`
   await page.waitFor(`${card}?.querySelector('.section-toggle')`, 30000)
   await page.evaluate(`[...${card}.querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
-  await page.waitFor(`[...${card}.querySelectorAll('button')].some((b) => b.innerText.includes('Create New Dataset'))`, 30000)
-  await page.evaluate(`[...${card}.querySelectorAll('button')].find((b) => b.innerText.includes('Create New Dataset')).click()`)
+  await page.waitFor(`${card}.querySelector('.submit-data')`, 30000)
+  await page.evaluate(`${card}.querySelector('.submit-data').click()`)
   await page.waitFor(`document.querySelectorAll('.dataset-submission-modal .hierarchical-multiselect .select-trigger').length >= 2`, 30000)
   await page.sleep(1000)
   const mark = page.mark()

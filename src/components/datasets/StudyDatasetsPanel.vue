@@ -1,14 +1,6 @@
 <!-- src/components/datasets/StudyDatasetsPanel.vue: a study's datasets, within its card on the programs page -->
 <template>
   <div class="study-datasets-panel">
-    <div class="panel-actions">
-      <button v-if="canCreate" class="btn btn-primary" @click="$emit('create-dataset')">
-        + Create New Dataset
-      </button>
-      <!-- more actions from the card holding the panel -->
-      <slot name="actions" />
-    </div>
-
     <div class="datasets-section">
       <h4>Dataset Summaries</h4>
 
@@ -72,11 +64,8 @@
 import { ref, computed } from 'vue'
 import { plural } from '@/composables/system/counts'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
-import { useCanCreate } from '@/composables/controls/useWriteAccess'
 import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'
 import RetiredTag from '@/components/ontology/RetiredTag.vue'
-
-const canCreate = useCanCreate()
 
 const props = defineProps({
   studyId: {
@@ -84,8 +73,6 @@ const props = defineProps({
     default: null
   }
 })
-
-defineEmits(['create-dataset'])
 
 // The light summaries, shared with the study summary above; locations and unit graphs are slow to resolve for large
 // studies, so they are read once a dataset is first expanded
@@ -131,52 +118,12 @@ const formatDate = (dateStr) => {
   flex-direction: column;
 }
 
-.panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0 16px;
-}
-
 .muted {
   color: #888;
 }
 
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-primary {
-  background-color: #2196f3;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #1976d2;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #5a6268;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .datasets-section h4 {
-  margin: 0 0 16px 0;
+  margin: 16px 0;
   font-size: 16px;
   color: #333;
   border-bottom: 1px solid #e0e0e0;

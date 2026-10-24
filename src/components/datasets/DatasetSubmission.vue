@@ -13,6 +13,7 @@ import { useDatasetGroupingConfig } from "@/composables/datasets/useDatasetGroup
 
 import DatasetTableModal from "./DatasetTableModal.vue";
 import GroupingSelectionSection from "./GroupingSelectionSection.vue";
+import { SUBMIT_DATA } from "@/composables/datasets/datasetActions";
 
 const props = defineProps({
   visible: {
@@ -240,7 +241,7 @@ const closeModal = () => {
   <div v-if="visible" class="modal-overlay" @click.self="closeModal">
     <div class="dataset-submission-modal">
       <div class="modal-header">
-        <h2>Create New Dataset</h2>
+        <h2>{{ SUBMIT_DATA }}</h2>
         <button class="close-btn" @click="closeModal">&times;</button>
       </div>
 

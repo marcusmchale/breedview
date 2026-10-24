@@ -16,6 +16,8 @@ import StudyDatasetsPanel from '@/components/datasets/StudyDatasetsPanel.vue'
 import DatasetSubmission from '@/components/datasets/DatasetSubmission.vue'
 import DatasetCurationModal from '@/components/datasets/DatasetCurationModal.vue'
 import { useAuthStore } from '@/composables/user/useAuthStore'
+import { useCanCreate } from '@/composables/controls/useWriteAccess'
+import { SUBMIT_DATA, useViewDatasetsLabel } from '@/composables/datasets/datasetActions'
 
 const props = defineProps({
   studyId: {
@@ -49,6 +51,8 @@ const groupingsExpanded = ref(false)
 const showCreateDataset = ref(false)
 const showCuration = ref(false)
 const { isAuthenticated } = useAuthStore()
+const canCreate = useCanCreate()
+const viewDatasets = useViewDatasetsLabel()
 
 // Modal states
 const isUpdateModalOpen = ref(false)
@@ -134,19 +138,22 @@ const handleDeleteSuccess = () => {
         Datasets
       </button>
       <template v-if="datasetsExpanded">
+        <!-- as on the programs page: submit, view and curate, analyse -->
+        <div class="dataset-actions">
+          <button v-if="canCreate" class="btn btn-sm btn-outline submit-data" @click="showCreateDataset = true">
+            {{ SUBMIT_DATA }}
+          </button>
+          <button class="btn btn-sm btn-outline view-datasets" @click="showCuration = true">{{ viewDatasets }}</button>
+          <router-link
+            v-if="isAuthenticated"
+            :to="{ path: '/analysis', query: { study: study.id } }"
+            class="btn btn-sm btn-outline"
+          >
+            Analyse
+          </router-link>
+        </div>
         <StudySummary :study-id="study.id" />
-        <StudyDatasetsPanel :study-id="study.id" @create-dataset="showCreateDataset = true">
-          <template #actions>
-            <button class="btn btn-sm btn-outline" @click="showCuration = true">Curate</button>
-            <router-link
-              v-if="isAuthenticated"
-              :to="{ path: '/analysis', query: { study: study.id } }"
-              class="btn btn-sm btn-outline"
-            >
-              Analyse
-            </router-link>
-          </template>
-        </StudyDatasetsPanel>
+        <StudyDatasetsPanel :study-id="study.id" />
       </template>
 
       <button class="section-toggle" @click="groupingsExpanded = !groupingsExpanded">
@@ -247,6 +254,13 @@ const handleDeleteSuccess = () => {
 .licence-info {
   margin-left: 8px;
   color: #333;
+}
+
+.dataset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
 }
 
 .section-toggle {

@@ -7,7 +7,9 @@ import { useCanCreate } from '@/composables/controls/useWriteAccess'
 import ProgramPanel from './ProgramPanel.vue'
 import CreateProgramModal from './CreateProgramModal.vue'
 import DatasetCurationModal from '@/components/datasets/DatasetCurationModal.vue'
+import DatasetSubmission from '@/components/datasets/DatasetSubmission.vue'
 import { useAuthStore } from '@/composables/user/useAuthStore'
+import { SUBMIT_DATA, useViewDatasetsLabel } from '@/composables/datasets/datasetActions'
 
 const {
   programs,
@@ -21,6 +23,9 @@ const canCreate = useCanCreate()
 const { isAuthenticated } = useAuthStore()
 
 const showCuration = ref(false)
+// data for any study, chosen in the form
+const showSubmission = ref(false)
+const viewDatasets = useViewDatasetsLabel()
 
 // Create program modal state
 const isCreateModalOpen = ref(false)
@@ -50,7 +55,8 @@ const handleProgramDeleted = () => {
         Create New Program
       </button>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="showCuration = true">View & curate datasets</button>
+        <button v-if="canCreate" class="btn btn-secondary submit-data" @click="showSubmission = true">{{ SUBMIT_DATA }}</button>
+        <button class="btn btn-secondary view-datasets" @click="showCuration = true">{{ viewDatasets }}</button>
         <router-link v-if="isAuthenticated" to="/analysis" class="btn btn-secondary">Analysis</router-link>
       </div>
     </div>
@@ -87,6 +93,14 @@ const handleProgramDeleted = () => {
 
     <!-- Curating the datasets of any studies -->
     <DatasetCurationModal :visible="showCuration" @close="showCuration = false" />
+    <Teleport to="body">
+      <DatasetSubmission
+        v-if="showSubmission"
+        :visible="showSubmission"
+        @close="showSubmission = false"
+        @submitted="showSubmission = false"
+      />
+    </Teleport>
 
     <!-- Create Program Modal -->
     <div v-if="isCreateModalOpen" class="modal-overlay" @click="closeCreateModal">

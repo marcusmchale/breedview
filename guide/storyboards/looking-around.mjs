@@ -76,7 +76,7 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
 
   await step('datasets', async () => {
     await input.click(startsWith('.section-toggle', '▶ Datasets', studyCard))
-    await page.waitFor(`${byText('button', 'Curate', studyCard)}`, 30000)
+    await page.waitFor(`${studyCard}?.querySelector('.view-datasets')`, 30000)
     await input.pause(800)
     await input.scroll(null, 260)
     await input.pause(3000)
@@ -85,7 +85,7 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
   const loadTable = byText('.selection-actions button', 'Load Table')
 
   await step('curate', async () => {
-    await input.click(byText('button', 'Curate', studyCard))
+    await input.click(`${studyCard}.querySelector('.view-datasets')`)
     await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 30000)
     await input.pause(1000)
     // every variable: the first, then the last with Shift
