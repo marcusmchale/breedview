@@ -28,3 +28,9 @@ pnpm-debug.log*
 
 # Vite dependency cache
 /.vite/
+
+# The guide's recordings: frames and timelines (guide/out), the encoded media (public/guide-media, archived with each
+# guide release instead) and the production build they are recorded from
+/guide/out/
+/public/guide-media/
+/.guide-dist/

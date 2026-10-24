@@ -1,0 +1,48 @@
+# Recording the guide
+
+The user guide's chapters are in `src/guide/chapters/`. Each chapter's video is recorded from a storyboard in
+`guide/storyboards/`, played in a headless Chrome against the demonstration database (breedgraph
+`docs/demo-database.md`). The captions are the bold leads of the chapter's `## Steps`, matched to the storyboard by
+their `{#step-id}`.
+
+## The recording stack
+
+Record against a stack of its own, never the development API on port 8000:
+
+1. Load the demonstration dump into throwaway services (from breedgraph, with the instance environment loaded):
+   `SCRATCH=<dir> scripts/scratch_services.sh load instance/neo4j_archive/demo_databases/demo_database.dump
+   instance/neo4j_archive/demo_databases/demo_database_files`.
+2. Start an API on port 8001 with that stack's environment: `eval "$(SCRATCH=<dir> scripts/scratch_services.sh env)"`,
+   then `HOST_PORT=8001 VUE_PORT=8081 .venv/bin/uvicorn src.breedgraph.main:app --port 8001`.
+3. Start an analysis worker polling it (`API_URL=http://localhost:8001`) for the chapters that analyse data.
+4. Have MailHog running for the chapters that send email.
+5. Serve a production build of BreedView on port 8081: `npm run guide:serve`. The dev server's cold loads show blank
+   frames for seconds.
+
+Load the dump again before each chain of chapters that changes data: a storyboard checks it starts from the state it
+expects.
+
+## Commands
+
+```bash
+npm run guide:doctor             # what the recordings need: ffmpeg, fonts, the stack, MailHog, the map region
+npm run guide:check              # play every storyboard without recording, as a check that it still runs
+npm run guide:record             # record and encode every chapter (--only <chapter> for one)
+npm run guide:encode             # encode the saved recordings again, e.g. after rewording a caption
+```
+
+Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The media go to `public/guide-media/`
+(`<chapter>.mp4`, `.vtt` and `.jpg`), which git ignores: they are archived with each guide release.
+
+## How it works
+
+- **Frames:** Chrome runs with a 1280x800 page at a scale of 1.5, so its screencast frames are 1920x1200. Chrome sends
+  a frame only when the page changes, so each frame lasts until the next.
+- **Input** (`lib/input.mjs`): the mouse moves along eased paths and presses and releases, and keys are typed one at a
+  time. Each target is checked first: there, in view, visible, enabled, still and not covered.
+- **Overlay** (`lib/overlay.js`): the cursor and its clicks, and stand-ins for what headless frames don't show: a
+  select's menu, confirm dialogs, key presses, tooltips, and cards for the clipboard, emails and files.
+- **Cuts** (`lib/recorder.mjs`): page loads and work done off camera are cut from the video. After off-camera work, a
+  chip says what was done, such as "Later: 35 more plots".
+- **Encoding** (`lib/encode.mjs`): an H.264 MP4 at 30 fps (BT.709, faststart), WebVTT captions with one cue a step,
+  and a poster.
