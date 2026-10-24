@@ -236,6 +236,13 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
       await overlay('hideCard()')
     },
 
+    /** An email as it arrives, drawn by the overlay: { subject, text }, as the session's waitForMail gives it */
+    email: async ({ subject, text }, ms = 4000) => {
+      if (!fast) await overlay(`card(${q({ kind: 'Email', heading: subject, text })})`)
+      await wait(ms)
+      await overlay('hideCard()')
+    },
+
     /** Choose a file in a file input, through the file chooser a click opens, drawn by the overlay */
     chooseFile: async (target, path, { name = path.split('/').at(-1) } = {}) => {
       await send('Page.setInterceptFileChooserDialog', { enabled: true })

@@ -38,7 +38,7 @@ export async function openStudy ({ page, input, programme, trial, study }) {
 /**
  * In the open View datasets, every variable (the first, then the last with Shift) and the first factor; then the
  * study's licence, accepted, and Load Table. Off camera, if hold is given (the recorder's hold), the licence is
- * accepted as it was in an earlier chapter.
+ * accepted as it was in an earlier chapter. A licence accepted already is not asked for again.
  */
 export async function loadStudyData ({ page, input, hold = null }) {
   await page.waitFor(`document.querySelector('select[name=variableIds] option')`, 30000)
@@ -50,13 +50,18 @@ export async function loadStudyData ({ page, input, hold = null }) {
   await input.pause(500)
   await input.click(`[...document.querySelector('select[name=factorIds]').options][0]`)
   const loadTable = byText('.selection-actions button', 'Load Table')
-  await page.waitFor(`document.querySelector('.licence-agreement input')`, 30000)
+  // the licence is checked once the data is chosen: asked for, or accepted already
+  await input.pause(1500)
+  await page.waitFor(`document.querySelector('.licence-agreement input') || !(${loadTable})?.disabled`, 30000)
+  const asked = await page.evaluate(`!!document.querySelector('.licence-agreement input')`)
   const accept = async () => {
     await input.click('document.querySelector(".licence-agreement label.agree input")')
     await input.click('document.querySelector(".licence-agreement button.accept-licences")')
     await page.waitFor(`!document.querySelector('.licence-agreement input') && !(${loadTable})?.disabled`, 30000)
   }
-  if (hold) {
+  if (!asked) {
+    await input.pause(600)
+  } else if (hold) {
     await hold(accept)
   } else {
     await input.pause(800)
