@@ -117,6 +117,11 @@ test('a tree\'s samples elsewhere are links from its field to the arrivals that 
   await page.goto(`${config.appUrl}/units?location=${FIELD}&graph=${unitId('Arrival Field')}`)
   await expand('Arrival Field')
   await expand('Arrival Plot')
+  // the plot's trees by name, as people number them
+  const trees = await page.evaluate(`[...${nodeHeader('Arrival Plot')}.parentElement.querySelectorAll(':scope > .children > .tree-node > div > .node-header .node-name')]
+    .map((n) => n.innerText.trim())`)
+  assert.ok(trees.length > 1, `the plot's trees: ${q(trees)}`)
+  assert.deepEqual(trees, [...trees].sort((x, y) => x.localeCompare(y, undefined, { numeric: true })))
   await expand('Arrival Tree A')
   const links = await page.evaluate(`[...${nodeHeader('Arrival Tree A')}.parentElement.querySelectorAll(':scope > .children > .away-link')].map((l) => l.innerText.trim())`)
   // six at the lab (one used up there), and one there before it moved on to the lab store; none are listed below the

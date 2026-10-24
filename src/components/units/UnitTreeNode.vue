@@ -97,7 +97,11 @@ const awayByLocation = computed(() => {
   }
   return [...byLocation.values()].sort((a, b) => (a.location.name ?? '').localeCompare(b.location.name ?? ''))
 })
-const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) => !awayIds.value.has(child.id)))
+// the children here, by name as people number them (Plot 2 before Plot 10), as the API gives them in no order
+const childNames = computed(() => new Map((childUnits.value ?? []).map((child) => [child.id, child.name ?? ''])))
+const byName = (a, b) => (childNames.value.get(a.id) ?? '').localeCompare(childNames.value.get(b.id) ?? '', undefined, { numeric: true })
+  || String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
+const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) => !awayIds.value.has(child.id)).sort(byName))
 </script>
 
 <template>
