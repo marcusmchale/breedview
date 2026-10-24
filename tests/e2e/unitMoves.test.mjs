@@ -1,7 +1,9 @@
 // Moving units on the Units page, on the test database's spare arrival (manifest `arrivals`; skipped without them):
 // Arrival Move Sample 1 and 2, at the lab from 2025-06-10, signed in as the writer, who curates them. The arrival moved
 // on to the lab store, where it then is; ended there; its start corrected, the page following it; and a unit received
-// back at the lab from the store. Their positions are put back as they were afterwards.
+// back at the lab from the store. Their positions are put back as they were afterwards. Then, changing nothing, the
+// pickers that list the places below a location: receiving at the lab from the field above it, and a sample's Derived
+// from… there.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -155,4 +157,55 @@ test('a unit received back at the lab from the store', { skip }, async () => {
   await page.waitFor(`location.search.includes('arrival=2025-09-01') && document.querySelector('.arrival-tree .node-name')`, 30000)
   const names = await page.evaluate(`[...document.querySelectorAll('.arrival-tree > .arrival-unit > .tree-node > div > .node-header .node-name')].map((n) => n.innerText.trim())`)
   assert.deepEqual(names, ['Arrival Move Sample 1'])
+})
+
+// The pickers at a place above the lab, changing nothing: the lab is where received units go, so it can't be where
+// they come from, and what is at it is there already; the store within it can be chosen from
+const unitsLevelLoaded = `!document.querySelector('.options-list .loading-state') && (document.querySelector('.options-list .option-label') || document.querySelector('.options-list .empty-state'))`
+const unitOptions = () => page.evaluate(`[...document.querySelectorAll('.options-list .option-item')]
+  .map((o) => [o.querySelector('.option-label')?.innerText.trim(), o.classList.contains('disabled')])`)
+
+test('received from a place above the lab, the lab\'s own units are already here and its store is offered', { skip }, async () => {
+  await page.goto(`${config.appUrl}/units?location=${LAB}`)
+  await page.waitFor(`[...document.querySelectorAll('.location-header button')].some((b) => b.innerText.includes('Receive units'))`, 30000)
+  await page.evaluate(`[...document.querySelectorAll('.location-header button')].find((b) => b.innerText.includes('Receive units')).click()`)
+  await page.waitFor(`document.querySelector('.modal-overlay .modal')`, 30000)
+  await page.sleep(500)
+  // From: down to the field, where the lab can be opened but not chosen; then back up to choose the field
+  await page.evaluate(`document.querySelector('.modal-overlay .hierarchical-select .select-trigger').click()`)
+  for (const step of LAB_PATH) {
+    await page.waitFor(optionLoaded(step), 30000)
+    await page.evaluate(`${option(step)}.querySelector('.expand-button').click()`)
+  }
+  await page.waitFor(optionLoaded(e.lab.name), 30000)
+  assert.ok(await page.evaluate(`${option(e.lab.name)}.classList.contains('not-selectable')`), 'the lab is not where they come from')
+  await page.evaluate(`[...document.querySelectorAll('.dropdown-panel .breadcrumb-item')].find((b) => b.innerText.trim() === ${q(e.state.name)}).click()`)
+  await page.waitFor(optionLoaded(e.field.name), 30000)
+  await page.evaluate(`${option(e.field.name)}.querySelector('.option-label-button').click()`)
+  await page.sleep(300)
+
+  await page.evaluate(`document.querySelector('.modal-overlay .hierarchical-multiselect .select-trigger').click()`)
+  const here = `${e.lab.name} (already here)`
+  await page.waitFor(`${unitsLevelLoaded} && [...document.querySelectorAll('.options-list .option-label')].some((l) => l.innerText.trim() === ${q(here)})`, 30000)
+  const places = await unitOptions()
+  assert.deepEqual(places.filter(([, disabled]) => disabled).map(([label]) => label), [here], JSON.stringify(places))
+  assert.ok(places.some(([label]) => label === a.locations.lab_store.name), `the store is offered: ${JSON.stringify(places)}`)
+  await page.click('.btn-done')
+  await page.clickText('Cancel')
+  await page.waitFor(`!document.querySelector('.modal-overlay')`, 15000)
+})
+
+test('what a unit was derived from is offered at a place above the units too', { skip }, async () => {
+  await page.goto(`${config.appUrl}/units?location=${LAB}&unit=${SAMPLES[0]}`)
+  await page.waitFor(`[...document.querySelectorAll('.details-card .card-actions button')].some((b) => b.innerText.includes('Derived from'))`, 30000)
+  await page.evaluate(`[...document.querySelectorAll('.details-card .card-actions button')].find((b) => b.innerText.includes('Derived from')).click()`)
+  await page.waitFor(`document.querySelector('.modal-overlay .hierarchical-select .select-trigger')`, 30000)
+  await chooseLocation([e.country.name, e.state.name], e.field.name)
+  await page.evaluate(`document.querySelector('.modal-overlay .hierarchical-multiselect .select-trigger').click()`)
+  await page.waitFor(`${unitsLevelLoaded} && [...document.querySelectorAll('.options-list .option-label')].some((l) => l.innerText.trim() === ${q(a.locations.lab_store.name)})`, 30000)
+  const places = (await unitOptions()).map(([label]) => label)
+  assert.ok(places.includes(e.lab.name) && places.includes(a.locations.lab_store.name), `the lab and its store: ${JSON.stringify(places)}`)
+  await page.click('.btn-done')
+  await page.clickText('Cancel')
+  await page.waitFor(`!document.querySelector('.modal-overlay')`, 15000)
 })

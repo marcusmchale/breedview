@@ -9,7 +9,9 @@ import { useMoveUnits } from '@/composables/units/mutatePositions'
 import { today } from '@/composables/units/unitPositions'
 
 // Units received at a location from where they are now, e.g. samples arriving at a lab: chosen from the unit graphs
-// and arrivals there, as the dataset unit picker offers them, and moved here from when they arrive.
+// and arrivals there and at the places within it, as the dataset unit picker offers them, and moved here from when
+// they arrive. This location can't be where they come from, and when it is within the location chosen, its own units
+// are shown as already here; the places within it, such as a store, can be chosen from.
 const props = defineProps({
   locationId: {
     type: String,
@@ -43,12 +45,16 @@ const {
   childrenLoading: childUnitsLoading,
   currentChildren: childUnits,
   isSelectable: isSelectableUnit,
+  isDisabled: isUnitNodeDisabled,
   hasChildren: unitHasChildren,
   loadTypeGroups: loadUnitTypeGroups
 } = useSelectUnitsQuery({
   locationIds: () => (formData.value.fromLocationId ? [formData.value.fromLocationId] : []),
-  unitIds: () => formData.value.unitIds
+  unitIds: () => formData.value.unitIds,
+  below: true,
+  here: () => props.locationId
 })
+const isElsewhere = (location) => String(location.id) !== String(props.locationId)
 const unitNameOf = useCachedName('Unit')
 
 // where they go here: a layout of this location, if any
@@ -96,20 +102,21 @@ const submit = async () => {
         type="hierarchical-select"
         name="fromLocationId"
         label="From:"
-        help="Where the units are now"
+        help="Where the units are now, or a place above them"
         :selected="fromLocation"
         :rootNodes="regions"
         :loadChildrenFn="loadChildLocations"
         :childrenLoading="childLocationsLoading"
         :currentChildren="currentChildLocations"
         :get-node-label-fn="(node) => node.name || `${node.type?.name} ${node.id}`"
+        :is-selectable-fn="isElsewhere"
         validation="required"
       />
       <FormKit
         type="hierarchical-multiselect"
         name="unitIds"
         label="Units:"
-        help="From the unit graphs and arrivals there"
+        help="From the unit graphs and arrivals there and at the places within it"
         :disabled="!formData.fromLocationId"
         :label-fn="unitNameOf"
         :rootNodes="unitRootNodes"
@@ -117,6 +124,7 @@ const submit = async () => {
         :childrenLoading="childUnitsLoading"
         :currentChildren="childUnits"
         :is-selectable-fn="isSelectableUnit"
+        :is-disabled-fn="isUnitNodeDisabled"
         :has-children-fn="unitHasChildren"
         :get-node-label-fn="(unit) => unit.name || `${unit.subject?.name} ${unit.id}`"
         :load-type-groups-fn="loadUnitTypeGroups"

@@ -22,15 +22,16 @@ const arrivalNode = (arrival) => ({
 })
 // The unit graphs and arrivals of one place, as a node of the units picker when they lie in more than one: opening it
 // lists them, and its tick selects everything below it. It is not a unit, and its id is a string, so it is never taken
-// for one.
+// for one. The place the units are going to (here) holds what is there already, so it is only shown.
 export const isPlace = (node) => node?.__typename === 'UnitPlace'
-const placeNode = ({ location, roots, arrivals }) => ({
+const placeNode = ({ location, roots, arrivals, here }) => ({
     __typename: 'UnitPlace',
     id: `place:${location.id}`,
-    name: location.name,
+    name: here ? `${location.name} (already here)` : location.name,
     location,
     roots,
     arrivals,
+    here,
     children: [...roots, ...arrivals]
 })
 // where a unit graph's root is: the location of its latest position the user can read
@@ -60,8 +61,10 @@ const mergeGroups = (groups) => {
  * A units picker, as a dataset's: the unit graphs rooted at the chosen locations (with below, and at every location
  * under them) and the arrivals there (units that came from elsewhere, e.g. samples at a lab), opened level by level;
  * when they lie in more than one place, a level for each place first. "By type…" selects all of a subject at once.
+ * With here, the location the units are going to (as when they are received there): its own place is listed but can
+ * be neither opened nor selected (isDisabled), since its units are there already; the places within it can be.
  */
-export function useSelectUnitsQuery({locationIds, unitIds, below = false}) {
+export function useSelectUnitsQuery({locationIds, unitIds, below = false, here = null}) {
     const {
         blocks,
         blocksLoading,
@@ -91,17 +94,24 @@ export function useSelectUnitsQuery({locationIds, unitIds, below = false}) {
 
     // the places the unit graphs and arrivals lie in, by name
     const places = computed(() => {
+        const hereId = toValue(here)
         const byId = new Map()
         const add = (location, node, kind) => {
             const place = location ?? { id: 'elsewhere', name: 'Elsewhere' }
-            if (!byId.has(String(place.id))) byId.set(String(place.id), { location: place, roots: [], arrivals: [] })
+            if (!byId.has(String(place.id))) {
+                const isHere = hereId != null && String(place.id) === String(hereId)
+                byId.set(String(place.id), { location: place, roots: [], arrivals: [], here: isHere })
+            }
             byId.get(String(place.id))[kind].push(node)
         }
         blocks.value.forEach((unit) => add(placeOf(unit), unit, 'roots'))
         arrivals.value.forEach((arrival) => add(arrival.location, arrival, 'arrivals'))
         return [...byId.values()].sort((a, b) => a.location.name.localeCompare(b.location.name))
     })
-    const rootNodes = computed(() => (places.value.length > 1 ? places.value.map(placeNode) : [...blocks.value, ...arrivals.value]))
+    // a level for each place when they lie in more than one, or when one is where the units are going
+    const byPlace = computed(() => places.value.length > 1 || places.value.some((place) => place.here))
+    const rootNodes = computed(() => (byPlace.value ? places.value.map(placeNode) : [...blocks.value, ...arrivals.value]))
+    const isDisabled = (node) => isPlace(node) && node.here
     const rootsLoading = computed(() => blocksLoading.value || arrivalsLoading.value)
 
     // An opened place lists its unit graphs and arrivals; an opened arrival its units, read in full so that those
@@ -138,7 +148,9 @@ export function useSelectUnitsQuery({locationIds, unitIds, below = false}) {
         if (isArrival(node)) return arrivalGroups(node)
         if (isPlace(node)) return groupsOf(node.roots, node.arrivals)
         if (node) return loadUnitGroups([node])
-        return groupsOf(blocks.value, arrivals.value)
+        // everything listed, but what is where the units are going
+        const elsewhere = places.value.filter((place) => !place.here)
+        return groupsOf(elsewhere.flatMap((place) => place.roots), elsewhere.flatMap((place) => place.arrivals))
     }
 
     return {
@@ -162,6 +174,7 @@ export function useSelectUnitsQuery({locationIds, unitIds, below = false}) {
         currentChildren,
         childrenLoading,
         isSelectable,
+        isDisabled,
         hasChildren,
         loadTypeGroups
     }

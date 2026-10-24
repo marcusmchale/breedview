@@ -11,10 +11,10 @@ import { useCachedName } from '@/composables/queryBase/cachedName'
 import { CHILD_NAME_TEMPLATE, MAX_CHILDREN, childName, useAddChildren } from '@/composables/units/addChildren'
 import { today } from '@/composables/units/unitPositions'
 
-// Adds children of one subject to many units at once, e.g. a sampling event: the leaves taken from each tree of a
-// field on one day. The units are given ({ unitIds } or { arrival }, as unitsAddChildren takes them), or picked at a
-// location, where "By type…" selects all of a subject. Each child is named from a template and, with the day it was
-// taken, placed where its unit was then; without one it is where its unit is (breedgraph README, Unit).
+// Adds children of one subject to many units at once, e.g. a sampling event: the leaves taken from each tree of a field
+// on one day. The units are given ({ unitIds } or { arrival }, as unitsAddChildren takes them), or picked at a location
+// and the places within it, where "By type…" selects all of a subject. Each child is named from a template and, with
+// the day it was taken, placed where its unit was then; without one it is where its unit is (breedgraph README, Unit).
 const props = defineProps({
   // the units to add children to; null to pick them
   units: {
@@ -81,7 +81,8 @@ const {
   loadTypeGroups: loadUnitTypeGroups
 } = useSelectUnitsQuery({
   locationIds: () => (picking.value && formData.value.locationId ? [formData.value.locationId] : []),
-  unitIds: () => formData.value.unitIds
+  unitIds: () => formData.value.unitIds,
+  below: true
 })
 
 const {
@@ -163,7 +164,7 @@ const submit = async () => {
           type="hierarchical-select"
           name="locationId"
           label="At:"
-          help="Where the units are"
+          help="Where the units are, or a place above them"
           :selected="location"
           :rootNodes="regions"
           :loadChildrenFn="loadChildLocations"
@@ -175,7 +176,7 @@ const submit = async () => {
           type="hierarchical-multiselect"
           name="unitIds"
           label="Units:"
-          help="The units to add children to: &quot;By type…&quot; selects all of a subject, e.g. a field's trees"
+          help="The units to add children to, there and at the places within it: &quot;By type…&quot; selects all of a subject, e.g. every tree"
           :disabled="!formData.locationId"
           :label-fn="unitNameOf"
           :rootNodes="unitRootNodes"

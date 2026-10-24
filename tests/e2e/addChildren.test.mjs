@@ -2,12 +2,13 @@
 // skipped without them), signed in as the writer, who curates them. A leaf for each tree of Arrival Field, picked "By
 // type…" below it, taken on one day: each named from its tree and placed where its tree was then. Then two extracts of
 // the one sample the lab's arrival is shown from, unnamed by number until the name has {n}, and undated, so with their
-// sample. The children added are deleted afterwards.
+// sample. The children added are deleted afterwards. Last, changing nothing, the units picked at the state above the
+// field: a level for each place, the field's holding Arrival Field.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
 import { config, loginAs, logout, graphql } from './lib/app.mjs'
-import { arrivals as a, manifest } from './lib/fixture.mjs'
+import { arrivals as a, entities as e, manifest } from './lib/fixture.mjs'
 
 const skip = a ? false : 'the test database manifest has no arrivals: build it again (breedgraph docs/test-databases.md)'
 const q = JSON.stringify
@@ -126,4 +127,31 @@ test('two extracts of an arrival\'s sample, with it, and named by number', { ski
   assert.deepEqual(extracts.map((child) => [child.name, child.positions]).sort(), [
     ['Arrival Sample A1 extract 1', []], ['Arrival Sample A1 extract 2', []]
   ])
+})
+
+test('picked at a place above the field, the units are offered by place', { skip }, async () => {
+  await page.goto(`${config.appUrl}/units?location=${FIELD}&graph=${a.units['Arrival Field']}`)
+  await page.waitFor(`[...document.querySelectorAll('.tree-actions button')].some((b) => b.innerText.includes('Add children'))`, 30000)
+  await page.clickText('Add children…')
+  await page.waitFor(`document.querySelector('.modal-overlay .hierarchical-multiselect .select-trigger')`, 30000)
+  await page.sleep(500)
+  // At: the state above the field
+  const option = (label) => `[...document.querySelectorAll('.dropdown-panel .option-item')].find((o) => o.querySelector('.option-label')?.innerText.trim() === ${q(label)})`
+  const optionLoaded = (label) => `!document.querySelector('.dropdown-panel .loading-state') && ${option(label)}`
+  await page.evaluate(`document.querySelector('.modal-overlay .hierarchical-select .select-trigger').click()`)
+  await page.waitFor(optionLoaded(e.country.name), 30000)
+  await page.evaluate(`${option(e.country.name)}.querySelector('.expand-button').click()`)
+  await page.waitFor(optionLoaded(e.state.name), 30000)
+  await page.evaluate(`${option(e.state.name)}.querySelector('.option-label-button').click()`)
+  await page.sleep(300)
+
+  // a level for each place; the field's opens to its unit graph
+  await page.evaluate(`document.querySelector('.modal-overlay .hierarchical-multiselect .select-trigger').click()`)
+  await page.waitFor(`${levelLoaded} && ${optionIndex(e.field_registered.name)} >= 0`, 30000)
+  await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${optionIndex(e.field_registered.name)}].querySelector('.expand-button').click()`)
+  await page.sleep(300)
+  await page.waitFor(`${levelLoaded} && ${optionIndex('Arrival Field')} >= 0`, 30000)
+  await page.click('.btn-done')
+  await page.clickText('Cancel')
+  await page.waitFor(`!document.querySelector('.modal-overlay')`, 15000)
 })

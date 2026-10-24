@@ -9,8 +9,8 @@ import { useMutateUnits } from '@/composables/units/mutateUnits'
 import { DERIVATION_STAGES } from '@/composables/units/derivations'
 
 // The units a unit's material came from (derivedFrom), e.g. linking plantlets recorded already to the microcuttings
-// they grew from. Unlike parents they pass nothing down. Units to add are chosen where they are now, as when units are
-// received; one you can no longer read is kept as it is.
+// they grew from. Unlike parents they pass nothing down. Units to add are chosen where they are now, or at a place
+// above them, as when units are received; one you can no longer read is kept as it is.
 const props = defineProps({
   // { id, name, subject }
   unit: {
@@ -56,7 +56,8 @@ const {
   loadTypeGroups: loadUnitTypeGroups
 } = useSelectUnitsQuery({
   locationIds: () => (pick.value.fromLocationId ? [pick.value.fromLocationId] : []),
-  unitIds: () => pick.value.unitIds
+  unitIds: () => pick.value.unitIds,
+  below: true
 })
 
 const addPicked = () => {
@@ -124,7 +125,7 @@ const submit = async () => {
           type="hierarchical-select"
           name="fromLocationId"
           label="At:"
-          help="Where they are now"
+          help="Where they are now, or a place above them"
           :selected="fromLocation"
           :rootNodes="regions"
           :loadChildrenFn="loadChildLocations"
@@ -136,7 +137,7 @@ const submit = async () => {
           type="hierarchical-multiselect"
           name="unitIds"
           label="Units:"
-          help="From the unit graphs and arrivals there"
+          help="From the unit graphs and arrivals there and at the places within it"
           :disabled="!pick.fromLocationId"
           :label-fn="unitNameOf"
           :rootNodes="unitRootNodes"
