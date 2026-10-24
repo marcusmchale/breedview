@@ -6,12 +6,19 @@ import { useValueParser } from "@/composables/parsers/valueParser";
 import { pollDatasetSubmission } from "@/composables/datasets/datasetSubmissionQuery";
 import { useApolloClient } from '@vue/apollo-composable';
 import { currentPosition } from '@/composables/units/unitPositions';
+import {
+  addColumn, columnValues, firstColumns, hasTime, sameTimeColumns, tableRows, timeOrderError, valueTime
+} from '@/composables/datasets/submissionTimes';
+
+const DATETIME_FORMAT = 'Invalid datetime format. Use: YYYY, YYYY-MM, YYYY-MM-DD, or YYYY-MM-DDTHH:MM';
 
 export function useDatasetTable({
   selectedStudy,
   selectedUnits,
   selectedConcepts,
   rowsPerUnit,
+  // 'unit' or 'round' (submissionTimes.js ROW_ORDERS), for more than one row a unit
+  rowOrder = () => 'unit',
   selectedGroupings = () => [],
 }) {
 
@@ -22,8 +29,12 @@ export function useDatasetTable({
   const { validatePartialDatetime, normalizePartialDatetime } = useDatetimeUtils();
   const { parseValue } = useValueParser();
 
-  // Table data - each row has: unitId, unitLabel, startTime, endTime, grouping values and concept values
+  // Table data - each row has: unitId, unitLabel, round, startTime, endTime, grouping values and a value for each of
+  // the variables' columns
   const tableData = ref([]);
+
+  // The variables' columns, each with a time of its own or none (submissionTimes.js): [{ key, conceptId, n, start, end }]
+  const valueColumns = ref([]);
 
   // Column submission status tracking
   // { [conceptId]: { status: 'pending'|'submitting'|'success'|'error', datasetId?, error?, submissionId? } }
@@ -55,7 +66,9 @@ export function useDatasetTable({
   const findConcept = (conceptId) =>
     getConcepts().find((c) => String(c.id) === String(conceptId));
 
-  const conceptIdFromKey = (columnKey) => columnKey.replace('concept_', '');
+  const valueColumnOf = (columnKey) => valueColumns.value.find((column) => column.key === columnKey);
+  const conceptIdFromKey = (columnKey) => valueColumnOf(columnKey)?.conceptId ?? columnKey.replace('concept_', '');
+  const columnsOf = (conceptId) => valueColumns.value.filter((column) => column.conceptId === String(conceptId));
 
 
   // ---- Record grouping helpers ----
@@ -153,51 +166,50 @@ export function useDatasetTable({
     cleanupSubmissions();
 
     const units = toValue(selectedUnits) || [];
-    const rows = toValue(rowsPerUnit) || 1;
     const concepts = getConcepts();
     const groupings = getGroupings();
+    valueColumns.value = firstColumns(concepts.map((concept) => concept.id));
 
     // Determine coordinate columns once for ALL units
     const coordColumns = determineCoordinateColumns();
 
     const newData = [];
-    units.forEach((unit) => {
+    tableRows(units, toValue(rowsPerUnit), toValue(rowOrder)).forEach(({ unit, round }) => {
       // The unit's own position now, or its last one (the API lists them earliest first)
       const pos = currentPosition(unit.positions)?.position;
       // its own germplasm, else what it inherits from the units above it
       const germplasm = unit.germplasm ?? unit.inheritedGermplasm?.germplasm;
 
-      for (let i = 0; i < rows; i++) {
-        const row = {
-          _id: `${unit.id}-${i}-${Date.now()}`,
-          unitId: unit.id,
-          unitLabel: unit.name || unit.subject?.name || `Unit ${unit.id}`,
-          germplasmName: germplasm?.name || '',
-          germplasmId: germplasm?.id || '',
-          locationName: pos?.location?.name || '',
-          locationId: pos?.location?.id || '',
-          layoutName: pos?.layout?.name || '',
-          startTime: '',
-          endTime: '',
-        };
+      const row = {
+        _id: `${unit.id}-${round}-${Date.now()}`,
+        unitId: unit.id,
+        unitLabel: unit.name || unit.subject?.name || `Unit ${unit.id}`,
+        round,
+        germplasmName: germplasm?.name || '',
+        germplasmId: germplasm?.id || '',
+        locationName: pos?.location?.name || '',
+        locationId: pos?.location?.id || '',
+        layoutName: pos?.layout?.name || '',
+        startTime: '',
+        endTime: '',
+      };
 
-        // Create coordinate columns using pre-computed column info
-        coordColumns.forEach(col => {
-          row[col.key] = pos?.coordinates?.[col.axisIndex] || '';
-        });
+      // Create coordinate columns using pre-computed column info
+      coordColumns.forEach(col => {
+        row[col.key] = pos?.coordinates?.[col.axisIndex] || '';
+      });
 
-        // Initialize grouping columns (shared per row, like start/end)
-        groupings.forEach((grouping) => {
-          row[groupingKey(grouping.id)] = '';
-        });
+      // Initialize grouping columns (shared per row, like start/end)
+      groupings.forEach((grouping) => {
+        row[groupingKey(grouping.id)] = '';
+      });
 
-        // Initialize concept columns with empty values
-        concepts.forEach((concept) => {
-          row[`concept_${concept.id}`] = '';
-        });
+      // Initialize the variables' columns with empty values
+      valueColumns.value.forEach((column) => {
+        row[column.key] = '';
+      });
 
-        newData.push(row);
-      }
+      newData.push(row);
     });
 
     tableData.value = newData;
@@ -243,7 +255,65 @@ export function useDatasetTable({
 
     if (getGroupings().some((g) => normalizeCode(row[groupingKey(g.id)]))) return true;
 
-    return getConcepts().some((concept) => row[`concept_${concept.id}`]);
+    return valueColumns.value.some((column) => row[column.key]);
+  };
+
+  // ---- Column times ----
+  // A value takes its column's time, if it has one, or else its row's (submissionTimes.js)
+  const valueTimeOf = (rowIndex, columnKey) => valueTime(tableData.value[rowIndex], valueColumnOf(columnKey));
+
+  // the rows' Start and End are used while a column has no time of its own
+  const rowTimesUsed = computed(() => valueColumns.value.some((column) => !hasTime(column)));
+
+  // the rounds of rows, when a unit has more than one
+  const rounds = computed(() => Math.max(1, Math.floor(Number(toValue(rowsPerUnit)) || 1)));
+
+  // Why a column's time can't be used, by the column's key: its format, its order, or another of the variable's
+  // columns at the same time
+  const columnTimeErrors = computed(() => {
+    const errors = {};
+    const shared = sameTimeColumns(valueColumns.value);
+    for (const column of valueColumns.value) {
+      const invalid = [column.start, column.end].some((value) => value && !validatePartialDatetime(value));
+      const message = invalid
+        ? DATETIME_FORMAT
+        : timeOrderError(column) ?? (shared.has(column.key) ? 'Another column of this variable has the same time' : null);
+      if (message) errors[column.key] = message;
+    }
+    return errors;
+  });
+
+  const setColumnTime = (columnKey, { start = '', end = '' }) => {
+    const column = valueColumnOf(columnKey);
+    if (!column || isColumnDisabled(column.conceptId)) return;
+    valueColumns.value = valueColumns.value.map((c) =>
+      c.key === columnKey ? { ...c, start: String(start).trim(), end: String(end).trim() } : c
+    );
+  };
+
+  // Another column of a column's variable, for its values at another time, after the variable's last: its key
+  const addTimeColumn = (columnKey) => {
+    const column = valueColumnOf(columnKey);
+    if (!column || isColumnDisabled(column.conceptId)) return null;
+    const { columns, key } = addColumn(valueColumns.value, column.conceptId);
+    valueColumns.value = columns;
+    tableData.value = tableData.value.map((row) => ({ ...row, [key]: '' }));
+    return key;
+  };
+
+  // A column added for another time, with its values; a variable's first column stays
+  const removeTimeColumn = (columnKey) => {
+    const column = valueColumnOf(columnKey);
+    if (!column || column.n === 1 || isColumnDisabled(column.conceptId)) return;
+    valueColumns.value = valueColumns.value.filter((c) => c.key !== columnKey);
+    tableData.value = tableData.value.map((row) => {
+      const kept = { ...row };
+      delete kept[columnKey];
+      return kept;
+    });
+    for (const errorKey of Object.keys(cellErrors.value)) {
+      if (errorKey.endsWith(`-${columnKey}`)) delete cellErrors.value[errorKey];
+    }
   };
 
   // Get scale type for a concept
@@ -283,9 +353,7 @@ export function useDatasetTable({
     // Validate datetime columns
     if (columnKey === 'startTime' || columnKey === 'endTime') {
       if (!validatePartialDatetime(value)) {
-        cellErrors.value[errorKey] = {
-          message: 'Invalid datetime format. Use: YYYY, YYYY-MM, YYYY-MM-DD, or YYYY-MM-DDTHH:MM'
-        };
+        cellErrors.value[errorKey] = { message: DATETIME_FORMAT };
         return false;
       }
       return true;
@@ -332,8 +400,8 @@ export function useDatasetTable({
     }
   };
 
-  // Bulk fill a column
-  const bulkFillColumn = (columnKey, value) => {
+  // Bulk fill a column, or its rows of one round
+  const bulkFillColumn = (columnKey, value, { round = null } = {}) => {
     if (isGroupingKey(columnKey) && isGroupingLocked.value) {
       return { success: false, message: 'Grouping values are locked after submission' };
     }
@@ -347,6 +415,7 @@ export function useDatasetTable({
 
     // Create a new array to ensure Vue reactivity detects the change
     tableData.value = tableData.value.map((row, index) => {
+      if (round != null && row.round !== round) return row;
       if (columnKey.startsWith('concept_')) {
         const conceptId = conceptIdFromKey(columnKey);
         // Skip if column is already submitted successfully
@@ -365,21 +434,25 @@ export function useDatasetTable({
     return { success: true };
   };
 
-  // Validate entire column before submission
+  // Validate a variable's columns, and their times, before submission
   const validateColumn = (conceptId) => {
-    const columnKey = `concept_${conceptId}`;
+    const columns = columnsOf(conceptId);
     const groupings = getGroupings();
-    let isValid = true;
+    let isValid = !columns.some((column) => columnTimeErrors.value[column.key]);
 
     tableData.value.forEach((row, index) => {
       // Also validate datetime columns
       if (!validateCell(index, 'startTime', row.startTime)) isValid = false;
       if (!validateCell(index, 'endTime', row.endTime)) isValid = false;
-      if (!validateCell(index, columnKey, row[columnKey])) isValid = false;
+      let given = false;
+      columns.forEach((column) => {
+        if (!validateCell(index, column.key, row[column.key])) isValid = false;
+        const value = row[column.key];
+        if (value !== '' && value !== null && value !== undefined) given = true;
+      });
 
       // Every row producing a record needs a value for each included grouping
-      const value = row[columnKey];
-      if (value !== '' && value !== null && value !== undefined) {
+      if (given) {
         groupings.forEach((grouping) => {
           const key = groupingKey(grouping.id);
           if (!normalizeCode(row[key])) {
@@ -395,22 +468,18 @@ export function useDatasetTable({
     return isValid;
   };
 
-  // Prepare records for submission (excludes empty values)
+  // Prepare a variable's records for submission, from all its columns, each value at its time (excludes empty values)
   const prepareRecords = (conceptId) => {
-    const columnKey = `concept_${conceptId}`;
     const concept = findConcept(conceptId);
     const records = [];
-    const indexMapping = []; // Track original indices for error mapping
+    const indexMapping = []; // The cell each record came from, { rowIndex, columnKey }, for mapping errors back
 
-    tableData.value.forEach((row, originalIndex) => {
-      const value = row[columnKey];
-      // Exclude empty string values
-      if (value === '' || value === null || value === undefined) return;
-
+    columnValues(tableData.value, valueColumns.value, conceptId).forEach(({ value, start, end, rowIndex, columnKey }) => {
+      const row = tableData.value[rowIndex];
       const record = {
         unitId: row.unitId,
-        start: normalizePartialDatetime(row.startTime) || null,
-        end: normalizePartialDatetime(row.endTime) || null,
+        start: normalizePartialDatetime(start) || null,
+        end: normalizePartialDatetime(end) || null,
       };
 
       const groups = buildRecordGroups(row);
@@ -436,28 +505,27 @@ export function useDatasetTable({
       }
 
       records.push(record);
-      indexMapping.push(originalIndex);
+      indexMapping.push({ rowIndex, columnKey });
     });
 
     return { records, indexMapping };
   };
 
-  // Map item errors back to original row indices
+  // Map item errors back to the cells their records came from
   const mapItemErrors = (itemErrors, indexMapping) => {
     if (!itemErrors || !indexMapping) return [];
 
-    return itemErrors.map(err => ({
-      originalIndex: indexMapping[err.index],
-      error: err.error,
-    }));
+    return itemErrors
+      .filter((err) => indexMapping[err.index])
+      .map((err) => ({ ...indexMapping[err.index], error: err.error }));
   };
 
   // Populate cellErrors from item errors
-  const populateCellErrorsFromItemErrors = (itemErrors, columnKey) => {
+  const populateCellErrorsFromItemErrors = (itemErrors) => {
     if (!itemErrors || itemErrors.length === 0) return;
 
     itemErrors.forEach((itemError) => {
-      const errorKey = `${itemError.originalIndex}-${columnKey}`;
+      const errorKey = `${itemError.rowIndex}-${itemError.columnKey}`;
       cellErrors.value[errorKey] = {
         message: itemError.error,
         isWarning: false,
@@ -480,10 +548,7 @@ export function useDatasetTable({
           submissionId,
         };
       } else if (status === 'FAILED' || errors || itemErrors) {
-        const mappedItemErrors = mapItemErrors(itemErrors, indexMapping);
-
-        const columnKey = `concept_${conceptId}`;
-        populateCellErrorsFromItemErrors(mappedItemErrors, columnKey);
+        populateCellErrorsFromItemErrors(mapItemErrors(itemErrors, indexMapping));
 
         columnStatus.value[conceptId] = {
           status: 'error',
@@ -633,6 +698,16 @@ export function useDatasetTable({
     tableData,
     columnStatus,
     cellErrors,
+
+    // The variables' columns and their times
+    valueColumns,
+    valueTimeOf,
+    rowTimesUsed,
+    rounds,
+    columnTimeErrors,
+    setColumnTime,
+    addTimeColumn,
+    removeTimeColumn,
 
     // Methods
     initializeTable,

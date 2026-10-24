@@ -14,6 +14,7 @@ import { useDatasetGroupingConfig } from "@/composables/datasets/useDatasetGroup
 import DatasetTableModal from "./DatasetTableModal.vue";
 import GroupingSelectionSection from "./GroupingSelectionSection.vue";
 import { SUBMIT_DATA } from "@/composables/datasets/datasetActions";
+import { ROW_ORDERS } from "@/composables/datasets/submissionTimes";
 
 const props = defineProps({
   visible: {
@@ -46,8 +47,9 @@ watch(() => props.preselectedStudy, (newStudy) => {
   }
 }, { immediate: true })
 
-// Rows per unit for table generation
+// Rows per unit for table generation, and their order when more than one: unit by unit, or round by round
 const rowsPerUnit = ref(1);
+const rowOrder = ref('unit');
 
 // Modal visibility
 const showTableModal = ref(false);
@@ -354,6 +356,12 @@ const closeModal = () => {
                 class="rows-number-input"
               />
             </div>
+            <div v-if="rowsPerUnit > 1" class="rows-order" role="radiogroup" aria-label="Order of the rows">
+              <label v-for="order in ROW_ORDERS" :key="order.value">
+                <input v-model="rowOrder" type="radio" name="rowOrder" :value="order.value" />
+                {{ order.label }} <span class="pattern">{{ order.pattern }}</span>
+              </label>
+            </div>
 
             <button
               class="create-table-btn"
@@ -364,6 +372,9 @@ const closeModal = () => {
             </button>
           </div>
 
+          <p v-if="rowsPerUnit > 1" class="help-text">
+            Round by round lists every unit once, then again: as a sheet with a row for each unit on each visit.
+          </p>
           <p v-if="!canCreateTable" class="help-text">
             <template v-if="!isGroupingConfigValid">
               Select a merge target dataset for each dataset-scoped grouping, or choose "Create new scope".
@@ -383,6 +394,7 @@ const closeModal = () => {
         :selected-units="selectedUnits"
         :selected-concepts="selectedConcepts"
         :rows-per-unit="rowsPerUnit"
+        :row-order="rowOrder"
         :selected-groupings="selectedGroupings"
         :merge-config="mergeConfig"
         @close="closeTableModal"
@@ -495,6 +507,25 @@ const closeModal = () => {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.rows-order {
+  display: flex;
+  gap: 14px;
+  font-size: 14px;
+}
+
+.rows-order label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.rows-order .pattern {
+  font-family: monospace;
+  font-size: 12px;
+  color: #78909c;
 }
 
 .create-table-btn {

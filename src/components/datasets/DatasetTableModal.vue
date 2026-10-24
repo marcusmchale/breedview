@@ -10,6 +10,8 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
+import { sameTimeColumns, timeLabel, timeOrderError } from '@/composables/datasets/submissionTimes';
+import { useDatetimeUtils } from '@/composables/parsers/partialDatetime';
 import { categoryLabel } from '@/composables/ontology/scaleCategories';
 import { useDatasetSubmissionWithGroupings } from '@/composables/datasets/useDatasetSubmissionWithGroupings';
 
@@ -39,6 +41,11 @@ const props = defineProps({
   rowsPerUnit: {
     type: Number,
     default: 1,
+  },
+  // with more than one row a unit, 'unit' (A A B B) or 'round' (A B A B): submissionTimes.js ROW_ORDERS
+  rowOrder: {
+    type: String,
+    default: 'unit',
   },
   selectedGroupings: {
     type: Array,
@@ -89,14 +96,24 @@ const {
   groupingKey,
   isGroupingLocked,
   getGroupingValueOptions,
-  rowSplitGroups
+  rowSplitGroups,
+  valueColumns,
+  valueTimeOf,
+  rowTimesUsed,
+  rounds,
+  columnTimeErrors,
+  setColumnTime,
+  addTimeColumn,
+  removeTimeColumn
 } = useDatasetTable({
   selectedStudy: () => props.selectedStudy,
   selectedUnits: () => props.selectedUnits,
   selectedConcepts: () => props.selectedConcepts,
   rowsPerUnit: () => props.rowsPerUnit,
+  rowOrder: () => props.rowOrder,
   selectedGroupings: () => props.selectedGroupings
 });
+const { validatePartialDatetime } = useDatetimeUtils();
 
 
 const {
@@ -161,6 +178,8 @@ const sorting = ref([]);
 const bulkFillColumnId = ref(null);
 const bulkFillValue = ref('');
 const showBulkFillPopover = ref(false);
+// a round to fill alone, when a unit has more than one row; null for every round
+const bulkFillRound = ref(null);
 
 // Delete confirmation state
 const deleteConfirmRow = ref(null);
@@ -199,11 +218,16 @@ const columns = computed(() => {
     }));
   });
 
+  // which of its rows a unit's row is, when it has more than one
+  if (rounds.value > 1) {
+    cols.push(columnHelper.accessor('round', { id: 'round', header: 'Round', meta: { width: '70px' } }));
+  }
+
   // Start Time column
   cols.push(
     columnHelper.accessor('startTime', {
       id: 'startTime',
-      header: 'Start Time',
+      header: 'Start',
       cell: (info) => info.getValue(),
       enableSorting: true,
       meta: { editable: true, type: 'datetime', width: '180px' },
@@ -214,7 +238,7 @@ const columns = computed(() => {
   cols.push(
     columnHelper.accessor('endTime', {
       id: 'endTime',
-      header: 'End Time',
+      header: 'End',
       cell: (info) => info.getValue(),
       enableSorting: true,
       meta: { editable: true, type: 'datetime', width: '180px' },
@@ -242,12 +266,13 @@ const columns = computed(() => {
     );
   });
 
-  // Concept columns
-  props.selectedConcepts.forEach((concept) => {
-    const columnKey = `concept_${concept.id}`;
+  // The variables' columns: a variable's first, and any added for its values at other times
+  valueColumns.value.forEach((valueColumn) => {
+    const concept = props.selectedConcepts.find((c) => String(c.id) === valueColumn.conceptId);
+    if (!concept) return;
     cols.push(
-      columnHelper.accessor(columnKey, {
-        id: columnKey,
+      columnHelper.accessor(valueColumn.key, {
+        id: valueColumn.key,
         header: () => concept.name || `Concept ${concept.id}`,
         cell: (info) => info.getValue(),
         enableSorting: true,
@@ -256,7 +281,8 @@ const columns = computed(() => {
           type: getInputType(concept),
           concept,
           conceptId: concept.id,
-          width: '150px',
+          valueColumn,
+          width: '160px',
         },
       })
     );
@@ -444,13 +470,14 @@ const handlePaste = async (event, rowIndex, columnId) => {
 const openBulkFill = (columnId) => {
   bulkFillColumnId.value = columnId;
   bulkFillValue.value = '';
+  bulkFillRound.value = null;
   showBulkFillPopover.value = true;
 };
 
 const applyBulkFill = () => {
   cancelEditing();
   if (bulkFillColumnId.value) {
-    const result = bulkFillColumn(bulkFillColumnId.value, bulkFillValue.value);
+    const result = bulkFillColumn(bulkFillColumnId.value, bulkFillValue.value, { round: bulkFillRound.value });
     if (result.success) {
       showBulkFillPopover.value = false;
       bulkFillColumnId.value = null;
@@ -458,6 +485,68 @@ const applyBulkFill = () => {
     }
   }
 };
+
+// ---- A column's time ----
+// The column whose time is being set, with a draft of it: { key, name, start, end }
+const columnTimeEditing = ref(null);
+const conceptName = (valueColumn) => {
+  const concept = props.selectedConcepts.find((c) => String(c.id) === valueColumn.conceptId);
+  return concept?.name || `Concept ${valueColumn.conceptId}`;
+};
+const openColumnTime = (valueColumn) => {
+  cancelEditing();
+  columnTimeEditing.value = { key: valueColumn.key, name: conceptName(valueColumn), start: valueColumn.start, end: valueColumn.end };
+};
+// what is wrong with the draft: its format, its order, or another column of the variable at the same time
+const columnTimeDraftError = computed(() => {
+  const draft = columnTimeEditing.value;
+  if (!draft) return null;
+  if (![draft.start, draft.end].every((value) => validatePartialDatetime(String(value ?? '').trim()))) {
+    return 'Use YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM';
+  }
+  const drafted = valueColumns.value.map((c) => (c.key === draft.key ? { ...c, start: draft.start, end: draft.end } : c));
+  return timeOrderError(draft) ?? (sameTimeColumns(drafted).has(draft.key) ? 'Another column of this variable has this time' : null);
+});
+const applyColumnTime = () => {
+  if (!columnTimeEditing.value || columnTimeDraftError.value) return;
+  setColumnTime(columnTimeEditing.value.key, columnTimeEditing.value);
+  columnTimeEditing.value = null;
+};
+const useRowTimes = () => {
+  setColumnTime(columnTimeEditing.value.key, { start: '', end: '' });
+  columnTimeEditing.value = null;
+};
+
+// Another column of the variable, whose time is asked for at once
+const addAnotherTime = (valueColumn) => {
+  const key = addTimeColumn(valueColumn.key);
+  const added = valueColumns.value.find((c) => c.key === key);
+  if (added) openColumnTime(added);
+};
+// A column added for another time goes, with its values once confirmed
+const removeColumnConfirm = ref(null);
+const removeColumn = (valueColumn) => {
+  if (tableData.value.some((row) => row[valueColumn.key])) {
+    removeColumnConfirm.value = { key: valueColumn.key, name: conceptName(valueColumn), time: timeLabel(valueColumn) };
+  } else {
+    removeTimeColumn(valueColumn.key);
+  }
+};
+const executeRemoveColumn = () => {
+  removeTimeColumn(removeColumnConfirm.value.key);
+  removeColumnConfirm.value = null;
+};
+
+// What pointing at a cell says: its error, or for a variable's value, the time it takes and from where
+const cellTitle = (rowIndex, column) => {
+  const error = getCellError(rowIndex, column.id);
+  if (error) return error.message;
+  if (!column.columnDef.meta?.valueColumn) return undefined;
+  const time = valueTimeOf(rowIndex, column.id);
+  if (!time.from) return 'No time: neither its column nor its row has one';
+  return `At ${timeLabel(time)}: ${time.from === 'column' ? "its column's time" : "its row's Start and End"}`;
+};
+const isRowTimeColumn = (columnId) => columnId === 'startTime' || columnId === 'endTime';
 
 // Row actions
 const duplicateRow = (index) => {
@@ -637,6 +726,17 @@ const getFileReferenceDisplay = (value) => {
             </span>
           </div>
 
+          <!-- how the values' times are found (submissionTimes.js) -->
+          <p class="times-help">
+            <strong>Times.</strong> A value takes its column's time (📅 under the variable's name) if the column has
+            one, or else its row's Start and End: point at a value to see which. <strong>＋ time</strong> adds another
+            column of the variable, for its values at another time.
+            <template v-if="rounds > 1">
+              Each unit has {{ rounds }} rows, {{ rowOrder === 'round' ? 'round by round: every unit once, then again' : 'unit by unit' }},
+              numbered in Round.
+            </template>
+          </p>
+
           <div ref="tableWrapperRef" class="table-wrapper">
             <table class="dataset-table">
               <thead>
@@ -644,6 +744,7 @@ const getFileReferenceDisplay = (value) => {
                   <th
                     v-for="header in table.getFlatHeaders()"
                     :key="header.id"
+                    :data-column="header.column.id"
                     :class="{
                       'sticky-col': header.column.columnDef.meta?.frozen,
                       'sortable': header.column.getCanSort(),
@@ -702,6 +803,52 @@ const getFileReferenceDisplay = (value) => {
                         📋
                       </button>
                     </div>
+
+                    <!-- the rows' times are not used once every column has its own -->
+                    <div
+                      v-if="isRowTimeColumn(header.column.id) && !rowTimesUsed"
+                      class="unused-note"
+                      title="Every variable's column has a time of its own"
+                    >
+                      not used
+                    </div>
+
+                    <!-- a variable's column: its time, another column of it for another time, and removing one added -->
+                    <div v-if="header.column.columnDef.meta?.valueColumn" class="column-time-line" @click.stop>
+                      <button
+                        type="button"
+                        class="column-time"
+                        :class="{
+                          own: !!timeLabel(header.column.columnDef.meta.valueColumn),
+                          invalid: !!columnTimeErrors[header.column.id]
+                        }"
+                        :disabled="isCellLocked(header.column.columnDef.meta)"
+                        :title="columnTimeErrors[header.column.id] || (timeLabel(header.column.columnDef.meta.valueColumn)
+                          ? 'Every value in this column takes this time: change it'
+                          : 'The values take their rows\' Start and End: give the column a time of its own')"
+                        @click="openColumnTime(header.column.columnDef.meta.valueColumn)"
+                      >
+                        📅 {{ timeLabel(header.column.columnDef.meta.valueColumn) || 'Row times' }}
+                      </button>
+                      <button
+                        v-if="!isCellLocked(header.column.columnDef.meta)"
+                        type="button"
+                        class="another-time"
+                        title="Another column of this variable, for its values at another time"
+                        @click="addAnotherTime(header.column.columnDef.meta.valueColumn)"
+                      >
+                        ＋ time
+                      </button>
+                      <button
+                        v-if="header.column.columnDef.meta.valueColumn.n > 1 && !isCellLocked(header.column.columnDef.meta)"
+                        type="button"
+                        class="remove-column"
+                        title="Remove this column, with its values"
+                        @click="removeColumn(header.column.columnDef.meta.valueColumn)"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -724,8 +871,9 @@ const getFileReferenceDisplay = (value) => {
                       'warning-cell': getCellError(row.index, cell.column.id)?.isWarning,
                       'disabled-cell': isCellLocked(cell.column.columnDef.meta),
                       'grouping-cell': cell.column.columnDef.meta?.type === 'grouping',
+                      'unused-cell': isRowTimeColumn(cell.column.id) && !rowTimesUsed,
                     }"
-                    :title="getCellError(row.index, cell.column.id)?.message"
+                    :title="cellTitle(row.index, cell.column)"
                     :style="{ width: cell.column.columnDef.meta?.width }"
                   >
                     <!-- Actions column -->
@@ -939,9 +1087,58 @@ const getFileReferenceDisplay = (value) => {
             placeholder="Enter value for all cells"
             @keydown.enter="applyBulkFill"
           />
+          <label v-if="rounds > 1" class="bulk-fill-round">
+            Rows:
+            <select v-model="bulkFillRound" name="bulkFillRound">
+              <option :value="null">Every round</option>
+              <option v-for="round in rounds" :key="round" :value="round">Round {{ round }}</option>
+            </select>
+          </label>
           <div class="popover-actions">
             <button class="btn btn-secondary" @click="showBulkFillPopover = false">Cancel</button>
             <button class="btn btn-primary" @click="applyBulkFill">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A column's time -->
+      <div v-if="columnTimeEditing" class="popover-overlay" @click.self="columnTimeEditing = null">
+        <div class="popover-content column-time-popover">
+          <h4>Time of {{ columnTimeEditing.name }}</h4>
+          <p>
+            Every value in this column takes this time, whatever its row's Start and End. Give a start, an end or both,
+            as YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM.
+          </p>
+          <label class="time-field">
+            Start
+            <input v-model="columnTimeEditing.start" name="columnStart" type="text" placeholder="YYYY-MM-DD" @keydown.enter="applyColumnTime" />
+          </label>
+          <label class="time-field">
+            End (optional)
+            <input v-model="columnTimeEditing.end" name="columnEnd" type="text" placeholder="YYYY-MM-DD" @keydown.enter="applyColumnTime" />
+          </label>
+          <div v-if="columnTimeDraftError" class="error-message">{{ columnTimeDraftError }}</div>
+          <div class="popover-actions">
+            <button class="btn btn-secondary use-row-times" title="The values take their rows' Start and End" @click="useRowTimes">
+              Use row times
+            </button>
+            <button class="btn btn-secondary" @click="columnTimeEditing = null">Cancel</button>
+            <button class="btn btn-primary apply-time" :disabled="!!columnTimeDraftError" @click="applyColumnTime">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Removing a column added for another time, which has values -->
+      <div v-if="removeColumnConfirm" class="popover-overlay" @click.self="removeColumnConfirm = null">
+        <div class="popover-content">
+          <h4>Remove this column?</h4>
+          <p>
+            The column of {{ removeColumnConfirm.name }}<template v-if="removeColumnConfirm.time"> at {{ removeColumnConfirm.time }}</template>
+            has values, which go with it.
+          </p>
+          <div class="popover-actions">
+            <button class="btn btn-secondary" @click="removeColumnConfirm = null">Cancel</button>
+            <button class="btn btn-danger" @click="executeRemoveColumn">Remove</button>
           </div>
         </div>
       </div>
@@ -1133,6 +1330,108 @@ const getFileReferenceDisplay = (value) => {
 
 .bulk-fill-btn:hover {
   opacity: 1;
+}
+
+.times-help {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-left: 3px solid #90caf9;
+  background: #f5f9fc;
+  color: #455a64;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* a variable's column: its time, and another column of it for another time */
+.column-time-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-weight: normal;
+}
+
+.column-time,
+.another-time,
+.remove-column {
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #78909c;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.column-time.own {
+  border-color: #90caf9;
+  background: #e3f2fd;
+  color: #0d47a1;
+  font-weight: 600;
+}
+
+.column-time.invalid {
+  border-color: #e57373;
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+.column-time:hover:not(:disabled),
+.another-time:hover,
+.remove-column:hover {
+  border-color: #90a4ae;
+  color: #263238;
+}
+
+.column-time:disabled {
+  cursor: default;
+}
+
+.unused-note {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: normal;
+  font-style: italic;
+  color: #90a4ae;
+}
+
+.unused-cell {
+  color: #b0bec5;
+  background: #fafafa;
+}
+
+.time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #455a64;
+}
+
+.time-field input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.column-time-popover {
+  max-width: 420px;
+}
+
+.column-time-popover p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.bulk-fill-round {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
 }
 
 .editable-cell {

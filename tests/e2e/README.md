@@ -198,6 +198,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   study dataset's release set and set back; the unit tree opened past a root another team controls to the unit the
   child team does; a scale tree and its units set to a release and back; a tree's control shared with the root team,
   which renounces it. Every change is reverted, leaving Control history.
+- `submissionTimes.test.mjs`, on the spectra's submission study (manifest `spectra`; skipped without it), signed in as
+  the writer: in the submission table, Tree Height's column given a time of its own and another column of it a later
+  one (the same time again refused), and Canopy Width taking the row's Start. Pointing at a value says which time it
+  takes, and each record submitted has it. Then two rows a unit, round by round, numbered in Round, with the second
+  round's Start filled alone. The records submitted are removed afterwards.
 - `guide.test.mjs`, signed out, before the Terms of Use: the user guide opens without them, its contents list every
   chapter in `src/guide/chapters/`, and a chapter shows its callouts and steps without their ids. Play on a step plays
   the video from the step's cue, with its lead in the bar under it (skipped without
