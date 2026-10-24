@@ -77,6 +77,13 @@ const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam
       </div>
 
       <div class="location-units">
+        <!-- what a unit graph is, in the ontology's terms rather than any one study's -->
+        <p class="units-note">
+          Unit graphs link the levels at which experimental units are managed and observed. Each unit inherits
+          location, germplasm and factors from the units above it, passing them down the graph from higher-order
+          subjects in the ontology (e.g. <em>farm</em> or <em>field</em>) to lower-order ones (e.g. <em>plot</em>,
+          <em>tree</em> or <em>sample</em>).
+        </p>
         <div v-if="!locationId" class="empty-selection">
           <p v-if="placing">Finding where the unit is…</p>
           <p v-else>Select a location to see its unit graphs and the units that came there</p>
@@ -118,6 +125,16 @@ const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam
 <style scoped>
 .units-page {
   padding: 20px;
+}
+
+.units-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 3px solid #90caf9;
+  background: #f5f9fc;
+  color: #455a64;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .units-content {

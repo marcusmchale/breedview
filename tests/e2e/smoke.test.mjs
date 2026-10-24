@@ -14,7 +14,7 @@ const pages = [
   ['/access', 'Teams[\\s\\S]*Affiliation requests[\\s\\S]*Bulk control[\\s\\S]*Transfer offers[\\s\\S]*Every team tree[\\s\\S]*Create a team tree'],
   ['/access?tab=requests', 'Requests to join the teams you administer'], ['/access?tab=bulk', 'What a team you administer controls'],
   ['/access?tab=offers', 'Control of a record moves between teams'],
-  ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'], ['/units', 'Select a location'],
+  ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'], ['/units', 'Unit graphs link the levels[\\s\\S]*Select a location'],
   ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Teams in Access control'],
   ['/privacy', '[Pp]rivacy notice'], ['/guide', 'User guide[\\s\\S]*Looking around as a visitor'],
   ['/guide/looking-around', 'Looking around as a visitor[\\s\\S]*Steps']
