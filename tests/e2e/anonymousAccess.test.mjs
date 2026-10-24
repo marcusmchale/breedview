@@ -21,13 +21,15 @@ const writeActions = () => page.evaluate(`[...document.querySelectorAll('main bu
 // the only request expected to fail: the check of who is signed in
 const failedRequests = async (mark) => (await page.graphqlErrors(mark)).filter((f) => !f.startsWith('accountsAccount:'))
 
-test('the navigation offers the open pages and a way to log in, and the privacy notice is a link away', async () => {
+test('the navigation offers the open pages and a way to log in, and the privacy notice and guide are a link away', async () => {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
   assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Ontology', 'Log in'])
   await page.click('.app-footer a[href="/privacy"]')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
+  await page.click('.app-footer a[href="/guide"]')
+  await page.waitFor(`location.pathname === '/guide' && document.querySelector('.guide-page .chapter-list a')`, 30000)
 })
 
 test('pages that need an account still send anonymous users to log in', async () => {
@@ -168,7 +170,7 @@ test('locations, units and programs: no request fails', async () => {
 
 test('the browser contacts no third party: maps and place searches come from our servers', async () => {
   const mark = page.mark()
-  for (const route of ['programs', 'locations', 'units', 'germplasm', 'privacy']) {
+  for (const route of ['programs', 'locations', 'units', 'germplasm', 'privacy', 'guide/looking-around']) {
     await page.goto(`${config.appUrl}/${route}`)
     await page.sleep(3000)
   }

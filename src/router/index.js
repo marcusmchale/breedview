@@ -18,6 +18,8 @@ import OrcidCallbackPage from '@/components/user/OrcidCallbackPage.vue'
 import AccessControlPage from '@/components/controls/AccessControlPage.vue'
 import PrivacyNoticePage from '@/components/user/PrivacyNoticePage.vue'
 import TermsOfUsePage from '@/components/user/TermsOfUsePage.vue'
+import GuidePage from '@/components/guide/GuidePage.vue'
+import GuidePrint from '@/components/guide/GuidePrint.vue'
 import { useTermsOfUse } from '@/composables/system/useTermsOfUse'
 
 const routes = [
@@ -153,6 +155,29 @@ const routes = [
       allowAnonymous: true,
       openBeforeTerms: true,
       title: 'Terms of Use'
+    }
+  },
+  {
+    // the user guide shows no data, so it is open to everyone, before the Terms of Use too
+    path: '/guide/print/:collection',
+    name: 'GuidePrint',
+    component: GuidePrint,
+    meta: {
+      allowAnonymous: true,
+      openBeforeTerms: true,
+      // for printing, or saving as a PDF (guide/pdf.mjs)
+      hideNavigation: true,
+      title: 'User guide'
+    }
+  },
+  {
+    path: '/guide/:chapter?',
+    name: 'Guide',
+    component: GuidePage,
+    meta: {
+      allowAnonymous: true,
+      openBeforeTerms: true,
+      title: 'User guide'
     }
   },
   {

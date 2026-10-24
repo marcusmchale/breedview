@@ -16,7 +16,8 @@ const pages = [
   ['/access?tab=offers', 'Control of a record moves between teams'],
   ['/ontology', ''], ['/germplasm', ''], ['/locations', 'Register a location tree'], ['/units', 'Select a location'],
   ['/programs', 'View & curate datasets'], ['/analysis', ''], ['/profile', 'Your profile[\\s\\S]*Teams[\\s\\S]*Teams in Access control'],
-  ['/privacy', '[Pp]rivacy notice']
+  ['/privacy', '[Pp]rivacy notice'], ['/guide', 'User guide[\\s\\S]*Looking around as a visitor'],
+  ['/guide/looking-around', 'Looking around as a visitor[\\s\\S]*Steps']
 ]
 
 for (const [path, expected] of pages) {

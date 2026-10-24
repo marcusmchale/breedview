@@ -106,8 +106,8 @@ file downloads) is tested in breedgraph (`tests/breedgraph/e2e/*_read_api.py`). 
 browser: that the pages render it, which actions they offer, the modals and labels, and flows across pages.
 
 - `smoke.test.mjs`: every routed page renders for a signed-in user without console errors (access control with each
-  of its tabs, the profile with its teams, locations, programs with curation), and the dataset submission opens from
-  the first study's Datasets section on the programs page.
+  of its tabs, the profile with its teams, locations, programs with curation, the user guide and its first chapter),
+  and the dataset submission opens from the first study's Datasets section on the programs page.
 - `invitation.test.mjs`: invite offering read and write access to a team and a person record (`person_private`), the
   pending invitation describing both, the emailed link, registration with the prefilled read-only email, the team
   offered once with both accesses and the record accepted, verification from the emailed link, login with the
@@ -133,8 +133,8 @@ browser: that the pages render it, which actions they offer, the modals and labe
   request an affiliation under Teams in Access control), locations joined
   past hidden ones, readable trees under a placeholder for their hidden unit graph root (the Units page), and the
   curation selection, units filter and table with hidden units as placeholders.
-- `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice in
-  the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
+- `anonymousAccess.test.mjs`: someone not signed in gets the open pages in the navigation and the privacy notice and
+  user guide in the footer, is sent to log in from the others (the people page among them), and sees the public programs and units
   without controller badges or write actions, and no one credited or named as a contact; the map's search finds a
   public location by part of its name and opens it, but not a hidden one, and offers no places; no request on the open pages
   fails apart from the sign-in check, and the open pages request nothing from hosts other than the app and the API
@@ -198,6 +198,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   study dataset's release set and set back; the unit tree opened past a root another team controls to the unit the
   child team does; a scale tree and its units set to a release and back; a tree's control shared with the root team,
   which renounces it. Every change is reverted, leaving Control history.
+- `guide.test.mjs`, signed out, before the Terms of Use: the user guide opens without them, its contents list every
+  chapter in `src/guide/chapters/`, and a chapter shows its callouts and steps without their ids. Play on a step plays
+  the video from the step's cue, with its lead in the bar under it (skipped without
+  `public/guide-media/looking-around.mp4`). A chapter not written says so. A collection's print page has each video's
+  poster and link, naming the `site` it is given only if that is an address. No third party is contacted.
 
 ## Adding a test
 

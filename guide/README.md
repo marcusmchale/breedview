@@ -46,3 +46,25 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
   chip says what was done, such as "Later: 35 more plots".
 - **Encoding** (`lib/encode.mjs`): an H.264 MP4 at 30 fps (BT.709, faststart), WebVTT captions with one cue a step,
   and a poster.
+
+## The guide's pages and its PDF
+
+The app shows the guide at `/guide` (`src/components/guide/`). It is open to everyone, before the Terms of Use too,
+since it shows no data. `src/guide/chapters.js` puts the chapters in parts, and in the collections that are printed
+together; a chapter not yet written is left out. A chapter's markdown is rendered by `src/composables/system/markdown.js`
+with the guide's options (`src/guide/renderGuide.js`):
+- a picture is the bare file name of one in `public/guide-media/`, and the video is written as a picture of
+  `<chapter>.mp4`;
+- links may go to paths within the app, such as `/guide/joining`;
+- `> [!WHO]`, `> [!SEES]`, `> [!DATA]` and `> [!NOTE]` open callouts, and pipe tables are tables.
+
+Under the video, a bar shows the lead of the step playing, and each step's Play button plays the video from it.
+
+```bash
+npm run guide:pdf -- --site https://<the demonstration site>   # print /guide/print/dpo from guide:serve
+npm run build:demo                                              # the demonstration site, with its banner
+```
+
+`guide:pdf` writes `public/guide-media/guide-<collection>.pdf` (`--collection`, `dpo` by default), with each video's
+poster and a link to it under `--site`. `build:demo` builds with `.env.demo`, whose banner says the site is fictional
+and may be reset; the demonstration API's address goes in `.env.demo.local`.

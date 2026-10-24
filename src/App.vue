@@ -7,6 +7,7 @@ import { useCsrf } from './composables/system/useCsrf'
 import { useAuthStore } from './composables/user/useAuthStore'
 import { useTermsOfUse } from './composables/system/useTermsOfUse'
 import TermsGate from './components/user/TermsGate.vue'
+import DemoBanner from './components/guide/DemoBanner.vue'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
 const router = useRouter()
@@ -95,6 +96,7 @@ onMounted(async () => {
 
 <template>
   <div id="app" :data-terms="termsState">
+    <DemoBanner />
     <!-- Navigation Bar -->
     <nav v-if="!hideNavigation" class="navbar">
       <div class="nav-container">
@@ -150,6 +152,7 @@ onMounted(async () => {
     </main>
 
     <footer v-if="!hideNavigation" class="app-footer">
+      <router-link to="/guide">User guide</router-link>
       <router-link to="/terms">Terms of Use</router-link>
       <router-link to="/privacy">Privacy notice</router-link>
     </footer>

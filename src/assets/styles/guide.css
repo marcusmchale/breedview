@@ -1,0 +1,128 @@
+/* The user guide's chapter text (GuidePage, GuidePrint), as renderMarkdown makes it with the guide's options */
+
+.guide-text {
+  line-height: 1.6;
+  color: #333;
+}
+
+.guide-text h2 {
+  font-size: 1.25em;
+  margin-top: 28px;
+  color: #333;
+}
+
+.guide-text h3 {
+  font-size: 1.1em;
+  margin-top: 18px;
+}
+
+.guide-text ul,
+.guide-text ol {
+  padding-left: 22px;
+}
+
+.guide-text li {
+  margin: 6px 0;
+}
+
+.guide-text img {
+  max-width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.guide-text code {
+  background: #f3f3f3;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+
+.guide-text table {
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.guide-text th,
+.guide-text td {
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.guide-text th {
+  background: #f5f5f5;
+}
+
+.guide-text blockquote {
+  margin: 12px 0;
+  padding: 4px 14px;
+  border-left: 3px solid #ccc;
+  color: #555;
+}
+
+/* Callouts: who can do something, who sees what, and what personal data is involved */
+.guide-text .callout {
+  margin: 16px 0;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.guide-text .callout > :first-child {
+  margin-top: 0;
+}
+
+.guide-text .callout > :last-child {
+  margin-bottom: 0;
+}
+
+.guide-text .callout::before {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guide-text .callout-who {
+  background: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.guide-text .callout-who::before {
+  content: 'Who can do this';
+  color: #1565c0;
+}
+
+.guide-text .callout-sees {
+  background: #e8f5e9;
+  border-color: #388e3c;
+}
+
+.guide-text .callout-sees::before {
+  content: 'Who sees what';
+  color: #2e7d32;
+}
+
+.guide-text .callout-data {
+  background: #fff8e1;
+  border-color: #f9a825;
+}
+
+.guide-text .callout-data::before {
+  content: 'Personal data';
+  color: #8d6e00;
+}
+
+.guide-text .callout-note {
+  background: #f5f5f5;
+  border-color: #9e9e9e;
+}
+
+.guide-text .callout-note::before {
+  content: 'Note';
+  color: #616161;
+}

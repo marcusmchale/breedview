@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js --fix",
     "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
@@ -15,6 +16,7 @@
     "guide:check": "node guide/record.mjs --fast",
     "guide:record": "node guide/record.mjs",
     "guide:encode": "node guide/encode.mjs",
+    "guide:pdf": "node guide/pdf.mjs",
     "perf:curation": "node tests/e2e/perf/curation.mjs",
     "perf:blocks": "node tests/e2e/perf/blocks.mjs",
     "perf:analysis": "node tests/e2e/perf/analysis.mjs",
