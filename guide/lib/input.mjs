@@ -70,7 +70,8 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
     const x = r.left + r.width / 2, y = r.top + r.height / 2
     const hit = document.elementFromPoint(x, y)
     const reaches = hit === el || el.contains(hit) || hit?.contains(el) || [...(el.labels ?? [])].some((l) => l.contains(hit))
-    if (!reaches) return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing') }
+    // under the page's own fixed bar, scrolled down from it; under anything else, waited for
+    if (!reaches) return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing'), scroll: !!hit?.closest('.navbar') }
     return { x, y, rect: { left: r.left, top: r.top, width: r.width, height: r.height } }
   })()`)
 

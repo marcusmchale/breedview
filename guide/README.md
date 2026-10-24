@@ -19,8 +19,11 @@ Record against a stack of its own, never the development API on port 8000:
 5. Serve a production build of BreedView on port 8081: `npm run guide:serve`. The dev server's cold loads show blank
    frames for seconds.
 
-Load the dump again before each chain of chapters that changes data: a storyboard checks it starts from the state it
-expects.
+Load the dump again before each chapter that changes data, and stop the API while it loads. Chapters that build on
+each other are a chain, recorded in order on one load: joining (Nina's: `joining`, `teams`, then `your-data`), whose
+storyboards share what they enter beside the manifest in `guide/data/joining.mjs`. To record a later chapter of a
+chain alone, load the dump, play the chapters before it with `--fast`, then record it. A storyboard checks that it
+starts from the state it expects.
 
 ## Commands
 
