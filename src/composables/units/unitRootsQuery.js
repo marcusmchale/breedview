@@ -6,7 +6,8 @@ import UNITS_QUERY from '@/graphql/units/units.graphql'
 
 import {computed} from "vue";
 
-export function useUnitRootsQuery({locationIds}) {
+// The roots of the unit graphs at these locations; with below, at them and at every location under them too
+export function useUnitRootsQuery({locationIds, below = false}) {
 
     const { resolveClient } = useApolloClient()
     const client = resolveClient()
@@ -24,7 +25,7 @@ export function useUnitRootsQuery({locationIds}) {
         refetch: refetchBlocks
     } = useQuery(
         UNITS_ROOTS_QUERY,
-        () => ({'locationIds': toValue(locationIds)}),
+        () => ({ locationIds: toValue(locationIds), below: toValue(below) }),
         { enabled: blocksEnabled }
     )
 

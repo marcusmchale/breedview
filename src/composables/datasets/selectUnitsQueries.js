@@ -20,6 +20,25 @@ const arrivalNode = (arrival) => ({
     unitsBySubject: arrival.unitsBySubject,
     children: arrival.unitsBySubject.flatMap((group) => group.units)
 })
+// The unit graphs and arrivals of one place, as a node of the units picker when they lie in more than one: opening it
+// lists them, and its tick selects everything below it. It is not a unit, and its id is a string, so it is never taken
+// for one.
+export const isPlace = (node) => node?.__typename === 'UnitPlace'
+const placeNode = ({ location, roots, arrivals }) => ({
+    __typename: 'UnitPlace',
+    id: `place:${location.id}`,
+    name: location.name,
+    location,
+    roots,
+    arrivals,
+    children: [...roots, ...arrivals]
+})
+// where a unit graph's root is: the location of its latest position the user can read
+const placeOf = (unit) => [...(unit?.positions ?? [])]
+    .sort((a, b) => String(b.start ?? '').localeCompare(String(a.start ?? '')))
+    .map((position) => position.location)
+    .find((location) => location?.id != null && location.name !== 'REDACTED') ?? null
+
 // an arrival's units by subject, as the picker's "By type…" groups
 const arrivalGroups = (arrival) => arrival.unitsBySubject.map((group) => ({
     key: group.subject?.id ?? 'none',
@@ -38,15 +57,16 @@ const mergeGroups = (groups) => {
 }
 
 /**
- * The units picker of a dataset: the unit graphs rooted at the chosen locations and the arrivals there (units that
- * came from elsewhere, e.g. samples at a lab), opened level by level; "By type…" selects all of a subject at once.
+ * A units picker, as a dataset's: the unit graphs rooted at the chosen locations (with below, and at every location
+ * under them) and the arrivals there (units that came from elsewhere, e.g. samples at a lab), opened level by level;
+ * when they lie in more than one place, a level for each place first. "By type…" selects all of a subject at once.
  */
-export function useSelectUnitsQuery({locationIds, unitIds}) {
+export function useSelectUnitsQuery({locationIds, unitIds, below = false}) {
     const {
         blocks,
         blocksLoading,
         blocksError
-    } = useUnitRootsQuery({locationIds: locationIds});
+    } = useUnitRootsQuery({locationIds: locationIds, below});
 
     const {
         units: selectedUnits,
@@ -63,39 +83,62 @@ export function useSelectUnitsQuery({locationIds, unitIds}) {
 
     const { result: arrivalsResult, loading: arrivalsLoading } = useQuery(
         UNITS_ARRIVALS_PICKER_QUERY,
-        () => ({ locationIds: toValue(locationIds) ?? [] }),
+        () => ({ locationIds: toValue(locationIds) ?? [], below }),
         { enabled: computed(() => (toValue(locationIds)?.length ?? 0) > 0) }
     )
     const arrivals = computed(() => (toValue(locationIds)?.length ? arrivalsResult.value?.unitsArrivals?.result ?? [] : [])
         .map(arrivalNode))
-    const rootNodes = computed(() => [...blocks.value, ...arrivals.value])
+
+    // the places the unit graphs and arrivals lie in, by name
+    const places = computed(() => {
+        const byId = new Map()
+        const add = (location, node, kind) => {
+            const place = location ?? { id: 'elsewhere', name: 'Elsewhere' }
+            if (!byId.has(String(place.id))) byId.set(String(place.id), { location: place, roots: [], arrivals: [] })
+            byId.get(String(place.id))[kind].push(node)
+        }
+        blocks.value.forEach((unit) => add(placeOf(unit), unit, 'roots'))
+        arrivals.value.forEach((arrival) => add(arrival.location, arrival, 'arrivals'))
+        return [...byId.values()].sort((a, b) => a.location.name.localeCompare(b.location.name))
+    })
+    const rootNodes = computed(() => (places.value.length > 1 ? places.value.map(placeNode) : [...blocks.value, ...arrivals.value]))
     const rootsLoading = computed(() => blocksLoading.value || arrivalsLoading.value)
 
-    // An opened arrival lists its units, read in full so that those holding others can be opened in turn
+    // An opened place lists its unit graphs and arrivals; an opened arrival its units, read in full so that those
+    // holding others can be opened in turn
+    const openedPlace = ref(null)
     const openedArrival = ref(null)
     const { units: arrivalUnits, unitsLoading: arrivalUnitsLoading } = useUnitsQuery({
         unitIds: computed(() => openedArrival.value?.children.map((unit) => unit.id) ?? [])
     })
     const loadChildren = (nodeId, node) => {
-        if (isArrival(node)) {
-            openedArrival.value = node
-            return
-        }
-        openedArrival.value = null
+        openedPlace.value = isPlace(node) ? node : null
+        openedArrival.value = isArrival(node) ? node : null
+        if (openedPlace.value || openedArrival.value) return
         return loadDisplayedChildUnits(nodeId)
     }
-    const currentChildren = computed(() => (openedArrival.value ? arrivalUnits.value : displayedUnits.value))
-    const childrenLoading = computed(() => (openedArrival.value ? arrivalUnitsLoading.value : displayedUnitsLoading.value))
+    const currentChildren = computed(() => {
+        if (openedPlace.value) return openedPlace.value.children
+        return openedArrival.value ? arrivalUnits.value : displayedUnits.value
+    })
+    const childrenLoading = computed(() => {
+        if (openedPlace.value) return false
+        return openedArrival.value ? arrivalUnitsLoading.value : displayedUnitsLoading.value
+    })
 
-    // only units are selected; an arrival's tick selects its units, which "By type…" in it groups by subject
-    const isSelectable = (node) => !isArrival(node)
-    const hasChildren = (node) => (isArrival(node) ? node.children.length > 0 : (node?.children?.length ?? 0) > 0)
+    // only units are selected; the tick of a place or an arrival selects what lies below it, which "By type…" in it
+    // groups by subject
+    const isSelectable = (node) => !isArrival(node) && !isPlace(node)
+    const hasChildren = (node) => (isArrival(node) || isPlace(node) ? node.children.length > 0 : (node?.children?.length ?? 0) > 0)
 
     const { loadUnitGroups } = useUnitsBySubject()
+    const groupsOf = async (roots, arrivalNodes) =>
+        mergeGroups([...(await loadUnitGroups(roots ?? [])), ...arrivalNodes.flatMap(arrivalGroups)])
     const loadTypeGroups = async (node) => {
         if (isArrival(node)) return arrivalGroups(node)
+        if (isPlace(node)) return groupsOf(node.roots, node.arrivals)
         if (node) return loadUnitGroups([node])
-        return mergeGroups([...(await loadUnitGroups(blocks.value ?? [])), ...arrivals.value.flatMap(arrivalGroups)])
+        return groupsOf(blocks.value, arrivals.value)
     }
 
     return {

@@ -1,7 +1,8 @@
-// The dataset submission's units picker offers the arrivals at the chosen locations beside their unit graphs (manifest
-// `arrivals`; skipped without them): at the lab, where no unit graph is rooted, its arrivals are listed; ticking one
-// selects the units that came, opening it lists them, and "By type…" in it groups them by subject. Signed in as the
-// writer, who curates the arrivals study.
+// The dataset submission's units picker offers the arrivals at the chosen locations, and at the places within them,
+// beside their unit graphs (manifest `arrivals`; skipped without them), a level for each place when there are several:
+// at the lab, where no unit graph is rooted, its arrivals and those of its store are listed under each place; ticking
+// one selects the units that came, opening it lists them, and "By type…" in it groups them by subject. Choosing the
+// country lists every place below it with units. Signed in as the writer, who curates the arrivals study.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -62,6 +63,12 @@ test('at the lab, the units picker offers its arrivals, and an arrival\'s tick s
   await pickLocation([e.country.name, e.state.name, e.field.name], e.lab.name)
   await page.evaluate(`document.querySelectorAll('.modal-overlay .hierarchical-multiselect .select-trigger')[1].click()`)
   await page.waitFor(levelLoaded, 30000)
+  // the lab holds its store, so a level for each place first
+  const store = a.locations.lab_store.name
+  assert.deepEqual(await optionLabels(), [e.lab.name, store].sort((x, y) => x.localeCompare(y)), 'the lab and its store')
+  await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${optionIndex(e.lab.name)}].querySelector('.expand-button').click()`)
+  await page.sleep(300)
+  await page.waitFor(levelLoaded, 30000)
   const expected = a.expected.arrivals.lab.writer
   const labels = await optionLabels()
   assert.deepEqual(labels, expected.map((arrival) => `${arrival.start ? `Arrived ${arrival.start}` : 'Undated arrival'} at ${e.lab.name}`),
@@ -78,5 +85,29 @@ test('at the lab, the units picker offers its arrivals, and an arrival\'s tick s
   await page.waitFor(levelLoaded, 30000)
   assert.deepEqual(await optionLabels(), recent.units)
   assert.ok(await page.evaluate(`[...document.querySelectorAll('.options-list .option-checkbox')].every((c) => c.checked)`), 'they are all selected')
+  await page.click('.btn-done')
+})
+
+test('choosing the country lists every place below it with units, each opening to its unit graphs and arrivals', { skip }, async () => {
+  await openSubmission()
+  await pickLocation([], e.country.name)
+  await page.evaluate(`document.querySelectorAll('.modal-overlay .hierarchical-multiselect .select-trigger')[1].click()`)
+  await page.waitFor(levelLoaded, 30000)
+  const places = await optionLabels()
+  for (const place of [e.field.name, e.lab.name, a.locations.lab_store.name]) {
+    assert.ok(places.includes(place), `${place} is among the places: ${places.join(', ')}`)
+  }
+  assert.deepEqual(places, [...places].sort((x, y) => x.localeCompare(y)), 'by name')
+  // the store's tick selects what came there: its one arrival's units
+  const store = a.locations.lab_store.name
+  const [arrival] = a.expected.arrivals.lab_store.writer
+  await page.waitFor(`!document.querySelectorAll('.options-list .option-item')[${optionIndex(store)}].querySelector('.option-checkbox').disabled`, 30000)
+  await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${optionIndex(store)}].querySelector('.option-checkbox').click()`)
+  await page.waitFor(`document.querySelector('.selection-count-text')?.innerText.includes('${arrival.units.length} selected')`, 30000)
+  // opening the field lists the unit graphs rooted there
+  await page.evaluate(`document.querySelectorAll('.options-list .option-item')[${optionIndex(e.field.name)}].querySelector('.expand-button').click()`)
+  await page.sleep(300)
+  await page.waitFor(levelLoaded, 30000)
+  assert.ok((await optionLabels()).includes(e.field_unit.name), 'the field unit graph is rooted at the field')
   await page.click('.btn-done')
 })

@@ -86,7 +86,9 @@ const {
   loadTypeGroups: loadUnitTypeGroups
 } = useSelectUnitsQuery({
   locationIds: () => selectionData.value?.locationIds,
-  unitIds: () => selectionData.value?.unitIds
+  unitIds: () => selectionData.value?.unitIds,
+  // a place holds the places within it: a farm, its fields and lab
+  below: true
 })
 
 const {
@@ -293,7 +295,7 @@ const closeModal = () => {
             type="hierarchical-multiselect"
             name="unitIds"
             label="Units:"
-            help="Select units from the unit graphs and arrivals at these locations"
+            help="Select units from the unit graphs and arrivals at these locations and the places within them"
             :value="selectionData.unitIds"
             :label-fn="unitNameOf"
             :rootNodes="unitRootNodes"

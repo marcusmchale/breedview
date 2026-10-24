@@ -1,6 +1,7 @@
-# The arrivals at locations with their units by subject, as id and name, for selecting them in a picker
-query unitsArrivalsForPicker ($locationIds: [ID!]!) {
-    unitsArrivals (locationIds: $locationIds) {
+# The arrivals at locations (with below, and at the locations under them) with their units by subject, as id and name,
+# for selecting them in a picker
+query unitsArrivalsForPicker ($locationIds: [ID!]!, $below: Boolean) {
+    unitsArrivals (locationIds: $locationIds, below: $below) {
         status
         result {
             location { id name }

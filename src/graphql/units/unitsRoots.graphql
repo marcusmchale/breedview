@@ -1,7 +1,7 @@
 #import "./unitFragment.graphql"
 #import "./unitInheritedFragment.graphql"
-query unitsRoots ($locationIds: [ID!]!) {
-    unitsRoots (locationIds: $locationIds) {
+query unitsRoots ($locationIds: [ID!]!, $below: Boolean) {
+    unitsRoots (locationIds: $locationIds, below: $below) {
         status
         result {
             ...UnitFields

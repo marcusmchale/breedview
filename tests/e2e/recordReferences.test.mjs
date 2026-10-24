@@ -237,7 +237,8 @@ test("submission: the modal opens with the cell's files selected, and those save
   await pick([e.country.name, e.state.name], e.field.name)
   await page.sleep(1000)
   await page.evaluate(`document.querySelectorAll('.dataset-submission-modal .hierarchical-multiselect .select-trigger')[1].click()`)
-  await pick([e.field_unit.name], e.tree_public.name)
+  // the field holds the lab and its store, which have arrivals, so its place comes first
+  await pick([e.field.name, e.field_unit.name], e.tree_public.name)
   await page.waitFor(`[...document.querySelectorAll('.dataset-submission-modal select[name=variableIds] option')].length > 0`, 30000)
   await select('.dataset-submission-modal select[name=variableIds]', s.concept.name)
   await page.waitFor(`!document.querySelector('.dataset-submission-modal .create-table-btn').disabled`)
