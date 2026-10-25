@@ -55,8 +55,12 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.pause(600)
     await input.click(byText('.modal-content .modal-footer button', 'Set Role'))
     await page.waitFor(`!document.querySelector('.modal-content .roles-grid')`, 15000)
-    await page.waitFor(`!(${askerRow}) || (${askerRow}).querySelector('.col-current')?.innerText.includes('Editor')`, 15000)
-    await input.pause(1500)
+    // now among the editors
+    const editors = `[...document.querySelectorAll('.role-requests-container')].find((c) => c.querySelector('h2')?.innerText.trim() === 'Editors')`
+    const fullname = manifest.accounts[plan.role_request].fullname
+    await page.waitFor(`[...((${editors})?.querySelectorAll('.user-name') ?? [])].some((n) => n.innerText.trim() === ${q(fullname)})`, 15000)
+    await input.pause(800)
+    await input.hover(`(${editors}).querySelector('.users-table')`, 2500)
   })
 
   await step('deprecate', async () => {
