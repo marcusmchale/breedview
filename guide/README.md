@@ -24,12 +24,17 @@ each other are a chain, recorded in order on one load:
 - joining, Nina's: `joining`, `teams`, then `your-data`, sharing what they enter beside the manifest in
   `guide/data/joining.mjs`;
 - this season, the 2026 trial: `setting-up`, `recording`, `checking`, then `analysing` (which needs the analysis
-  worker), finding the trial and study in `guide/data/this-season.mjs`.
+  worker), finding the trial and study in `guide/data/this-season.mjs`;
 - next season, the 2027 trial in Hill Field: `describing`, `places`, `plant-material`, then `planting`, finding what
   each made in `guide/data/next-season.mjs`, which also plans the 2027 plots.
 
-To record a later chapter of a chain alone, load the dump, play the chapters before it with `--fast`, then record it.
-A storyboard checks that it starts from the state it expects.
+The other chapters (`looking-around`, `exploring-data`, `sharing`, `people`, `samples`, `handing-over`,
+`looking-after-the-ontology` and `data-files`) each start from a fresh load. To record a later chapter of a chain alone,
+load the dump, play the chapters before it with `--fast`, then record it. A storyboard checks that it starts from the
+state it expects.
+
+`--app` and `--api` play a storyboard against another stack, such as a second scratch stack with the dump loaded and a
+dev server pointed at its API, to try a storyboard with `--fast` while the recording stack records.
 
 ## Commands
 
