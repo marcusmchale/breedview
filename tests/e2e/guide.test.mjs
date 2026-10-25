@@ -24,7 +24,8 @@ test('the guide opens before the Terms of Use, and its contents list every chapt
   await page.waitFor(`document.querySelector('.guide-page .chapter-list a')`, 30000)
   assert.equal(await page.evaluate(`document.querySelector('[data-terms]')?.dataset.terms`), 'asked', 'the Terms are still to be accepted')
   assert.equal(await page.exists('.terms-gate'), false, 'the guide is shown in place of the Terms')
-  const listed = await page.evaluate(`[...document.querySelectorAll('.chapter-list a:not([href^="/guide/print/"])')]
+  // each chapter's own link, not those in the first paragraphs shown with them
+  const listed = await page.evaluate(`[...document.querySelectorAll('.chapter-list > li > a:not([href^="/guide/print/"])')]
     .map((a) => [a.getAttribute('href'), a.innerText.trim()])`)
   assert.deepEqual(listed.sort(), Object.entries(titles).map(([slug, title]) => [`/guide/${slug}`, title]).sort())
   assert.deepEqual(page.consoleErrors(mark), [])
