@@ -240,6 +240,19 @@ test('the Locations page links to the units at a location', { skip }, async () =
   await page.waitFor(`location.pathname === '/units' && location.search.includes('location=${LAB}') && document.querySelector('.arrival-item')`, 30000)
 })
 
+test('the new unit graph form asks for a subject once, then lists each subject', { skip }, async () => {
+  await signInAs('writer')
+  await page.goto(`${config.appUrl}/units?location=${FIELD}`)
+  await page.waitFor(`document.querySelector('.blocks-box .btn-add-unit')`, 30000)
+  await page.click('.blocks-box .btn-add-unit')
+  await page.waitFor(`document.querySelector('.modal select[name=subjectId] option:not([value=""])')`, 15000)
+  const options = await page.evaluate(`[...document.querySelector('.modal select[name=subjectId]').options].map((o) => o.text.trim())`)
+  assert.deepEqual(options.filter((o) => /select a subject/i.test(o)), ['-- Select a subject --'])
+  assert.equal(new Set(options).size, options.length, q(options))
+  await page.evaluate(`[...document.querySelectorAll('.modal button')].find((b) => b.innerText.trim() === 'Cancel').click()`)
+  await page.waitFor(`!document.querySelector('.modal')`, 10000)
+})
+
 test('a child added with its parent is listed below it, where its parent is', { skip }, async () => {
   await signInAs('writer')
   await page.goto(`${config.appUrl}/units?location=${FIELD}&unit=${unitId('Arrival Move Tree')}`)

@@ -158,7 +158,6 @@ const submitAddUnit = async () => {
       name="subjectId"
       label="Subject:"
       help="Select a subject type"
-      placeholder="Select a subject"
       :options="subjectsWithNull"
       validation="required"
     />
