@@ -10,6 +10,17 @@ export const startsWith = (selector, text, within = 'document') =>
   `[...${within}.querySelectorAll(${q(selector)})].find((e) => ${shown}.startsWith(${q(text)}))`
 export const navLink = (text) => byText('.nav-menu .nav-link', text)
 
+/** A location's row in a location tree (the Locations and Units pages), by its name */
+export const locationHeader = (name) =>
+  `[...document.querySelectorAll('.location-header')].find((h) => h.querySelector('.location-name')?.innerText.trim() === ${q(name)})`
+
+/** Open a location's branch of the location tree, once its row shows */
+export async function expandLocation ({ page, input, name }) {
+  await page.waitFor(`${locationHeader(name)}?.querySelector('.expand-btn')`, 30000)
+  await input.click(`${locationHeader(name)}.querySelector('.expand-btn')`)
+  await input.pause(700)
+}
+
 /** A study's card on the programs page, below its programme's and trial's, as an expression */
 export function studyCard ({ programme, trial, study }) {
   const programmeCard = `[...document.querySelectorAll('.program-card')].find((c) => c.querySelector('.program-card-header h3')?.innerText.trim() === ${q(programme)})`
@@ -159,4 +170,25 @@ export async function gatherLinked ({ page, input, node, nodes, links, frame, ra
     await input.drag(end, { by })
     await input.pause(600)
   }
+}
+
+// In an open tree picker (a hierarchical select or multiselect): its level loaded, and an option of it by its label
+const levelLoaded = `!document.querySelector('.options-list .loading-state') && (document.querySelector('.options-list .option-label') || document.querySelector('.options-list .empty-state'))`
+export const pickerOption = (label) =>
+  `[...document.querySelectorAll('.options-list .option-item')].find((o) => o.querySelector('.option-label')?.innerText.trim() === ${q(label)})`
+
+/**
+ * Choose in a tree picker (a hierarchical select) as a person would: open it from its trigger, go down the path's
+ * levels, and choose its last entry
+ */
+export async function chooseInTree ({ page, input, trigger, path }) {
+  await input.click(trigger)
+  for (const label of path.slice(0, -1)) {
+    await page.waitFor(`${levelLoaded} && ${pickerOption(label)}?.querySelector('.expand-button')`, 30000)
+    await input.click(`${pickerOption(label)}.querySelector('.expand-button')`)
+  }
+  await page.waitFor(`${levelLoaded} && ${pickerOption(path.at(-1))}`, 30000)
+  await input.pause(500)
+  await input.click(`${pickerOption(path.at(-1))}.querySelector('.option-label-button')`)
+  await page.waitFor(`!document.querySelector('.options-list')`, 10000)
 }

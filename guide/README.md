@@ -25,6 +25,8 @@ each other are a chain, recorded in order on one load:
   `guide/data/joining.mjs`;
 - this season, the 2026 trial: `setting-up`, `recording`, `checking`, then `analysing` (which needs the analysis
   worker), finding the trial and study in `guide/data/this-season.mjs`.
+- next season, the 2027 trial in Hill Field: `describing`, `places`, `plant-material`, then `planting`, finding what
+  each made in `guide/data/next-season.mjs`, which also plans the 2027 plots.
 
 To record a later chapter of a chain alone, load the dump, play the chapters before it with `--fast`, then record it.
 A storyboard checks that it starts from the state it expects.
@@ -50,7 +52,7 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
   in view, visible, enabled, still and not covered. One under a bar that stays put as the page scrolls, such as the
   navigation bar or a sticky submit bar, is scrolled out from under it.
 - **Storyboards** share `lib/storyboard.mjs`: elements found by their text, the ways into pages that more than one
-  chapter takes, and for a graph, a node dragged to the clearest spot near it (`clearOf`) and its linked nodes brought
+  chapter takes (the location tree, a tree picker's levels), and for a graph, a node dragged to the clearest spot near it (`clearOf`) and its linked nodes brought
   beside it, so that each link and its label stand clear (`gatherLinked`).
 - **Overlay** (`lib/overlay.js`): the cursor and its clicks, and stand-ins for what headless frames don't show: a
   select's menu, confirm dialogs, key presses, tooltips, and cards for the clipboard, emails, files chosen and files

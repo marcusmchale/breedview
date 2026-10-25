@@ -1,7 +1,7 @@
 // Chapter 1, "Looking around as a visitor" (src/guide/chapters/looking-around.md): a visitor accepts the Terms, opens
 // the public 2024 study and its data, then looks at the places, the units there, the plant material and the ontology.
 // Nothing is changed, so it plays from any load of the demonstration database (manifest workflows.visitor_tour).
-import { byText, clearOf, gatherLinked, loadStudyData, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
+import { byText, clearOf, expandLocation, gatherLinked, loadStudyData, locationHeader, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
 
 const q = JSON.stringify
 // the 2024 trial's unit graph, which the Units step opens
@@ -75,12 +75,7 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await page.waitFor(`!document.querySelector('.curation-table')`, 15000)
   })
 
-  const locationHeader = (name) => `[...document.querySelectorAll('.location-header')].find((h) => h.querySelector('.location-name')?.innerText.trim() === ${q(name)})`
-  const expand = async (name) => {
-    await page.waitFor(`${locationHeader(name)}?.querySelector('.expand-btn')`, 30000)
-    await input.click(`${locationHeader(name)}.querySelector('.expand-btn')`)
-    await input.pause(700)
-  }
+  const expand = (name) => expandLocation({ page, input, name })
 
   await step('locations', async () => {
     await input.click(navLink('Locations'))
