@@ -23,7 +23,11 @@ const isIncoming = (transfer) => !!transfer.recipientTeam && adminIds.value.incl
 const isOutgoing = (transfer) => transfer.fromTeams.some(team => adminIds.value.includes(String(team.id)))
 
 const teamNames = (teams) => (teams ?? []).map(team => team.fullname || team.name).join(', ') || '—'
-const entityText = (entity) => `${entity.label.charAt(0) + entity.label.slice(1).toLowerCase()} #${entity.id}`
+// A record by its kind and name, or its id where it has no name or the user cannot read it
+const entityText = (entity) => {
+  const kind = entity.label.charAt(0) + entity.label.slice(1).toLowerCase()
+  return entity.name && entity.name !== 'REDACTED' ? `${kind}: ${entity.name}` : `${kind} #${entity.id}`
+}
 
 const formatDate = (value) => {
   if (!value) return ''

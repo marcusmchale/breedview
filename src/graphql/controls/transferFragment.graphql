@@ -1,7 +1,7 @@
 fragment ControlTransferFields on ControlTransfer {
     id
     status
-    entities { label id }
+    entities { label id name }
     fromTeams { id name fullname }
     keepFromTeams
     recipientTeam { id name fullname }

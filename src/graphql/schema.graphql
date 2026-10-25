@@ -3467,6 +3467,10 @@ A controlled model. Transfers apply to the model itself, not to other models in 
 type ControlledEntity {
   label: ControlledModelLabel!
   id: ID!
+
+  """ Its name (a dataset's concept, a reference's file name or description); REDACTED when you cannot read it 
+  """
+  name: String
 }
 
 """
