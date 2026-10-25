@@ -2,8 +2,9 @@
 // size: it opens zoomed to fit its box, and a zoom while it first settles is kept. At crop_leaf: collapsing an entry's
 // sinks hides every entry below it and expanding them shows its own sinks again, and its sources likewise above it; a
 // double-click collapses its sinks when they are all shown and shows them otherwise; the entry stays where it is on
-// the screen through each, in the view as it was zoomed, while the graph settles around it; and a double-click on an
-// entry does not zoom. What is below and above comes from the API's sources and sinks, as the page reads them.
+// the screen through each, in the view as it was zoomed, while the graph settles around it; a double-click on an
+// entry does not zoom; and a source or sink on an entry's card opens its own card. What is below and above comes from
+// the API's sources and sinks, as the page reads them.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -196,4 +197,23 @@ test('a double-click on an entry does not zoom the graph', async () => {
   // a double-click's zoom takes 250ms
   await page.sleep(600)
   assert.equal(await view(), before, `double-clicking ${leaf}`)
+})
+
+test('a source or sink on an entry\'s card opens its own card', async () => {
+  await open()
+  const [source] = family.own(ENTRY, 'sources')
+  assert.ok(source, `${ENTRY} has a source`)
+  // an entry's card opens on a click on its circle
+  await page.evaluate(`${circle(ENTRY)}.dispatchEvent(new MouseEvent('click', { bubbles: true }))`)
+  const title = `document.querySelector('.details-card-container .details-card h2')?.innerText.trim()`
+  await page.waitFor(`${title} === ${q(ENTRY)}`, 15000)
+  const link = `[...document.querySelectorAll('.details-card-container .relationship-item .rel-link')].find((b) => b.innerText.trim() === ${q(source)})`
+  await page.waitFor(link, 15000)
+  await page.evaluate(`${link}.click()`)
+  await page.waitFor(`${title} === ${q(source)}`, 15000)
+  // and back, from the source's sinks
+  const back = `[...document.querySelectorAll('.details-card-container .relationship-item .rel-link')].find((b) => b.innerText.trim() === ${q(ENTRY)})`
+  await page.waitFor(back, 15000)
+  await page.evaluate(`${back}.click()`)
+  await page.waitFor(`${title} === ${q(ENTRY)}`, 15000)
 })

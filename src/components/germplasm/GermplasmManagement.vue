@@ -303,6 +303,7 @@ const confirmDelete = async () => {
         :entry="loadedEntries.get(selectedEntryId)"
         @edit-entry="handleUpdateEntry(loadedEntries.get(selectedEntryId))"
         @delete-entry="handleDeleteEntry(loadedEntries.get(selectedEntryId))"
+        @select-entry="handleSelectEntry"
       />
     </div>
 

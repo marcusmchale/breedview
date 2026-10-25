@@ -14,7 +14,8 @@ const props = defineProps({
   }
 })
 
-defineEmits(['edit-entry', 'delete-entry'])
+// select-entry: a source or sink chosen, to show its card instead
+defineEmits(['edit-entry', 'delete-entry', 'select-entry'])
 
 const hasData = computed(() => !!props.entry)
 
@@ -154,7 +155,8 @@ const sinksList = computed(() => {
         <div class="relationship-list">
           <div v-for="source in sourcesList" :key="source.id" class="relationship-item">
             <span class="rel-type">{{ source.type }}</span>
-            <span class="rel-name">{{ source.name }}</span>
+            <button v-if="source.id" type="button" class="rel-name rel-link" @click="$emit('select-entry', source.id)">{{ source.name }}</button>
+            <span v-else class="rel-name">{{ source.name }}</span>
             <span v-if="source.description" class="rel-description">{{ source.description }}</span>
           </div>
         </div>
@@ -166,7 +168,8 @@ const sinksList = computed(() => {
         <div class="relationship-list">
           <div v-for="sink in sinksList" :key="sink.id" class="relationship-item">
             <span class="rel-type">{{ sink.type }}</span>
-            <span class="rel-name">{{ sink.name }}</span>
+            <button v-if="sink.id" type="button" class="rel-name rel-link" @click="$emit('select-entry', sink.id)">{{ sink.name }}</button>
+            <span v-else class="rel-name">{{ sink.name }}</span>
             <span v-if="sink.description" class="rel-description">{{ sink.description }}</span>
           </div>
         </div>
@@ -365,6 +368,18 @@ const sinksList = computed(() => {
   color: #333;
   flex: 1;
   min-width: 0;
+}
+
+.rel-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: #1565c0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
 }
 
 .rel-description {
