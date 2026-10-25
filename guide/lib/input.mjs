@@ -70,8 +70,15 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
     const x = r.left + r.width / 2, y = r.top + r.height / 2
     const hit = document.elementFromPoint(x, y)
     const reaches = hit === el || el.contains(hit) || hit?.contains(el) || [...(el.labels ?? [])].some((l) => l.contains(hit))
-    // under the page's own fixed bar, scrolled down from it; under anything else, waited for
-    if (!reaches) return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing'), scroll: !!hit?.closest('.navbar') }
+    // under a bar that stays put as the page scrolls (the navigation bar, a sticky submit bar), scrolled out from
+    // under it; under anything else, such as a dialog's overlay, waited for
+    const bar = (e) => {
+      for (; e && e !== document.documentElement; e = e.parentElement) {
+        if (['fixed', 'sticky'].includes(getComputedStyle(e).position)) return e.getBoundingClientRect().height < innerHeight / 2
+      }
+      return false
+    }
+    if (!reaches) return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing'), scroll: !!hit?.closest('.navbar') || bar(hit) }
     return { x, y, rect: { left: r.left, top: r.top, width: r.width, height: r.height } }
   })()`)
 
@@ -261,6 +268,38 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
       await send('DOM.setFileInputFiles', { files: [path], backendNodeId: opened.backendNodeId })
       await overlay('hideCard()')
       await wait(500)
+    },
+
+    /**
+     * Click a target that downloads a file the page makes (a blob, through a link with download), and show the file
+     * as a card, its first lines; the browser keeps nothing. Returns { name, text }
+     */
+    download: async (target, { lines = 8, ms = 4000 } = {}) => {
+      await page.evaluate(`(() => {
+        if (window.__recorderDownloads) return
+        window.__recorderDownloads = []
+        const blobs = new Map()
+        const create = URL.createObjectURL
+        URL.createObjectURL = (blob) => { const url = create(blob); blobs.set(url, blob); return url }
+        const click = HTMLAnchorElement.prototype.click
+        HTMLAnchorElement.prototype.click = function () {
+          if (!this.download || !blobs.has(this.href)) return click.call(this)
+          blobs.get(this.href).text().then((text) => window.__recorderDownloads.push({ name: this.download, text }))
+        }
+      })()`)
+      const before = await page.evaluate('window.__recorderDownloads.length')
+      await input.click(target)
+      let file = null
+      for (let i = 0; i < 50 && !file; i++) {
+        file = await page.evaluate(`window.__recorderDownloads[${before}] ?? null`)
+        if (!file) await page.sleep(100)
+      }
+      if (!file) throw new Error(`No file was downloaded from ${target}`)
+      const shown = file.text.split('\n').slice(0, lines).join('\n')
+      if (!fast) await overlay(`card(${q({ kind: 'Downloaded', heading: file.name, text: shown })})`)
+      await wait(ms)
+      await overlay('hideCard()')
+      return file
     },
 
     /** Point at a target and show its title, as a tooltip would */

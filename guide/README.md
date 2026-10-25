@@ -20,10 +20,14 @@ Record against a stack of its own, never the development API on port 8000:
    frames for seconds.
 
 Load the dump again before each chapter that changes data, and stop the API while it loads. Chapters that build on
-each other are a chain, recorded in order on one load: joining (Nina's: `joining`, `teams`, then `your-data`), whose
-storyboards share what they enter beside the manifest in `guide/data/joining.mjs`. To record a later chapter of a
-chain alone, load the dump, play the chapters before it with `--fast`, then record it. A storyboard checks that it
-starts from the state it expects.
+each other are a chain, recorded in order on one load:
+- joining, Nina's: `joining`, `teams`, then `your-data`, sharing what they enter beside the manifest in
+  `guide/data/joining.mjs`;
+- this season, the 2026 trial: `setting-up`, `recording`, `checking`, then `analysing` (which needs the analysis
+  worker), finding the trial and study in `guide/data/this-season.mjs`.
+
+To record a later chapter of a chain alone, load the dump, play the chapters before it with `--fast`, then record it.
+A storyboard checks that it starts from the state it expects.
 
 ## Commands
 
@@ -43,12 +47,15 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
   a frame only when the page changes, so each frame lasts until the next.
 - **Input** (`lib/input.mjs`): the mouse moves along eased paths and presses and releases, drags (a graph's node is
   grabbed where it is, as its layout settles), and keys are typed one at a time. Each target is checked first: there,
-  in view, visible, enabled, still and not covered.
+  in view, visible, enabled, still and not covered. One under a bar that stays put as the page scrolls, such as the
+  navigation bar or a sticky submit bar, is scrolled out from under it.
 - **Storyboards** share `lib/storyboard.mjs`: elements found by their text, the ways into pages that more than one
   chapter takes, and for a graph, a node dragged to the clearest spot near it (`clearOf`) and its linked nodes brought
   beside it, so that each link and its label stand clear (`gatherLinked`).
 - **Overlay** (`lib/overlay.js`): the cursor and its clicks, and stand-ins for what headless frames don't show: a
-  select's menu, confirm dialogs, key presses, tooltips, and cards for the clipboard, emails and files.
+  select's menu, confirm dialogs, key presses, tooltips, and cards for the clipboard, emails, files chosen and files
+  downloaded (the first lines of a CSV the page makes). It also turns spell checking off, whose marks would follow the
+  recording browser's language.
 - **Cuts** (`lib/recorder.mjs`): page loads and work done off camera are cut from the video. After off-camera work, a
   chip says what was done, such as "Later: 35 more plots".
 - **Encoding** (`lib/encode.mjs`): an H.264 MP4 at 30 fps (BT.709, faststart), WebVTT captions with one cue a step,

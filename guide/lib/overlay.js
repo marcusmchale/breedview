@@ -78,6 +78,8 @@
       <svg class="cursor" viewBox="0 0 22 22"><path d="M2 1.5 L2 18 L6.4 13.9 L9.4 20.6 L12.3 19.4 L9.4 12.8 L15.6 12.8 Z"
         fill="#1a1a1a" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`
     document.documentElement.appendChild(host)
+    // no spelling marks under what is typed: they follow the recording browser's language, not the viewer's
+    document.documentElement.spellcheck = false
     const cursor = root.querySelector('.cursor')
     const make = (className, html = '') => {
       const element = document.createElement('div')
