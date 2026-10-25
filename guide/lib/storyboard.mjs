@@ -202,3 +202,19 @@ export async function chooseInTree ({ page, input, trigger, path }) {
   await input.click(`${pickerOption(path.at(-1))}.querySelector('.option-label-button')`)
   await page.waitFor(`!document.querySelector('.options-list')`, 10000)
 }
+
+/** In the Commit Ontology Version form, a legal reference for its licence or copyright (button), found by searching */
+export async function commitReference ({ page, input, button, description }) {
+  await input.click(`[...document.querySelectorAll('.form-modal .reference-section button')].find((b) => b.innerText.includes(${q(button)}))`)
+  await page.waitFor(`document.querySelector('.modal-container .tab')`, 15000)
+  await input.pause(600)
+  await input.click(`[...document.querySelectorAll('.modal-container .tab')].find((t) => t.innerText.includes('Search'))`)
+  await page.waitFor(`document.querySelector('.modal-container .search-input')`, 10000)
+  await input.type('document.querySelector(".modal-container .search-input")', description.split(' ').slice(0, 2).join(' '))
+  const item = `[...document.querySelectorAll('.modal-container .reference-item')].find((r) => r.querySelector('.reference-externalId')?.innerText.trim() === ${q(description)})`
+  await page.waitFor(item, 15000)
+  await input.pause(800)
+  await input.click(`(${item}).querySelector('.select-checkbox input')`)
+  await page.waitFor(`!document.querySelector('.modal-container')`, 10000)
+  await input.pause(800)
+}

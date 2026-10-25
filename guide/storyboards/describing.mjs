@@ -3,7 +3,7 @@
 // method Ruler on the flag leaf and the variable Flag leaf length (cm) on the existing Centimetres scale, shows the drafts
 // alone, and commits them as a minor version with the ontology's licence and copyright. Plays from a fresh load of the
 // demonstration database, which has none of them; the places chapter goes on from it.
-import { byText } from '../lib/storyboard.mjs'
+import { byText, commitReference } from '../lib/storyboard.mjs'
 import { nextSeason } from '../data/next-season.mjs'
 
 const q = JSON.stringify
@@ -45,22 +45,6 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await created(what)
     await input.pause(1200)
   }
-  // a legal reference for the commit, found by searching for it
-  const reference = async (button, description) => {
-    await input.click(`[...document.querySelectorAll('.form-modal .reference-section button')].find((b) => b.innerText.includes(${q(button)}))`)
-    await page.waitFor(`document.querySelector('.modal-container .tab')`, 15000)
-    await input.pause(600)
-    await input.click(`[...document.querySelectorAll('.modal-container .tab')].find((t) => t.innerText.includes('Search'))`)
-    await page.waitFor(`document.querySelector('.modal-container .search-input')`, 10000)
-    await input.type('document.querySelector(".modal-container .search-input")', 'Example Ontology')
-    const item = `[...document.querySelectorAll('.modal-container .reference-item')].find((r) => r.querySelector('.reference-externalId')?.innerText.trim() === ${q(description)})`
-    await page.waitFor(item, 15000)
-    await input.pause(800)
-    await input.click(`(${item}).querySelector('.select-checkbox input')`)
-    await page.waitFor(`!document.querySelector('.modal-container')`, 10000)
-    await input.pause(800)
-  }
-
   await recorder.hold(async () => {
     await page.goto(`${app}/ontology`)
     await page.waitFor(`${entryButton('Trait')} && document.querySelector('.latest-commit-info')`, 30000)
@@ -112,8 +96,8 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.pause(800)
     await input.choose(commitForm('select[name=versionChange]'), 'MINOR')
     await input.type(commitForm('textarea[name=comment]'), 'Add flag leaf length, for the 2027 trials')
-    await reference('Select Licence', 'Example Ontology Licence')
-    await reference('Select Copyright', 'Example Ontology Copyright')
+    await commitReference({ page, input, button: 'Select Licence', description: 'Example Ontology Licence' })
+    await commitReference({ page, input, button: 'Select Copyright', description: 'Example Ontology Copyright' })
     await input.hover(commitForm('.reference-section'), 1500)
     await input.click(commitForm('button[type=submit]'))
     await page.waitFor(`!document.querySelector('.form-modal')`, 30000)
