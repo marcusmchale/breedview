@@ -4,7 +4,8 @@
 //
 // The user guide's chapters (src/guide/chapters), which we write, take options for what they need, each as safe:
 // - media: name => url, for images given as the bare file name of a picture in the guide's media ([alt](shot.png));
-// - internalLinks: links to a path within the app (/guide/joining), opened in the same tab;
+// - internalLinks: links to a path within the app (/guide/joining), opened in the same tab; or, as a function of the
+//   path, only where it returns true, a link elsewhere showing as its text alone (a chapter not yet written);
 // - tables: pipe tables, their cells as inline text;
 // - callouts: names of the boxes `> [!NAME]` may open (an aside, class callout-<name>); other quotes are blockquotes;
 // - code: `code` spans.
@@ -35,7 +36,10 @@ const inline = (text, options = {}) => {
   return html
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (written, label, address) => {
       if (LINKABLE.test(address)) return `<a href="${address}" target="_blank" rel="noopener noreferrer">${label}</a>`
-      if (options.internalLinks && INTERNAL.test(address)) return `<a href="${address}">${label}</a>`
+      if (options.internalLinks && INTERNAL.test(address)) {
+        if (typeof options.internalLinks === 'function' && !options.internalLinks(address)) return label
+        return `<a href="${address}">${label}</a>`
+      }
       return written
     })
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')

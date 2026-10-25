@@ -13,19 +13,31 @@ export const GUIDE_OPTIONS = {
   code: true,
   callouts: ['WHO', 'SEES', 'DATA', 'NOTE']
 }
+/**
+ * For internalLinks: whether a path links, given the chapters written (their slugs). A link to a chapter not yet
+ * written shows as its text alone, until it is; other paths link.
+ */
+export const linksTo = (slugs) => (address) => {
+  const chapter = /^\/guide\/([\w-]+)/.exec(address)?.[1]
+  return !chapter || chapter === 'print' || slugs.includes(chapter)
+}
 const VIDEO = /^!\[([^\]]*)\]\(([\w.-]+)\.mp4\)$/
 const TITLE = /^#\s+(.*)$/
 const SECTION = /^#{1,2}\s/
 
-/** { title, summary, blocks: [{ type: 'html', html } | { type: 'video', name, alt } | { type: 'steps' }], steps } */
-export function renderGuide (markdown) {
+/**
+ * { title, summary, blocks: [{ type: 'html', html } | { type: 'video', name, alt } | { type: 'steps' }], steps }, with
+ * the guide's options and any given, e.g. internalLinks: linksTo(slugs)
+ */
+export function renderGuide (markdown, given = {}) {
+  const options = { ...GUIDE_OPTIONS, ...given }
   const lines = String(markdown ?? '').split(/\r?\n/)
-  const steps = parseSteps(markdown).map((step) => ({ ...step, html: renderMarkdown(step.details, GUIDE_OPTIONS) }))
+  const steps = parseSteps(markdown).map((step) => ({ ...step, html: renderMarkdown(step.details, options) }))
   let title = ''
   const blocks = []
   let pending = []
   const flush = () => {
-    if (pending.join('').trim()) blocks.push({ type: 'html', html: renderMarkdown(withoutStepIds(pending.join('\n')), GUIDE_OPTIONS) })
+    if (pending.join('').trim()) blocks.push({ type: 'html', html: renderMarkdown(withoutStepIds(pending.join('\n')), options) })
     pending = []
   }
   for (let i = 0; i < lines.length; i++) {

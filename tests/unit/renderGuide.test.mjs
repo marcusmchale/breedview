@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { renderGuide } from '../../src/guide/renderGuide.js'
+import { linksTo, renderGuide } from '../../src/guide/renderGuide.js'
 
 const chapter = `# Looking around
 
@@ -43,4 +43,15 @@ test('chapter 1 renders, with its video and nine steps', () => {
   assert.equal(page.title, 'Looking around as a visitor')
   assert.equal(page.blocks.filter((block) => block.type === 'video').length, 1)
   assert.equal(page.steps.length, 9)
+})
+
+test('a link to a chapter not yet written shows as its text, until it is written', () => {
+  const opens = linksTo(['joining', 'teams'])
+  assert.ok(opens('/guide/joining#steps'))
+  assert.ok(!opens('/guide/planting'))
+  assert.ok(opens('/guide/print/dpo'), 'the printed collections')
+  assert.ok(opens('/guide'), 'the contents')
+  assert.ok(opens('/programs'), 'the app')
+  const page = renderGuide('# T\n\nAs [Planting a trial](/guide/planting) shows, after [Joining](/guide/joining).\n', { internalLinks: opens })
+  assert.equal(page.blocks[0].html, '<p>As Planting a trial shows, after <a href="/guide/joining">Joining</a>.</p>')
 })

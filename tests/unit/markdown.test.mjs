@@ -52,6 +52,13 @@ test('links within the app open in the same tab; other addresses stay as written
   }
 })
 
+test('a link within the app that the internalLinks function refuses shows as its text alone', () => {
+  const options = { ...GUIDE_OPTIONS, internalLinks: (address) => address !== '/guide/planting' }
+  assert.equal(renderMarkdown('As [Planting a trial](/guide/planting) shows.', options), '<p>As Planting a trial shows.</p>')
+  assert.equal(renderMarkdown('[Joining](/guide/joining)', options), '<p><a href="/guide/joining">Joining</a></p>')
+  assert.equal(renderMarkdown('[<b>x</b>](/guide/planting)', options), '<p>&lt;b&gt;x&lt;/b&gt;</p>', 'its text escaped')
+})
+
 test('pipe tables become tables, their cells escaped', () => {
   assert.equal(renderMarkdown('| Who | Sees |\n|---|---|\n| A visitor | **public** <b>data</b> |', GUIDE_OPTIONS),
     '<table><thead><tr><th>Who</th><th>Sees</th></tr></thead>' +
