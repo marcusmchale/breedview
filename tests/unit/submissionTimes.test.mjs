@@ -2,8 +2,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  addColumn, columnKey, columnValues, firstColumns, hasTime, sameTimeColumns, tableRows, timeLabel, timeOrderError,
-  valueTime
+  addColumn, columnKey, columnValues, firstColumns, hasTime, partlyTyped, sameTimeColumns, tableRows, timeLabel,
+  timeOrderError, valueTime
 } from '../../src/composables/datasets/submissionTimes.js'
 
 test('rows come unit by unit, or round by round: every unit once, then again', () => {
@@ -74,4 +74,13 @@ test("a variable's values come from all its columns, each with its time and the 
   ])
   assert.deepEqual(columnValues(rows, columns, '8').map(({ start, value }) => [start, value]), [['2026-06-03', '3'], ['', '4']],
     "a column without a time takes each row's")
+})
+
+test('a time half typed is not yet wrong, while one that typing more cannot mend is', () => {
+  for (const typing of ['', '2', '2026', '2026-', '2026-0', '2026-06-2', '2026-06-25T', '2026-06-25T09:3', ' 2026-06 ']) {
+    assert.ok(partlyTyped(typing), typing)
+  }
+  for (const wrong of ['2026-6-', '26/06/2026', '2026-06-25 09:30', '20260', '2026-06-25T9:', 'June']) {
+    assert.ok(!partlyTyped(wrong), wrong)
+  }
 })

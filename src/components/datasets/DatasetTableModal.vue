@@ -10,7 +10,7 @@ import {
 } from '@tanstack/vue-table';
 
 import { useDatasetTable } from '@/composables/datasets/useDatasetTable';
-import { sameTimeColumns, timeLabel, timeOrderError } from '@/composables/datasets/submissionTimes';
+import { partlyTyped, sameTimeColumns, timeLabel, timeOrderError } from '@/composables/datasets/submissionTimes';
 import { useDatetimeUtils } from '@/composables/parsers/partialDatetime';
 import { categoryLabel } from '@/composables/ontology/scaleCategories';
 import { useDatasetSubmissionWithGroupings } from '@/composables/datasets/useDatasetSubmissionWithGroupings';
@@ -506,6 +506,13 @@ const columnTimeDraftError = computed(() => {
   }
   const drafted = valueColumns.value.map((c) => (c.key === draft.key ? { ...c, start: draft.start, end: draft.end } : c));
   return timeOrderError(draft) ?? (sameTimeColumns(drafted).has(draft.key) ? 'Another column of this variable has this time' : null);
+});
+// the draft's error as shown: not while a time is still being typed, though it can't be applied yet
+const columnTimeShownError = computed(() => {
+  const draft = columnTimeEditing.value;
+  const values = draft ? [draft.start, draft.end].map((value) => String(value ?? '').trim()) : [];
+  const typing = values.every(partlyTyped) && !values.every((value) => validatePartialDatetime(value));
+  return typing ? null : columnTimeDraftError.value;
 });
 const applyColumnTime = () => {
   if (!columnTimeEditing.value || columnTimeDraftError.value) return;
@@ -1117,7 +1124,7 @@ const getFileReferenceDisplay = (value) => {
             End (optional)
             <input v-model="columnTimeEditing.end" name="columnEnd" type="text" placeholder="YYYY-MM-DD" @keydown.enter="applyColumnTime" />
           </label>
-          <div v-if="columnTimeDraftError" class="error-message">{{ columnTimeDraftError }}</div>
+          <div v-if="columnTimeShownError" class="error-message">{{ columnTimeShownError }}</div>
           <div class="popover-actions">
             <button class="btn btn-secondary use-row-times" title="The values take their rows' Start and End" @click="useRowTimes">
               Use row times

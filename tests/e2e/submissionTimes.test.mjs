@@ -131,12 +131,17 @@ async function enter (unit, key, value, nth = 0) {
   await page.waitFor(`${cellOf(unit, key, nth)}.innerText.trim() === ${q(value)}`, 5000)
 }
 
-// A column's time, set in its popover
-async function setColumnTime (start) {
+// A start typed into the open column time popover
+async function draftStart (start) {
   await page.waitFor(`document.querySelector('.column-time-popover input[name=columnStart]')`, 5000)
   await page.evaluate(`(() => { const input = document.querySelector('.column-time-popover input[name=columnStart]');
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${q(start)});
     input.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+}
+
+// A column's time, set in its popover
+async function setColumnTime (start) {
+  await draftStart(start)
   await page.click('.column-time-popover .apply-time')
   await page.waitFor(`!document.querySelector('.column-time-popover')`, 5000)
 }
@@ -154,6 +159,13 @@ test("a column's time, another column of the variable at another time, and the r
 
   // Tree Height at a time of its own, and another column of it, whose time is asked for at once
   await page.evaluate(`[...${tableModal}.querySelectorAll('thead th')].find((th) => th.dataset.column === ${q(height)}).querySelector('.column-time').click()`)
+  // half typed, a time is not wrong yet, though it can't be applied; one that typing more can't mend is
+  await draftStart('2026-0')
+  await page.sleep(200)
+  assert.ok(!(await page.exists('.column-time-popover .error-message')), 'no error while a time is being typed')
+  assert.ok(await page.evaluate(`document.querySelector('.column-time-popover .apply-time').disabled`), 'nor is it applied')
+  await draftStart('2026-6-')
+  await page.waitFor(`document.querySelector('.column-time-popover .error-message')?.innerText.startsWith('Use YYYY')`, 5000)
   await setColumnTime('2026-06-25')
   assert.equal(await headerTime(height), '📅 2026-06-25')
   await page.evaluate(`[...${tableModal}.querySelectorAll('thead th')].find((th) => th.dataset.column === ${q(height)}).querySelector('.another-time').click()`)

@@ -45,6 +45,12 @@ export function timeLabel ({ start, end } = {}) {
   return to ? `until ${to}` : ''
 }
 
+// a partial time as far as it is typed: what typing more could make YYYY, YYYY-MM, … or YYYY-MM-DDTHH:MM:SS
+const TYPED = /^(\d{0,4}|\d{4}-\d{0,2}|\d{4}-\d{2}-\d{0,2}|\d{4}-\d{2}-\d{2}T\d{0,2}|\d{4}-\d{2}-\d{2}T\d{2}:\d{0,2}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{0,2})$/
+
+/** Whether a time being typed could still become one, as 2026-0 can: its format is then not yet wrong */
+export const partlyTyped = (value) => TYPED.test(given(value))
+
 /** Why a start and end can't be a time, or null: the end must come after the start */
 export function timeOrderError ({ start, end } = {}) {
   const from = periodStart(given(start))
