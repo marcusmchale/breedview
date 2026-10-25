@@ -6,7 +6,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, loginAs, logout, flat } from './lib/app.mjs'
+import { config, expandProgramsUntil, loginAs, logout, flat } from './lib/app.mjs'
 import { entities as e, teams, concept, replicates, arrivals, positions, licences } from './lib/fixture.mjs'
 
 let browser, page
@@ -44,13 +44,8 @@ const organisation = teams.root.name
 async function openPrograms() {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.body.innerText.includes('REDACTED')`, 30000)
-  // expand until both readable studies show: a level can still be loading when the next is clicked in a full run
-  const studiesShown = `[${JSON.stringify(e.study_public.name)}, ${JSON.stringify(e.study_registered.name)}].every((n) => document.body.innerText.includes(n))`
-  for (let round = 0; round < 6 && !(await page.evaluate(studiesShown)); round++) {
-    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
-    await page.sleep(2500)
-  }
-  await page.waitFor(studiesShown, 30000)
+  // both readable studies
+  await expandProgramsUntil(page, `[${JSON.stringify(e.study_public.name)}, ${JSON.stringify(e.study_registered.name)}].every((n) => document.body.innerText.includes(n))`)
   await page.waitFor(`!document.querySelector('.controller-badge[disabled]')`, 30000)
 }
 

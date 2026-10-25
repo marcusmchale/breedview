@@ -8,7 +8,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, flat, loginAs } from './lib/app.mjs'
+import { config, expandProgramsUntil, flat, loginAs } from './lib/app.mjs'
 import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
@@ -82,11 +82,7 @@ test('programs: the public studies below placeholders, without badges or write a
   const mark = page.mark()
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.body.innerText.includes('REDACTED')`, 30000)
-  for (let level = 0; level < 2; level++) {
-    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
-    await page.sleep(2500)
-  }
-  await page.waitFor(`document.body.innerText.includes(${JSON.stringify(e.study_public.name)})`, 30000)
+  await expandProgramsUntil(page, `document.body.innerText.includes(${JSON.stringify(e.study_public.name)})`)
   const text = await pageText()
   assert.equal(text.match(/REDACTED/g)?.length, 2, 'the program and the trial are placeholders')
   for (const name of ['program_public', 'trial_public']) assert.ok(text.includes(e[name].name), `${name} is shown`)
@@ -101,12 +97,8 @@ test('programs: a visitor is offered View datasets alone, on the page and on a p
   await page.waitFor(`document.querySelector('.programs-header .view-datasets')`, 30000)
   assert.deepEqual(await page.evaluate(`[...document.querySelectorAll('.programs-header .header-actions > *')].map((e) => e.innerText.trim())`),
     ['View datasets'])
-  for (let level = 0; level < 2; level++) {
-    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
-    await page.sleep(2500)
-  }
   const card = `[...document.querySelectorAll('.study-card')].find((c) => c.innerText.includes(${JSON.stringify(e.study_public.name)}))`
-  await page.waitFor(`${card}?.querySelector('.section-toggle')`, 30000)
+  await expandProgramsUntil(page, `${card}?.querySelector('.section-toggle')`)
   await page.evaluate(`[...${card}.querySelectorAll('.section-toggle')].find((b) => b.innerText.includes('Datasets')).click()`)
   await page.waitFor(`${card}.querySelector('.dataset-actions .view-datasets')`, 30000)
   assert.deepEqual(await page.evaluate(`[...${card}.querySelector('.dataset-actions').children].map((e) => e.innerText.trim())`),

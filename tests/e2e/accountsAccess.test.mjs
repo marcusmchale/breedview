@@ -7,7 +7,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, loginAs, logout, flat } from './lib/app.mjs'
+import { config, expandProgramsUntil, loginAs, logout, flat } from './lib/app.mjs'
 import { entities as e } from './lib/fixture.mjs'
 
 let browser, page
@@ -20,10 +20,7 @@ const badgeOf = (card, name) => `[...document.querySelectorAll('.controller-badg
 async function openPrograms() {
   await page.goto(`${config.appUrl}/programs`)
   await page.waitFor(`document.querySelector('.controller-badge:not([disabled])')`, 30000)
-  for (let level = 0; level < 2; level++) {
-    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
-    await page.sleep(2500)
-  }
+  await expandProgramsUntil(page, `document.body.innerText.includes(${JSON.stringify(e.study_public.name)})`)
   await page.waitFor(`!document.querySelector('.controller-badge[disabled]')`, 30000)
 }
 async function history(card, name) {

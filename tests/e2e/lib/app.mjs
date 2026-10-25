@@ -30,6 +30,16 @@ export async function loginAs(page, viewer) {
   return login(page, account.username, account.password)
 }
 
+// On the programs page, expand the collapsed programs and trials until an expression holds (e.g. a study shows). A
+// level can still be loading when the next is clicked, so each round clicks whatever has appeared collapsed since.
+export async function expandProgramsUntil(page, shown) {
+  for (let round = 0; round < 6 && !(await page.evaluate(`!!(${shown})`)); round++) {
+    await page.evaluate(`[...document.querySelectorAll('.expand-icon')].filter((e) => e.innerText.includes('►')).forEach((e) => e.parentElement.click())`)
+    await page.sleep(2500)
+  }
+  await page.waitFor(shown, 30000)
+}
+
 // The session helpers (lib/session.mjs), at this configuration's addresses
 const session = createSession(config)
 export const { login, logout, graphql, register, mailFor, waitForMail, verifyEmail } = session
