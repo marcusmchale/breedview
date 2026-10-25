@@ -111,7 +111,9 @@ async function connectPage(port, { acceptTerms = true, loadsPerTab = LOADS_PER_T
     const terms = () => evaluate(`document.querySelector('[data-terms]')?.dataset.terms ?? null`)
     const start = Date.now()
     let state = await terms()
-    while (state !== 'asked' && state !== 'accepted' && Date.now() - start < (state === null ? 3000 : 15000)) {
+    // the app's page (its root, #app, before it mounts) says so in time, however loaded the machine; another page in 3 s
+    const app = await evaluate(`!!document.getElementById('app')`).catch(() => false)
+    while (state !== 'asked' && state !== 'accepted' && Date.now() - start < (state === null && !app ? 3000 : 15000)) {
       await sleep(150); state = await terms()
     }
     if (state !== 'asked') return
