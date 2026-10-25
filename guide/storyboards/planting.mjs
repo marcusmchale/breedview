@@ -168,10 +168,19 @@ export async function run ({ page, input, recorder, step, session, manifest, app
           if (result.status !== 'SUCCESS') throw new Error(`${plot.name}: ${JSON.stringify(result.errors)}`)
         }
       }
+      // the page read again, so the tree shows each plot's entry
+      await page.goto(`${app}/units?location=${field.id}&graph=${area.id}`)
+      await page.waitFor(node(plan.area), 30000)
+      const toggle = `(${node(plan.area)})?.querySelector('.expand-btn')`
+      await page.waitFor(toggle, 30000)
+      if (!(await page.evaluate(`${toggle}.classList.contains('expanded')`))) await page.evaluate(`${toggle}.click()`)
+      await page.waitFor(node(plots.at(-1).name), 30000)
+      await page.sleep(1500)
     }, { label: `Later: ${plots.length - 1} more plots, each with its entry and place` })
   })
 
   await step('planted', async () => {
+    await input.restoreCursor()
     const last = plots.at(-1)
     // down the tree's panel, which scrolls, to the last plot
     const inPanel = `(() => { const r = (${node(last.name)}).getBoundingClientRect(), p = document.querySelector('.tree-panel').getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom })()`

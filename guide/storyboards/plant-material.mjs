@@ -95,8 +95,12 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.pause(1200)
     await input.hover(unit, 1800)
     await input.click(unit)
-    await page.waitFor(`[...document.querySelectorAll('.details-card h2')].some((h) => h.innerText.trim() === ${q(selection.plant)})`, 30000)
+    // the Units page opens the plant's unit graph down to it, below its plot, and its card below the graph
+    const plant = `${byText('.tree-panel .node-name', selection.plant)}?.closest('.node-header')`
+    const plantCard = `[...document.querySelectorAll('.details-card h2')].find((h) => h.innerText.trim() === ${q(selection.plant)})?.closest('.details-card')`
+    await page.waitFor(`${plant} && ${plantCard}`, 30000)
     await input.pause(1500)
-    await input.hover(`[...document.querySelectorAll('.details-card h2')].find((h) => h.innerText.trim() === ${q(selection.plant)})`, 2500)
+    await input.hover(plant, 2500)
+    await input.hover(`(${plantCard}).querySelector('.fields-grid')`, 3500)
   })
 }

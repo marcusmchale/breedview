@@ -150,11 +150,21 @@ export async function gatherLinked ({ page, input, node, nodes, links, frame, ra
       const h = centre(hub)
       const from = centre(moving)
       const svg = document.querySelector(${q(frame)})
+      // what is in the way: every other node, the hub's too, and every label but the moving node's own
       const boxes = [
-        ...[...document.querySelectorAll(${q(nodes)})].filter((n) => n !== hub && n !== moving),
+        ...[...document.querySelectorAll(${q(nodes)})].filter((n) => n !== moving),
         ...[...svg.querySelectorAll('text')].filter((t) => t.__data__ !== moving.__data__ && t.textContent.trim())
       ].map((e) => e.getBoundingClientRect())
       const room = (x, y) => Math.min(...boxes.map((r) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom))))
+      // the moving node's label, which moves with it: kept clear of the rest, by its corners and middle
+      const label = [...svg.querySelectorAll('text')].find((t) => t.__data__ === moving.__data__ && t.textContent.trim())?.getBoundingClientRect()
+      const labelRoom = (x, y) => {
+        if (!label) return Infinity
+        const dx = x - from.x, dy = y - from.y
+        const points = [[label.left, label.top], [label.right, label.top], [label.left, label.bottom], [label.right, label.bottom],
+          [(label.left + label.right) / 2, (label.top + label.bottom) / 2]]
+        return Math.min(...points.map(([px, py]) => room(px + dx, py + dy)))
+      }
       let best = null
       for (let degrees = 0; degrees < 360; degrees += 15) {
         const x = h.x + ${radius} * Math.cos(degrees * Math.PI / 180)
@@ -162,7 +172,7 @@ export async function gatherLinked ({ page, input, node, nodes, links, frame, ra
         if (x < 80 || y < 60 || x > innerWidth - 120 || y > innerHeight - 40) continue
         const hit = document.elementFromPoint(x, y)
         if (!hit || !(hit === svg || svg.contains(hit))) continue
-        const score = Math.min(room(x, y), room((x + h.x) / 2, (y + h.y) / 2))
+        const score = Math.min(room(x, y), room((x + h.x) / 2, (y + h.y) / 2), labelRoom(x, y))
         if (!best || score > best.score) best = { x, y, score }
       }
       return best ? { x: best.x - from.x, y: best.y - from.y } : { x: 0, y: 0 }

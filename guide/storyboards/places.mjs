@@ -113,6 +113,8 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await page.waitFor(`!${locationCard('.drawn-shape')} && ${locationCard('.coord-pair')}`, 30000)
     await input.pause(1000)
     await input.hover(locationCard('.list'), 1800)
+    // the saved boundary, which the map now fits
+    await input.hover('document.querySelector(".map-panel .leaflet-container")', 2500)
   })
 
   await step('layout', async () => {
