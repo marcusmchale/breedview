@@ -91,11 +91,36 @@ export function useLocationMapQueries() {
         return regionResult.value?.locationsLocations?.result?.[0] ?? null
     })
 
+    const loadLocations = async (ids) => {
+        if (!ids.length) return []
+        const { data } = await client.query({ query: LOCATIONS_QUERY, variables: { locationIds: ids } })
+        return data?.locationsLocations?.result ?? []
+    }
+
+    /**
+     * Where a location that is not on the map would be: the places above it, nearest first, until one is on the map
+     * itself or by one of its children, given as that place and its children; [] if none is below the country
+     * (which is shown by its extent). E.g. a field just added to a farm, to be drawn there.
+     */
+    const nearestPlaced = async (location) => {
+        let current = location
+        while (current?.parent) {
+            const [parent] = await loadLocations([current.parent.id])
+            // the country has no coordinates of its own
+            if (!parent?.parent) return []
+            const places = [parent, ...await loadLocations((parent.children ?? []).map((child) => child.id))]
+            if (places.some((place) => place.coordinates?.length)) return places
+            current = parent
+        }
+        return []
+    }
+
     return {
         locationId,
         selectedLocation,
         childLocations,
         childLocationsLoading,
-        regionCountry
+        regionCountry,
+        nearestPlaced
     }
 }

@@ -23,7 +23,7 @@ import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
-const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry } = useLocationMapQueries()
+const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry, nearestPlaced } = useLocationMapQueries()
 
 // Place searches go through the API, which needs an account (breedgraph README.md, Maps)
 const { isAuthenticated } = useAuthStore()
@@ -604,7 +604,8 @@ const fitCountry = async (map, country, stillSelected) => {
 
 /**
  * Show the selected location: a country by its extent; anything else by its coordinates and those of its children,
- * or when none of them is placed, by its country
+ * or when none of them is placed, where it would be: by the nearest place above it on the map, with that place's
+ * children (a field just added, to be drawn, among the farm's), or failing that, by its country
  */
 const focusSelection = async () => {
   const location = selectedLocation.value
@@ -620,6 +621,12 @@ const focusSelection = async () => {
   const children = placedChildren.value.flatMap((child) => coordinatePoints(child.coordinates))
   if (own.length || children.length) {
     fitPoints(map, [...own, ...children], children.length ? CHILDREN_MAX_ZOOM : SHAPE_MAX_ZOOM)
+    return
+  }
+  const nearby = (await nearestPlaced(location)).flatMap((place) => coordinatePoints(place.coordinates))
+  if (!stillSelected()) return
+  if (nearby.length) {
+    fitPoints(map, nearby, CHILDREN_MAX_ZOOM)
   } else if (regionCountry.value) {
     await fitCountry(map, regionCountry.value, stillSelected)
   }
