@@ -123,9 +123,10 @@ const openAddChildModal = () => {
 const closeAddChildModal = () => {
   isAddChildModalOpen.value = false
 }
+// The layout read again lists the new child, in the tree too, which stays as it was opened: building it again would
+// close every node, so that adding blocks one by one meant opening the tree after each
 const handleAddChildSuccess = async () => {
   await refetchLayout()
-  emit('refresh-tree')
 }
 </script>
 
