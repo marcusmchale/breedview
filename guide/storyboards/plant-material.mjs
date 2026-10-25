@@ -1,9 +1,9 @@
 // Chapter 13, "Plant material" (src/guide/chapters/plant-material.md), the third of the next-season chain (manifest
 // chains.next_season, guide/data/next-season.mjs): Bridget records the cross EPB 26-X01, of EPB 25-S03 (maternal) by
-// EPB 21-022 (paternal), made by hand crossing; finds it in the pedigree graph with its parents beside it; then follows
-// EPB 25-S03's card to the 2025 plant it was selected from (manifest workflows.lab.selection). Plays on from the places
+// EPB 21-022 (paternal), made by hand crossing; finds it in the pedigree graph, its card listing its parents; then
+// goes from there to EPB 25-S03's card and on to the 2025 plant it was selected from (manifest workflows.lab.selection). Plays on from the places
 // chapter; the planting chapter goes on from it.
-import { byText, clearOf, gatherLinked } from '../lib/storyboard.mjs'
+import { byText } from '../lib/storyboard.mjs'
 import { nextSeason } from '../data/next-season.mjs'
 
 const q = JSON.stringify
@@ -21,8 +21,9 @@ export async function check ({ page, session, manifest }) {
 }
 
 const modal = (selector) => `document.querySelector(${q(`.modal ${selector}`)})`
-const graph = { nodes: '.germplasm-network-graph circle', links: '.germplasm-network-graph line', frame: '.germplasm-network-graph svg' }
 const node = (name) => `[...document.querySelectorAll('.germplasm-network-graph circle')].find((c) => c.__data__?.name === ${q(name)})`
+const cardTitle = `document.querySelector('.details-card-container .details-card h2')?.innerText.trim()`
+const sourceLink = (name) => `[...document.querySelectorAll('.details-card-container .relationship-item .rel-link')].find((b) => b.innerText.trim() === ${q(name)})`
 
 export async function run ({ page, input, recorder, step, manifest, app }) {
   const plan = manifest.chains.next_season.cross
@@ -77,17 +78,22 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
 
   await step('graph', async () => {
     await find(plan.name)
-    const cross = node(plan.name)
-    await input.drag(cross, { by: await clearOf(page, { node: cross, ...graph, margin: 170 }) })
-    await input.pause(1200)
-    await gatherLinked({ page, input, node: cross, ...graph, radius: 150 })
-    await input.pause(2500)
+    await input.hover(node(plan.name), 1500)
     recorder.poster()
+    // its card, below the graph, listing its parents
+    await input.click(node(plan.name))
+    await page.waitFor(`${cardTitle} === ${q(plan.name)} && ${sourceLink(maternal)}`, 15000)
+    // down to the card, with the wheel in the page's margin: over the graph it zooms
+    await input.scroll(null, 500, { at: { x: 1262, y: 560 } })
+    await input.pause(800)
+    await input.hover(`${sourceLink(maternal)}.closest('.section')`, 3500)
   })
 
   await step('selection', async () => {
-    await find(selected)
-    await input.click(node(selected))
+    // the mother's own card, from the cross's
+    await input.click(sourceLink(selected))
+    await page.waitFor(`${cardTitle} === ${q(selected)}`, 15000)
+    await input.pause(1000)
     const unit = `[...document.querySelectorAll('.details-card-container .field')].find((f) => f.querySelector('.field-label')?.textContent.trim() === 'Unit')?.querySelector('a')`
     await page.waitFor(unit, 15000)
     // down to the card, with the wheel in the page's margin: over the graph it zooms

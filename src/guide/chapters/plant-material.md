@@ -20,10 +20,11 @@ described by the ontology's control methods, such as Hand crossing, as in
 1. **Create New Entry records a new line.** Bridget names the cross EPB 26-X01, says when and how it was made, sexually,
    by hand crossing, and adds its sources: EPB 25-S03 as its maternal parent and EPB 21-022 as its paternal one. The
    Wheat Breeding Group controls it, and it is private until the line is released. {#entry}
-2. **The pedigree graph shows it with its parents.** Found by its name and drawn clear of its neighbours, the new cross
-   links to both parents, and theirs to the lines they came from. {#graph}
-3. **An entry can name the unit it came from.** EPB 25-S03 was selected from a plant in the 2025 trial, and its card
-   links to that plant on the Units page, with the plot it grew in. {#selection}
+2. **The pedigree graph finds it among the programme's lines.** Found by its name, the new cross is drawn linked to its
+   parents, and its card lists them as its sources: EPB 25-S03, maternal, and EPB 21-022, paternal. {#graph}
+3. **An entry can name the unit it came from.** From the cross's card, EPB 25-S03 opens its own: it was selected from a
+   plant in the 2025 trial, and its card links to that plant on the Units page, with the plot it grew in.
+   {#selection}
 
 ## Who sees what
 
