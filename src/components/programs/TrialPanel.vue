@@ -127,7 +127,8 @@ const handleStudyDeleted = () => {
       </div>
 
       <div class="trial-content">
-        <p v-if="trial.fullname"><strong>Full Name:</strong> {{ trial.fullname }}</p>
+        <!-- breedgraph gives a record with no full name its name: shown once -->
+        <p v-if="trial.fullname && trial.fullname !== trial.name"><strong>Full Name:</strong> {{ trial.fullname }}</p>
         <p v-if="trial.description">{{ trial.description }}</p>
         <p v-if="trial.start || trial.end" class="trial-dates">
           <span v-if="trial.start"><strong>Start:</strong> {{ trial.start }}</span>

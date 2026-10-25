@@ -107,7 +107,8 @@ const handleDeleteSuccess = () => {
       </div>
 
       <div class="study-content">
-        <p v-if="study.fullname"><strong>Full Name:</strong> {{ study.fullname }}</p>
+        <!-- breedgraph gives a record with no full name its name: shown once -->
+        <p v-if="study.fullname && study.fullname !== study.name"><strong>Full Name:</strong> {{ study.fullname }}</p>
         <p v-if="study.description">{{ study.description }}</p>
         <p v-if="study.start || study.end" class="study-dates">
           <span v-if="study.start"><strong>Start:</strong> {{ study.start }}</span>

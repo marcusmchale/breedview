@@ -124,7 +124,8 @@ const handleTrialDeleted = () => {
       </div>
 
       <div class="program-card-content">
-        <p v-if="program.fullname"><strong>Full Name:</strong> {{ program.fullname }}</p>
+        <!-- breedgraph gives a record with no full name its name: shown once -->
+        <p v-if="program.fullname && program.fullname !== program.name"><strong>Full Name:</strong> {{ program.fullname }}</p>
         <p v-if="program.description"><strong>Description:</strong> {{ program.description }}</p>
 
         <!-- Contacts -->
