@@ -21,7 +21,10 @@ export default defineConfig(({ command, mode }) => {
     },
     server: {
       port: 8080,
-      open: true
+      open: true,
+      // the guide recorder's frames (thousands a chapter) and the build it records from are no part of the app:
+      // watching them ran out of the system's file watchers
+      watch: { ignored: ['**/guide/out/**', '**/.guide-dist/**'] }
     },
     build: {
       outDir: 'dist'
