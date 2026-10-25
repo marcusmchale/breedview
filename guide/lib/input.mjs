@@ -71,14 +71,26 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
     const hit = document.elementFromPoint(x, y)
     const reaches = hit === el || el.contains(hit) || hit?.contains(el) || [...(el.labels ?? [])].some((l) => l.contains(hit))
     // under a bar that stays put as the page scrolls (the navigation bar, a sticky submit bar), scrolled out from
-    // under it; under anything else, such as a dialog's overlay, waited for
+    // under it; so too under what borders a box that scrolls (a dialog's footer, a list's Done bar), the target
+    // being in the box, clipped by it, and the cover outside it; under anything else, such as a dialog's overlay,
+    // waited for
     const bar = (e) => {
       for (; e && e !== document.documentElement; e = e.parentElement) {
         if (['fixed', 'sticky'].includes(getComputedStyle(e).position)) return e.getBoundingClientRect().height < innerHeight / 2
       }
       return false
     }
-    if (!reaches) return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing'), scroll: !!hit?.closest('.navbar') || bar(hit) }
+    const clipped = (cover) => {
+      for (let box = el.parentElement; box && box !== document.body; box = box.parentElement) {
+        if (box.contains(cover)) return false
+        const { overflowY } = getComputedStyle(box)
+        if (['auto', 'scroll'].includes(overflowY) && box.scrollHeight > box.clientHeight) return true
+      }
+      return false
+    }
+    if (!reaches) {
+      return { problem: 'covered by ' + (hit?.outerHTML.slice(0, 100) ?? 'nothing'), scroll: !!hit?.closest('.navbar') || bar(hit) || (!!hit && clipped(hit)) }
+    }
     return { x, y, rect: { left: r.left, top: r.top, width: r.width, height: r.height } }
   })()`)
 
@@ -268,6 +280,29 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
       await send('DOM.setFileInputFiles', { files: [path], backendNodeId: opened.backendNodeId })
       await overlay('hideCard()')
       await wait(500)
+    },
+
+    /**
+     * A link to a file on the server (one that opens it in a new tab, which headless frames don't show), pointed at and
+     * pressed, the file read with the page's session and shown as a card, its first lines, as download shows a file the
+     * page makes; no tab is opened. Returns { name, text }
+     */
+    fetchLink: async (target, { name = null, lines = 8, ms = 4000 } = {}) => {
+      const { x, y } = await locate(target)
+      await moveTo(x, y)
+      await wait(140)
+      await overlay(`ripple(${x}, ${y})`)
+      const file = await page.evaluate(`(async () => {
+        const response = await fetch((${describe(target)}).href, { credentials: 'include' })
+        const disposition = response.headers.get('Content-Disposition') ?? ''
+        return { name: /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? null, ok: response.ok, text: await response.text() }
+      })()`)
+      if (!file.ok) throw new Error(`The file at ${target} could not be read: ${file.text.slice(0, 200)}`)
+      const shown = file.text.split('\n').slice(0, lines).join('\n')
+      if (!fast) await overlay(`card(${q({ kind: 'Downloaded', heading: name ?? file.name ?? 'file', text: shown })})`)
+      await wait(ms)
+      await overlay('hideCard()')
+      return { name: name ?? file.name, text: file.text }
     },
 
     /**
