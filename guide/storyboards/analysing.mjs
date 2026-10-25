@@ -142,6 +142,7 @@ export async function run ({ page, input, step, manifest, app, recorder }) {
     const anova = `document.querySelector('.submission-view table.result-table')`
     await page.waitFor(anova, 30000)
     await input.hover(`${anova}.querySelector('tbody tr')`, 2500)
+    recorder.poster()
     await input.hover(`${anova}.querySelector('tbody tr:nth-child(3)')`, 1800)
     // the means of the entries, then of the rates: each title brought into view, then its chart under it
     const means = (of) => `[...document.querySelectorAll('.submission-view .estimated-means .em-header h4')].find((e) => e.innerText.trim() === ${q(`${HEIGHT}: means of ${of}`)})`

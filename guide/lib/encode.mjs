@@ -51,8 +51,11 @@ export function encode ({ dir, steps, out, name }) {
   })
   writeFileSync(`${out}/${name}.vtt`, cues.join('\n'))
 
-  // the poster: the second step's opening, past the Terms most chapters start with, else the first frame
-  const posterAt = Math.max(0, (timeline.steps[1] ?? timeline.steps[0])?.t - t0 + 1.5 || 0)
+  // the poster: the frame the storyboard chose (recorder.poster), else the second step's opening, past the Terms most
+  // chapters start with, else the first frame
+  const posterAt = timeline.poster != null
+    ? Math.max(0, timeline.poster - t0)
+    : Math.max(0, (timeline.steps[1] ?? timeline.steps[0])?.t - t0 + 1.5 || 0)
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-ss', posterAt.toFixed(2), '-i', video, '-frames:v', '1', '-q:v', '3',
     `${out}/${name}.jpg`])
 

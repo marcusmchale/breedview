@@ -12,6 +12,7 @@ export function createRecorder (page, { dir }) {
   const frames = []
   const steps = []
   const cuts = [] // { from, to, label } in seconds since the epoch, as frame timestamps are
+  let poster = null
   let started = null
   let stopped = false
 
@@ -42,6 +43,11 @@ export function createRecorder (page, { dir }) {
     /** The storyboard's step starts now */
     step (id) {
       if (started != null) steps.push({ id, t: videoTime(now()) })
+    },
+
+    /** The video's poster is the frame shown now, rather than the second step's opening (encode.mjs) */
+    poster () {
+      if (started != null) poster = videoTime(now())
     },
 
     /** Run fn with the camera off: its time is cut, and the video goes on from what fn leaves */
@@ -84,7 +90,7 @@ export function createRecorder (page, { dir }) {
       stopped = true
       writeFileSync(`${dir}/timeline.json`, JSON.stringify({ frames, steps, cuts: cuts.map((cut) => ({
         at: videoTime(cut.from), length: cut.to - cut.from, label: cut.label
-      })), end }, null, 1))
+      })), end, poster }, null, 1))
       return { frames: frames.length, steps: steps.length, end }
     }
   }

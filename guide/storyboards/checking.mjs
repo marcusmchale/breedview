@@ -66,6 +66,7 @@ export async function run ({ page, input, step, session, manifest, app, recorder
     await page.waitFor(`document.querySelector('.curation-table tbody tr:not(.section-header):not(.spacer-row) td')?.innerText.trim() === ${q(typo.plot)}`, 10000)
     await input.pause(800)
     await input.hover(`(${cell}).querySelector('.cell-value')`, 2500)
+    recorder.poster()
   })
 
   await step('correct', async () => {

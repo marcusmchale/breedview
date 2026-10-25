@@ -100,6 +100,7 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await page.waitFor(`(${studyCard})?.querySelector('.study-content')`, 30000)
     await input.pause(800)
     await input.hover(`(${studyCard}).querySelector('.study-content')`, 3500)
+    recorder.poster()
     await input.hover(`(${trialCard}).querySelector('.trial-content')`, 2500)
     await input.click(startsWith('.section-toggle', '▶ Datasets', studyCard))
     await page.waitFor(`(${studyCard}).querySelector('.dataset-actions')`, 15000)

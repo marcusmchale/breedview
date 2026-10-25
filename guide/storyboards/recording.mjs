@@ -117,6 +117,7 @@ export async function run ({ page, input, step, session, manifest, app, recorder
     await input.scroll(cell(plots[0], nitrogen), 420)
     await page.waitFor(`(${cell(plan.typo.plot, height)})?.innerText.trim() === ${q(plan.typo.typed)}`, 10000)
     await input.hover(cell(plan.typo.plot, height), 2500)
+    recorder.poster()
   })
 
   await step('times', async () => {

@@ -59,7 +59,7 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
 - **Cuts** (`lib/recorder.mjs`): page loads and work done off camera are cut from the video. After off-camera work, a
   chip says what was done, such as "Later: 35 more plots".
 - **Encoding** (`lib/encode.mjs`): an H.264 MP4 at 30 fps (BT.709, faststart), WebVTT captions with one cue a step,
-  and a poster.
+  and a poster: the frame a storyboard marks with `recorder.poster()`, or else the second step's opening.
 
 ## The guide's pages and its PDF
 
