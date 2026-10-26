@@ -1,5 +1,8 @@
 # breedview
 
+BreedView is the web front end of [BreedGraph](https://github.com/marcusmchale/breedgraph). Its user guide, a chapter at
+a time with a video of each, is at https://marcusmchale.github.io/breedview/guide/ (guide/README.md).
+
 ## Node setup
 ```
 Consider using nvm https://github.com/nvm-sh/ to manage node versions

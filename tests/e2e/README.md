@@ -97,7 +97,8 @@ npm run perf:programs            # every study panel's dataset summary on the pr
 
 Run the test files one at a time (`--test-concurrency=1`, as `npm run test:e2e` does): in parallel, a browser each,
 pages can time out. Other settings: `BREEDVIEW_URL` (default `http://localhost:8080`), `MAILHOG_URL` (default
-`http://localhost:8025`).
+`http://localhost:8025`), and `GUIDE_SITE_URL`, the guide's static site as served for `guideSite.test.mjs` (skipped
+without it; guide/README.md, The guide on GitHub Pages).
 
 ## What is covered
 

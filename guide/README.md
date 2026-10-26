@@ -93,3 +93,31 @@ and the guide's contents don't list it. `build:demo` builds with `.env.demo`, wh
 and may be reset, for `/demo/` (`VITE_BASE_PATH`), where the site is served on production's host; the router, the
 guide's media and its links follow the base path. The demonstration API's address,
 `https://breedgraph.universityofgalway.ie/demo`, goes in `.env.demo.local`.
+
+## The guide on GitHub Pages
+
+The guide is also a static site of its own, at https://marcusmchale.github.io/breedview/guide/, for anyone to read
+without a BreedGraph to hand: the app's guide pages (`src/components/guide`), with no API, sign-in or Terms of Use, in
+a shell of their own (`src/guideSite`, `guide-site/index.html`) that links to the demonstration site and to the two
+repositories. `vite.guide.config.js` builds it into `dist-guide`, with `.env.guide`'s base path (`/breedview/`) and
+demonstration site, and writes each chapter a copy of the page, with its title and description, at
+`guide/<chapter>/index.html`, as Pages has no fallback to a single page app (and a `404.html` for any other path).
+
+The videos are too large to keep in git (over 100 MB, and a new copy with each recording), so they are attached to a
+GitHub release instead, as `guide-media.zip`, and the workflow `.github/workflows/guide-pages.yml` builds the site with
+those of the most recent release that has them, and deploys it. It runs when a release is published, and by hand.
+
+To publish the guide, once the videos are recorded and encoded into `public/guide-media`:
+
+```bash
+npm run guide:media-zip     # public/guide-media as guide/out/guide-media.zip
+gh release create guide-2026-10-26 guide/out/guide-media.zip --title "User guide, 2026-10-26" \
+  --notes "The user guide's videos, for its GitHub Pages site"
+```
+
+The release starts the workflow (Actions → User guide on GitHub Pages; it can be run from there too). Once only,
+before the first: Settings → Pages → Source: GitHub Actions.
+
+To check the site before publishing it: `npm run guide:site`, then `npm run guide:site:preview` and open
+http://localhost:8086/breedview/guide (the preview falls back to the page for any path, as Pages doesn't, so check a
+chapter's own address too).

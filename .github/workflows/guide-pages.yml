@@ -1,0 +1,63 @@
+# The user guide as a static site on GitHub Pages (guide/README.md, The guide on GitHub Pages): built from the
+# repository, with the videos attached as guide-media.zip to the most recent release that has them, and deployed.
+# Runs when a release is published, and by hand (Actions → User guide on GitHub Pages → Run workflow). Settings →
+# Pages → Source must be "GitHub Actions".
+name: User guide on GitHub Pages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# one deployment at a time, the latest kept
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: The videos, from the most recent release that has them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=""
+          for candidate in $(gh release list --limit 50 --json tagName --jq '.[].tagName'); do
+            if gh release view "$candidate" --json assets --jq '.assets[].name' | grep -qx guide-media.zip; then
+              tag="$candidate"
+              break
+            fi
+          done
+          if [ -z "$tag" ]; then
+            echo "No release has guide-media.zip: attach one (npm run guide:media-zip) before publishing the guide"
+            exit 1
+          fi
+          echo "The videos of $tag"
+          gh release download "$tag" --pattern guide-media.zip --dir guide/out
+          unzip -q guide/out/guide-media.zip -d public
+      - run: npm run guide:site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-guide
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
