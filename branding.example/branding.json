@@ -1,0 +1,22 @@
+{
+  "colors": {
+    "header": "#4CAF50",
+    "headerText": "#ffffff",
+    "primary": "#007bff",
+    "primaryDark": "#0056b3",
+    "accent": "#2196f3",
+    "accentDark": "#1976d2",
+    "accentDarker": "#1565c0",
+    "accentLight": "#e3f2fd",
+    "footer": "transparent",
+    "footerText": "#666666"
+  },
+  "font": {
+    "family": "Arial, sans-serif"
+  },
+  "logos": [],
+  "footer": {
+    "text": null,
+    "links": []
+  }
+}

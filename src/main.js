@@ -10,6 +10,7 @@ import { hierarchicalSelectPlugin } from '@/plugins/formkitHierarchicalSelect'
 import { hierarchicalMultiSelectPlugin } from '@/plugins/formkitHierarchicalMultiSelect'
 
 import App from './App.vue'
+import { loadBranding } from './branding/loadBranding'
 import router from './router'
 import apolloClient from './graphql/apollo'
 
@@ -37,4 +38,5 @@ app.use(formKitPlugin, defaultConfig({
   plugins: [hierarchicalSelectPlugin, hierarchicalMultiSelectPlugin]
 }))
 
-app.mount('#app')
+// a deployment's branding first, so the app opens in its colours; without one, at once
+loadBranding().finally(() => app.mount('#app'))

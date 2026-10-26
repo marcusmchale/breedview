@@ -8,6 +8,7 @@ import { useAuthStore } from './composables/user/useAuthStore'
 import { useTermsOfUse } from './composables/system/useTermsOfUse'
 import TermsGate from './components/user/TermsGate.vue'
 import DemoBanner from './components/guide/DemoBanner.vue'
+import { branding } from './branding/loadBranding'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
 const router = useRouter()
@@ -101,6 +102,18 @@ onMounted(async () => {
     <nav v-if="!hideNavigation" class="navbar">
       <div class="nav-container">
         <div class="nav-brand">
+          <!-- a deployment's logos (src/branding), before BreedView's name -->
+          <component
+            :is="logo.href ? 'a' : 'span'"
+            v-for="logo in branding.logos"
+            :key="logo.src"
+            :href="logo.href || undefined"
+            :target="logo.href ? '_blank' : undefined"
+            :rel="logo.href ? 'noopener noreferrer' : undefined"
+            class="brand-logo"
+          >
+            <img :src="logo.src" :alt="logo.alt" :style="{ height: `${logo.height}px` }">
+          </component>
           <router-link to="/" class="brand-link">
             BreedView
             <span class="brand-note">an app for BreedGraph</span>
@@ -152,9 +165,21 @@ onMounted(async () => {
     </main>
 
     <footer v-if="!hideNavigation" class="app-footer">
-      <router-link to="/guide">User guide</router-link>
-      <router-link to="/terms">Terms of Use</router-link>
-      <router-link to="/privacy">Privacy notice</router-link>
+      <div class="footer-links">
+        <router-link to="/guide">User guide</router-link>
+        <router-link to="/terms">Terms of Use</router-link>
+        <router-link to="/privacy">Privacy notice</router-link>
+        <!-- a deployment's links (src/branding) -->
+        <a v-for="link in branding.footer.links" :key="link.href" :href="link.href" target="_blank" rel="noopener noreferrer">
+          {{ link.label }}
+        </a>
+      </div>
+      <p v-if="branding.footer.text" class="footer-text">{{ branding.footer.text }}</p>
+      <p class="footer-projects">
+        <a href="https://github.com/marcusmchale/breedview" target="_blank" rel="noopener noreferrer">BreedView</a>,
+        an app for
+        <a href="https://github.com/marcusmchale/breedgraph" target="_blank" rel="noopener noreferrer">BreedGraph</a>
+      </p>
     </footer>
   </div>
 </template>
@@ -189,11 +214,28 @@ onMounted(async () => {
   border-top: 1px solid #eee;
   text-align: center;
   font-size: 0.85rem;
+  background: var(--brand-footer);
+  color: var(--brand-footer-text);
 }
 
 .app-footer a {
-  color: #666;
-  margin: 0 0.75rem;
+  color: var(--brand-footer-text);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.5rem;
+}
+
+.footer-text,
+.footer-projects {
+  margin: 0.5rem 0 0;
+}
+
+.footer-projects {
+  font-size: 0.8rem;
 }
 
 @media (max-width: 768px) {
