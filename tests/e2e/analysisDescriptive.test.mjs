@@ -1,6 +1,7 @@
-// Descriptive statistics need a continuous concept term to describe, as the writer, on the test database's
+// Descriptive statistics need a continuous or ordinal concept term to describe, as the writer, on the test database's
 // dataset_public: its concept taken as categorical only groups, so the editor says so, and the analysis fails before it
-// is queued, saying why (breedgraph ObservationBuilder.check_described). Needs no worker.
+// is queued, saying why (breedgraph ObservationBuilder.check_described), which needs no worker. Taken as ordinal, it is
+// summarised by its categories, with no mean, which needs the test stack's worker.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -29,9 +30,13 @@ const levelLoaded = `!document.querySelector('.options-list .loading-state') && 
 const option = (label) => `[...document.querySelectorAll('.options-list .option-label')].find((e) => e.innerText.trim().startsWith(${q(label)})).closest('.option-item')`
 const field = (term, label) => `[...${term}.querySelectorAll('.field')].find((f) => f.querySelector('label')?.innerText.trim() === ${q(label)})`
 const submitButton = `[...document.querySelectorAll('.submit-actions button')].find((b) => b.innerText.includes('Submit'))`
-const HINT = 'Descriptive statistics describe continuous concept terms: ordinal and categorical ones only group them.'
+const HINT = 'Descriptive statistics describe continuous and ordinal concept terms: categorical ones only group them.'
+const term = `document.querySelectorAll('#analysis-terms .term')[0]`
+const hints = () => page.evaluate(`[...document.querySelectorAll('.submit-bar .problems li')].map((li) => li.innerText.trim())`)
+const status = `document.querySelector('.submission-view .title-row .status-badge:not(.running)')`
 
-test('descriptive statistics of a concept taken as categorical are hinted against, and fail saying why', async () => {
+// a new descriptive analysis of dataset_public, its concept a term
+async function newAnalysis () {
   await page.goto(`${config.appUrl}/analysis`)
   await page.waitFor(`document.querySelector('.config-editor') || [...document.querySelectorAll('button')].some((e) => e.innerText.includes('New'))`, 30000)
   if (!(await page.exists('.config-editor'))) {
@@ -57,24 +62,57 @@ test('descriptive statistics of a concept taken as categorical are hinted agains
   await page.evaluate(`(() => { const s = document.querySelector('#analysis-terms .add-terms select'); s.value = [...s.options].find((o) => o.text.startsWith(${q(conceptName)})).value; s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await page.evaluate(`[...document.querySelectorAll('#analysis-terms .add-terms button')].find((b) => b.innerText.trim() === 'Add').click()`)
   await page.waitFor(`document.querySelector('#analysis-terms .term .expand')`, 10000)
-  const hints = () => page.evaluate(`[...document.querySelectorAll('.submit-bar .problems li')].map((li) => li.innerText.trim())`)
+}
+
+// the concept taken as representation
+async function represent (representation) {
+  await page.click('#analysis-terms .term .expand')
+  await page.waitFor(`${field(term, 'Representation')}?.querySelector('select')`, 10000)
+  await page.evaluate(`(() => { const s = ${field(term, 'Representation')}.querySelector('select'); s.value = ${q(representation)}; s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+}
+
+test('descriptive statistics of a concept taken as categorical are hinted against, and fail saying why', async () => {
+  await newAnalysis()
   assert.ok(!(await hints()).includes(HINT), 'a continuous concept term is described')
 
   // the concept as categorical: nothing left to describe
-  await page.click('#analysis-terms .term .expand')
-  const term = `document.querySelectorAll('#analysis-terms .term')[0]`
-  await page.waitFor(`${field(term, 'Representation')}?.querySelector('select')`, 10000)
-  await page.evaluate(`(() => { const s = ${field(term, 'Representation')}.querySelector('select'); s.value = 'CATEGORICAL'; s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await represent('CATEGORICAL')
   await page.waitFor(`[...document.querySelectorAll('.submit-bar .problems li')].some((li) => li.innerText.trim() === ${q(HINT)})`, 10000)
 
   const mark = page.mark()
   await page.waitFor(`${submitButton} && !${submitButton}.disabled`, 30000)
   await page.evaluate(`${submitButton}.click()`)
   // prepared before it is queued, so it fails without a worker
-  const status = `document.querySelector('.submission-view .title-row .status-badge:not(.running)')`
   await page.waitFor(`!document.querySelector('.config-editor') && ${status}`, 60000)
   assert.equal(await page.evaluate(`${status}.innerText.replace(/[^A-Za-z ]/g, '').trim()`), 'Failed')
   const messages = await page.evaluate(`[...document.querySelectorAll('.submission-view .analysis-messages .message')].map((m) => m.innerText.replace(/\\s+/g, ' ').trim())`)
-  assert.ok(messages.some((m) => m.includes('INCOMPATIBLE_SCALE') && m.includes('Descriptive statistics describe CONTINUOUS concept terms, and none is')), q(messages))
+  assert.ok(messages.some((m) => m.includes('INCOMPATIBLE_SCALE') && m.includes('Descriptive statistics describe CONTINUOUS and ORDINAL concept terms, and none is')), q(messages))
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('a concept taken as ordinal is summarised by its categories, with no mean', async () => {
+  await newAnalysis()
+  await represent('ORDINAL')
+  await page.sleep(500)
+  assert.ok(!(await hints()).includes(HINT), 'an ordinal concept term is described')
+  const mark = page.mark()
+  await page.waitFor(`${submitButton} && !${submitButton}.disabled`, 30000)
+  await page.evaluate(`${submitButton}.click()`)
+  await page.waitFor(`!document.querySelector('.config-editor') && ${status}`, 120000)
+  assert.equal(await page.evaluate(`${status}.innerText.replace(/[^A-Za-z ]/g, '').trim()`), 'Completed')
+  const table = `document.querySelector('.submission-view .ordinal-table')`
+  await page.waitFor(table, 30000)
+  const { headers, overall } = await page.evaluate(`(() => ({
+    headers: [...${table}.querySelectorAll('thead th')].map((th) => th.innerText.trim()),
+    overall: [...${table}.querySelectorAll('tbody tr.overall td')].map((td) => td.innerText.trim())
+  }))()`)
+  assert.deepEqual(headers.slice(0, 8), ['Levels', 'n', 'Missing', 'Min', 'Q1', 'Median', 'Q3', 'Max'])
+  assert.ok(!headers.includes('Mean'), 'no mean')
+  // a column for each category, counted with its share, the counts adding up to n
+  const categories = overall.slice(8)
+  assert.ok(categories.length > 0 && categories.every((cell) => /^\d+ \(\d+%\)$/.test(cell)), q(overall))
+  assert.equal(categories.reduce((sum, cell) => sum + Number(cell.split(' ')[0]), 0), Number(overall[1]))
+  // the median is one of the categories
+  assert.ok(headers.slice(8).includes(overall[5]), q({ headers, overall }))
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })

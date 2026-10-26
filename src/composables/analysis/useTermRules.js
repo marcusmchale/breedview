@@ -184,8 +184,8 @@ export function analysisHints(form, conceptsById, groupingsById = {}) {
       break
     case 'DESCRIPTIVE_STATISTICS':
       if (conceptTerms.length === 0) hints.push('Add at least one concept term.')
-      else if (!conceptTerms.some((t) => repr(t) === 'CONTINUOUS')) {
-        hints.push('Descriptive statistics describe continuous concept terms: ordinal and categorical ones only group them.')
+      else if (!conceptTerms.some((t) => repr(t) === 'CONTINUOUS' || repr(t) === 'ORDINAL')) {
+        hints.push('Descriptive statistics describe continuous and ordinal concept terms: categorical ones only group them.')
       }
       break
     case 'CORRELATION':

@@ -233,6 +233,14 @@ fragment AnalysisResultFields on AnalysisResult {
       group { ...AnalysisGroupFields }
       count
       missingCount
+      ordinal {
+        categories { level count share }
+        minimum
+        lowerQuartile
+        median
+        upperQuartile
+        maximum
+      }
       mean
       standardDeviation
       standardError
