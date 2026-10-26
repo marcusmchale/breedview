@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { chapter as chapterOf, COLLECTIONS } from '@/guide/chapters'
-import { MEDIA } from '@/guide/renderGuide'
+import { BASE, MEDIA } from '@/guide/renderGuide'
 
 // A collection of the guide's chapters on one page, to print or save as a PDF (guide/pdf.mjs): each chapter's text and
 // steps, with its video's poster and a link to it where the video would be
@@ -10,9 +10,10 @@ const route = useRoute()
 const name = computed(() => route.params.collection)
 const collection = computed(() => COLLECTIONS[name.value] ?? null)
 const chapters = computed(() => (collection.value?.chapters ?? []).map(chapterOf).filter(Boolean))
-// the address the links name: this site's, or one given to print elsewhere (guide/pdf.mjs --site), if an origin
-const ORIGIN = /^https?:\/\/[\w.-]+(:\d+)?$/
-const site = ORIGIN.test(route.query.site ?? '') ? route.query.site : window.location.origin
+// the address the links name: this site's, under the path it is served at, or one given to print elsewhere (guide/pdf.mjs
+// --site), if an address without a query, such as https://breedgraph.universityofgalway.ie/demo
+const SITE = /^https?:\/\/[\w.-]+(:\d+)?(\/[\w.-]+)*$/
+const site = SITE.test(route.query.site ?? '') ? route.query.site : `${window.location.origin}${BASE.replace(/\/$/, '')}`
 watch(collection, (c) => { document.title = c ? `${c.title} - BreedView` : 'User guide - BreedView' }, { immediate: true })
 </script>
 

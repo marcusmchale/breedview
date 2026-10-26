@@ -3,7 +3,7 @@
 // demonstration site goes to them. It prints the page /guide/print/<collection>, which puts each video's poster and a
 // link to it in place of the video, and which only the dev server and guide:serve's build have.
 //
-//   node guide/pdf.mjs [--collection dpo] [--app http://localhost:8081] [--site https://<the demonstration site>]
+//   node guide/pdf.mjs [--collection dpo] [--app http://localhost:8081] [--site https://<host>/demo]
 //                      [--out <file>]
 //
 // The links to the videos name the site given, so a PDF printed from the recording stack points its readers at the
@@ -26,8 +26,8 @@ const { values: options } = parseArgs({
   }
 })
 // as the print page takes it (GuidePrint.vue), which otherwise names its own address
-if (options.site && !/^https?:\/\/[\w.-]+(:\d+)?$/.test(options.site)) {
-  throw new Error(`--site takes an address such as https://demo.example.org, without a path: ${options.site}`)
+if (options.site && !/^https?:\/\/[\w.-]+(:\d+)?(\/[\w.-]+)*$/.test(options.site)) {
+  throw new Error(`--site takes an address such as https://breedgraph.universityofgalway.ie/demo, without a query or a last slash: ${options.site}`)
 }
 
 const { page, close } = await launchBrowser({ width: 1100, height: 1400, acceptTerms: false })

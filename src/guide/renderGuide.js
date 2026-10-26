@@ -4,11 +4,15 @@
 import { renderMarkdown } from '../composables/system/markdown.js'
 import { parseSteps, withoutStepIds } from './steps.mjs'
 
+// the path the app is served under, /demo/ on the demonstration site (vite.config.js); / where Vite gives none, as in
+// the unit tests
+export const BASE = import.meta.env?.BASE_URL ?? '/'
 // where the guide's videos, captions, posters and pictures are served from (public/guide-media)
-export const MEDIA = '/guide-media/'
+export const MEDIA = `${BASE}guide-media/`
 export const GUIDE_OPTIONS = {
   media: (name) => `${MEDIA}${name}`,
   internalLinks: true,
+  base: BASE,
   tables: true,
   code: true,
   callouts: ['WHO', 'SEES', 'DATA', 'NOTE']

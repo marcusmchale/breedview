@@ -72,3 +72,9 @@ test('callouts of the names allowed become asides; any other quote is a blockquo
     '<blockquote><p>[!SCRIPT] &lt;script&gt;x&lt;/script&gt;</p></blockquote>')
   assert.equal(renderMarkdown('Use `npm run guide:record`.', GUIDE_OPTIONS), '<p>Use <code>npm run guide:record</code>.</p>')
 })
+
+test('an internal link is given under the path the app is served at', () => {
+  assert.equal(renderMarkdown('See [Joining](/guide/joining#steps).', { internalLinks: true, base: '/demo/' }),
+    '<p>See <a href="/demo/guide/joining#steps">Joining</a>.</p>')
+  assert.equal(renderMarkdown('See [Joining](/guide/joining).', { internalLinks: true }), '<p>See <a href="/guide/joining">Joining</a>.</p>')
+})

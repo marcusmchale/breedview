@@ -82,7 +82,7 @@ with the guide's options (`src/guide/renderGuide.js`):
 Under the video, a bar shows the lead of the step playing, and each step's Play button plays the video from it.
 
 ```bash
-npm run guide:pdf -- --site https://demo.breedgraph.universityofgalway.ie   # print /guide/print/dpo from guide:serve
+npm run guide:pdf -- --site https://breedgraph.universityofgalway.ie/demo   # print /guide/print/dpo from guide:serve
 npm run build:demo                                                          # the demonstration site, with its banner
 ```
 
@@ -90,4 +90,6 @@ npm run build:demo                                                          # th
 document to hand out apart from the guide, with each video's poster and a link to it under `--site`. The page it prints,
 `/guide/print/<collection>`, is in the dev server and guide:serve's build only (`VITE_GUIDE_PRINT`): no site offers it,
 and the guide's contents don't list it. `build:demo` builds with `.env.demo`, whose banner says the site is fictional
-and may be reset; the demonstration API's address goes in `.env.demo.local`.
+and may be reset, for `/demo/` (`VITE_BASE_PATH`), where the site is served on production's host; the router, the
+guide's media and its links follow the base path. The demonstration API's address,
+`https://breedgraph.universityofgalway.ie/demo`, goes in `.env.demo.local`.
