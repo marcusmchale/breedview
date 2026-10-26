@@ -55,6 +55,7 @@ const handleCommitSuccess = async () => {
 
       <CommitVersion
         v-if="showCommitVersionForm"
+        :latestCommit="latestCommit"
         @success="handleCommitSuccess"
         @cancel="showCommitVersionForm = false"
       />

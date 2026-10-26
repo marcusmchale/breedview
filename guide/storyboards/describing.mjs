@@ -3,7 +3,7 @@
 // method Ruler on the flag leaf and the variable Flag leaf length (cm) on the existing Centimetres scale, shows the drafts
 // alone, and commits them as a minor version with the ontology's licence and copyright. Plays from a fresh load of the
 // demonstration database, which has none of them; the places chapter goes on from it.
-import { byText, commitReference } from '../lib/storyboard.mjs'
+import { byText } from '../lib/storyboard.mjs'
 import { nextSeason } from '../data/next-season.mjs'
 
 const q = JSON.stringify
@@ -96,8 +96,7 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.pause(800)
     await input.choose(commitForm('select[name=versionChange]'), 'MINOR')
     await input.type(commitForm('textarea[name=comment]'), 'Add flag leaf length, for the 2027 trials')
-    await commitReference({ page, input, button: 'Select Licence', description: 'Example Ontology Licence' })
-    await commitReference({ page, input, button: 'Select Copyright', description: 'Example Ontology Copyright' })
+    // the licence and copyright, as the current version has them
     await input.hover(commitForm('.reference-section'), 1500)
     await input.click(commitForm('button[type=submit]'))
     await page.waitFor(`!document.querySelector('.form-modal')`, 30000)

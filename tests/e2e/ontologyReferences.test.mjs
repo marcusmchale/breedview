@@ -2,11 +2,12 @@
 // an ontology admin who reads the scenario's legal references of every release, the commit form's licence chooser
 // offers the public ones only. The others are listed but can't be chosen, and a licence made there is public. The form
 // is cancelled, so nothing is committed. An entry's references are chosen the same way: the entry form is closed
-// unsaved.
+// unsaved. The form starts with the current version's licence and copyright: that test commits a version citing the
+// scenario's, which stays in the ontology's history.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, loginAs, logout } from './lib/app.mjs'
+import { config, loginAs, logout, graphql } from './lib/app.mjs'
 import { entities as e } from './lib/fixture.mjs'
 
 const q = JSON.stringify
@@ -27,7 +28,8 @@ test('the commit form\'s licence chooser offers public references only', { skip 
   await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container h2')?.innerText.includes('Commit Ontology Version')`, 30000)
-  await page.clickText('+ Select Licence')
+  // + Select Licence, or Change when the current version has one
+  await page.evaluate(`document.querySelector('.form-container .reference-section button').click()`)
   await page.waitFor(`${chooser}?.querySelector('.modal-notice')`, 30000)
   assert.match(await page.evaluate(`${chooser}.querySelector('.modal-notice').innerText`), /must be public/)
 
@@ -58,6 +60,29 @@ test('the commit form\'s licence chooser offers public references only', { skip 
   const chosen = await page.evaluate(`document.querySelector('.form-container .selected-item .item-description')?.innerText.trim() ?? null`)
   assert.equal(chosen, e.reference_ontology_licence.name)
 
+  await page.evaluate(`document.querySelector('.form-container .btn-cancel').click()`)
+  await page.waitFor(`!document.querySelector('.form-container')`, 15000)
+})
+
+test('the commit form starts with the current version\'s licence and copyright', { skip }, async () => {
+  const [licence, copyright] = [e.reference_ontology_licence, e.reference_ontology_copyright]
+  const payload = await graphql(page, `mutation ($licence: ID, $copyright: ID, $comment: String) {
+    ontologyCommitVersion(versionChange: PATCH, comment: $comment, licenceId: $licence, copyrightId: $copyright) { status errors { message } } }`,
+  { licence: String(licence.id), copyright: String(copyright.id), comment: 'E2E: a licence and copyright the next commit starts with' })
+  assert.equal(payload.status, 'SUCCESS', JSON.stringify(payload.errors))
+
+  await page.goto(`${config.appUrl}/ontology`)
+  await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
+  await page.clickText('Commit Changes')
+  await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
+  const sections = await page.evaluate(`[...document.querySelectorAll('.form-container .reference-section')].map((section) => ({
+    label: section.querySelector('.section-label').innerText.trim(),
+    chosen: section.querySelector('.selected-item .item-description')?.innerText.trim() ?? null
+  }))`)
+  assert.deepEqual(sections, [
+    { label: 'Licence (Optional)', chosen: licence.name },
+    { label: 'Copyright (Optional)', chosen: copyright.name }
+  ])
   await page.evaluate(`document.querySelector('.form-container .btn-cancel').click()`)
   await page.waitFor(`!document.querySelector('.form-container')`, 15000)
 })

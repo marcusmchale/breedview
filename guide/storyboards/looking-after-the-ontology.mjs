@@ -2,7 +2,7 @@
 // workflows.ontology): Dara, the ontology's admin, makes Theo an editor, as he asked; deprecates the Fungicide programme
 // factor and commits the major version that removes it; finds it marked retired on the 2024 study that recorded it; and
 // restores it from there, as a draft. Plays from a fresh load of the demonstration database.
-import { byText, commitReference, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
+import { byText, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
 
 const q = JSON.stringify
 
@@ -93,8 +93,8 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     await input.pause(800)
     await input.choose('document.querySelector(".form-modal select[name=versionChange]")', 'MAJOR')
     await input.type('document.querySelector(".form-modal textarea[name=comment]")', 'Retire the fungicide programme, which the trials no longer record')
-    await commitReference({ page, input, button: 'Select Licence', description: 'Example Ontology Licence' })
-    await commitReference({ page, input, button: 'Select Copyright', description: 'Example Ontology Copyright' })
+    // the licence and copyright, as the current version has them
+    await input.hover('document.querySelector(".form-modal .reference-section")', 1500)
     await input.click('document.querySelector(".form-modal button[type=submit]")')
     await page.waitFor(`!document.querySelector('.form-modal')`, 30000)
     await page.waitFor(`document.querySelector('.latest-commit-info')?.innerText.includes('Retire the fungicide')`, 30000)

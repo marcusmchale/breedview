@@ -9,6 +9,10 @@ import { REFERENCE_TYPE_CONFIGS } from '@/composables/references/referenceTypes'
 
 import COMMIT_VERSION from '@/graphql/ontology/commitVersion.graphql'
 
+const props = defineProps({
+  // the latest commit: the new version keeps its licence and copyright unless they are changed here
+  latestCommit: { type: Object, default: null }
+})
 const emit = defineEmits(['success', 'cancel'])
 
 const { mutate: commitVersion } = useMutation(COMMIT_VERSION)
@@ -16,11 +20,11 @@ const { mutate: commitVersion } = useMutation(COMMIT_VERSION)
 const formData = ref({})
 
 // Licence state
-const selectedLicence = ref(null)
+const selectedLicence = ref(props.latestCommit?.licence ?? null)
 const isLicenceModalOpen = ref(false)
 
 // Copyright state
-const selectedCopyright = ref(null)
+const selectedCopyright = ref(props.latestCommit?.copyright ?? null)
 const isCopyrightModalOpen = ref(false)
 
 const legalReferenceTypes = [REFERENCE_TYPE_CONFIGS.LEGAL]
@@ -94,7 +98,10 @@ const handleCancel = () => {
           placeholder="Enter version comment"
         />
 
-        <p class="reference-help">The licence and copyright must be public references, as the ontology is shared.</p>
+        <p class="reference-help">
+          The licence and copyright must be public references, as the ontology is shared. They start as the current
+          version's.
+        </p>
 
         <!-- Licence Section -->
         <div class="reference-section">
