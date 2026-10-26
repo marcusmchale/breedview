@@ -2,13 +2,15 @@ mutation accountsUpdateUser(
     $name: String,
     $fullname: String,
     $email: String,
-    $password: String
+    $password: String,
+    $currentPassword: String
 ) {
     accountsUpdateUser(
         name: $name,
         fullname: $fullname,
         email: $email,
-        password: $password
+        password: $password,
+        currentPassword: $currentPassword
     ) {
         status
         errors {

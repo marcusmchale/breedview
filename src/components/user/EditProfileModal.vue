@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 
 import ACCOUNT_QUERY from '../../graphql/account/account.graphql'
@@ -72,23 +72,34 @@ watch([queryLoading, queryError, result], () => {
   }
 }, { immediate: true })
 
+// a new password, or a new email address, which resets it, asks for the current password, so that a signed-in browser
+// left open can't be used to take the account over
+const newEmail = computed(() => {
+  const email = formValues.value.email?.trim()
+  return email && email !== account.value?.user?.email ? email : undefined
+})
+const needsCurrentPassword = computed(() => Boolean(formValues.value.password) || Boolean(newEmail.value))
+
 const updateProfile = async (formData) => {
   try {
     updateError.value = ''
     successMessage.value = ''
 
-    // Prepare variables, only include password if it's provided
+    // only what was entered: a field left blank, or cleared, keeps its value
     const variables = {
-      name: formData.name,
-      fullname: formData.fullname,
-      email: formData.email,
-      password: formData.password
+      name: formData.name || undefined,
+      fullname: formData.fullname || undefined,
+      email: newEmail.value,
+      password: formData.password || undefined,
+      currentPassword: needsCurrentPassword.value ? formData.currentPassword : undefined
     }
 
     const response = await updateUserMutation(variables)
 
     if (response?.data?.accountsUpdateUser?.status === 'SUCCESS') {
-      successMessage.value = 'Profile updated successfully!'
+      successMessage.value = variables.password
+        ? 'Profile updated. Your new password has signed you out everywhere else.'
+        : 'Profile updated successfully!'
       // Emit profile-updated event to trigger refetch in parent
       setTimeout(() => {
         emit('profile-updated')
@@ -164,6 +175,15 @@ const closeModal = () => {
               label="New Password (optional)"
               help="Leave blank to keep current password"
               autocomplete="new-password"
+            />
+            <FormKit
+              v-if="needsCurrentPassword"
+              type="password"
+              name="currentPassword"
+              label="Current Password"
+              help="Needed to change your password or email address"
+              validation="required"
+              autocomplete="current-password"
             />
             <div class="form-actions right">
               <FormKit
