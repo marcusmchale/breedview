@@ -1,10 +1,14 @@
-// The table of units placed at once (PlaceUnitsModal, unitsPlaceUnits): a row for each unit, with its germplasm, the
-// layout it is in and its value on each of that layout's axes, typed or pasted from a spreadsheet. The layouts offered
-// are the chosen one and those below it that have axes; each axis name is one column, shared by the layouts that have
-// it. Names are matched ignoring case and surrounding space: germplasm by name or synonym (germplasmEntriesNamed), a
-// layout by its name, or by its path from the chosen layout where names repeat. Only what changes is sent: a unit's
-// position when it isn't at that place at the start already, as the API leaves such a unit as it is, and its germplasm
-// when it differs from its own. Imports nothing from Vue or the app, so the unit tests can load it.
+// The table of units placed at once (PlaceUnitsModal, unitsPlaceUnits): a row for each unit, with its germplasm and
+// where it is in a layout, typed or pasted from a spreadsheet. The layouts offered are the chosen one and those below
+// it that have axes; each axis name is one column, shared by the layouts that have it. A layout below the chosen one
+// sits at a position in its parent, on the parent's axes, so a field sheet's Block, Row and Column find a plot's block
+// from Block and its place in the block from Row and Column: the layout is found from the values, as a sheet gives
+// them. Only where a layout can't be found so (one at no position, or with an axis named as one above it) does the
+// table have a Layout column, to name it. Names are matched ignoring case and surrounding space: germplasm by name or
+// synonym (germplasmEntriesNamed), a layout by its name, or by its path from the chosen layout where names repeat.
+// Only what changes is sent: a unit's position when it isn't at that place at the start already, as the API leaves
+// such a unit as it is, and its germplasm when it differs from its own. Imports nothing from Vue or the app, so the
+// unit tests can load it.
 import { periodStart, periodEnd } from '../parsers/partialDatetime.js'
 
 export const fold = (text) => String(text ?? '').trim().toLowerCase()
@@ -16,8 +20,10 @@ export const byUnitName = (a, b) =>
 
 /**
  * The layouts a table offers, from the tree below the chosen one (layouts: the chosen one and those below it, in any
- * order, with { id, name, axes, parent }): those with axes, the chosen one first, each with the label it is shown and
- * matched by, its name, or its path from the chosen one where another offered layout has the same name
+ * order, with { id, name, axes, parent, position }): those with axes, the chosen one first, each with the label it is
+ * shown and matched by, its name, or its path from the chosen one where another offered layout has the same name; and
+ * its address, the values on the axes above it that lead to it from the chosen one ({ 'axis:Block': '1' }), or null
+ * where it can't be found so
  */
 export const layoutChoices = (rootId, layouts) => {
   const byId = new Map(layouts.map((layout) => [String(layout.id), layout]))
@@ -35,8 +41,33 @@ export const layoutChoices = (rootId, layouts) => {
     .sort((a, b) => (isRoot(a) ? -1 : isRoot(b) ? 1 : naturally.compare(path(a), path(b))))
   const counts = new Map()
   for (const layout of offered) counts.set(fold(layout.name), (counts.get(fold(layout.name)) ?? 0) + 1)
-  return offered.map((layout) => ({ ...layout, label: counts.get(fold(layout.name)) > 1 ? path(layout) : layout.name }))
+  const addresses = new Map()
+  const address = (layout) => {
+    const key = String(layout.id)
+    if (!addresses.has(key)) {
+      addresses.set(key, null)
+      if (isRoot(layout)) addresses.set(key, {})
+      else {
+        const parent = layout.parent ? byId.get(String(layout.parent.id)) : null
+        const above = parent?.axes?.length && (layout.position ?? []).length === parent.axes.length ? address(parent) : null
+        const names = above && [...Object.keys(above), ...parent.axes.map((axis) => `axis:${axis}`)]
+        // each axis named once on the way down, so a column feeds one level
+        if (above && new Set([...names, ...layout.axes.map((axis) => `axis:${axis}`)]).size === names.length + layout.axes.length) {
+          addresses.set(key, { ...above, ...Object.fromEntries(parent.axes.map((axis, i) => [`axis:${axis}`, String(layout.position[i])])) })
+        }
+      }
+    }
+    return addresses.get(key)
+  }
+  return offered.map((layout) => ({
+    ...layout,
+    label: counts.get(fold(layout.name)) > 1 ? path(layout) : layout.name,
+    address: address(layout)
+  }))
 }
+
+/** Whether the table needs a Layout column: a layout offered that its values can't find */
+export const namesLayouts = (choices) => choices.some((choice) => choice.address === null)
 
 /** The axis columns: every axis name of the layouts offered, in the order first met */
 export const axisColumns = (choices) => [...new Set(choices.flatMap((layout) => layout.axes))]
@@ -44,7 +75,7 @@ export const axisColumns = (choices) => [...new Set(choices.flatMap((layout) => 
 /** The columns that take values, in order: [{ key, label, axis? }] */
 export const tableColumns = (choices) => [
   { key: 'germplasm', label: 'Germplasm' },
-  ...(choices.length > 1 ? [{ key: 'layout', label: 'Layout' }] : []),
+  ...(namesLayouts(choices) ? [{ key: 'layout', label: 'Layout' }] : []),
   ...axisColumns(choices).map((axis) => ({ key: `axis:${axis}`, label: axis, axis }))
 ]
 
@@ -73,12 +104,15 @@ export const unitRow = (unit, choices) => {
     .sort((a, b) => startOf(a) - startOf(b) || endOf(a) - endOf(b))
     .at(-1)
   const layout = latest ? offered.get(String(latest.layout.id)) : null
+  // found by its address where it can be, else named
+  const named = namesLayouts(choices)
   return {
     unitId: String(unit.id),
     name: unit.name ?? `Unit ${unit.id}`,
     values: {
       germplasm: unit.germplasm?.name ?? '',
-      layout: layout && choices.length > 1 ? layout.label : '',
+      ...(named ? { layout: layout && layout.address === null ? layout.label : '' } : {}),
+      ...(layout?.address ?? {}),
       ...Object.fromEntries((layout?.axes ?? []).map((axis, i) => [`axis:${axis}`, latest.coordinates?.[i] ?? '']))
     }
   }
@@ -109,6 +143,29 @@ export const germplasmIndex = (names, entries) => {
 
 const NUMERIC_AXES = ['COORDINATE', 'CARTESIAN']
 
+const valueOf = (values, axis) => String(values[`axis:${axis}`] ?? '').trim()
+
+/**
+ * The layout a row's values find, from the chosen one down: at each layout, its axes' values, and the layout below it
+ * at that position if the row gives values for that one's axes too. { layout, missing } where the values stop short
+ */
+const findLayout = (values, choices) => {
+  const below = new Map()
+  for (const choice of choices.slice(1)) {
+    if (choice.address === null) continue
+    const parent = String(choice.parent.id)
+    below.set(parent, [...(below.get(parent) ?? []), choice])
+  }
+  let layout = choices[0]
+  for (;;) {
+    const here = layout.axes.map((axis) => valueOf(values, axis))
+    const next = (below.get(String(layout.id)) ?? []).find((child) =>
+      child.position.every((value, i) => fold(value) === fold(here[i])) && child.axes.some((axis) => valueOf(values, axis)))
+    if (!next) return layout
+    layout = next
+  }
+}
+
 /**
  * A row checked against the unit it is for: { errors: { column key: message }, pending, placement, changes }. The
  * placement is what unitsPlaceUnits takes for it, or null when nothing changes; changes says what does: { position,
@@ -135,34 +192,45 @@ export const checkRow = (row, unit, { choices, germplasm, start, end }) => {
     ? null
     : germplasmId === null ? 'removed' : 'set'
 
-  // the position: a layout and a value on each of its axes, or nothing
-  const axisKeys = Object.keys(values).filter((key) => key.startsWith('axis:'))
-  const given = axisKeys.filter((key) => String(values[key] ?? '').trim() !== '')
-  const layoutText = choices.length > 1 ? (values.layout?.trim() ?? '') : (given.length ? choices[0]?.label ?? '' : '')
+  // the position: a layout, named or found from the values, and a value on each of its axes; or nothing
+  const given = Object.keys(values).filter((key) => key.startsWith('axis:') && String(values[key] ?? '').trim() !== '')
+  const layoutText = namesLayouts(choices) ? (values.layout?.trim() ?? '') : ''
   let position = null
-  if (layoutText || given.length) {
-    const layout = layoutText ? choices.find((choice) => fold(choice.label) === fold(layoutText)) : null
-    if (!layoutText) errors.layout = 'Choose the layout'
-    else if (!layout) errors.layout = `No layout “${layoutText}” here`
-    else {
-      const coordinates = layout.axes.map((axis, i) => {
-        const value = String(values[`axis:${axis}`] ?? '').trim()
-        if (!value) errors[`axis:${axis}`] = `${axis} needed`
-        else if (NUMERIC_AXES.includes(layout.type?.axes?.[i]) && !Number.isFinite(Number(value))) {
-          errors[`axis:${axis}`] = `${axis} takes a number`
-        }
-        return value
-      })
-      for (const key of given) {
-        if (!layout.axes.includes(key.slice(5))) errors[key] = `${layout.label} has no ${key.slice(5)}`
+  let layout = null
+  if (layoutText) {
+    layout = choices.find((choice) => fold(choice.label) === fold(layoutText))
+    if (!layout) errors.layout = `No layout “${layoutText}” here`
+  } else if (given.length) {
+    // from the chosen layout, the only one with an empty address, when it has axes
+    const root = choices[0]?.address && !Object.keys(choices[0].address).length ? choices[0] : null
+    layout = root ? findLayout(values, choices) : null
+    if (!layout) errors.layout = 'Choose the layout'
+  }
+  if (layout) {
+    const coordinates = layout.axes.map((axis, i) => {
+      const value = valueOf(values, axis)
+      if (!value) errors[`axis:${axis}`] = `${axis} needed`
+      else if (NUMERIC_AXES.includes(layout.type?.axes?.[i]) && !Number.isFinite(Number(value))) {
+        errors[`axis:${axis}`] = `${axis} takes a number`
       }
-      position = {
-        locationId: String(layout.location?.id),
-        layoutId: String(layout.id),
-        coordinates,
-        start,
-        end: end || null
-      }
+      return value
+    })
+    // values on the axes above it are its address; others belong to no layout here
+    const address = layout.address ?? {}
+    const unused = given.filter((key) => !layout.axes.includes(key.slice(5)) && !(key in address && fold(address[key]) === fold(values[key])))
+    const hasBelow = choices.some((choice) => choice.address !== null && String(choice.parent?.id) === String(layout.id))
+    if (unused.length && !layoutText && hasBelow) {
+      const key = `axis:${layout.axes[0]}`
+      if (!errors[key]) errors[key] = `No layout at ${layout.axes.map((axis) => `${axis} ${valueOf(values, axis)}`).join(', ')} in ${layout.label}`
+    } else {
+      for (const key of unused) errors[key] = `${layout.label} has no ${key.slice(5)}`
+    }
+    position = {
+      locationId: String(layout.location?.id),
+      layoutId: String(layout.id),
+      coordinates,
+      start,
+      end: end || null
     }
   }
   let positionChange = false
@@ -180,7 +248,10 @@ export const checkRow = (row, unit, { choices, germplasm, start, end }) => {
         ...(positionChange ? { position } : {}),
         ...(germplasmChange ? { germplasmId } : {})
       }
-  return { errors, pending, placement, changes: { position: positionChange, germplasm: germplasmChange } }
+  return {
+    errors, pending, placement, layout: Object.keys(errors).length ? null : layout,
+    changes: { position: positionChange, germplasm: germplasmChange }
+  }
 }
 
 /** For each row index, the name of an earlier row's unit placed at the same place, where there is one */

@@ -1,9 +1,10 @@
 // Units placed at once from a table on the Units page (placeUnitsModal, unitsPlaceUnits), on the test database's field
 // laid out in blocks (manifest `positions`; skipped without them), signed in as the writer. Three plots are made for
 // the test, private to the child team, at Position Field South, and deleted afterwards. Place units… opens on the
-// selected unit's children; with the field's layout of blocks chosen, a field sheet pasted on a unit's name fills the
-// rows by name, a germplasm no one is named stops the save until corrected, and one plot is left unplaced. Saved, the
-// plots are in their blocks from the day given, with their germplasm; opened again, the table shows them as placed.
+// selected unit's children; with the field's layout of blocks chosen, the table takes a Block, Row and Tree for each,
+// as each block sits at its number on the field's Block axis. A field sheet pasted on a unit's name fills the rows by
+// name, a germplasm no one is named stops the save until corrected, and one plot is left unplaced. Saved, the plots are
+// in their blocks from the day given, with their germplasm; opened again, the table shows them as placed.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -71,9 +72,6 @@ const type = (target, value) => page.evaluate(`(() => {
 async function openTable () {
   await page.goto(`${config.appUrl}/units?location=${SOUTH}&graph=${root}&unit=${root}`)
   await page.waitFor(`[...document.querySelectorAll('.tree-actions button')].some((b) => b.innerText.includes('Place units'))`, 30000)
-  // the selected unit's children are chosen at first, once it has been read
-  await page.waitFor(`document.querySelector('.card-panel button')`, 30000)
-  await page.sleep(500)
   await page.clickText('Place units…')
   await page.waitFor(`document.querySelector('.place-units .hierarchical-multiselect')`, 30000)
   await page.waitFor(`document.querySelector('.place-units .place-empty')?.innerText.includes('Choose the units and the layout')`, 15000)
@@ -89,7 +87,7 @@ async function openTable () {
 test('a field sheet pasted on the units names fills their rows, and saved places each plot', { skip }, async () => {
   await openTable()
   const headers = await page.evaluate(`[...document.querySelectorAll('.placement-table th')].map((th) => th.innerText.trim())`)
-  assert.deepEqual(headers, ['Unit', 'Germplasm', 'Layout', 'Block', 'Row', 'Tree', ''])
+  assert.deepEqual(headers, ['Unit', 'Germplasm', 'Block', 'Row', 'Tree', ''])
   const names = plots.map((plot) => plot.name)
   assert.deepEqual(await page.evaluate(`[...document.querySelectorAll('.placement-table .unit-name')].map((i) => i.value)`), names)
 
@@ -102,9 +100,9 @@ test('a field sheet pasted on the units names fills their rows, and saved places
 
   // the sheet: a header line, the plots out of order and in another case, the last left out
   const sheet = [
-    'Plot\tEntry\tLayout\tBlock\tRow\tTree',
-    `${names[1].toUpperCase()}\t${e.crop_line.name}\tPosition South Block 2\t\t1\t3`,
-    `${names[0]}\tNo such line\tposition south block 1\t\t2\t1`
+    'Plot\tEntry\tBlock\tRow\tTree',
+    `${names[1].toUpperCase()}\t${e.crop_line.name}\t2\t1\t3`,
+    `${names[0]}\tNo such line\t1\t2\t1`
   ].join('\n')
   await paste(cell(names[0], 'name'), sheet)
   await page.waitFor(`${cell(names[0], 'germplasm')}?.classList.contains('invalid')`, 15000)
@@ -115,8 +113,8 @@ test('a field sheet pasted on the units names fills their rows, and saved places
   // corrected
   await type(cell(names[0], 'germplasm'), e.crop_line.name)
   await page.waitFor(`!document.querySelector('.placement-table input.invalid')`, 15000)
-  assert.equal(await status(names[0]), 'placed, germplasm set')
-  assert.equal(await status(names[1]), 'placed, germplasm set')
+  assert.equal(await status(names[0]), 'placed in Position South Block 1, germplasm set')
+  assert.equal(await status(names[1]), 'placed in Position South Block 2, germplasm set')
   assert.equal(await status(names[2]), 'unchanged')
   assert.match(await page.evaluate(`document.querySelector('.place-summary').innerText`), /2 units to place, 2 given germplasm/)
 
@@ -137,12 +135,12 @@ test('a field sheet pasted on the units names fills their rows, and saved places
 test('opened again, the table shows the plots where they were placed, unchanged', { skip }, async () => {
   await openTable()
   const names = plots.map((plot) => plot.name)
-  const values = (name) => page.evaluate(`['germplasm', 'layout', 'axis:Block', 'axis:Row', 'axis:Tree']
+  const values = (name) => page.evaluate(`['germplasm', 'axis:Block', 'axis:Row', 'axis:Tree']
     .map((key) => [...document.querySelectorAll('.placement-table tbody tr')]
       .find((tr) => tr.querySelector('.unit-name').value === ${q(name)}).querySelector('[data-cell$=":' + key + '"]').value)`)
-  assert.deepEqual(await values(names[0]), [e.crop_line.name, 'Position South Block 1', '', '2', '1'])
-  assert.deepEqual(await values(names[1]), [e.crop_line.name, 'Position South Block 2', '', '1', '3'])
-  assert.deepEqual(await values(names[2]), ['', '', '', '', ''])
+  assert.deepEqual(await values(names[0]), [e.crop_line.name, '1', '2', '1'])
+  assert.deepEqual(await values(names[1]), [e.crop_line.name, '2', '1', '3'])
+  assert.deepEqual(await values(names[2]), ['', '', '', ''])
   await page.evaluate(`(() => {
     const input = document.querySelector('.place-units input[name=start]')
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${q(SOWN)})

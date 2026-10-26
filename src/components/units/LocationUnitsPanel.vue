@@ -121,8 +121,6 @@ const canCreate = useCanCreate()
 const addingChildren = ref(false)
 // units placed at once, from a field sheet: at first the children of the selected unit, e.g. a trial area's plots
 const placing = ref(false)
-const placingIds = computed(() => (focus.value && String(focus.value.id) === props.unit ? focus.value.children ?? [] : [])
-  .map((child) => String(child.id)))
 const onPlaced = ({ units }) => {
   notice.value = {
     text: `Placed ${units.length} unit${units.length !== 1 ? 's' : ''}`,
@@ -210,7 +208,7 @@ const handleNodeDeleted = () => {
     <div v-if="placing" class="modal-overlay" @click="placing = false">
       <placeUnitsModal
         :locationId="locationId"
-        :unitIds="placingIds"
+        :childrenOf="unit"
         @placed="onPlaced"
         @close="placing = false"
       />

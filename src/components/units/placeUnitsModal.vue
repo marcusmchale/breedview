@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { FormKit } from '@formkit/vue'
 
 import { useSelectUnitsQuery } from '@/composables/datasets/selectUnitsQueries'
@@ -7,6 +7,7 @@ import { useDefinePositionQueries } from '@/composables/units/definePositionQuer
 import { useLayoutSubtree } from '@/composables/layouts/layoutSubtree'
 import { useGermplasmNamed } from '@/composables/germplasm/germplasmNamed'
 import { useMoveUnits } from '@/composables/units/mutatePositions'
+import { useUnitChildren } from '@/composables/units/unitChildren'
 import { useCachedName } from '@/composables/queryBase/cachedName'
 import { today } from '@/composables/units/unitPositions'
 import { periodStart } from '@/composables/parsers/partialDatetime'
@@ -17,19 +18,20 @@ import {
 
 // Places many units at once, each at a position of its own in a layout, with its germplasm (unitsPlaceUnits): e.g. a
 // trial's plots as they were sown, from the field sheet. The units are picked at a location, "By type…" selecting all
-// of a subject, and the layout is one there; the table has a row for each unit and a column for its germplasm, the
-// layout it is in (the chosen one or one below it) and each axis. Typed, or pasted from a spreadsheet: on a cell, the
-// lines fill the rows from there down; on a unit's name, each line's first cell names the unit it is for. Only what
-// changes is saved, all or none (placementTable.js).
+// of a subject, or are at first a unit's children; the layout is one there. The table has a row for each unit and a
+// column for its germplasm and each axis, so Block, Row and Column place a plot in its block, and a Layout column only
+// where a layout below the chosen one must be named. Typed, or pasted from a spreadsheet: on a cell, the lines fill
+// the rows from there down; on a unit's name, each line's first cell names the unit it is for. Only what changes is
+// saved, all or none (placementTable.js).
 const props = defineProps({
   locationId: {
     type: String,
     default: null
   },
-  // the units chosen at first, e.g. the plots of the trial area selected
-  unitIds: {
-    type: Array,
-    default: () => []
+  // the unit whose children are chosen at first, e.g. the trial area selected, for its plots
+  childrenOf: {
+    type: String,
+    default: null
   }
 })
 
@@ -37,7 +39,7 @@ const emit = defineEmits(['close', 'placed'])
 
 const formData = ref({
   locationId: props.locationId,
-  unitIds: [...props.unitIds],
+  unitIds: [],
   layoutId: null,
   start: today(),
   end: ''
@@ -48,6 +50,13 @@ const notice = ref('')
 const unitNameOf = useCachedName('Unit')
 const { placeUnits, placeUnitsLoading } = useMoveUnits()
 const { lookUp } = useGermplasmNamed()
+
+const { readChildren } = useUnitChildren()
+onMounted(async () => {
+  if (!props.childrenOf) return
+  const children = await readChildren(props.childrenOf)
+  if (!formData.value.unitIds.length) formData.value = { ...formData.value, unitIds: children.map((child) => String(child.id)) }
+})
 
 const {
   location,
@@ -139,10 +148,16 @@ const summary = computed(() => {
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 // the layout a row names, for greying the axes it doesn't have
-const rowLayout = (row) => (choices.value.length === 1
-  ? choices.value[0]
-  : choices.value.find((choice) => fold(choice.label) === fold(row.values.layout)) ?? null)
-const applies = (row, column) => !column.axis || !rowLayout(row) || rowLayout(row).axes.includes(column.axis)
+// the layout a row is placed in, for greying the axes neither it nor the way to it has
+const applies = (rowIndex, column) => {
+  const layout = checks.value[rowIndex].layout
+  return !column.axis || !layout || layout.axes.includes(column.axis) || column.key in (layout.address ?? {})
+}
+const change = (check) => [
+  check.changes.position ? `placed in ${check.layout?.label}` : '',
+  check.changes.germplasm === 'set' ? 'germplasm set' : '',
+  check.changes.germplasm === 'removed' ? 'germplasm removed' : ''
+].filter(Boolean).join(', ')
 
 // each column as wide as its longest value, within reason, so names show whole
 const widths = computed(() => {
@@ -244,7 +259,7 @@ const save = async () => {
           type="hierarchical-select"
           name="layoutId"
           label="Layout:"
-          help="The layout they are placed in, or one above the layouts they are in, e.g. the trial's, for its blocks"
+          help="The layout they are placed in, or one above it, e.g. the trial's: its Block finds the block, then Row and Column the place in it"
           :disabled="!formData.locationId"
           :selected="layout"
           :rootNodes="arrangements"
@@ -303,7 +318,7 @@ const save = async () => {
                     @paste="onPaste($event, rowIndex, 'name')"
                   >
                 </td>
-                <td v-for="column in columns" :key="column.key" :class="{ 'not-applicable': !applies(row, column) }">
+                <td v-for="column in columns" :key="column.key" :class="{ 'not-applicable': !applies(rowIndex, column) }">
                   <input
                     :value="row.values[column.key] ?? ''"
                     :size="widths[column.key]"
@@ -325,7 +340,7 @@ const save = async () => {
                   <span v-else-if="checks[rowIndex].pending" class="row-note">Looking up…</span>
                   <span v-else-if="shared.has(rowIndex)" class="row-warning">Same place as {{ shared.get(rowIndex) }}</span>
                   <span v-else-if="checks[rowIndex].placement" class="row-change">
-                    {{ [checks[rowIndex].changes.position ? 'placed' : '', checks[rowIndex].changes.germplasm === 'set' ? 'germplasm set' : '', checks[rowIndex].changes.germplasm === 'removed' ? 'germplasm removed' : ''].filter(Boolean).join(', ') }}
+                    {{ change(checks[rowIndex]) }}
                   </span>
                   <span v-else class="row-note">unchanged</span>
                 </td>
