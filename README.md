@@ -32,6 +32,11 @@ npm run build
 ```
 then copy dist contents to /var/www/breedview
 
+### Releases
+BreedView and [breedgraph](https://github.com/marcusmchale/breedgraph) are released together under the same version: a
+BreedView release works with the breedgraph release of the same number, and a release of one comes with a release of
+the other, even one with no changes of its own. The version is in `package.json`, and in breedgraph's `pyproject.toml`.
+
 ### Branding
 A deployment can carry its own brand, its colours, logos, font and footer links, without changing or rebuilding the app:
 an optional `branding/` folder beside it (under its base path, e.g. `/demo/branding/` for the demonstration site), whose
