@@ -6,6 +6,8 @@ node_modules
 .env.local
 .env.*.local
 .env.production
+# a deployment's own branding, kept beside the code but out of it (README.md, Branding)
+/private.*
 
 # Log files
 npm-debug.log*
