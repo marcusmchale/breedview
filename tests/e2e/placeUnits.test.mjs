@@ -98,15 +98,16 @@ test('a field sheet pasted on the units names fills their rows, and saved places
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })()`)
 
-  // the sheet: a header line, the plots out of order and in another case, the last left out
+  // the sheet: a header line, the plots out of order and in another case, one not here, the last plot left out
   const sheet = [
     'Plot\tEntry\tBlock\tRow\tTree',
     `${names[1].toUpperCase()}\t${e.crop_line.name}\t2\t1\t3`,
-    `${names[0]}\tNo such line\t1\t2\t1`
+    `${names[0]}\tNo such line\t1\t2\t1`,
+    'Another field plot\tNo such line\t1\t1\t1'
   ].join('\n')
   await paste(cell(names[0], 'name'), sheet)
   await page.waitFor(`${cell(names[0], 'germplasm')}?.classList.contains('invalid')`, 15000)
-  assert.match(await page.evaluate(`document.querySelector('.place-notice').innerText`), /1 line named no unit here: Plot/)
+  assert.match(await page.evaluate(`document.querySelector('.place-notice').innerText`), /^1 line named no unit here: Another field plot$/)
   assert.match(await status(names[0]), /No germplasm you can read is named “No such line”/)
   assert.equal(await page.evaluate(`document.querySelector('.place-units button[type=submit]').disabled`), true)
 

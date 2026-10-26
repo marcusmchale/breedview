@@ -121,12 +121,12 @@ const canCreate = useCanCreate()
 const addingChildren = ref(false)
 // units placed at once, from a field sheet: at first the children of the selected unit, e.g. a trial area's plots
 const placing = ref(false)
+// the tree stays as it is: placing changes no unit's parents, and the units placed come back to the cache
 const onPlaced = ({ units }) => {
   notice.value = {
     text: `Placed ${units.length} unit${units.length !== 1 ? 's' : ''}`,
     to: { name: 'Units', query: { location: props.locationId, unit: units[0]?.id } }
   }
-  treeKey.value++
 }
 const onArrivalChanged = ({ start }) => {
   if (arrivalParam(start) !== props.arrival) emit('update', { arrival: arrivalParam(start), unit: null })

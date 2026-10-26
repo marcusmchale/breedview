@@ -278,9 +278,9 @@ export const pastedCells = (text) => {
 /**
  * Rows with text pasted into them, from a cell: { rows, unmatched, overflow }. Pasted on a value cell, the lines fill
  * the rows from that row down and the cells the columns from that column on. Pasted on a unit's name, the first cell
- * of each line names the unit whose row it fills, from the first column: a line naming no unit is left out and
- * counted in unmatched (a header line, say). Lines past the last row, or cells past the last column, are dropped and
- * counted in overflow.
+ * of each line names the unit whose row it fills, from the first column: a first line naming no unit is the sheet's
+ * header, left out, and any other naming no unit is left out and listed in unmatched. Lines past the last row, or
+ * cells past the last column, are dropped and counted in overflow.
  */
 export const pasteInto = (rows, columns, { rowIndex, columnKey }, text) => {
   const lines = pastedCells(text)
@@ -296,11 +296,11 @@ export const pasteInto = (rows, columns, { rowIndex, columnKey }, text) => {
   }
   if (columnKey === 'name') {
     const byName = new Map(next.map((row) => [fold(row.name), row]))
-    for (const [name, ...cells] of lines) {
+    lines.forEach(([name, ...cells], i) => {
       const row = byName.get(fold(name))
       if (row) fill(row, cells, 0)
-      else if (fold(name) || cells.some((cell) => cell.trim())) unmatched.push(name.trim())
-    }
+      else if (i > 0 && (fold(name) || cells.some((cell) => cell.trim()))) unmatched.push(name.trim())
+    })
   } else {
     const from = columns.findIndex((column) => column.key === columnKey)
     if (from < 0) return { rows, unmatched, overflow }

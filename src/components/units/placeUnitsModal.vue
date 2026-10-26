@@ -54,7 +54,7 @@ const { lookUp } = useGermplasmNamed()
 const { readChildren } = useUnitChildren()
 onMounted(async () => {
   if (!props.childrenOf) return
-  const children = await readChildren(props.childrenOf)
+  const children = [...await readChildren(props.childrenOf)].sort(byUnitName)
   if (!formData.value.unitIds.length) formData.value = { ...formData.value, unitIds: children.map((child) => String(child.id)) }
 })
 

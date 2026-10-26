@@ -139,5 +139,6 @@ test('pasted on a value cell, lines fill rows down and cells columns across; on 
   const named = pasteInto(rows, columns, { rowIndex: 0, columnKey: 'name' }, sheet)
   assert.deepEqual(named.rows.map((r) => [r.values.germplasm, r.values['axis:Block'], r.values['axis:Column']]),
     [['X01', '1', '2'], ['', undefined, undefined], ['EPB 26-X01', '2', '1']])
-  assert.deepEqual([named.unmatched, named.overflow], [['Plot', 'HF27-9'], 0])
+  // the header left out, quietly
+  assert.deepEqual([named.unmatched, named.overflow], [['HF27-9'], 0])
 })
