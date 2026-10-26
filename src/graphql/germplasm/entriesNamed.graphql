@@ -1,0 +1,8 @@
+# The germplasm entries you can read with one of the names, or a synonym, ignoring case: to match names typed or pasted
+query germplasmEntriesNamed($names: [String!]!) {
+    germplasmEntriesNamed(names: $names) {
+        status
+        result { id name synonyms }
+        errors { message }
+    }
+}

@@ -1491,6 +1491,14 @@ type Mutation {
   unitsMoveUnits(units: UnitsSelection!, position: PositionInput!): UnitsPayload!
 
   """
+  Places each unit at a position of its own from its start, e.g. a trial's plots in its layout as planted, as
+  unitsMoveUnits moves units to one; a unit already at its place then stays as it is. Sets each unit's germplasm
+  where given. All or none, up to 1000 units, each once: refused for a unit with a position from its start or later,
+  and unless you curate every unit and can read the germplasm given. Returns the units, in the order given.
+  """
+  unitsPlaceUnits(placements: [UnitPlacementInput!]!): UnitsPayload!
+
+  """
   Changes one position of each unit, the one matching at, e.g. to end an arrival there or correct its start: refused
   where a unit has none or several matching, unless you curate every unit. Returns the units changed.
   """
@@ -2476,6 +2484,21 @@ input PositionChangeInput {
   coordinates: [String]
   start: DateTime
   end: DateTime
+}
+
+"""
+A unit's position from its start, and its germplasm, each changed only when given (unitsPlaceUnits)
+"""
+input UnitPlacementInput {
+  unitId: ID!
+
+  """
+  Where the unit is from the position's start, which is needed; omitted, its positions are unchanged
+  """
+  position: PositionInput
+
+  """ Omitted, the germplasm is unchanged; null removes it """
+  germplasmId: ID
 }
 
 input UnitInput {
@@ -5644,6 +5667,13 @@ type Query {
 
   """Get a list of Germplasm entries"""
   germplasmEntries(ids: [ID!]): GermplasmEntriesPayload!
+
+  """
+  The Germplasm entries you can read with one of the names, or a synonym, ignoring case and surrounding space: up to
+  1000 names, e.g. to match the names typed or pasted into a table. Names are unique among germplasm, synonyms need
+  not be.
+  """
+  germplasmEntriesNamed(names: [String!]!): GermplasmEntriesPayload!
 
   """
   Get a list of Germplasm entries that have no sources defined,

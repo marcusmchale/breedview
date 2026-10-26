@@ -7,6 +7,7 @@ import UnitTree from './UnitTree.vue'
 import UnitArrivalTree from './UnitArrivalTree.vue'
 import UnitCard from './UnitCard.vue'
 import addChildrenModal from './addChildrenModal.vue'
+import placeUnitsModal from './placeUnitsModal.vue'
 
 import { useUnitGraphsBoxQueries } from '@/composables/units/unitGraphsBoxQueries'
 import { arrivalParam, pathFrom, useUnitWithAncestors } from '@/composables/units/unitPlaces'
@@ -118,6 +119,17 @@ const onChildrenAdded = ({ units }) => {
 // children for units picked here, e.g. a leaf for each tree of the selected unit graph
 const canCreate = useCanCreate()
 const addingChildren = ref(false)
+// units placed at once, from a field sheet: at first the children of the selected unit, e.g. a trial area's plots
+const placing = ref(false)
+const placingIds = computed(() => (focus.value && String(focus.value.id) === props.unit ? focus.value.children ?? [] : [])
+  .map((child) => String(child.id)))
+const onPlaced = ({ units }) => {
+  notice.value = {
+    text: `Placed ${units.length} unit${units.length !== 1 ? 's' : ''}`,
+    to: { name: 'Units', query: { location: props.locationId, unit: units[0]?.id } }
+  }
+  treeKey.value++
+}
 const onArrivalChanged = ({ start }) => {
   if (arrivalParam(start) !== props.arrival) emit('update', { arrival: arrivalParam(start), unit: null })
 }
@@ -152,6 +164,7 @@ const handleNodeDeleted = () => {
         </div>
         <div v-if="graph && canCreate" class="tree-actions">
           <button type="button" class="btn btn-sm btn-secondary" @click="addingChildren = true">Add children…</button>
+          <button type="button" class="btn btn-sm btn-secondary" @click="placing = true">Place units…</button>
         </div>
         <UnitTree
           v-if="graph"
@@ -191,6 +204,15 @@ const handleNodeDeleted = () => {
         :locationId="locationId"
         @added="onChildrenAdded"
         @close="addingChildren = false"
+      />
+    </div>
+
+    <div v-if="placing" class="modal-overlay" @click="placing = false">
+      <placeUnitsModal
+        :locationId="locationId"
+        :unitIds="placingIds"
+        @placed="onPlaced"
+        @close="placing = false"
       />
     </div>
 
@@ -253,6 +275,7 @@ const handleNodeDeleted = () => {
 .tree-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 6px;
   margin-bottom: 8px;
 }
 

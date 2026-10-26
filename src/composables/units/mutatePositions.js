@@ -1,12 +1,14 @@
 import { toValue } from "vue";
 import { useCacheUpdates } from "@/apolloConfig/cacheUpdates"
 import { evictUnitsByLocation } from "@/composables/units/unitPlaces"
+import { refreshInheritedGermplasm } from "@/composables/units/lineages"
 
 import UNIT_FRAGMENT from '@/graphql/units/unitFragment.graphql'
 import ADD_POSITION_MUTATION from '@/graphql/units/addPosition.graphql'
 import REMOVE_POSITION_MUTATION from '@/graphql/units/removePosition.graphql'
 import MOVE_UNITS_MUTATION from '@/graphql/units/moveUnits.graphql'
 import CHANGE_POSITIONS_MUTATION from '@/graphql/units/changePositions.graphql'
+import PLACE_UNITS_MUTATION from '@/graphql/units/placeUnits.graphql'
 
 import { useApolloClient, useMutation } from '@vue/apollo-composable'
 
@@ -108,8 +110,9 @@ const failure = (error, fallback) => ({
 
 /**
  * Writes to the positions of many units at once, by id or an arrival's ({ unitIds } or { arrival }): a move to a
- * position from its start, and a change to one position of each, found by at. The units written come back with their
- * positions, which updates them in the cache; the lists of units by location are read again.
+ * position from its start, and a change to one position of each, found by at; and placing units by id, each at a
+ * position of its own, with its germplasm. The units written come back with their positions, which updates them in
+ * the cache; the lists of units by location are read again.
  */
 export function useMoveUnits() {
     const { resolveClient } = useApolloClient()
@@ -117,6 +120,7 @@ export function useMoveUnits() {
 
     const { mutate: moveUnitsMutation, loading: moveUnitsLoading } = useMutation(MOVE_UNITS_MUTATION)
     const { mutate: changePositionsMutation, loading: changePositionsLoading } = useMutation(CHANGE_POSITIONS_MUTATION)
+    const { mutate: placeUnitsMutation, loading: placeUnitsLoading } = useMutation(PLACE_UNITS_MUTATION)
 
     const written = (payload, fallback) => {
         if (!payload) return { status: 'ERROR', errors: [{ message: fallback }] }
@@ -142,5 +146,21 @@ export function useMoveUnits() {
         }
     }
 
-    return { moveUnits, moveUnitsLoading, changePositions, changePositionsLoading }
+    // placements: [{ unitId, position?, germplasmId? }], as unitsPlaceUnits takes them
+    const placeUnits = async (placements) => {
+        try {
+            const response = await placeUnitsMutation({ placements })
+            const result = written(response?.data?.unitsPlaceUnits, 'Placing the units returned no data.')
+            if (result.status === 'SUCCESS') {
+                // what the units below them inherit
+                const given = placements.filter((placement) => 'germplasmId' in placement).map((placement) => placement.unitId)
+                if (given.length) refreshInheritedGermplasm(client, given)
+            }
+            return result
+        } catch (error) {
+            return failure(error, 'Failed to place the units.')
+        }
+    }
+
+    return { moveUnits, moveUnitsLoading, changePositions, changePositionsLoading, placeUnits, placeUnitsLoading }
 }

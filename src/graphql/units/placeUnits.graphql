@@ -1,0 +1,10 @@
+#import "./unitFragment.graphql"
+# Places each unit at a position of its own, with its germplasm where given, all or none; the units come back, so the
+# cache has their positions and germplasm as they now are
+mutation unitsPlaceUnits ($placements: [UnitPlacementInput!]!) {
+    unitsPlaceUnits (placements: $placements) {
+        status
+        result { ...UnitFields }
+        errors { message }
+    }
+}
