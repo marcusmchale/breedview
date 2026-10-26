@@ -115,8 +115,10 @@ gh release create guide-2026-10-26 guide/out/guide-media.zip --title "User guide
   --notes "The user guide's videos, for its GitHub Pages site"
 ```
 
-The release starts the workflow (Actions → User guide on GitHub Pages; it can be run from there too). Once only,
-before the first: Settings → Pages → Source: GitHub Actions.
+The release starts the workflow (Actions → User guide on GitHub Pages; it can be run from there too), which builds
+the guide from the default branch as it then stands: a release runs on its tag, which the github-pages environment
+doesn't let deploy, so it starts the workflow again on the default branch. Once only, before the first: Settings →
+Pages → Source: GitHub Actions.
 
 To check the site before publishing it: `npm run guide:site`, then `npm run guide:site:preview` and open
 http://localhost:8086/breedview/guide (the preview falls back to the page for any path, as Pages doesn't, so check a
