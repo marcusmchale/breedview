@@ -5,6 +5,8 @@ import LayoutsBox from './LayoutsBox.vue'
 import LayoutTree from './LayoutTree.vue'
 import LayoutCard from './LayoutCard.vue'
 
+import { useLayoutTypesQuery } from '@/composables/layouts/layoutTypesQuery'
+
 // The layouts at one location: its layout trees, the selected tree, and the selected layout's card
 const props = defineProps({
   locationId: {
@@ -16,7 +18,8 @@ const props = defineProps({
 const selectedArrangementId = ref(null)
 const selectedNodeId = ref(null)
 const selectedParentId = ref(null)
-const layoutTypes = ref([])
+// read here, so that the tree and card have them once they load, however soon a layout is selected
+const { layoutTypes } = useLayoutTypesQuery()
 const arrangementTreeKey = ref(0)
 
 watch(() => props.locationId, () => {
@@ -24,10 +27,9 @@ watch(() => props.locationId, () => {
   selectedNodeId.value = null
 })
 
-const onArrangementSelected = (arrangementId, types) => {
+const onArrangementSelected = (arrangementId) => {
   selectedArrangementId.value = arrangementId
   selectedNodeId.value = arrangementId
-  layoutTypes.value = types
   arrangementTreeKey.value++
 }
 

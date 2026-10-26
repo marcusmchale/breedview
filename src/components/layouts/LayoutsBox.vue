@@ -42,7 +42,7 @@ const handleAddLayoutSuccess = () => {
 const selectedArrangementId = ref(null)
 const handleArrangementClick = (arrangement) => {
   selectedArrangementId.value = arrangement.id
-  emit('arrangement-selected', arrangement.id, layoutTypes.value)
+  emit('arrangement-selected', arrangement.id)
 }
 </script>
 

@@ -40,14 +40,19 @@ test('a child layout added shows in the open tree, which stays open', { skip }, 
     await page.type(`.modal input[name=${input}]`, '3')
   }
   await page.type('.modal input[name=name]', name)
+  // a layout type, once they are listed
+  await page.waitFor(`[...(document.querySelector('.modal select[name=typeId]')?.options ?? [])].some((o) => o.value)`, 30000)
   await page.evaluate(`(() => { const s = document.querySelector('.modal select[name=typeId]'); s.selectedIndex = [...s.options].findIndex((o) => o.value); s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  // the type's axes, named once their fields show
+  await page.waitFor(`document.querySelector('.modal input[name=axis_0]')`, 15000)
   await page.sleep(500)
   for (const input of await page.evaluate(`[...document.querySelectorAll('.modal input[name^=axis_]')].map((i) => i.name)`)) {
     await page.type(`.modal input[name=${input}]`, input === 'axis_0' ? 'Row' : 'Column')
   }
   await page.click('.modal button[type=submit]')
-  await page.waitFor(`!document.querySelector('.modal') || document.querySelector('.modal .error-message')`, 30000)
-  assert.equal(await page.evaluate(`document.querySelector('.modal .error-message')?.innerText ?? null`), null)
+  // closed, or refused: by the API, or by the form's own checks
+  await page.waitFor(`!document.querySelector('.modal') || document.querySelector('.modal .error-message, .modal .formkit-message')`, 30000)
+  assert.equal(await page.evaluate(`document.querySelector('.modal .error-message, .modal .formkit-message')?.innerText ?? null`), null)
 
   await page.waitFor(node(name), 15000)
   assert.ok(await page.evaluate(`${node(TREE)}.querySelector('.expand-btn').classList.contains('expanded')`), 'the tree stays open')
