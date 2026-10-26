@@ -28,8 +28,15 @@ test('the commit form\'s licence chooser offers public references only', { skip 
   await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container h2')?.innerText.includes('Commit Ontology Version')`, 30000)
-  // + Select Licence, or Change when the current version has one
-  await page.evaluate(`document.querySelector('.form-container .reference-section button').click()`)
+  // the current version's licence, if it has one, removed (the next test commits one), then a licence chosen afresh
+  await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
+  await page.sleep(1000)
+  const remove = `[...document.querySelectorAll('.form-container .reference-section')][0].querySelector('.selected-item button:last-child')`
+  if (await page.evaluate(`!!(${remove})`)) {
+    await page.evaluate(`${remove}.click()`)
+    await page.waitFor(`![...document.querySelectorAll('.form-container .reference-section')][0].querySelector('.selected-item')`, 10000)
+  }
+  await page.clickText('+ Select Licence')
   await page.waitFor(`${chooser}?.querySelector('.modal-notice')`, 30000)
   assert.match(await page.evaluate(`${chooser}.querySelector('.modal-notice').innerText`), /must be public/)
 
@@ -64,6 +71,12 @@ test('the commit form\'s licence chooser offers public references only', { skip 
   await page.waitFor(`!document.querySelector('.form-container')`, 15000)
 })
 
+// the commit form's licence and copyright sections, with what each has chosen
+const sections = () => page.evaluate(`[...document.querySelectorAll('.form-container .reference-section')].map((section) => ({
+  label: section.querySelector('.section-label').innerText.trim(),
+  chosen: section.querySelector('.selected-item .item-description')?.innerText.trim() ?? null
+}))`)
+
 test('the commit form starts with the current version\'s licence and copyright', { skip }, async () => {
   const [licence, copyright] = [e.reference_ontology_licence, e.reference_ontology_copyright]
   const payload = await graphql(page, `mutation ($licence: ID, $copyright: ID, $comment: String) {
@@ -75,16 +88,36 @@ test('the commit form starts with the current version\'s licence and copyright',
   await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
-  const sections = await page.evaluate(`[...document.querySelectorAll('.form-container .reference-section')].map((section) => ({
-    label: section.querySelector('.section-label').innerText.trim(),
-    chosen: section.querySelector('.selected-item .item-description')?.innerText.trim() ?? null
-  }))`)
-  assert.deepEqual(sections, [
+  assert.deepEqual(await sections(), [
     { label: 'Licence (Optional)', chosen: licence.name },
     { label: 'Copyright (Optional)', chosen: copyright.name }
   ])
   await page.evaluate(`document.querySelector('.form-container .btn-cancel').click()`)
   await page.waitFor(`!document.querySelector('.form-container')`, 15000)
+})
+
+test('a commit form opened before the latest commit has loaded takes its licence and copyright when it does', { skip }, async () => {
+  // the commit history held back three seconds, as on a slow connection
+  const { identifier } = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+    const fetched = window.fetch
+    window.fetch = (input, init) => typeof init?.body === 'string' && init.body.includes('ontologyCommitHistory')
+      ? new Promise((resolve) => setTimeout(resolve, 3000)).then(() => fetched(input, init))
+      : fetched(input, init)
+  })()` })
+  try {
+    await page.goto(`${config.appUrl}/ontology`)
+    await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
+    assert.equal(await page.exists('.latest-commit-info'), false, 'the latest commit is still loading')
+    await page.clickText('Commit Changes')
+    await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
+    assert.deepEqual((await sections()).map((section) => section.chosen), [null, null])
+    await page.waitFor(`document.querySelector('.form-container .selected-item')`, 15000)
+    assert.deepEqual((await sections()).map((section) => section.chosen), [e.reference_ontology_licence.name, e.reference_ontology_copyright.name])
+    await page.evaluate(`document.querySelector('.form-container .btn-cancel').click()`)
+    await page.waitFor(`!document.querySelector('.form-container')`, 15000)
+  } finally {
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+  }
 })
 
 test('an entry\'s references are chosen as public ones', { skip }, async () => {

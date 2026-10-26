@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import { FormKit } from "@formkit/vue";
 
@@ -20,12 +20,22 @@ const { mutate: commitVersion } = useMutation(COMMIT_VERSION)
 const formData = ref({})
 
 // Licence state
-const selectedLicence = ref(props.latestCommit?.licence ?? null)
+const selectedLicence = ref(null)
 const isLicenceModalOpen = ref(false)
 
 // Copyright state
-const selectedCopyright = ref(props.latestCommit?.copyright ?? null)
+const selectedCopyright = ref(null)
 const isCopyrightModalOpen = ref(false)
+
+// The latest commit's licence and copyright, as they load: the form can open before they have, and then takes them
+// when they do, unless one is being chosen here, or was (its chooser opened), so nothing changes under the chooser
+const chosen = { licence: false, copyright: false }
+watch(() => props.latestCommit, (commit) => {
+  if (!chosen.licence) selectedLicence.value = commit?.licence ?? null
+  if (!chosen.copyright) selectedCopyright.value = commit?.copyright ?? null
+}, { immediate: true })
+watch(isLicenceModalOpen, (open) => { if (open) chosen.licence = true })
+watch(isCopyrightModalOpen, (open) => { if (open) chosen.copyright = true })
 
 const legalReferenceTypes = [REFERENCE_TYPE_CONFIGS.LEGAL]
 // the ontology is shared, so the API refuses a licence or copyright that isn't public
@@ -34,6 +44,16 @@ const PUBLIC_ONLY = 'The ontology is shared, so its licence and copyright must b
 // Licence handlers
 const handleLicenceSave = ({ references }) => {
   selectedLicence.value = references[0] ?? null
+}
+
+// the version without the licence or copyright the form started with: the chooser can't untick its one choice
+const clearLicence = () => {
+  chosen.licence = true
+  selectedLicence.value = null
+}
+const clearCopyright = () => {
+  chosen.copyright = true
+  selectedCopyright.value = null
 }
 
 // Copyright handlers
@@ -111,6 +131,7 @@ const handleCancel = () => {
               <span class="item-icon">⚖️</span>
               <span class="item-description">{{ selectedLicence.description || 'Legal Reference #' + selectedLicence.id }}</span>
               <button type="button" class="btn-link" @click="isLicenceModalOpen = true">Change</button>
+              <button type="button" class="btn-link" @click="clearLicence">Remove</button>
             </div>
             <button
               v-else
@@ -131,6 +152,7 @@ const handleCancel = () => {
               <span class="item-icon">©️</span>
               <span class="item-description">{{ selectedCopyright.description || 'Legal Reference #' + selectedCopyright.id }}</span>
               <button type="button" class="btn-link" @click="isCopyrightModalOpen = true">Change</button>
+              <button type="button" class="btn-link" @click="clearCopyright">Remove</button>
             </div>
             <button
               v-else
