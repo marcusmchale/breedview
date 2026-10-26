@@ -1,8 +1,8 @@
 // Chapter 7, "Analysing the results" (src/guide/chapters/analysing.md), the last of the this-season chain (manifest
 // chains.this_season, guide/data/this-season.mjs): Bridget analyses the corrected 2026 heights by ANOVA, with each
 // plot's germplasm and block, the nitrogen rate as categorical, and the estimated means of entries and rates; then edits
-// and resubmits it as a Spearman correlation of height and the ordinal Septoria score. Plays on from the checking
-// chapter, with an analysis worker polling the API.
+// and resubmits it as descriptive statistics of the ordinal Septoria score by entry: each score's count, and the
+// quartiles as scores. Plays on from the checking chapter, with an analysis worker polling the API.
 import { byText, openStudy, startsWith } from '../lib/storyboard.mjs'
 import { recorded, season } from '../data/this-season.mjs'
 
@@ -159,18 +159,31 @@ export async function run ({ page, input, step, manifest, app, recorder }) {
     await page.waitFor(`document.querySelector('.config-editor') && ${datasetRow(SEPTORIA)}`, 30000)
     await input.restoreCursor()
     await input.pause(1200)
-    await input.type('document.querySelector("#analysis-name")', 'Plant height and Septoria 2026')
-    await input.click(typeCard('Correlation'))
+    await input.type('document.querySelector("#analysis-name")', 'Septoria 2026 by entry')
+    await input.click(typeCard('Descriptive statistics'))
     await input.pause(600)
-    await input.click(`(${datasetRow(SEPTORIA)}).querySelector('input')`)
-    await input.click(`(${datasetRow(NITROGEN)}).querySelector('input')`)
-    await input.click(`(${term(NITROGEN)}).querySelector('.term-header .danger')`)
-    await page.waitFor(`!(${term(NITROGEN)})`, 10000)
+    // the Septoria scores in place of the heights and rates
+    for (const name of [SEPTORIA, HEIGHT, NITROGEN]) await input.click(`(${datasetRow(name)}).querySelector('input')`)
+    for (const name of [HEIGHT, NITROGEN, 'Block']) {
+      await input.click(`(${term(name)}).querySelector('.term-header .danger')`)
+      await page.waitFor(`!(${term(name)})`, 10000)
+    }
+    const meansBox = `[...document.querySelectorAll('#analysis-options .box')].find((b) => b.querySelector('h4')?.innerText.startsWith('Estimated means'))`
+    while (await page.evaluate(`!!(${meansBox})`)) {
+      await input.click(`(${meansBox}).querySelector('.box-header .danger')`)
+      await input.pause(300)
+    }
     await addConcept(SEPTORIA)
     await input.hover(`(${term(SEPTORIA)}).querySelector('.term-header')`, 1500)
-    await input.choose(`(${fieldOf("document.querySelector('#analysis-options')", 'Method')}).querySelector('select')`, 'Spearman')
-    await input.pause(800)
     await submit()
-    await input.hover('document.querySelector(".submission-view .result-table, .submission-view table")', 3500)
+    const table = `document.querySelector('.submission-view .ordinal-table')`
+    await page.waitFor(table, 30000)
+    // the score over all plots, then an entry's: its quartiles as scores, then across the table to each score's count
+    const cell = (row, column) => `${table}.querySelectorAll('tbody tr')[${row}].querySelectorAll('td')[${column}]`
+    await input.hover(cell(0, 0), 1200)
+    await input.hover(cell(0, 5), 2500)
+    await input.hover(cell(1, 5), 2000)
+    await input.scroll(`${table}.querySelector('.table-wrapper')`, 600, { across: true })
+    await input.hover(`${table}.querySelector('tbody tr.overall td.category.first')`, 2500)
   })
 }

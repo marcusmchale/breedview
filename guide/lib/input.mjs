@@ -349,9 +349,10 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
 
     /**
      * Scroll with the mouse wheel over a target, or at a point (at: { x, y }) where something under the pointer would
-     * take the wheel itself, as a graph zooms with it; else where the pointer is. By dy pixels, in small steps
+     * take the wheel itself, as a graph zooms with it; else where the pointer is. By dy pixels, in small steps; across,
+     * sideways, as a wide table scrolls within its box
      */
-    scroll: async (target, dy, { at = null } = {}) => {
+    scroll: async (target, dy, { at = null, across = false } = {}) => {
       if (target) {
         const { x, y } = await locate(target, { enabled: false })
         await moveTo(x, y)
@@ -360,7 +361,7 @@ export function createInput (page, { fast = false, seed = 1 } = {}) {
       }
       const step = Math.sign(dy) * 60
       for (let done = 0; Math.abs(done) < Math.abs(dy); done += step) {
-        await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: mouse.x, y: mouse.y, deltaX: 0, deltaY: step })
+        await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: mouse.x, y: mouse.y, deltaX: across ? step : 0, deltaY: across ? 0 : step })
         await page.sleep(fast ? 0 : 24)
       }
       await wait(500)

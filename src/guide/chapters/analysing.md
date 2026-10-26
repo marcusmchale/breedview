@@ -28,8 +28,9 @@ corrected heights.
 5. **Submit runs the analysis, and the results come back.** The ANOVA finds that the entries and the nitrogen rates
    differ beyond chance, and the blocks do not. The estimated means give each entry's height, and each rate's, with
    the differences between them. {#results}
-6. **Edit & resubmit asks a further question.** A Septoria score is ordinal, so it cannot be an ANOVA's response.
-   Bridget correlates it with height instead, by Spearman's method, which ranks the scores in their order. {#further}
+6. **Edit & resubmit asks a further question.** A Septoria score is ordinal: the steps from one score to the next are
+   not equal, so it is neither averaged nor an ANOVA's response. Descriptive statistics summarise it as its order
+   allows: for each entry, how many plots got each score, and the median and quartiles as scores. {#further}
 
 ## Who sees what
 
