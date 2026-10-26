@@ -49,7 +49,7 @@ test('a link to a chapter not yet written shows as its text, until it is written
   const opens = linksTo(['joining', 'teams'])
   assert.ok(opens('/guide/joining#steps'))
   assert.ok(!opens('/guide/planting'))
-  assert.ok(opens('/guide/print/dpo'), 'the printed collections')
+  assert.ok(!opens('/guide/print/dpo'), 'the printed collections are documents of their own, not in a site')
   assert.ok(opens('/guide'), 'the contents')
   assert.ok(opens('/programs'), 'the app')
   const page = renderGuide('# T\n\nAs [Planting a trial](/guide/planting) shows, after [Joining](/guide/joining).\n', { internalLinks: opens })

@@ -1,4 +1,5 @@
-// The user guide's parts and chapters in reading order, and the collections printed together (/guide/print/<name>).
+// The user guide's parts and chapters in reading order, and the collections printed as documents of their own
+// (guide/pdf.mjs), outside the guide.
 // A chapter is src/guide/chapters/<slug>.md; one not yet written is left out.
 import { linksTo, renderGuide } from './renderGuide'
 

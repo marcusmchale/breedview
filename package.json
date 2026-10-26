@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .vue,.js --fix",
     "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
     "test:unit": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/unit/*.test.mjs",
-    "guide:serve": "VITE_API_HOST=${GUIDE_API_URL:-http://localhost:8001} vite build --outDir .guide-dist --emptyOutDir && vite preview --outDir .guide-dist --port 8081 --strictPort",
+    "guide:serve": "VITE_API_HOST=${GUIDE_API_URL:-http://localhost:8001} VITE_GUIDE_PRINT=1 vite build --outDir .guide-dist --emptyOutDir && vite preview --outDir .guide-dist --port 8081 --strictPort",
     "guide:doctor": "node guide/doctor.mjs",
     "guide:check": "node guide/record.mjs --fast",
     "guide:record": "node guide/record.mjs",

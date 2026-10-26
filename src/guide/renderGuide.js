@@ -19,7 +19,7 @@ export const GUIDE_OPTIONS = {
  */
 export const linksTo = (slugs) => (address) => {
   const chapter = /^\/guide\/([\w-]+)/.exec(address)?.[1]
-  return !chapter || chapter === 'print' || slugs.includes(chapter)
+  return !chapter || slugs.includes(chapter)
 }
 const VIDEO = /^!\[([^\]]*)\]\(([\w.-]+)\.mp4\)$/
 const TITLE = /^#\s+(.*)$/

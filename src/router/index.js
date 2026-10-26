@@ -19,7 +19,6 @@ import AccessControlPage from '@/components/controls/AccessControlPage.vue'
 import PrivacyNoticePage from '@/components/user/PrivacyNoticePage.vue'
 import TermsOfUsePage from '@/components/user/TermsOfUsePage.vue'
 import GuidePage from '@/components/guide/GuidePage.vue'
-import GuidePrint from '@/components/guide/GuidePrint.vue'
 import { useTermsOfUse } from '@/composables/system/useTermsOfUse'
 
 const routes = [
@@ -157,19 +156,21 @@ const routes = [
       title: 'Terms of Use'
     }
   },
-  {
-    // the user guide shows no data, so it is open to everyone, before the Terms of Use too
-    path: '/guide/print/:collection',
-    name: 'GuidePrint',
-    component: GuidePrint,
-    meta: {
-      allowAnonymous: true,
-      openBeforeTerms: true,
-      // for printing, or saving as a PDF (guide/pdf.mjs)
-      hideNavigation: true,
-      title: 'User guide'
-    }
-  },
+  // the page guide/pdf.mjs prints a collection of the guide's chapters from, as a document of its own: in the dev server
+  // and the guide's own build (guide:serve) only, not in a site's
+  ...(import.meta.env.DEV || import.meta.env.VITE_GUIDE_PRINT
+    ? [{
+        path: '/guide/print/:collection',
+        name: 'GuidePrint',
+        component: () => import('@/components/guide/GuidePrint.vue'),
+        meta: {
+          allowAnonymous: true,
+          openBeforeTerms: true,
+          hideNavigation: true,
+          title: 'User guide'
+        }
+      }]
+    : []),
   {
     path: '/guide/:chapter?',
     name: 'Guide',

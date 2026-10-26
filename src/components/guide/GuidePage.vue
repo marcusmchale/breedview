@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { chapter as chapterOf, contents, readingOrder, COLLECTIONS } from '@/guide/chapters'
+import { chapter as chapterOf, contents, readingOrder } from '@/guide/chapters'
 import GuideVideo from './GuideVideo.vue'
 import GuideSteps from './GuideSteps.vue'
 
@@ -46,14 +46,6 @@ watch(page, (chapter) => {
             <router-link :to="`/guide/${chapter.slug}`">{{ chapter.title }}</router-link>
             <!-- rendered by renderMarkdown, which escapes everything it is given -->
             <p v-html="chapter.summary"></p>
-          </li>
-        </ul>
-      </section>
-      <section class="guide-part">
-        <h2>To print</h2>
-        <ul class="chapter-list">
-          <li v-for="(collection, name) in COLLECTIONS" :key="name">
-            <router-link :to="`/guide/print/${name}`">{{ collection.title }}</router-link>
           </li>
         </ul>
       </section>

@@ -71,8 +71,8 @@ Recordings are saved in `guide/out/<chapter>/` (frames and `timeline.json`). The
 ## The guide's pages and its PDF
 
 The app shows the guide at `/guide` (`src/components/guide/`). It is open to everyone, before the Terms of Use too,
-since it shows no data. `src/guide/chapters.js` puts the chapters in parts, and in the collections that are printed
-together; a chapter not yet written is left out. A chapter's markdown is rendered by `src/composables/system/markdown.js`
+since it shows no data. `src/guide/chapters.js` puts the chapters in parts, and in the collections printed as documents
+of their own; a chapter not yet written is left out. A chapter's markdown is rendered by `src/composables/system/markdown.js`
 with the guide's options (`src/guide/renderGuide.js`):
 - a picture is the bare file name of one in `public/guide-media/`, and the video is written as a picture of
   `<chapter>.mp4`;
@@ -82,10 +82,12 @@ with the guide's options (`src/guide/renderGuide.js`):
 Under the video, a bar shows the lead of the step playing, and each step's Play button plays the video from it.
 
 ```bash
-npm run guide:pdf -- --site https://<the demonstration site>   # print /guide/print/dpo from guide:serve
-npm run build:demo                                              # the demonstration site, with its banner
+npm run guide:pdf -- --site https://demo.breedgraph.universityofgalway.ie   # print /guide/print/dpo from guide:serve
+npm run build:demo                                                          # the demonstration site, with its banner
 ```
 
-`guide:pdf` writes `public/guide-media/guide-<collection>.pdf` (`--collection`, `dpo` by default), with each video's
-poster and a link to it under `--site`. `build:demo` builds with `.env.demo`, whose banner says the site is fictional
+`guide:pdf` writes `guide/out/guide-<collection>.pdf` (`--collection`, `dpo` by default; `--out` for another file), a
+document to hand out apart from the guide, with each video's poster and a link to it under `--site`. The page it prints,
+`/guide/print/<collection>`, is in the dev server and guide:serve's build only (`VITE_GUIDE_PRINT`): no site offers it,
+and the guide's contents don't list it. `build:demo` builds with `.env.demo`, whose banner says the site is fictional
 and may be reset; the demonstration API's address goes in `.env.demo.local`.
