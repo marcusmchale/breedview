@@ -27,10 +27,20 @@ npm run dev
 With this running you should now be able to visit localhost:8080 and see the page loaded
 
 ### Compiles and minifies for production
+The build reads the API's address from `.env.production`, which git ignores:
 ```
+VITE_API_HOST=https://breedgraph.universityofgalway.ie
+VITE_GRAPHQL_PATH=/graphql
+```
+and copies the guide's videos from `public/guide-media`, which git ignores too: from a fresh checkout, take them from
+the release that has them first.
+```
+gh release download v0.1.0 --repo marcusmchale/breedview --pattern guide-media.zip
+unzip guide-media.zip -d public
 npm run build
 ```
-then copy dist contents to /var/www/breedview
+then copy dist contents to /var/www/breedview. breedgraph's docs/deployment.md gives the whole deployment in order,
+with nginx's configuration.
 
 ### Releases
 BreedView and [breedgraph](https://github.com/marcusmchale/breedgraph) are released together under the same version: a
