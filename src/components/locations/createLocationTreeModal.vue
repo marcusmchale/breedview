@@ -196,7 +196,7 @@ const submitRegion = async () => {
 
 .form-control:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 

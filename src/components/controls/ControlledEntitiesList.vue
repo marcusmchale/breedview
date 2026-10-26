@@ -188,7 +188,7 @@ const teamNames = (references) => references.map((r) => `${r.team.name}${r.stand
   border: none;
   background: none;
   padding: 0;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   text-decoration: underline;
   cursor: pointer;
 }

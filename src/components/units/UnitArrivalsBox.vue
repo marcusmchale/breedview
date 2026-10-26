@@ -161,8 +161,8 @@ const derivedLabel = (arrival) => (arrival.derivedUnitCount ? ` · ${arrival.der
 }
 
 .arrival-item.selected {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
+  background-color: var(--brand-accent-light);
+  border-color: var(--brand-accent);
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
@@ -190,7 +190,7 @@ const derivedLabel = (arrival) => (arrival.derivedUnitCount ? ` · ${arrival.der
   padding: 2px 0;
   border: none;
   background: none;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
   cursor: pointer;
   font-size: 12px;
 }

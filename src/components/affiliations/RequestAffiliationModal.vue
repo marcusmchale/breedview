@@ -268,7 +268,7 @@ const handleCancel = () => {
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -337,12 +337,12 @@ const handleCancel = () => {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--brand-primary-dark);
 }
 
 .btn-secondary {

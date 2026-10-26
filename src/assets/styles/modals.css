@@ -177,7 +177,7 @@
 }
 
 .inherited-affiliation {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
   border-color: #bbdefb;
 }
 
@@ -214,7 +214,7 @@
 }
 
 .inherited-badge {
-  color: #0056b3;
+  color: var(--brand-primary-dark);
   font-weight: 500;
 }
 

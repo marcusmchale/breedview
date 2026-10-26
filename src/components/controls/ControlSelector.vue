@@ -76,7 +76,7 @@ const handleLoading = (isLoading) => {
 
 .selector-item select:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--brand-accent);
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 

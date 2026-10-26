@@ -86,7 +86,7 @@ const formatVersion = (version) => {
 }
 
 .btn-history {
-  background-color: #2196f3;
+  background-color: var(--brand-accent);
 }
 
 .btn-history:hover {

@@ -513,7 +513,7 @@ const formatDate = (dateString) => {
   background: none;
   border: none;
   padding: 0;
-  color: #007bff;
+  color: var(--brand-primary);
   cursor: pointer;
   font-size: inherit;
   text-decoration: underline;
@@ -543,7 +543,7 @@ const formatDate = (dateString) => {
   padding: 10px 12px;
   background-color: #f8f9fa;
   border-radius: 4px;
-  border-left: 3px solid #007bff;
+  border-left: 3px solid var(--brand-primary);
 }
 
 .control-info,
@@ -665,7 +665,7 @@ const formatDate = (dateString) => {
 
 .release-select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
@@ -691,12 +691,12 @@ const formatDate = (dateString) => {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--brand-primary-dark);
 }
 
 .btn-secondary {

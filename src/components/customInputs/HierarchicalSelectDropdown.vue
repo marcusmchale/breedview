@@ -448,11 +448,11 @@ onBeforeUnmount(() => {
 }
 
 .select-trigger:hover:not(.disabled) {
-  border-color: #007bff;
+  border-color: var(--brand-primary);
 }
 
 .select-trigger.open {
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
@@ -464,7 +464,7 @@ onBeforeUnmount(() => {
 
 .select-trigger:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
 .breadcrumb-item {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--brand-primary);
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 3px;
@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
 }
 
 .breadcrumb-item:hover {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
   text-decoration: underline;
 }
 
@@ -565,7 +565,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #e0e0e0;
   cursor: pointer;
   font-size: 13px;
-  color: #007bff;
+  color: var(--brand-primary);
   transition: background-color 0.2s;
 }
 
@@ -596,7 +596,7 @@ onBeforeUnmount(() => {
 }
 
 .option-item.selected {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
 }
 
 .option-item.disabled {
@@ -635,7 +635,7 @@ onBeforeUnmount(() => {
 }
 
 .option-item.selected .option-label-button {
-  color: #007bff;
+  color: var(--brand-primary);
   font-weight: 500;
 }
 

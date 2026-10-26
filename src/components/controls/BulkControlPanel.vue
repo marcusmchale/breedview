@@ -143,7 +143,7 @@ const choose = (value, at = null) => {
   border: none;
   background: none;
   padding: 0;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   cursor: pointer;
   font: inherit;
 }

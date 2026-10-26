@@ -784,11 +784,11 @@ onBeforeUnmount(() => {
 }
 
 .select-trigger:hover:not(.disabled) {
-  border-color: #007bff;
+  border-color: var(--brand-primary);
 }
 
 .select-trigger.open {
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
@@ -814,7 +814,7 @@ onBeforeUnmount(() => {
 
 .selection-count {
   font-weight: 600;
-  color: #007bff;
+  color: var(--brand-primary);
 }
 
 .dropdown-arrow {
@@ -851,7 +851,7 @@ onBeforeUnmount(() => {
 .breadcrumb-item {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--brand-primary);
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 3px;
@@ -859,7 +859,7 @@ onBeforeUnmount(() => {
 }
 
 .breadcrumb-item:hover {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
   text-decoration: underline;
 }
 
@@ -887,7 +887,7 @@ onBeforeUnmount(() => {
   background: #f0f7ff;
   border-bottom: 1px solid #e0e0e0;
   font-size: 13px;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   font-weight: 500;
 }
 
@@ -905,7 +905,7 @@ onBeforeUnmount(() => {
 .select-by-type-button {
   background: none;
   border: none;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   cursor: pointer;
   font-size: 12px;
   text-decoration: underline;
@@ -988,7 +988,7 @@ onBeforeUnmount(() => {
 .type-actions .btn-link {
   background: none;
   border: none;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   cursor: pointer;
   font-size: 12px;
   text-decoration: underline;
@@ -1025,7 +1025,7 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border: 2px solid #cfd8dc;
-  border-top-color: #1976d2;
+  border-top-color: var(--brand-accent-dark);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1074,7 +1074,7 @@ onBeforeUnmount(() => {
 }
 
 .option-item.selected {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
 }
 
 .option-item.disabled {
@@ -1135,7 +1135,7 @@ onBeforeUnmount(() => {
 
 .btn-done {
   padding: 6px 16px;
-  background: #007bff;
+  background: var(--brand-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -1145,7 +1145,7 @@ onBeforeUnmount(() => {
 }
 
 .btn-done:hover {
-  background: #0056b3;
+  background: var(--brand-primary-dark);
 }
 
 .empty-state {

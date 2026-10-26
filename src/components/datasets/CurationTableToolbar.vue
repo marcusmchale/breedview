@@ -136,8 +136,8 @@ const canNext = computed(() => !props.pagingLocked && props.page < props.pageCou
 }
 
 .filter-summary {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-darker);
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 12px;

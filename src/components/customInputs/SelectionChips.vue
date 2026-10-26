@@ -59,11 +59,11 @@ const hiddenCount = computed(() => singleIds.value.length - shownSingleIds.value
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
+  background: var(--brand-accent-light);
+  border: 1px solid var(--brand-accent);
   border-radius: 12px;
   font-size: 12px;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
 }
 
 .group-chip {

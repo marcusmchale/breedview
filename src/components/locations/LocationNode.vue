@@ -122,9 +122,9 @@ const children = computed( () => {
 }
 
 .location-header.selected {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
   /* the bar is drawn inside the row, so the selected location keeps its place and its width */
-  box-shadow: inset 4px 0 0 #007bff;
+  box-shadow: inset 4px 0 0 var(--brand-primary);
 }
 
 .location-header.selected:hover {
@@ -213,8 +213,8 @@ const children = computed( () => {
 
 .type-badge {
   display: inline-block;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 12px;

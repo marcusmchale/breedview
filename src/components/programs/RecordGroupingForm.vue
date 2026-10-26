@@ -274,7 +274,7 @@ const handleScopesUpdate = (scopes) => {
 .form-group input[type="text"]:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--brand-accent);
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
@@ -357,12 +357,12 @@ const handleScopesUpdate = (scopes) => {
 }
 
 .btn-primary {
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 
 .btn-secondary {

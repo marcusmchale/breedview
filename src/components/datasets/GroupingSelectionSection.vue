@@ -146,7 +146,7 @@ const datasetLabel = (grouping, ds) => {
 .grouping-option { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .grouping-name { font-weight: 500; }
 .grouping-type { font-size: 0.8rem; color: #666; }
-.scope-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: #e3f2fd; color: #1565c0; }
+.scope-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: var(--brand-accent-light); color: var(--brand-accent-darker); }
 .scope-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
 .extent-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: #f3e5f5; color: #6a1b9a; }
 .scope-config-card { border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 10px; background: #fafafa; }

@@ -179,7 +179,7 @@ const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam
 
 .location-link {
   font-size: 0.9rem;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
 }
 
 .empty-selection {

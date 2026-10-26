@@ -292,8 +292,8 @@ const sinksList = computed(() => {
 
 .tag {
   display: inline-block;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
   padding: 4px 12px;
   border-radius: 16px;
   font-size: 0.85rem;
@@ -324,7 +324,7 @@ const sinksList = computed(() => {
 
 .ref-link {
   display: inline-block;
-  color: #2196f3;
+  color: var(--brand-accent);
   text-decoration: none;
   font-weight: 500;
   padding: 4px 8px;
@@ -333,7 +333,7 @@ const sinksList = computed(() => {
 }
 
 .ref-link:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .relationship-list {
@@ -375,7 +375,7 @@ const sinksList = computed(() => {
   border: none;
   padding: 0;
   text-align: left;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
   cursor: pointer;
   font: inherit;
   font-weight: 500;
@@ -408,12 +408,12 @@ const sinksList = computed(() => {
 
 .btn-outline {
   background: white;
-  color: #2196f3;
-  border: 1px solid #2196f3;
+  color: var(--brand-accent);
+  border: 1px solid var(--brand-accent);
 }
 
 .btn-outline:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .btn-danger {

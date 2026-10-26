@@ -852,25 +852,25 @@ defineExpose({ cleanup: performCleanup, hasUnsavedChanges, isSubmitting, allSubm
 .group-cell-input, .time-cell-input {
   width: 100%;
   padding: 3px;
-  border: 1px solid #2196f3;
+  border: 1px solid var(--brand-accent);
   border-radius: 2px;
   font-size: 13px;
   box-sizing: border-box;
 }
-.row-groups-changed td.grouping-cell { background: #e3f2fd; }
+.row-groups-changed td.grouping-cell { background: var(--brand-accent-light); }
 .time-cell-display { min-height: 18px; }
 .time-cell-display.editable { cursor: text; }
 .locked-cell .time-cell-display { cursor: not-allowed; color: #888; }
 /* a row by period: the period, whose values have times of their own */
 .time-cell-display .period { font-style: italic; color: #555; }
-td.time-changed { background: #e3f2fd; }
+td.time-changed { background: var(--brand-accent-light); }
 
 .grouping-badge {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 8px;
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-darker);
 }
 .grouping-badge.DATASET_SCOPED { background: #fff3e0; color: #e65100; }
 .grouping-badge.WITHIN_UNIT { background: #f3e5f5; color: #6a1b9a; }

@@ -241,9 +241,9 @@ const closeModal = () => {
 }
 
 .role-button:hover {
-  border-color: #1976d2;
-  background-color: #e3f2fd;
-  color: #1976d2;
+  border-color: var(--brand-accent-dark);
+  background-color: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
 }
 
 .role-button.current {
@@ -261,9 +261,9 @@ const closeModal = () => {
 }
 
 .role-button.selected {
-  border-color: #1976d2;
-  background-color: #e3f2fd;
-  color: #1976d2;
+  border-color: var(--brand-accent-dark);
+  background-color: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
   font-weight: 600;
 }
 
@@ -291,12 +291,12 @@ const closeModal = () => {
 }
 
 .btn-primary {
-  background-color: #1976d2;
+  background-color: var(--brand-accent-dark);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: var(--brand-accent-darker);
 }
 
 .btn-secondary {

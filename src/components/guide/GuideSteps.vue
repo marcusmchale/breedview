@@ -40,8 +40,8 @@ defineEmits(['select'])
 }
 
 .guide-steps li.current {
-  border-left-color: #1976d2;
-  background: #e3f2fd;
+  border-left-color: var(--brand-accent-dark);
+  background: var(--brand-accent-light);
 }
 
 .step-lead {
@@ -53,7 +53,7 @@ defineEmits(['select'])
 .step-play {
   border: 1px solid #90caf9;
   background: #fff;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
   border-radius: 12px;
   padding: 1px 10px;
   font-size: 0.8rem;

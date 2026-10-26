@@ -210,8 +210,8 @@ const onChanged = ({ change }) => emit('arrival-changed', { start: 'start' in ch
   gap: 4px;
   padding: 2px 4px 2px 8px;
   border-radius: 12px;
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-darker);
   font-size: 12px;
 }
 
@@ -242,7 +242,7 @@ const onChanged = ({ change }) => emit('arrival-changed', { start: 'start' in ch
 }
 
 .origin-link {
-  color: #1565c0;
+  color: var(--brand-accent-darker);
 }
 
 .loading,

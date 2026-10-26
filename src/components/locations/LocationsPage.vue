@@ -278,7 +278,7 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
 
 .units-link {
   font-size: 0.9rem;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
 }
 
 /* too narrow for the tree beside the map: the map goes below it */

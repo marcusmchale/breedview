@@ -428,12 +428,12 @@ const handleAddChildSuccess = async () => {
 
 .btn-outline {
   background: white;
-  color: #2196f3;
-  border: 1px solid #2196f3;
+  color: var(--brand-accent);
+  border: 1px solid var(--brand-accent);
 }
 
 .btn-outline:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .btn-danger {

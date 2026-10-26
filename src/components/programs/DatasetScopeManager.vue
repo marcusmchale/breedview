@@ -93,16 +93,16 @@ const handleConfirmAddScope = (datasetIds) => {
   width: 100%;
   padding: 10px;
   background: white;
-  border: 1px dashed #2196f3;
+  border: 1px dashed var(--brand-accent);
   border-radius: 4px;
-  color: #2196f3;
+  color: var(--brand-accent);
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .btn-add-scope:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
   border-style: solid;
 }
 </style>

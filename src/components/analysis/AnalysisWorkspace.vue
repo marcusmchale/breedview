@@ -214,7 +214,7 @@ watch(
 .programs-link {
   display: inline-block;
   margin-bottom: 8px;
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   text-decoration: none;
   font-size: 0.9rem;
 }

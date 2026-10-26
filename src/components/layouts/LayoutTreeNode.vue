@@ -131,8 +131,8 @@ const handleChildNodeSelected = ( { nodeId, parentId } ) => {
 }
 
 .node-header.selected {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
+  background-color: var(--brand-accent-light);
+  border-color: var(--brand-accent);
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 

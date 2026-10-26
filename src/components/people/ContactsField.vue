@@ -63,7 +63,7 @@ const expanded = ref(false)
 .btn-link {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--brand-primary);
   padding: 4px 8px;
   cursor: pointer;
   font-size: 12px;

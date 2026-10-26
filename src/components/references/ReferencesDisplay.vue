@@ -64,7 +64,7 @@ const toggleExpand = () => {
 }
 
 .reference-count {
-    background: #2196f3;
+    background: var(--brand-accent);
     color: white;
     padding: 2px 8px;
     border-radius: 10px;

@@ -141,12 +141,12 @@ const handleClick = () => {
 }
 
 a.download-btn {
-    border-color: #2196f3;
-    color: #2196f3;
+    border-color: var(--brand-accent);
+    color: var(--brand-accent);
 }
 
 a.download-btn:hover {
-    background: #e3f2fd;
+    background: var(--brand-accent-light);
 }
 
 .progress-bar {
@@ -162,7 +162,7 @@ a.download-btn:hover {
 .progress-fill {
     display: block;
     height: 100%;
-    background: #2196f3;
+    background: var(--brand-accent);
     border-radius: 2px;
     transition: width 0.3s ease;
 }

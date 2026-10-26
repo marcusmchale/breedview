@@ -211,8 +211,8 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
 }
 
 .node-header.selected {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
+  background-color: var(--brand-accent-light);
+  border-color: var(--brand-accent);
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
@@ -284,8 +284,8 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
 
 .germplasm-badge {
   display: inline-block;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 11px;
@@ -349,13 +349,13 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
   border: 1px dashed #bbb;
   border-radius: 4px;
   font-size: 12px;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
   text-decoration: none;
 }
 
 .away-link:hover {
   background: #f5f9ff;
-  border-color: #1565c0;
+  border-color: var(--brand-accent-darker);
 }
 
 .children {

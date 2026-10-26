@@ -207,7 +207,7 @@ const handleKeyDown = (event) => {
 .cell-input {
   width: 100%;
   padding: 4px;
-  border: 1px solid #2196f3;
+  border: 1px solid var(--brand-accent);
   border-radius: 2px;
   font-size: 13px;
 }
@@ -226,7 +226,7 @@ const handleKeyDown = (event) => {
 }
 
 .action-btn.undo:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .complex-cell {
@@ -245,7 +245,7 @@ const handleKeyDown = (event) => {
 }
 
 .complex-cell.clickable:hover {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
 }
 
 .complex-cell.has-changes {
@@ -259,7 +259,7 @@ const handleKeyDown = (event) => {
 
 .manage-link {
   font-size: 12px;
-  color: #2196f3;
+  color: var(--brand-accent);
   text-decoration: underline;
 }
 </style>

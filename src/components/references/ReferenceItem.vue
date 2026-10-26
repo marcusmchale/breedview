@@ -196,12 +196,12 @@ const toggleExpand = () => {
 }
 
 .reference-item:hover {
-    border-color: #2196f3;
+    border-color: var(--brand-accent);
 }
 
 .reference-item.selected {
-    background: #e3f2fd;
-    border-color: #2196f3;
+    background: var(--brand-accent-light);
+    border-color: var(--brand-accent);
 }
 
 .reference-item.disabled {
@@ -289,7 +289,7 @@ const toggleExpand = () => {
 }
 
 .detail-row a {
-    color: #2196f3;
+    color: var(--brand-accent);
     word-break: break-all;
 }
 
@@ -334,12 +334,12 @@ const toggleExpand = () => {
 
 .btn-outline {
     background-color: transparent;
-    color: #007bff;
-    border: 1px solid #007bff;
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
 }
 
 .btn-outline:hover {
-    background-color: #007bff;
+    background-color: var(--brand-primary);
     color: white;
 }
 

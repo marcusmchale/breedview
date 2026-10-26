@@ -198,7 +198,7 @@ const formatDate = (dateStr) => {
 .record-count {
   font-size: 13px;
   color: #666;
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
   padding: 2px 8px;
   border-radius: 12px;
 }

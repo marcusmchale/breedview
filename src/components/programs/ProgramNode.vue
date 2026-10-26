@@ -127,8 +127,8 @@ const handleNodeClick = () => {
 }
 
 .node-header.selected {
-  background-color: #e3f2fd;
-  border-left: 4px solid #007bff;
+  background-color: var(--brand-accent-light);
+  border-left: 4px solid var(--brand-primary);
   padding-left: 8px;
 }
 
@@ -181,8 +181,8 @@ const handleNodeClick = () => {
 
 .type-badge {
   display: inline-block;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-dark);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;

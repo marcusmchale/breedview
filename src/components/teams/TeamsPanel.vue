@@ -224,7 +224,7 @@ const submitCreateTree = async () => {
 
 .form-group input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--brand-primary);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 </style>

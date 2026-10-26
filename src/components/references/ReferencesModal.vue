@@ -560,8 +560,8 @@ const getFormComponent = (typeKey) => {
 }
 
 .tab.active {
-  color: #2196f3;
-  border-bottom-color: #2196f3;
+  color: var(--brand-accent);
+  border-bottom-color: var(--brand-accent);
 }
 
 .modal-content {
@@ -599,7 +599,7 @@ const getFormComponent = (typeKey) => {
 
 .search-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--brand-accent);
 }
 
 .search-spinner {
@@ -685,12 +685,12 @@ const getFormComponent = (typeKey) => {
 }
 
 .btn-primary {
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 
 .btn-secondary {

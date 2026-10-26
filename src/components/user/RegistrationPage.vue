@@ -329,13 +329,13 @@ const submitHandler = async (formData) => {
 }
 
 .privacy-link {
-  color: #007bff;
+  color: var(--brand-primary);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .privacy-link:hover {
-  color: #0056b3;
+  color: var(--brand-primary-dark);
 }
 
 .modal-overlay {

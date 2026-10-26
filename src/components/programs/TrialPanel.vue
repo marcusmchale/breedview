@@ -319,12 +319,12 @@ const handleStudyDeleted = () => {
 
 .btn-outline {
   background-color: transparent;
-  color: #007bff;
-  border: 1px solid #007bff;
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
 }
 
 .btn-outline:hover {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 

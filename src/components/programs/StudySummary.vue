@@ -134,7 +134,7 @@ const chipTitle = (entry) =>
   align-items: center;
   gap: 6px;
   padding: 2px 8px;
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
   border-radius: 12px;
   color: #333;
 }

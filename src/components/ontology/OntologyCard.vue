@@ -279,8 +279,8 @@ const referencesList = computed(() => {
 
 .tag {
   display: inline-block;
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-darker);
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 0.82rem;
@@ -311,7 +311,7 @@ const referencesList = computed(() => {
 
 .ref-link {
   display: inline-block;
-  color: #2196f3;
+  color: var(--brand-accent);
   text-decoration: none;
   font-weight: 500;
   padding: 2px 6px;
@@ -320,7 +320,7 @@ const referencesList = computed(() => {
 }
 
 .ref-link:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .btn {
@@ -341,12 +341,12 @@ const referencesList = computed(() => {
 
 .btn-outline {
   background: white;
-  color: #2196f3;
-  border: 1px solid #2196f3;
+  color: var(--brand-accent);
+  border: 1px solid var(--brand-accent);
 }
 
 .btn-outline:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .lock-mark {

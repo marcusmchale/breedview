@@ -299,7 +299,7 @@ const handleCancel = () => {
 .btn-link {
   background: none;
   border: none;
-  color: #2196f3;
+  color: var(--brand-accent);
   padding: 4px 8px;
   cursor: pointer;
   font-size: 14px;

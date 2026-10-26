@@ -26,7 +26,7 @@
 }
 
 .badge-write {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
 }
 
 .badge-admin {

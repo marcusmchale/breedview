@@ -127,7 +127,7 @@ const acceptTerms = async () => {
 }
 
 .btn-primary {
-  background-color: #2196f3;
+  background-color: var(--brand-accent);
   color: white;
 }
 

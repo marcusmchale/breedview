@@ -60,12 +60,12 @@ const showRequestOntologyRoleModal = ref(false)
 }
 
 .btn-primary {
-  background-color: #1976d2;
+  background-color: var(--brand-accent-dark);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: var(--brand-accent-darker);
 }
 
 .btn-secondary {

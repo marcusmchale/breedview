@@ -473,7 +473,7 @@ const closeModal = () => {
 }
 
 .preselected-study .study-name {
-  color: #1976d2;
+  color: var(--brand-accent-dark);
   font-weight: 500;
 }
 
@@ -530,7 +530,7 @@ const closeModal = () => {
 
 .create-table-btn {
   padding: 10px 20px;
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
   border: none;
   border-radius: 4px;
@@ -541,7 +541,7 @@ const closeModal = () => {
 }
 
 .create-table-btn:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 
 .create-table-btn:disabled {

@@ -128,13 +128,13 @@ const submitHandler = async (formData) => {
 .link-button {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--brand-primary);
   cursor: pointer;
   text-decoration: underline;
   font-size: 14px;
 }
 
 .link-button:hover {
-  color: #0056b3;
+  color: var(--brand-primary-dark);
 }
 </style>

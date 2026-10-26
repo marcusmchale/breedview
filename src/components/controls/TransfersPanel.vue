@@ -173,8 +173,8 @@ const handleAccepted = async () => {
 }
 
 .tab.active {
-  border-bottom-color: #007bff;
-  color: #007bff;
+  border-bottom-color: var(--brand-primary);
+  color: var(--brand-primary);
   font-weight: 500;
 }
 

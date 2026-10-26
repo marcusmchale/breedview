@@ -329,7 +329,7 @@ const ontologyRoles = ['VIEWER', 'CONTRIBUTOR', 'EDITOR', 'ADMIN']
 }
 
 .btn-back {
-  background-color: #2196F3;
+  background-color: var(--brand-accent);
   color: white;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -464,7 +464,7 @@ const ontologyRoles = ['VIEWER', 'CONTRIBUTOR', 'EDITOR', 'ADMIN']
 
 .btn-set-role {
   padding: 0.5rem 1rem;
-  background-color: #1976d2;
+  background-color: var(--brand-accent-dark);
   color: white;
   border: none;
   border-radius: 4px;
@@ -475,7 +475,7 @@ const ontologyRoles = ['VIEWER', 'CONTRIBUTOR', 'EDITOR', 'ADMIN']
 }
 
 .btn-set-role:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: var(--brand-accent-darker);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 

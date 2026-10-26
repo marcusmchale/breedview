@@ -130,7 +130,7 @@ const scopeCount = computed(() => {
 }
 
 .scope-badge.dataset_scoped {
-  background: #2196f3;
+  background: var(--brand-accent);
 }
 
 .card-actions {
@@ -166,7 +166,7 @@ const scopeCount = computed(() => {
 }
 
 .scopes-info {
-  color: #2196f3;
+  color: var(--brand-accent);
   font-weight: 500;
 }
 </style>

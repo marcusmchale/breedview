@@ -802,7 +802,7 @@ watch(() => regionCountry.value?.code, focusSelection)
 
 .selected-name {
   font-weight: 600;
-  color: #007bff;
+  color: var(--brand-primary);
   font-size: 16px;
 }
 
@@ -942,7 +942,7 @@ watch(() => regionCountry.value?.code, focusSelection)
 }
 
 .scope-option.active {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 
@@ -950,7 +950,7 @@ watch(() => regionCountry.value?.code, focusSelection)
   padding: 0;
   border: none;
   background: none;
-  color: #007bff;
+  color: var(--brand-primary);
   font-size: inherit;
   cursor: pointer;
   text-decoration: underline;

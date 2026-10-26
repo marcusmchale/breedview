@@ -88,13 +88,13 @@
 }
 
 .guide-text .callout-who {
-  background: #e3f2fd;
-  border-color: #1976d2;
+  background: var(--brand-accent-light);
+  border-color: var(--brand-accent-dark);
 }
 
 .guide-text .callout-who::before {
   content: 'Who can do this';
-  color: #1565c0;
+  color: var(--brand-accent-darker);
 }
 
 .guide-text .callout-sees {

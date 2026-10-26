@@ -139,7 +139,7 @@ const handleDelete = async (grouping) => {
 
 .btn-primary {
   padding: 8px 16px;
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
   border: none;
   border-radius: 4px;
@@ -148,7 +148,7 @@ const handleDelete = async (grouping) => {
 }
 
 .btn-primary:hover {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 
 .loading,

@@ -8,7 +8,24 @@
 
 /* CSS Variables for consistent theming */
 :root {
-  --primary-color: #4CAF50;
+  /*
+   * The brand: a deployment's branding/branding.json sets these (src/branding/branding.js, README.md, Branding); these
+   * defaults are BreedView's own, "white-label" look. The colours of what things mean (errors red, additions green,
+   * greys) are not the brand's.
+   */
+  --brand-header: #4CAF50;        /* the navigation bar */
+  --brand-header-text: #ffffff;
+  --brand-primary: #007bff;       /* primary buttons and links */
+  --brand-primary-dark: #0056b3;  /* their hover */
+  --brand-accent: #2196f3;        /* what is selected, focused or active */
+  --brand-accent-dark: #1976d2;
+  --brand-accent-darker: #1565c0;
+  --brand-accent-light: #e3f2fd;  /* the background of what is selected */
+  --brand-footer: transparent;
+  --brand-footer-text: #666666;
+  --brand-font: Arial, sans-serif;
+
+  --primary-color: var(--brand-header);
   --error-color: #ff0000;
   --success-color: #4CAF50;
   --disabled-color: #cccccc;
@@ -24,7 +41,12 @@
 /* Global base styles */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: var(--brand-font);
+}
+
+/* a brand's link colour (src/branding), as weak as a plain "a", so that links styled as buttons keep their own */
+:where(:root.brand-links) a {
+  color: var(--brand-link);
 }
 
 /* Existing global styles that are unique to specific pages */

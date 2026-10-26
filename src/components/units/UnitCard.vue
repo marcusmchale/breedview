@@ -440,8 +440,8 @@ const openPositionModal = (mode, position = null) => {
 }
 
 .tag-link:hover {
-  border-color: #1565c0;
-  color: #1565c0;
+  border-color: var(--brand-accent-darker);
+  color: var(--brand-accent-darker);
 }
 
 .tag.tag-derivation {
@@ -458,7 +458,7 @@ const openPositionModal = (mode, position = null) => {
   background: none;
   border: none;
   padding: 0;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
   cursor: pointer;
   font: inherit;
   text-decoration: underline;
@@ -665,12 +665,12 @@ const openPositionModal = (mode, position = null) => {
 
 .btn-outline {
   background: white;
-  color: #2196f3;
-  border: 1px solid #2196f3;
+  color: var(--brand-accent);
+  border: 1px solid var(--brand-accent);
 }
 
 .btn-outline:hover {
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
 }
 
 .btn-danger {

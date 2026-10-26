@@ -149,12 +149,12 @@ const handleSelectLocationAndEmit = (locationId) => {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--brand-primary-dark);
 }
 
 .btn:disabled {

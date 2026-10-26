@@ -1373,7 +1373,7 @@ const getFileReferenceDisplay = (value) => {
 
 .column-time.own {
   border-color: #90caf9;
-  background: #e3f2fd;
+  background: var(--brand-accent-light);
   color: #0d47a1;
   font-weight: 600;
 }
@@ -1468,18 +1468,18 @@ const getFileReferenceDisplay = (value) => {
 }
 
 .cell-display:hover {
-  border-color: #2196f3;
+  border-color: var(--brand-accent);
   background: #f0f8ff;
 }
 .cell-display:focus {
-  outline: 2px solid #2196f3;
+  outline: 2px solid var(--brand-accent);
   outline-offset: -2px;
 }
 
 .cell-input {
   width: 100%;
   padding: 4px;
-  border: 1px solid #2196f3;
+  border: 1px solid var(--brand-accent);
   border-radius: 2px;
   font-size: 14px;
 }
@@ -1561,12 +1561,12 @@ tr:hover .row-actions {
 }
 
 .btn-primary {
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 
 .btn-secondary {
@@ -1606,7 +1606,7 @@ tr:hover .row-actions {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196f3;
+  border-top: 4px solid var(--brand-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1685,7 +1685,7 @@ tr:hover .row-actions {
 }
 
 .complex-cell.clickable:hover {
-  background-color: #e3f2fd;
+  background-color: var(--brand-accent-light);
 }
 
 .file-count {
@@ -1696,7 +1696,7 @@ tr:hover .row-actions {
 
 .manage-link {
   font-size: 12px;
-  color: #2196f3;
+  color: var(--brand-accent);
   text-decoration: underline;
 }
 
@@ -1726,8 +1726,8 @@ tr:hover .row-actions {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 8px;
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--brand-accent-light);
+  color: var(--brand-accent-darker);
 }
 
 .grouping-badge.DATASET_SCOPED {
@@ -1764,7 +1764,7 @@ tr.group-boundary td {
 
 .merge-success { background: #e8f5e9; color: #2e7d32; }
 .merge-failed { background: #ffebee; color: #c62828; }
-.merge-merging { background: #e3f2fd; color: #1565c0; }
+.merge-merging { background: var(--brand-accent-light); color: var(--brand-accent-darker); }
 
 .merge-warning {
   flex-basis: 100%;

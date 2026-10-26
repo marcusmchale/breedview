@@ -182,7 +182,7 @@ const roleSummary = (contribution) =>
 
 .role-menu summary {
   cursor: pointer;
-  color: #1565c0;
+  color: var(--brand-accent-darker);
 }
 
 .role-menu summary.empty {

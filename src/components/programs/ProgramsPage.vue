@@ -206,12 +206,12 @@ const handleProgramDeleted = () => {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: var(--brand-primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #0056b3;
+  background-color: var(--brand-primary-dark);
 }
 
 .btn-secondary {

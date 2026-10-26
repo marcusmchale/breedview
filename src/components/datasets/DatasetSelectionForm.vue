@@ -393,11 +393,11 @@ defineExpose({ reset })
 }
 
 .btn-primary {
-  background: #2196f3;
+  background: var(--brand-accent);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--brand-accent-dark);
 }
 </style>
