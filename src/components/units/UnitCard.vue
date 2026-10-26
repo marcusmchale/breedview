@@ -617,7 +617,7 @@ const openPositionModal = (mode, position = null) => {
 .position-info {
   padding: 12px;
   background: #f9f9f9;
-  border-left: 3px solid #42a5f5;
+  border-left: 3px solid color-mix(in srgb, var(--brand-accent) 85%, white);
   border-radius: 4px;
   font-size: 0.9rem;
 }

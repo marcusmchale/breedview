@@ -4,8 +4,9 @@
   --an-border: #e5e7eb;
   --an-muted: #6b7280;
   --an-text: #1f2937;
-  --an-accent: #2563eb;
-  --an-accent-soft: #eff6ff;
+  /* a brand's accent, where a deployment's branding gives one (src/branding) */
+  --an-accent: var(--brand-analysis-accent, #2563eb);
+  --an-accent-soft: var(--brand-analysis-accent-soft, #eff6ff);
   --an-error: #b91c1c;
   --an-error-soft: #fef2f2;
   --an-warning: #92400e;

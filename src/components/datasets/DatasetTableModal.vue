@@ -1342,7 +1342,7 @@ const getFileReferenceDisplay = (value) => {
 .times-help {
   margin: 0 0 10px;
   padding: 8px 12px;
-  border-left: 3px solid #90caf9;
+  border-left: 3px solid color-mix(in srgb, var(--brand-accent) 50%, white);
   background: #f5f9fc;
   color: #455a64;
   font-size: 13px;
@@ -1372,7 +1372,7 @@ const getFileReferenceDisplay = (value) => {
 }
 
 .column-time.own {
-  border-color: #90caf9;
+  border-color: color-mix(in srgb, var(--brand-accent) 50%, white);
   background: var(--brand-accent-light);
   color: #0d47a1;
   font-weight: 600;

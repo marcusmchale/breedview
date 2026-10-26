@@ -297,7 +297,7 @@ const childrenHere = computed(() => (unit.value?.children ?? []).filter((child) 
   display: inline-block;
   background: #f5f9fd;
   color: #5c8fc2;
-  border: 1px dashed #90caf9;
+  border: 1px dashed color-mix(in srgb, var(--brand-accent) 50%, white);
   padding: 1px 6px;
   border-radius: 10px;
   font-size: 11px;

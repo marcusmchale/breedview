@@ -128,7 +128,7 @@ const children = computed( () => {
 }
 
 .location-header.selected:hover {
-  background-color: #bbdefb;
+  background-color: color-mix(in srgb, var(--brand-accent) 30%, white);
 }
 
 /* Actions column aligned on the right, stacked vertically */

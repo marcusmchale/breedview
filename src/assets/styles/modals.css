@@ -178,7 +178,7 @@
 
 .inherited-affiliation {
   background-color: var(--brand-accent-light);
-  border-color: #bbdefb;
+  border-color: color-mix(in srgb, var(--brand-accent) 30%, white);
 }
 
 .affiliation-info {

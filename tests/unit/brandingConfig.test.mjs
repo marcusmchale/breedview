@@ -22,7 +22,9 @@ test("a brand's colours set the variables, and the shades it doesn't give are wo
     '--brand-primary-dark': 'color-mix(in srgb, #00548c 75%, black)',
     '--brand-link': '#00548c',
     '--brand-accent-dark': 'color-mix(in srgb, rgb(0, 114, 188) 85%, black)',
-    '--brand-accent-darker': 'color-mix(in srgb, rgb(0, 114, 188) 70%, black)'
+    '--brand-accent-darker': 'color-mix(in srgb, rgb(0, 114, 188) 70%, black)',
+    '--brand-analysis-accent': 'color-mix(in srgb, rgb(0, 114, 188) 85%, black)',
+    '--brand-analysis-accent-soft': '#e6f1f8'
   })
   assert.deepEqual(problems, [])
   assert.deepEqual(read({ colors: { header: 'red; background: url(x)', banner: '#fff' } }).problems, [

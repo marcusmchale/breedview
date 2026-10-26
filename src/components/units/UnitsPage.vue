@@ -130,7 +130,7 @@ const onReceived = ({ position }) => update({ graph: null, arrival: arrivalParam
 .units-note {
   margin: 0 0 12px;
   padding: 8px 12px;
-  border-left: 3px solid #90caf9;
+  border-left: 3px solid color-mix(in srgb, var(--brand-accent) 50%, white);
   background: #f5f9fc;
   color: #455a64;
   font-size: 13px;

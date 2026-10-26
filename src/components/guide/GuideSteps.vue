@@ -51,7 +51,7 @@ defineEmits(['select'])
 }
 
 .step-play {
-  border: 1px solid #90caf9;
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 50%, white);
   background: #fff;
   color: var(--brand-accent-darker);
   border-radius: 12px;

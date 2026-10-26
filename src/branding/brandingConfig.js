@@ -71,6 +71,11 @@ export function brandingFrom (config, { folder, supports }) {
     const base = brand.variables[COLORS[from]]
     if (base && !brand.variables[COLORS[key]]) brand.variables[COLORS[key]] = `color-mix(in srgb, ${base} ${percent}%, ${other})`
   }
+  // the analysis workspace's accent (analysis.css) follows the brand's
+  if (brand.variables['--brand-accent']) {
+    brand.variables['--brand-analysis-accent'] = brand.variables['--brand-accent-dark']
+    brand.variables['--brand-analysis-accent-soft'] = brand.variables['--brand-accent-light']
+  }
   // links in the brand's primary colour, unless it gives them one; without either, as the browser shows them
   if (!brand.variables['--brand-link'] && brand.variables['--brand-primary']) brand.variables['--brand-link'] = brand.variables['--brand-primary']
 

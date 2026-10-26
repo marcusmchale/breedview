@@ -776,7 +776,7 @@ const setMode = (nextMode) => {
 }
 
 .mode-btn.active {
-  background: #0d6efd;
+  background: var(--brand-primary);
   color: white;
 }
 
@@ -938,7 +938,7 @@ const setMode = (nextMode) => {
 }
 
 .btn-primary {
-  background-color: #0d6efd;
+  background-color: var(--brand-primary);
   color: white;
 }
 

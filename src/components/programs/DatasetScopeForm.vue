@@ -155,7 +155,7 @@ const handleCancel = () => {
 }
 
 .dataset-option:hover { background: #f5f5f5; }
-.dataset-option.selected { background: var(--brand-accent-light); border-color: #90caf9; }
+.dataset-option.selected { background: var(--brand-accent-light); border-color: color-mix(in srgb, var(--brand-accent) 50%, white); }
 
 .dataset-option input { margin-top: 3px; }
 
