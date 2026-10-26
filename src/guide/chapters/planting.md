@@ -23,10 +23,13 @@ in [Describing what you measure](/guide/describing).
    is Field, placed in Hill Field from the day it was sown. {#graph}
 2. **Add children… adds the same children to each unit chosen.** Eighteen plots of the trial area, named by number,
    HF27-1 to HF27-18. With its date emptied, they stay where the trial area is, until each is placed. {#plots}
-3. **Each plot is of its own entry.** Edit sets a plot's germplasm, here HF27-1's. The plants and samples later taken
-   from it take its germplasm, unless they name their own. {#germplasm}
-4. **Add Position places a plot in the layout.** HF27-1 is in Block 1, at row 1 and column 1, from the day it was sown.
-   The other plots are given their entries and places the same way. {#position}
+3. **Place units… places them all from the field sheet.** It opens on the trial area's plots; with the trial's layout
+   chosen and the day sown, it has a row for each plot and a column for its entry and each axis. Block finds the plot's
+   block, and Row and Column its place in it. The sheet's rows, pasted on the first plot's name, fill the rows of the
+   plots they name, and each row says where its plot goes. {#sheet}
+4. **Save places the plots, each with its entry.** All at once, from the day they were sown: a row with a mistake, such
+   as an entry no one is named, stops the save until it is put right. The plants and samples later taken from a plot
+   take its entry, unless they name their own. {#save}
 5. **The trial is planted.** The unit graph lists the plots under the trial area, ready for their observations, as in
    [Recording observations](/guide/recording). {#planted}
 

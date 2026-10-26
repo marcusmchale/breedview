@@ -203,3 +203,8 @@ export async function chooseInTree ({ page, input, trigger, path }) {
   await page.waitFor(`!document.querySelector('.options-list')`, 10000)
 }
 
+/** A select's option, chosen only when another is chosen: a control team or release already right is left alone */
+export async function chooseUnlessChosen ({ page, input, select, option }) {
+  if (await page.evaluate(`(${select}).selectedOptions[0]?.text.trim() === ${q(option)}`)) return
+  await input.choose(select, option)
+}
