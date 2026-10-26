@@ -52,7 +52,10 @@ async function openPrograms() {
 test('programs: the readable studies, below placeholders for the hidden trial and program holding one', async () => {
   await openPrograms()
   const text = await pageText()
-  assert.equal(text.match(/REDACTED/g)?.length, 2, `the program and the trial are placeholders: ${text}`)
+  // where programs and trials are named: the expanding may open a study's references, with placeholders of their own
+  const placeholders = await page.evaluate(`[...document.querySelectorAll('.program-title-section, .trial-title-section')]
+    .filter((title) => title.innerText.trim() === 'REDACTED').length`)
+  assert.equal(placeholders, 2, `the program and the trial are placeholders: ${text}`)
   for (const name of ['program_public', 'trial_public', 'study_public', 'study_registered']) {
     assert.ok(text.includes(e[name].name), `${name} is shown`)
   }
