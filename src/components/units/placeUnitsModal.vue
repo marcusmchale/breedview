@@ -147,7 +147,6 @@ const summary = computed(() => {
 })
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-// the layout a row names, for greying the axes it doesn't have
 // the layout a row is placed in, for greying the axes neither it nor the way to it has
 const applies = (rowIndex, column) => {
   const layout = checks.value[rowIndex].layout
