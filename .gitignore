@@ -1,6 +1,8 @@
 .DS_Store
 node_modules
 /dist
+# the demonstration site's build (npm run build:demo)
+/dist-demo
 # the guide as a static site (vite.guide.config.js)
 /dist-guide
 
