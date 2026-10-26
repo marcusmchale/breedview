@@ -115,6 +115,13 @@ const submitHandler = async (formData) => {
       <router-link to="/login" class="btn btn-secondary">Go to login</router-link>
     </div>
 
+    <!-- registering always needs an invitation: the site's first account is made on the server -->
+    <div v-else-if="!hasToken" class="invitation-invalid no-invitation">
+      <p>Registration needs an invitation link. If you were invited, open the link in the invitation email.</p>
+      <p>Otherwise, ask someone with an account to invite you.</p>
+      <router-link to="/login" class="btn btn-secondary">Go to login</router-link>
+    </div>
+
     <template v-else>
       <div v-if="invitation" class="invitation-summary">
         <p>
@@ -129,10 +136,6 @@ const submitHandler = async (formData) => {
           </span>
         </p>
       </div>
-      <p v-else class="text-muted no-invitation-note">
-        Registration needs an invitation link, except for the first account on a new installation.
-        If you were invited, open the link in the invitation email.
-      </p>
 
       <FormKit
         type="form"
@@ -283,10 +286,6 @@ const submitHandler = async (formData) => {
 
 .invitation-summary p {
   margin: 0;
-}
-
-.no-invitation-note {
-  margin-bottom: 16px;
 }
 
 .invitation-invalid p {

@@ -129,3 +129,11 @@ test('an inviter who administers no team is told the invitation offers no affili
     await logout(page)
   }
 })
+
+test('without an invitation link, the registration page asks for one and offers no form', async () => {
+  await logout(page)
+  await page.goto(`${config.appUrl}/register`)
+  await page.waitFor(`document.querySelector('.no-invitation')`)
+  assert.match(flat(await page.text('.no-invitation')), /Registration needs an invitation link/)
+  assert.ok(!(await page.exists('input[name=name]')), 'there is no form to register without one')
+})
