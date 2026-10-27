@@ -13,6 +13,12 @@ query teamsTeams($teamIds: [ID!]) {
                 admin { user { id name fullname } authorisation heritable }
                 curate { user { id name fullname } authorisation heritable }
             }
+            directAffiliations {
+                read { user { id name fullname } authorisation heritable }
+                write { user { id name fullname } authorisation heritable }
+                admin { user { id name fullname } authorisation heritable }
+                curate { user { id name fullname } authorisation heritable }
+            }
         }
         errors {
             message

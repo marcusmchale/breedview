@@ -27,13 +27,17 @@ const approveError = ref('')
 const revokeError = ref('')
 
 
-const allAffiliations = computed(() => ({
-  read: [],
-  write: [],
-  admin: [],
-  curate: [],
-  ...props.teamInfo?.affiliations
-}))
+// The team's affiliations, its own and those inherited from the teams above, which are managed there
+const allAffiliations = computed(() => {
+  const direct = props.teamInfo?.directAffiliations
+  return Object.fromEntries(['read', 'write', 'admin', 'curate'].map((access) => [
+    access,
+    (props.teamInfo?.affiliations?.[access] ?? []).map((affiliation) => ({
+      ...affiliation,
+      isInherited: !!direct && !(direct[access] ?? []).some((own) => own.user.id === affiliation.user.id)
+    }))
+  ]))
+})
 
 // Apollo mutations
 const {

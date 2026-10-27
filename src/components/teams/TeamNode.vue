@@ -35,9 +35,15 @@ const deleteTeamError = ref('')
 const { mutate: deleteTeamMutation, loading: deleteTeamLoading } = useMutation(DELETE_TEAM_MUTATION)
 const { mutate: removeAffiliationMutation, loading: removeAffiliationLoading } = useMutation(REMOVE_AFFILIATION_MUTATION)
 
+// An affiliation shown on a team is inherited when the team's own affiliations lack it: it is changed on the team above
+const isInherited = (accessType) => {
+  const direct = teamInfo.value.directAffiliations
+  return !!direct && !(direct[accessType.toLowerCase()] ?? []).some(affiliation => affiliation.user.id == props.currentUserId)
+}
+
 // Event handlers
 const showAffiliationDialog = (accessType, affiliationData) => {
-  selectedAffiliation.value = { accessType, data: affiliationData }
+  selectedAffiliation.value = { accessType, data: affiliationData, inherited: isInherited(accessType) }
   showAffiliationModal.value = true
   removeAffiliationError.value = ''
 }

@@ -1,8 +1,9 @@
 // Affiliation requests, end to end: the outsider, in no team, asks to read the organisation from Teams, the first tab
 // of Access control; the email to the organisation's admin links to the Affiliation requests tab, which lists the
 // request for that admin and not for the admin of another organisation; the admin rejects it, approves it when it is
-// made again, and the outsider's profile then lists the organisation with read access. The outsider is left in no
-// team, as the test database has it. Needs the dev backend sending mail to MailHog (see README).
+// made again, and the outsider's profile then lists the organisation with read access. Made heritable, that access is
+// inherited by the team below, where it is shown as such and not removed. The outsider is left in no team, as the
+// test database has it. Needs the dev backend sending mail to MailHog (see README).
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -42,6 +43,11 @@ const requestRow = `[...document.querySelectorAll('.request-item')].find((e) => 
 const tabCount = async () => Number(await page.evaluate(`document.querySelector('.page-tab .tab-count')?.innerText.trim() ?? 0`))
 const clickInRow = (label) => page.evaluate(`[...(${requestRow}).querySelectorAll('button')].find((b) => b.innerText.includes(${q(label)})).click()`)
 const decided = `!(${requestRow}) && !!document.querySelector('.affiliation-requests-panel .success-message')`
+// A team's node under Teams, by its id, and its own badge for an access (R, W, C or A, + when heritable)
+const teamNode = (id) => `[...document.querySelectorAll('.team-node')].find((n) => n.querySelector('.team-meta p')?.innerText.trim() === ${q(`ID: ${id}`)})`
+const badge = (id, letter) => `[...(${teamNode(id)})?.querySelector('.affiliation-badges').querySelectorAll('.badge') ?? []].find((b) => b.innerText.trim().startsWith(${q(letter)}))`
+const modalButtons = () => page.evaluate(`[...document.querySelectorAll('.modal button')].map((b) => b.innerText.trim())`)
+const child = String(teams.child.id)
 
 test('the outsider asks to read the organisation from Teams, the first tab of Access control', async () => {
   await loginAs(page, 'outsider')
@@ -114,4 +120,37 @@ test("the outsider's profile lists the organisation with read access", async () 
   await page.waitFor(`document.querySelector('.team-access-list')`, 30000)
   const access = flat(await page.text('.team-access-list'))
   assert.ok(access.includes(`${teams.root.name} | read`), `the organisation, with read access: ${access}`)
+})
+
+test('read access made heritable is inherited by the team below, where it is not changed or removed', async () => {
+  await loginAs(page, 'admin')
+  const outsiderId = String(accounts.outsider.user_id)
+  const heritable = await graphql(page,
+    'mutation ($user: ID!, $team: ID!) { accountsApproveAffiliation(userId: $user, teamId: $team, access: READ, heritable: true) { status errors { message } } }',
+    { user: outsiderId, team: root })
+  assert.equal(heritable.status, 'SUCCESS', `made heritable: ${q(heritable.errors)}`)
+
+  await loginAs(page, 'outsider')
+  await page.goto(`${config.appUrl}/access`)
+  await page.waitFor(`!!(${badge(root, 'R+')})`, 30000)
+  await page.evaluate(`(${teamNode(root)}).querySelector('.expand-button').click()`)
+  await page.waitFor(`!!(${badge(child, 'R+')})`, 30000)
+  await page.evaluate(`(${badge(child, 'R+')}).click()`)
+  await page.waitFor(`document.querySelector('.modal')`)
+  assert.match(flat(await page.text('.modal')), /Inherited from a team above this one/, 'the access is shown as inherited')
+  assert.ok(!(await modalButtons()).includes('Remove Affiliation'), 'an inherited affiliation is not removed on the team below')
+  await page.clickText('Cancel', '.modal button')
+
+  // nor revoked there by the admin, who manages it on the organisation
+  await loginAs(page, 'admin')
+  await page.goto(`${config.appUrl}/access`)
+  await page.waitFor(`!!(${teamNode(root)})?.querySelector('.expand-button')`, 30000)
+  await page.evaluate(`(${teamNode(root)}).querySelector('.expand-button').click()`)
+  await page.waitFor(`!!(${teamNode(child)})`, 30000)
+  await page.evaluate(`[...(${teamNode(child)}).querySelectorAll('.team-actions button')].find((b) => b.innerText.includes('Manage Affiliations')).click()`)
+  const outsiderRead = `[...document.querySelectorAll('.modal .affiliation-item')].find((e) => e.innerText.includes(${q(`@${outsider}`)}))`
+  await page.waitFor(`!!(${outsiderRead})`, 15000)
+  const row = flat(await page.evaluate(`(${outsiderRead}).innerText`))
+  assert.ok(row.includes('(Inherited)'), `marked inherited: ${row}`)
+  assert.ok(!row.includes('Revoke'), `not revoked on the team below: ${row}`)
 })

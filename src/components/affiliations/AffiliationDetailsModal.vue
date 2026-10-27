@@ -95,10 +95,14 @@ const getStatusText = (status) => {
           </span>
         </p>
         <p><strong>Inheritance:</strong> {{ selectedAffiliation?.data.heritable ? 'Heritable (applies to child teams)' : 'Direct only (this team only)' }}</p>
+        <p v-if="selectedAffiliation?.inherited" class="text-muted">
+          Inherited from a team above this one, where it is changed or removed.
+        </p>
       </div>
 
       <div class="form-actions right">
         <button
+          v-if="!selectedAffiliation?.inherited"
           type="button"
           class="btn btn-danger"
           @click="$emit('remove-affiliation')"
