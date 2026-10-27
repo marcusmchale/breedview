@@ -104,7 +104,8 @@ export function createSession (config) {
     const decode = (part) => {
       const encoding = (part.Headers['Content-Transfer-Encoding'] || [''])[0].toLowerCase()
       if (encoding === 'base64') return Buffer.from(part.Body, 'base64').toString('utf8')
-      if (encoding === 'quoted-printable') return part.Body.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      // =XX are bytes of the UTF-8 text, so a character outside ASCII is two or more of them
+      if (encoding === 'quoted-printable') return Buffer.from(part.Body.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))), 'latin1').toString('utf8')
       return part.Body
     }
     return data.items
