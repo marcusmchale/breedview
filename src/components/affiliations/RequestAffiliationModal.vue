@@ -22,7 +22,8 @@
         </div>
         <!-- Show message if no access types are available -->
         <div v-if="availableAccessTypes.length === 0" class="info-message">
-          You already have all possible access types for this team.
+          You already have all possible access types for this team. To ask for one to reach the teams below it too,
+          click its badge.
         </div>
         <!-- Show warning message for WRITE access -->
         <div v-if="affiliationRequest.access === 'WRITE' && userIsAdminForSelectedTeam" class="warning-message">

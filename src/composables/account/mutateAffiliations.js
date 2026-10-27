@@ -2,6 +2,8 @@ import { useMutation } from '@vue/apollo-composable'
 
 import APPROVE_AFFILIATION_MUTATION from '@/graphql/account/approveAffiliation.graphql'
 import REVOKE_AFFILIATION_MUTATION from '@/graphql/account/revokeAffiliation.graphql'
+import REQUEST_AFFILIATION_MUTATION from '@/graphql/account/requestAffiliation.graphql'
+import REMOVE_HERITABILITY_MUTATION from '@/graphql/account/removeHeritability.graphql'
 
 const noResponse = { status: 'ERROR', errors: [{ message: 'No response from server' }] }
 
@@ -25,5 +27,25 @@ export function useMutateAffiliations() {
     approveAffiliationLoading,
     revokeAffiliation,
     revokeAffiliationLoading
+  }
+}
+
+// A user's changes to the reach of their own affiliation to a team. Asking for one held to the team only to reach the
+// teams below too goes to the team's admins, and the user keeps it meanwhile; keeping one to the team only, or
+// withdrawing that request, takes effect at once.
+export function useMutateOwnAffiliations() {
+  const { mutate: requestMutation, loading: requestHeritabilityLoading } = useMutation(REQUEST_AFFILIATION_MUTATION)
+  const { mutate: removeMutation, loading: removeHeritabilityLoading } = useMutation(REMOVE_HERITABILITY_MUTATION)
+
+  const requestHeritability = async ({ teamId, access }) =>
+    unwrap(await requestMutation({ team: teamId, access, heritable: true }), 'accountsRequestAffiliation')
+  const removeHeritability = async ({ teamId, access }) =>
+    unwrap(await removeMutation({ team: teamId, access }), 'accountsRemoveHeritability')
+
+  return {
+    requestHeritability,
+    requestHeritabilityLoading,
+    removeHeritability,
+    removeHeritabilityLoading
   }
 }

@@ -118,9 +118,12 @@ browser: that the pages render it, which actions they offer, the modals and labe
 - `affiliationRequests.test.mjs`: the outsider requests read access to the organisation from Teams, the first tab of
   Access control; the email to the organisation's admin links to the Affiliation requests tab, which lists the request
   (counted on the tab) for that admin and not for the stranger, who administers another organisation; the admin
-  rejects it, approves it when it is made again, and the outsider's profile lists the organisation. Made heritable,
-  the access shows on the team below as inherited, with no removal in its details and no revoking in its admin's
-  Manage Affiliations. The outsider's affiliation is removed before and after.
+  rejects it, approves it when it is made again, and the outsider's profile lists the organisation. From that
+  access's badge the outsider asks for it to reach the teams below too, keeping it meanwhile; the admin is emailed,
+  sees it in Manage Affiliations and approves it from the requests; the team below shows the access as inherited,
+  with no removal in its details and no revoking in its admin's Manage Affiliations; the outsider keeps it to the
+  organisation alone at once, and asks again, which the admin rejects. The outsider's affiliation is removed before
+  and after.
 - `hierarchicalSelect.test.mjs`: the studies picker of the analysis editor selects every study at once through
   "By type…", the panel closes on navigation, a selection by type shows as one chip that dissolves into named chips
   when a study is unticked, and ticking a trial selects the studies below it.

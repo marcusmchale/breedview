@@ -4,7 +4,8 @@ import { useUserAccess } from '@/composables/user/useUserAccess'
 import { useAffiliationRequestsQuery } from '@/composables/teams/affiliationRequestsQuery'
 import { useMutateAffiliations } from '@/composables/account/mutateAffiliations'
 
-// Requests by users to join teams the viewer administers, approved as asked or rejected
+// Requests by users to join teams the viewer administers, or to reach the teams below them, approved as asked or
+// rejected. Rejecting a request to reach the teams below approves the access for the team only, which the user keeps.
 const { adminTeams, loading: accessLoading } = useUserAccess()
 const {
   affiliationRequests,
@@ -22,18 +23,23 @@ const requestKey = (request) => `${request.team.id}:${request.user.id}:${request
 const nameOf = (item) => item.fullname || item.name
 const accessText = (access) => access.charAt(0) + access.slice(1).toLowerCase()
 
+// What a request asks for, as the decision's message says it
+const askedFor = (request) => `${request.access.toLowerCase()} access to ` + (request.held
+  ? `the teams below ${nameOf(request.team)}`
+  : `${nameOf(request.team)}${request.heritable ? ' and the teams below it' : ''}`)
+
 const decide = async (request, approve) => {
   message.value = ''
   errorMessage.value = ''
   busyKey.value = requestKey(request)
   const affiliation = { userId: request.user.id, teamId: request.team.id, access: request.access }
   try {
-    const { status, errors } = approve
-      ? await approveAffiliation({ ...affiliation, heritable: request.heritable })
+    const { status, errors } = approve || request.held
+      ? await approveAffiliation({ ...affiliation, heritable: approve && request.heritable })
       : await revokeAffiliation(affiliation)
     if (status === 'SUCCESS') {
-      message.value = `${approve ? 'Approved' : 'Rejected'}: ${nameOf(request.user)}, ` +
-        `${request.access.toLowerCase()} access to ${nameOf(request.team)}.`
+      message.value = `${approve ? 'Approved' : 'Rejected'}: ${nameOf(request.user)}, ${askedFor(request)}` +
+        (!approve && request.held ? `; they keep it for ${nameOf(request.team)}.` : '.')
       await refetchAffiliationRequests()
     } else {
       errorMessage.value = errors?.[0]?.message || `Failed to ${approve ? 'approve' : 'reject'} the request`
@@ -50,8 +56,9 @@ const decide = async (request, approve) => {
 <template>
   <div class="affiliation-requests-panel">
     <p class="intro text-muted">
-      Requests to join the teams you administer. Approving one gives the access asked for; a rejected request can be
-      made again. To change an affiliation later, use Manage Affiliations on its team under Teams.
+      Requests to join the teams you administer, or to have access to one of them reach the teams below it too.
+      Approving one gives the access asked for; a rejected request can be made again. To change an affiliation later,
+      use Manage Affiliations on its team under Teams.
     </p>
 
     <div v-if="message" class="success-message">{{ message }}</div>
@@ -70,7 +77,12 @@ const decide = async (request, approve) => {
       <li v-for="request in affiliationRequests" :key="requestKey(request)" class="request-item">
         <div class="request-info">
           <span><strong>{{ nameOf(request.user) }}</strong> ({{ request.user.name }})</span>
-          <span class="request-text">
+          <span v-if="request.held" class="request-text">
+            asks for
+            <span class="badge" :class="`badge-${request.access.toLowerCase()}`">{{ accessText(request.access) }}</span>
+            access to the teams below <strong>{{ nameOf(request.team) }}</strong> too, having it for that team
+          </span>
+          <span v-else class="request-text">
             asks for
             <span class="badge" :class="`badge-${request.access.toLowerCase()}`">{{ accessText(request.access) }}</span>
             access to <strong>{{ nameOf(request.team) }}</strong>

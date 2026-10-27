@@ -21,7 +21,7 @@ const emit = defineEmits(['create-team', 'request-affiliation', 'team-deleted', 
 // Use the composable for team data management
 const {
   teamInfo, isExpanded, childrenData, childrenLoading, childrenError,
-  hasChildren, userIsAdminForTeam, refreshTeamData, toggleExpanded
+  hasChildren, userIsAdminForTeam, loadChildren, refreshTeamData, toggleExpanded
 } = useTeamData(props.teamData, props.currentUserId)
 
 // Modal states
@@ -30,6 +30,8 @@ const selectedAffiliation = ref({ accessType: '', data: null })
 const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
 const deleteTeamError = ref('')
+// Bumped to make the teams below again from fresh data: each copies its team when it is made
+const childrenVersion = ref(0)
 
 // Mutations
 const { mutate: deleteTeamMutation, loading: deleteTeamLoading } = useMutation(DELETE_TEAM_MUTATION)
@@ -46,6 +48,20 @@ const showAffiliationDialog = (accessType, affiliationData) => {
   selectedAffiliation.value = { accessType, data: affiliationData, inherited: isInherited(accessType) }
   showAffiliationModal.value = true
   removeAffiliationError.value = ''
+}
+
+// After the user changes how far their affiliation reaches: the team's affiliations again, the details shown from them,
+// and the teams below, whose inherited affiliations change with it
+const handleAffiliationChanged = async () => {
+  await refreshTeamData()
+  const { accessType } = selectedAffiliation.value
+  const data = teamInfo.value.affiliations?.[accessType.toLowerCase()]
+    ?.find(affiliation => affiliation.user.id == props.currentUserId)
+  if (data) selectedAffiliation.value = { accessType, data, inherited: isInherited(accessType) }
+  if (isExpanded.value) {
+    childrenVersion.value++
+    await loadChildren()
+  }
 }
 
 const closeAffiliationDialog = () => {
@@ -191,7 +207,7 @@ onUnmounted(() => {
       <div v-else-if="childrenData.length > 0" class="teams-list">
         <TeamNode
           v-for="child in childrenData"
-          :key="child.id"
+          :key="`${child.id}-${childrenVersion}`"
           :team-data="child"
           :depth="depth + 1"
           :current-user-id="currentUserId"
@@ -215,6 +231,7 @@ onUnmounted(() => {
       :remove-affiliation-error="removeAffiliationError"
       @close="closeAffiliationDialog"
       @remove-affiliation="handleRemoveAffiliation"
+      @affiliation-changed="handleAffiliationChanged"
     />
 
     <ManageAffiliationsModal

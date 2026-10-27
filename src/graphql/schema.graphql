@@ -1180,8 +1180,8 @@ input LocationUpdate {
 
 type Mutation {
   """
-  Register. Except for the first account, requires the token from an invitation link,
-  and the email address must be the one invited.
+  Register, with the token from an invitation link, and the email address invited. The site's first account, which
+  invites the others, is made on the server (scripts/create_first_account.py).
   """
   accountsCreateAccount(
     name: String!
@@ -1249,9 +1249,27 @@ type Mutation {
 
   """ Send the invitation again, extending its expiry """
   accountsResendInvitation(id: ID!): BooleanPayload!
+
+  """
+  Ask a team's admins for an affiliation, heritable by default. With an authorised affiliation to the team only,
+  ask for it to be made heritable: it stays as it is until they decide. An admin's own request is authorised at once,
+  unless it is heritable and they are not an admin for every team below.
+  """
   accountsRequestAffiliation(teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
+
+  """
+  Authorise a user's affiliation to a team the user administers, heritable only by an admin for every team below.
+  Authorising an affiliation the user holds to the team only answers their request to make it heritable with no.
+  """
   accountsApproveAffiliation(userId: ID!, teamId: ID!, access: Access!, heritable: Boolean): BooleanPayload!
   accountsRemoveAffiliation(teamId: ID!, access: Access!): BooleanPayload!
+
+  """
+  Limit the user's own affiliation to the team, with no approval needed, or withdraw their request to make it
+  heritable. Refused for read access while curate or admin access is heritable, and for the last heritable admin of a
+  team tree's root.
+  """
+  accountsRemoveHeritability(teamId: ID!, access: Access!): BooleanPayload!
   accountsRevokeAffiliation(userId: ID!, teamId: ID!, access: Access!): BooleanPayload!
   accountsRequestOntologyRole(ontologyRole: OntologyRole!): BooleanPayload!
   accountsSetOntologyRole(userId: ID!, ontologyRole: OntologyRole!): BooleanPayload!
@@ -5916,6 +5934,10 @@ type Affiliation {
   user: UserDisplay!
   authorisation: Authorisation!
   heritable: Boolean!
+
+  """ The user asked for an affiliation they hold to the team only to be made heritable, and the admins have yet to decide 
+  """
+  heritableRequested: Boolean!
 }
 
 type Affiliations {

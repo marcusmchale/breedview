@@ -7,22 +7,22 @@ query teamsRoots {
             fullname
             children { id }
             affiliations {
-                read { user { id name fullname } authorisation heritable }
-                write { user { id name fullname } authorisation heritable }
-                admin { user { id name fullname } authorisation heritable }
-                curate { user { id name fullname } authorisation heritable }
+                read { user { id name fullname } authorisation heritable heritableRequested }
+                write { user { id name fullname } authorisation heritable heritableRequested }
+                admin { user { id name fullname } authorisation heritable heritableRequested }
+                curate { user { id name fullname } authorisation heritable heritableRequested }
             }
             inheritedAffiliations {
-                read { user { id name fullname } authorisation heritable }
-                write { user { id name fullname } authorisation heritable }
-                admin { user { id name fullname } authorisation heritable }
-                curate { user { id name fullname } authorisation heritable }
+                read { user { id name fullname } authorisation heritable heritableRequested }
+                write { user { id name fullname } authorisation heritable heritableRequested }
+                admin { user { id name fullname } authorisation heritable heritableRequested }
+                curate { user { id name fullname } authorisation heritable heritableRequested }
             }
             directAffiliations {
-                read { user { id name fullname } authorisation heritable }
-                write { user { id name fullname } authorisation heritable }
-                admin { user { id name fullname } authorisation heritable }
-                curate { user { id name fullname } authorisation heritable }
+                read { user { id name fullname } authorisation heritable heritableRequested }
+                write { user { id name fullname } authorisation heritable heritableRequested }
+                admin { user { id name fullname } authorisation heritable heritableRequested }
+                curate { user { id name fullname } authorisation heritable heritableRequested }
             }
         }
         errors {

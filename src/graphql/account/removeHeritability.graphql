@@ -1,0 +1,8 @@
+mutation accountsRemoveHeritability($team: ID!, $access: Access!) {
+  accountsRemoveHeritability(teamId: $team, access: $access) {
+    status
+    errors {
+      message
+    }
+  }
+}

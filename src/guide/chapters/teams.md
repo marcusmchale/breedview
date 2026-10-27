@@ -39,6 +39,11 @@ invitation, asks the Example Plant Breeding Institute for Read access, and Dara,
 > A request records who asked, for which team and access, and when. The administrators see your full name and
 > username with it, and are emailed about it.
 
+> [!NOTE]
+> A badge opens your access to that team. Access to the team alone can be asked for the teams below it too, and the
+> administrators decide, while you keep it for the team; access that reaches them can be kept to the team alone at
+> once.
+
 ## Try it on the demo site
 
 Sign in with a reviewer account and ask a team for Read access: the request is listed for its administrators.

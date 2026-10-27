@@ -92,8 +92,9 @@ const getBadgeTooltip = (type) => {
   const status = affiliation.authorisation === 'AUTHORISED' ? 'Authorised' :
                  affiliation.authorisation === 'REQUESTED' ? 'Requested' : 'Unknown'
   const heritable = affiliation.heritable ? ' (Heritable)' : ' (Direct only)'
+  const requested = affiliation.heritableRequested ? ' - Heritable requested' : ''
 
-  return `${typeName} Access - ${status}${heritable} - Click to manage`
+  return `${typeName} Access - ${status}${heritable}${requested} - Click to manage`
 }
 </script>
 

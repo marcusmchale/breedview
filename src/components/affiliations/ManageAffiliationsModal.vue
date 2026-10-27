@@ -151,7 +151,7 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
                 </div>
                 <span class="affiliation-meta">
-                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
+                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }}{{ affiliation.heritableRequested ? ', heritable requested' : '' }} |
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
@@ -190,6 +190,24 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                     (Cannot revoke inherited request - manage from parent team)
                   </span>
                 </div>
+                <!-- a request to make an affiliation held for this team only heritable, which keeps it until decided -->
+                <div v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.heritableRequested && !affiliation.isInherited" class="approval-buttons">
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'READ', true)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-success btn-heritable"
+                  >
+                    {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                  </button>
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'READ', false)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-secondary"
+                    title="Reject the request: the access stays for this team only"
+                  >
+                    Keep Direct Only
+                  </button>
+                </div>
                 <button
                   v-if="affiliation.authorisation === 'AUTHORISED' && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'READ')"
@@ -223,7 +241,7 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
                 </div>
                 <span class="affiliation-meta">
-                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
+                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }}{{ affiliation.heritableRequested ? ', heritable requested' : '' }} |
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
@@ -285,7 +303,7 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
                 </div>
                 <span class="affiliation-meta">
-                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
+                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }}{{ affiliation.heritableRequested ? ', heritable requested' : '' }} |
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
@@ -324,6 +342,24 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                     (Cannot revoke inherited request - manage from parent team)
                   </span>
                 </div>
+                <!-- a request to make an affiliation held for this team only heritable, which keeps it until decided -->
+                <div v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.heritableRequested && !affiliation.isInherited" class="approval-buttons">
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'ADMIN', true)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-success btn-heritable"
+                  >
+                    {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                  </button>
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'ADMIN', false)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-secondary"
+                    title="Reject the request: the access stays for this team only"
+                  >
+                    Keep Direct Only
+                  </button>
+                </div>
                 <button
                   v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.user.id != currentUserId && !affiliation.isInherited"
                   @click="handleRevokeAffiliation(affiliation.user.id, 'ADMIN')"
@@ -359,7 +395,7 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                   <span v-if="affiliation.user.name" class="username">@{{ affiliation.user.name }}</span>
                 </div>
                 <span class="affiliation-meta">
-                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }} |
+                  {{ affiliation.heritable ? 'Heritable' : 'Direct only' }}{{ affiliation.heritableRequested ? ', heritable requested' : '' }} |
                   <span :class="getStatusClass(affiliation.authorisation)">
                     {{ getStatusText(affiliation.authorisation) }}
                   </span>
@@ -397,6 +433,24 @@ const handleApproveAffiliation = async (userId, accessType, heritable) => {
                   <span v-if="affiliation.isInherited" class="inherited-note">
                     (Cannot revoke inherited request - manage from parent team)
                   </span>
+                </div>
+                <!-- a request to make an affiliation held for this team only heritable, which keeps it until decided -->
+                <div v-if="affiliation.authorisation === 'AUTHORISED' && affiliation.heritableRequested && !affiliation.isInherited" class="approval-buttons">
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'CURATE', true)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-success btn-heritable"
+                  >
+                    {{ approveAffiliationLoading ? 'Approving...' : 'Approve Heritable' }}
+                  </button>
+                  <button
+                    @click="handleApproveAffiliation(affiliation.user.id, 'CURATE', false)"
+                    :disabled="approveAffiliationLoading"
+                    class="btn btn-sm btn-secondary"
+                    title="Reject the request: the access stays for this team only"
+                  >
+                    Keep Direct Only
+                  </button>
                 </div>
                 <button
                   v-if="affiliation.authorisation === 'AUTHORISED' && !affiliation.isInherited"

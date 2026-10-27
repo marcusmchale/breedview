@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import {useMutation} from "@vue/apollo-composable";
 
 import SET_WRITE_TEAM from '../../graphql/account/setWriteTeam.graphql'
 import { useUserAccess } from "@/composables/user/useUserAccess";
+import { useMutateOwnAffiliations } from '@/composables/account/mutateAffiliations'
 
 
 
@@ -30,9 +31,44 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'remove-affiliation'])
+const emit = defineEmits(['close', 'remove-affiliation', 'affiliation-changed'])
 
 const { refetch: refetchAccessTeams } = useUserAccess()
+
+const {
+  requestHeritability, requestHeritabilityLoading, removeHeritability, removeHeritabilityLoading
+} = useMutateOwnAffiliations()
+const heritabilityError = ref('')
+
+// How far the user's own affiliation reaches. One authorised for this team only may be asked for the teams below too
+// (write access never reaches them), and the admins decide; one that reaches them may be kept to this team, and a
+// request withdrawn, at once. An inherited affiliation is changed on the team it is from.
+const affiliation = computed(() => props.selectedAffiliation?.data)
+const ownAffiliation = computed(() => !!affiliation.value && !props.selectedAffiliation.inherited)
+const canRequestHeritable = computed(() => ownAffiliation.value
+  && props.selectedAffiliation.accessType !== 'WRITE'
+  && affiliation.value.authorisation === 'AUTHORISED'
+  && !affiliation.value.heritable
+  && !affiliation.value.heritableRequested)
+const canRemoveHeritability = computed(() => ownAffiliation.value
+  && (affiliation.value.heritable || affiliation.value.heritableRequested))
+const heritabilityLoading = computed(() => requestHeritabilityLoading.value || removeHeritabilityLoading.value)
+
+const changeHeritability = async (change) => {
+  heritabilityError.value = ''
+  try {
+    const { status, errors } = await change({ teamId: props.team.id, access: props.selectedAffiliation.accessType })
+    if (status === 'SUCCESS') {
+      await refetchAccessTeams()
+      emit('affiliation-changed')
+    } else {
+      heritabilityError.value = errors?.[0]?.message || 'Failed to change how far the affiliation reaches'
+    }
+  } catch (error) {
+    console.error('Heritability change error:', error)
+    heritabilityError.value = error.message || 'An unexpected error occurred'
+  }
+}
 
 const { mutate: setWriteTeam, loading: setWriteLoading } = useMutation(SET_WRITE_TEAM)
 const setWriteError = ref('')
@@ -98,6 +134,10 @@ const getStatusText = (status) => {
         <p v-if="selectedAffiliation?.inherited" class="text-muted">
           Inherited from a team above this one, where it is changed or removed.
         </p>
+        <p v-else-if="selectedAffiliation?.data.heritableRequested" class="text-muted heritability-requested">
+          You asked for this access to the teams below too. The team's admins decide; you keep it for this team
+          meanwhile.
+        </p>
       </div>
 
       <div class="form-actions right">
@@ -109,6 +149,28 @@ const getStatusText = (status) => {
           :disabled="removeAffiliationLoading"
         >
           {{ removeAffiliationLoading ? 'Removing...' : 'Remove Affiliation' }}
+        </button>
+
+        <button v-if="canRequestHeritable"
+          type="button"
+          class="btn"
+          title="Ask the team's admins for this access to the teams below this one too"
+          @click="changeHeritability(requestHeritability)"
+          :disabled="heritabilityLoading"
+        >
+          {{ requestHeritabilityLoading ? 'Requesting...' : 'Request Heritable' }}
+        </button>
+
+        <button v-if="canRemoveHeritability"
+          type="button"
+          class="btn"
+          :title="affiliation.heritable
+            ? 'Keep this access to this team only, at once: asking for the teams below again needs an admin\'s approval'
+            : 'Withdraw the request for this access to the teams below'"
+          @click="changeHeritability(removeHeritability)"
+          :disabled="heritabilityLoading"
+        >
+          {{ removeHeritabilityLoading ? 'Changing...' : (affiliation.heritable ? 'Make Direct Only' : 'Withdraw Request') }}
         </button>
 
         <button v-if="selectedAffiliation?.accessType === 'WRITE'"
@@ -131,6 +193,10 @@ const getStatusText = (status) => {
 
       <div v-if="setWriteError" class="error-message">
         {{ setWriteError }}
+      </div>
+
+      <div v-if="heritabilityError" class="error-message">
+        {{ heritabilityError }}
       </div>
     </div>
   </div>
