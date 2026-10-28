@@ -80,11 +80,11 @@ export function messageDatasetIndex(message) {
   return path[0] === 'datasetIds' && path.length > 1 ? Number(path[1]) : null
 }
 
-/** Count of records matched by an EXCLUDED_BY_CONFIG warning. */
+/** Count of records matched by an EXCLUDED_BY_CONFIG warning, e.g. 6 from "Exclusion rule 2 matched 6 records". */
 export function exclusionMatchCount(message) {
   if (Array.isArray(message.recordIds)) return message.recordIds.length
-  const match = message.message?.match(/\d+/)
-  return match ? Number(match[0]) : null
+  const match = message.message?.match(/matched (\d+)/)
+  return match ? Number(match[1]) : null
 }
 
 /**
