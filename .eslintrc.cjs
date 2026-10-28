@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   // the build's output
-  ignorePatterns: ['dist/', '.guide-dist/', 'guide/out/'],
+  ignorePatterns: ['dist/', 'dist-demo/', 'dist-guide/', '.guide-dist/', 'guide/out/'],
   env: {
     node: true,
     browser: true,
