@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { exclusionMatchCount, messageDatasetIndex, messageInfo, messageVariant } from '@/composables/analysis/useAnalysisMessages'
 import { inputPathToFormPath } from '@/composables/analysis/useAnalysisForm'
-import { datasetName } from '@/composables/analysis/useAnalysisNames'
+import { datasetName, formPathLabel } from '@/composables/analysis/useAnalysisNames'
 
 /**
  * Errors and warnings of a finished analysis, grouped by code, with suggested actions.
@@ -12,7 +12,9 @@ const props = defineProps({
   errors: { type: Array, default: () => [] },
   warnings: { type: Array, default: () => [] },
   datasetIds: { type: Array, default: () => [] },
-  analysisType: { type: String, required: true }
+  analysisType: { type: String, required: true },
+  // the submission's configuration, to name the terms and dimensions that messages are about
+  config: { type: Object, default: null }
 })
 
 const emit = defineEmits(['exclude-records', 'remove-dataset', 'edit'])
@@ -29,10 +31,13 @@ const groups = computed(() => {
   return [...out.values()]
 })
 
-const fieldLabel = (m) => {
-  const path = inputPathToFormPath(m.path, props.analysisType)
-  return path ? path.split('.').join(' › ') : ''
-}
+/** The field a message is about, e.g. "Tree Height (mm) › replicate aggregation" for terms.0.replicateAggregation */
+const fieldLabel = (m) =>
+  formPathLabel(inputPathToFormPath(m.path, props.analysisType), {
+    datasetIds: props.datasetIds,
+    terms: props.config?.terms,
+    grouping: props.config?.grouping
+  })
 
 const datasetOf = (m) => {
   const i = messageDatasetIndex(m)

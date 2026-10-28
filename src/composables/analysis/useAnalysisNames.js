@@ -160,6 +160,33 @@ export function termLabel(ref) {
   return TERM_TYPE_LABELS[ref.type] ?? ref.type
 }
 
+const words = (key) => key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()
+
+/**
+ * A form path in words, its items named from the configuration (a form, or a submission's config with its datasetIds),
+ * e.g. "Tree Height (mm) › replicate aggregation" for terms.0.replicateAggregation, or "Exclusion rule 1".
+ */
+export function formPathLabel(path, { datasetIds = [], terms = [], grouping = null } = {}) {
+  const items = {
+    datasetIds: (i) => datasetName(datasetIds[i]),
+    terms: (i) => (terms[i] ? termLabel(terms[i].reference) : `Term ${i + 1}`),
+    exclusions: (i) => `Exclusion rule ${i + 1}`,
+    recordGroups: (i) => grouping?.recordGroups?.[i]?.name || `Record group dimension ${i + 1}`,
+    interactions: (i) => `Interaction ${i + 1}`,
+    estimatedMeans: (i) => `Estimated means ${i + 1}`
+  }
+  const segments = path ? path.split('.') : []
+  const parts = []
+  segments.forEach((segment, i) => {
+    const list = items[segments[i - 1]]
+    if (/^\d+$/.test(segment)) parts.push(list ? list(Number(segment)) : `${Number(segment) + 1}`)
+    // a list is named by its items, unless the path ends at it; the options by themselves
+    else if ((!items[segment] || i === segments.length - 1) && segment !== 'options') parts.push(words(segment))
+  })
+  const label = parts.join(' › ')
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 /** A layout axis value, nested in the layout that has the axis: "Row 3 · North Rows" */
 export const layoutAxisLabel = ({ axis, layoutId, value }) => `${axis} ${value} · ${layoutName(layoutId)}`
 

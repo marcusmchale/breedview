@@ -174,6 +174,7 @@ const resultView = computed(() => (result.value ? RESULT_VIEWS[result.value.__ty
           :warnings="warnings"
           :dataset-ids="submission.datasetIds"
           :analysis-type="submission.analysisType"
+          :config="config"
           @exclude-records="emit('exclude', submission, [{ recordIds: $event }])"
           @remove-dataset="emit('remove-dataset', submission, $event)"
           @edit="emit('edit', submission)"

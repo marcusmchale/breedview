@@ -480,7 +480,9 @@ for (const c of r.expected.cases) {
       assert.equal(await statusLabel(), 'Failed', q(shown))
       const error = shown.find((m) => m.code === c.error.code && m.severity === 'error')
       assert.ok(error, `${c.error.code} is shown: ${q(shown)}`)
-      assert.ok(error.items.some((item) => item.endsWith(`› ${c.error.path_end}`) && item.includes(`${c.error.record_count} records`)),
+      // the field it is about, named in words: "Tree Height (mm) › replicate aggregation"
+      const field = c.error.path_end.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()
+      assert.ok(error.items.some((item) => item.endsWith(`› ${field}`) && item.includes(`${c.error.record_count} records`)),
         `at ${c.error.path_end}, for ${c.error.record_count} records: ${q(error.items)}`)
     } else {
       assert.equal(await statusLabel(), 'Completed', q(shown))

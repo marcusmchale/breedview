@@ -1,5 +1,6 @@
 // An analysis's errors and warnings on the fields of the editor, when it is edited and resubmitted: each message stays
-// on the term, dataset or exclusion rule it is about when another is removed before it, and goes with its own. On the
+// on the term, dataset or exclusion rule it is about when another is removed before it, and goes with its own. The
+// messages and the fields they link to name concepts and datasets, and number rules as the editor does. On the
 // test database's replicates study (manifest `replicates`), as the writer: tree heights and canopy widths averaged
 // with their replicates pooled (a REPLICATES_POOLED warning on each term), the light factor's dataset with no term
 // (UNUSED_DATASET) and two exclusion rules, the first matching nothing (EXCLUDED_BY_CONFIG on each). Needs the
@@ -121,6 +122,29 @@ test('messages stay on their terms, datasets and rules as others are removed in 
   assert.deepEqual(await ruleFeedback(), [`Last run: ${matched(1)} records excluded`])
   assert.deepEqual(await navCounts(), { Data: 1, Grouping: 0, Terms: 1, 'Descriptive statistics options': 0, Exclusions: 1 })
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('messages and the fields they are about are named, and the rules numbered as the editor shows them', async () => {
+  const pooled = (concept) => `Replicates of concept '${concept.name}' are pooled by the MEAN aggregation`
+  assert.ok(warning('REPLICATES_POOLED', 'terms', '0', 'replicateAggregation').startsWith(pooled(r.concepts.height)))
+  assert.ok(warning('REPLICATES_POOLED', 'terms', '1', 'replicateAggregation').startsWith(pooled(r.concepts.width)))
+  assert.equal(warning('UNUSED_DATASET', 'datasetIds', '1'),
+    `The concept of dataset '${r.concepts.light.name}' (#${LIGHT.id}) is not used by any term, its records are ignored`)
+  assert.equal(warning('EXCLUDED_BY_CONFIG', 'exclusions', '0'), 'Exclusion rule 1 matched 0 records')
+  assert.match(warning('EXCLUDED_BY_CONFIG', 'exclusions', '1'), /^Exclusion rule 2 matched [1-9]\d* records$/)
+
+  await page.goto(`${config.appUrl}/analysis?id=${analysisId}`)
+  const fields = `[...document.querySelectorAll('.submission-view .analysis-messages li')].map((li) => li.querySelector('.btn-link')?.textContent.trim()).sort()`
+  const expected = [
+    `${r.concepts.height.name} › replicate aggregation`,
+    `${r.concepts.width.name} › replicate aggregation`,
+    `${r.concepts.light.name} (#${LIGHT.id})`,
+    'Exclusion rule 1',
+    'Exclusion rule 2'
+  ].sort()
+  // once the names have loaded
+  await page.waitFor(`${q(q(expected))} === JSON.stringify(${fields})`, 30000).catch(() => {})
+  assert.deepEqual(await page.evaluate(fields), expected)
 })
 
 test('removing a dataset from the results keeps the messages of the others in place', async () => {
