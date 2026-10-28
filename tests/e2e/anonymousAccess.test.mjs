@@ -26,6 +26,8 @@ test('the navigation offers the open pages and a way to log in, and the privacy 
   await page.waitFor(`document.querySelector('.nav-login')`, 30000)
   const links = await page.evaluate(`[...document.querySelectorAll('.nav-menu a')].map((e) => e.innerText.trim())`)
   assert.deepEqual(links, ['Programs', 'Locations', 'Units', 'Germplasm', 'Ontology', 'Log in'])
+  // the licences of the code the site is built from, a file the build writes (scripts/thirdPartyLicences.js)
+  assert.equal(await page.evaluate(`new URL(document.querySelector('.app-footer a.licences-link').href).pathname`), '/licenses.txt')
   await page.click('.app-footer a[href="/privacy"]')
   await page.waitFor(`location.pathname === '/privacy' && document.querySelector('.privacy-content h1')`, 30000)
   await page.click('.app-footer a[href="/guide"]')
@@ -192,7 +194,9 @@ test('locations: places are searched signed out too, listed with their kind and 
     await page.waitFor(`document.querySelector('.place-results-credit')`, 30000)
     const places = await page.evaluate(`[...document.querySelectorAll('.place-result:not(.location-result)')].map((e) => e.innerText.trim())`)
     assert.deepEqual(places, ['Ballyduff\nvillage · Kerry, Munster, Ireland'])
-    assert.equal(await page.text('.place-results-credit'), 'Places from GeoNames, CC BY 4.0')
+    assert.equal(await page.text('.place-results-credit'), 'Places adapted from GeoNames, CC BY 4.0')
+    assert.deepEqual(await page.evaluate(`[...document.querySelectorAll('.place-results-credit a')].map((a) => a.href)`),
+      ['https://www.geonames.org/', 'https://creativecommons.org/licenses/by/4.0/'], 'the source and the licence, linked')
     assert.ok(!(await page.exists('.place-result-add')), 'no location can be made of it signed out')
   } finally {
     await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })

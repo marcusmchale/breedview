@@ -22,7 +22,7 @@ import { addBaseMap, countryBounds } from '@/composables/locations/baseMap'
 import { useMapStatusQuery } from '@/composables/locations/mapStatusQuery'
 import { mapStatusLines } from '@/composables/locations/mapStatus'
 import {
-  placeDetail, placeView, scopeHint, placeTarget, isCountry, PLACES_CREDIT, PLACES_CREDIT_URL
+  placeDetail, placeView, scopeHint, placeTarget, isCountry, PLACES_SOURCE, PLACES_LICENCE
 } from '@/composables/locations/placeResults'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 
@@ -808,7 +808,9 @@ watch(mapStatus, async () => {
             </button>
           </li>
           <li v-if="placeResults.length > 0" class="place-results-credit">
-            <a :href="PLACES_CREDIT_URL" target="_blank" rel="noopener noreferrer">{{ PLACES_CREDIT }}</a>
+            Places adapted from
+            <a :href="PLACES_SOURCE.url" target="_blank" rel="noopener noreferrer">{{ PLACES_SOURCE.name }}</a>,
+            <a :href="PLACES_LICENCE.url" target="_blank" rel="noopener noreferrer">{{ PLACES_LICENCE.name }}</a>
           </li>
         </ul>
         <p v-else-if="searchError" class="place-search-message error-message">

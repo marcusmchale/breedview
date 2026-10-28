@@ -2,9 +2,12 @@
 // answered by the API from its own copy, so the search leaves the server for no one else. How the map lists and shows
 // them, apart from the map, so that it can be tested without a browser.
 
-/** The credit GeoNames' licence asks for, shown with the places found */
-export const PLACES_CREDIT = 'Places from GeoNames, CC BY 4.0'
-export const PLACES_CREDIT_URL = 'https://www.geonames.org'
+/**
+ * The credit GeoNames' licence (CC BY 4.0) asks for, shown with the places found: the source, linked, that its places
+ * are adapted (selected, and their names arranged for searching), and the licence, linked
+ */
+export const PLACES_SOURCE = { name: 'GeoNames', url: 'https://www.geonames.org' }
+export const PLACES_LICENCE = { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' }
 
 /** What kind of place it is and where, after its name: "village · Kerry, Munster, Ireland" */
 export function placeDetail(place) {

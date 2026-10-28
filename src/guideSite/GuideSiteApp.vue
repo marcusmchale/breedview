@@ -1,5 +1,7 @@
 <script setup>
 // The guide site's shell: its name, where to try BreedGraph, the projects' repositories, and the guide's pages
+// the licences of the code the build bundles (scripts/thirdPartyLicences.js), beside it
+const licencesUrl = `${import.meta.env.BASE_URL}licenses.txt`
 const DEMO = import.meta.env.VITE_GUIDE_DEMO_URL || null
 const REPOSITORIES = [
   ['BreedView', 'https://github.com/marcusmchale/breedview'],
@@ -32,7 +34,7 @@ const REPOSITORIES = [
       <p class="footer-projects">
         <a href="https://github.com/marcusmchale/breedview">BreedView</a>, an app for
         <a href="https://github.com/marcusmchale/breedgraph">BreedGraph</a>. The guide's people, places and trials are
-        fictional.
+        fictional. <a :href="licencesUrl">Open-source licences</a>.
       </p>
     </footer>
   </div>

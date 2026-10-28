@@ -5,6 +5,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { renderGuide } from './src/guide/renderGuide.js'
+import thirdPartyLicences from './scripts/thirdPartyLicences.js'
 
 // The user guide as a static site of its own, for GitHub Pages (guide/README.md, The guide on GitHub Pages):
 // guide-site/index.html and src/guideSite, with the guide's media from public/ (guide-media, which the workflow puts
@@ -49,7 +50,7 @@ export default defineConfig(({ mode }) => {
     base: env.VITE_BASE_PATH || '/',
     envDir: root,
     publicDir: join(root, 'public'),
-    plugins: [vue(), chapterPages()],
+    plugins: [vue(), chapterPages(), thirdPartyLicences('the BreedView user guide')],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) }
     },

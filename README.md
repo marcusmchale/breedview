@@ -109,3 +109,12 @@ breedgraph's `SITE_NAME`, and its Terms of Use and privacy notice are files of t
 npm run lint
 ```
 
+## Licence, and third-party software and data
+
+BreedView is distributed under the BSD 3-Clause License (`LICENSE.txt`). A build bundles the npm packages it uses, each
+under its own licence (MIT, ISC, BSD and 0BSD at present): the build writes each package's name, version and licence
+text into `licenses.txt` beside it (`scripts/thirdPartyLicences.js`), so that the notices those licences ask for go
+with every copy served, and the footer links to it. The guide site's build (`npm run guide:site`) writes its own.
+
+The map credits OpenStreetMap's data and Protomaps, as the API's `tiles.json` gives it, and the place search credits
+GeoNames under its results, linking to its licence (breedgraph README, Licence, and third-party software and data).

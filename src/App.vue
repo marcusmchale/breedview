@@ -13,6 +13,8 @@ import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
 const router = useRouter()
 const route = useRoute()
+// the licences of the code the build bundles (scripts/thirdPartyLicences.js), beside it
+const licencesUrl = `${import.meta.env.BASE_URL}licenses.txt`
 
 const { fetchCsrfToken, clearCsrfToken } = useCsrf()
 const { clearAuthState, isAuthenticated } = useAuthStore()
@@ -169,6 +171,7 @@ onMounted(async () => {
         <router-link to="/guide">User guide</router-link>
         <router-link to="/terms">Terms of Use</router-link>
         <router-link to="/privacy">Privacy notice</router-link>
+        <a :href="licencesUrl" class="licences-link" target="_blank" rel="noopener">Open-source licences</a>
         <!-- a deployment's links (src/branding) -->
         <a v-for="link in branding.footer.links" :key="link.href" :href="link.href" target="_blank" rel="noopener noreferrer">
           {{ link.label }}
