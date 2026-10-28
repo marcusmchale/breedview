@@ -49,7 +49,7 @@ test('without a branding the app keeps its own look, and its footer credits Bree
   const mark = page.mark()
   const seen = await shell(page)
   assert.deepEqual({ ...seen, link: undefined }, {
-    header: 'rgb(76, 175, 80)', logos: [], links: ['User guide', 'Terms of Use', 'Privacy notice'], text: null, projects: PROJECTS, link: undefined
+    header: 'rgb(76, 175, 80)', logos: [], links: ['User guide', 'Terms of Use', 'Privacy notice', 'Open-source licences'], text: null, projects: PROJECTS, link: undefined
   })
   assert.deepEqual(page.consoleErrors(mark), [])
 })
@@ -59,7 +59,7 @@ test("with a branding the header takes its colour and logo, links its colour, an
   assert.deepEqual(await shell(page), {
     header: 'rgb(122, 31, 61)',
     logos: [[`${new URL(config.appUrl).pathname.replace(/\/$/, '')}/branding/logo.svg`, 'University of Example', 'https://www.example.edu/']],
-    links: ['User guide', 'Terms of Use', 'Privacy notice', 'University of Example'],
+    links: ['User guide', 'Terms of Use', 'Privacy notice', 'Open-source licences', 'University of Example'],
     text: 'BreedGraph is run by the University of Example.',
     projects: PROJECTS,
     link: 'rgb(0, 84, 140)'
