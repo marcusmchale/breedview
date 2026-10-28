@@ -87,7 +87,7 @@ const setTime = (key, value) => {
       </span>
       <button type="button" class="btn-link danger" @click="emit('remove')">Remove rule</button>
     </div>
-    <FieldErrors :path="path" />
+    <FieldErrors :path="path" fallback />
     <p v-if="shown.length === 0" class="hint">Add at least one criterion.</p>
 
     <div v-for="key in shown" :key="key" class="criterion">

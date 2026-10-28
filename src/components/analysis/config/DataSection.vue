@@ -10,7 +10,7 @@ import TreeMultiPicker from '@/components/analysis/config/TreeMultiPicker.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
 import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
-const { form, data, messagesAt } = useAnalysisEditor()
+const { form, data } = useAnalysisEditor()
 
 /* ---------- study tree ---------- */
 
@@ -93,8 +93,6 @@ const selectAllInStudy = (studyId, select) => {
 }
 
 const formatDate = (value) => (value ? String(value).slice(0, 10) : '')
-
-const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.indexOf(id))])
 </script>
 
 <template>
@@ -181,10 +179,11 @@ const datasetErrors = (id) => messagesAt(['datasetIds', String(form.datasetIds.i
         <label v-for="id in orphanDatasetIds" :key="id" class="dataset-row">
           <input type="checkbox" :value="id" checked @change="toggleDataset(id)" />
           <span class="dataset-concept">{{ datasetName(id) }}</span>
-          <span v-for="(m, i) in datasetErrors(id)" :key="i" class="message error">{{ m.message }}</span>
+          <FieldErrors :path="['datasetIds', String(form.datasetIds.indexOf(id))]" />
         </label>
       </div>
-      <FieldErrors path="datasetIds" />
+      <!-- and those of datasets not listed yet, while they load -->
+      <FieldErrors path="datasetIds" fallback />
     </div>
   </div>
 </template>

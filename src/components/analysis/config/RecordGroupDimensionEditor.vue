@@ -148,6 +148,8 @@ const removeMember = (level, i) => level.members.splice(i, 1)
       </div>
       <button type="button" class="btn-link danger" @click="emit('remove')">Remove dimension</button>
     </div>
+    <!-- the dimension's messages, e.g. of records it couldn't assign, and those of levels since removed -->
+    <FieldErrors :path="path" fallback />
 
     <div class="field">
       <span class="field-label">Record groupings</span>

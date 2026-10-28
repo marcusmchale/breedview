@@ -5,6 +5,7 @@ import { useAnalysisDataContext } from '@/composables/analysis/useAnalysisDataCo
 import { useAnalysisMessages, messageInfo } from '@/composables/analysis/useAnalysisMessages'
 import { useSubmitAnalysis } from '@/composables/analysis/submitAnalysis'
 import { analysisTypeLabel, anchorMessages, buildAnalysisInput } from '@/composables/analysis/useAnalysisForm'
+import { formPathLabel } from '@/composables/analysis/useAnalysisNames'
 import { analysisHints, blockingProblems } from '@/composables/analysis/useTermRules'
 import DataSection from '@/components/analysis/config/DataSection.vue'
 import GroupingSection from '@/components/analysis/config/GroupingSection.vue'
@@ -42,7 +43,7 @@ const submitted = ref(false)
 // Previous messages refer to the configuration as it was loaded, so drop them after a submit attempt
 const messages = computed(() => (submitted.value ? submitErrors.value : [...submitErrors.value, ...props.previousMessages]))
 
-const { messagesAt, unpathed, exclusionFeedback } = useAnalysisMessages(
+const { messagesAt, unpathed, exclusionFeedback, registerField, unshownAt } = useAnalysisMessages(
   messages,
   () => props.form.analysisType,
   () => props.form
@@ -75,7 +76,11 @@ const submit = async () => {
   }
 }
 
-provideAnalysisEditor({ form: props.form, data, messagesAt, exclusionFeedback })
+provideAnalysisEditor({ form: props.form, data, messagesAt, exclusionFeedback, registerField, unshownAt })
+
+// Messages about fields that no section shows, e.g. of a grouping dimension since turned off, shown at the top
+registerField(() => ({ path: '', fallback: true }))
+const unshown = computed(() => unshownAt(''))
 
 /* ---------- navigation ---------- */
 
@@ -112,10 +117,10 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
       </nav>
     </div>
 
-    <div v-if="unpathed.length || requestError" class="section">
+    <div v-if="unpathed.length || unshown.length || requestError" class="section">
       <p v-if="requestError" class="message error">{{ requestError }}</p>
-      <p v-for="(m, i) in unpathed" :key="i" class="message" :class="m.severity ?? 'error'">
-        <strong>{{ m.code }}</strong>: {{ m.message }}
+      <p v-for="(m, i) in [...unpathed, ...unshown]" :key="i" class="message" :class="m.severity ?? 'error'">
+        <strong>{{ m.formPath ? formPathLabel(m.formPath, form) : m.code }}</strong>: {{ m.message }}
         <span v-if="messageInfo(m.code, m).hint" class="hint">{{ messageInfo(m.code, m).hint }}</span>
       </p>
     </div>

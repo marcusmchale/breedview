@@ -125,7 +125,7 @@ const removeDimension = (i) => {
 
       <PositionGroupingEditor v-if="key === 'position' && form.grouping.position" />
 
-      <FieldErrors v-if="form.grouping[key] && key !== 'germplasm' && key !== 'unit'" :path="`grouping.${key}`" />
+      <FieldErrors v-if="form.grouping[key] && key !== 'germplasm' && key !== 'unit'" :path="`grouping.${key}`" fallback />
     </div>
 
     <h4 class="subsection-title">Record group dimensions</h4>

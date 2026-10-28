@@ -241,7 +241,8 @@ const summary = computed(() => {
     <FieldErrors v-if="!expanded" :path="path" prefix />
 
     <div v-if="expanded" class="term-body">
-      <FieldErrors :path="path" />
+      <!-- the term's messages, and those about fields it doesn't show -->
+      <FieldErrors :path="path" fallback />
       <FieldErrors :path="`${path}.reference`" prefix />
 
       <div class="field-row">

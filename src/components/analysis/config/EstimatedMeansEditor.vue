@@ -126,7 +126,7 @@ const remove = (i) => form.estimatedMeans.splice(i, 1)
           <FieldErrors :path="`estimatedMeans.${i}.adjustment`" />
         </div>
       </div>
-      <FieldErrors :path="`estimatedMeans.${i}`" />
+      <FieldErrors :path="`estimatedMeans.${i}`" fallback />
     </div>
     <button type="button" class="btn-link" :disabled="options.length === 0" @click="add">+ Add estimated means</button>
     <FieldErrors path="estimatedMeans" />

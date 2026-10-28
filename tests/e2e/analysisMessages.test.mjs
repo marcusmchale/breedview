@@ -3,8 +3,10 @@
 // messages and the fields they link to name concepts and datasets, and number rules as the editor does. On the
 // test database's replicates study (manifest `replicates`), as the writer: tree heights and canopy widths averaged
 // with their replicates pooled (a REPLICATES_POOLED warning on each term), the light factor's dataset with no term
-// (UNUSED_DATASET) and two exclusion rules, the first matching nothing (EXCLUDED_BY_CONFIG on each). Needs the
-// analysis worker (see README.md). The analysis is deleted afterwards.
+// (UNUSED_DATASET) and two exclusion rules, the first matching nothing (EXCLUDED_BY_CONFIG on each); and two record
+// group dimensions, the second of a grouping whose codes the blocks dataset lacks (UNASSIGNED_RECORD_GROUP) with a
+// shared level of no code (RECORD_GROUP_LEVEL_UNMATCHED). Needs the analysis worker (see README.md). The analyses are
+// deleted afterwards.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -38,7 +40,7 @@ async function analyse (name, analysis) {
 
 const concept = (dataset, options = {}) => ({ reference: { type: 'CONCEPT', conceptId: String(dataset.concept) }, ...options })
 
-let browser, page, analysisId, messages
+let browser, page, analysisId, messages, dimensions
 before(async () => {
   browser = await launchBrowser({ height: 2400 }); page = browser.page
   await loginAs(page, 'writer')
@@ -47,6 +49,23 @@ before(async () => {
     descriptiveStatistics: { terms: [concept(HEIGHT, { aggregation: 'MEAN' }), concept(WIDTH, { aggregation: 'MEAN' })] },
     exclusions: [{ unitIds: ['999999999'] }, { unitIds: [String(r.units['Rep A1'])] }]
   }))
+  const grouping = (name) => String(r.groupings[name].id)
+  dimensions = await analyse('E2E dimension messages', {
+    datasetIds: [HEIGHT, r.datasets.blocks].map((d) => String(d.id)),
+    descriptiveStatistics: {
+      terms: [concept(HEIGHT, { aggregation: 'MEAN' })],
+      grouping: {
+        recordGroups: [
+          { name: 'Block', groupingIds: [grouping('Study Scoped Block')] },
+          {
+            name: 'Batch',
+            groupingIds: [grouping('Study Scoped Batch')],
+            levels: [{ label: 'None', members: [{ groupingId: grouping('Study Scoped Batch'), code: 'no such code' }] }]
+          }
+        ]
+      }
+    }
+  })
 })
 after(async () => {
   try {
@@ -159,5 +178,25 @@ test('removing a dataset from the results keeps the messages of the others in pl
   assert.ok((await termMessages(r.concepts.width)).some((m) => m.includes(warning('REPLICATES_POOLED', 'terms', '1', 'replicateAggregation'))))
   assert.deepEqual([...await datasetMessages(LIGHT), ...await datasetMessages(WIDTH), ...await datasetMessages(HEIGHT)], [])
   assert.equal((await navCounts()).Data, 0)
+  assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
+})
+
+test('messages about a record group dimension show on it, and stay with it when one before it is removed', async () => {
+  const dimensionBox = (name) => `[...document.querySelectorAll('#analysis-grouping .box')].find((b) => b.querySelector('.name-field input')?.value === ${q(name)})`
+  await openEditor(dimensions.id, dimensionBox('Batch'))
+  const mark = page.mark()
+  const unassigned = dimensions.warnings.find((m) => m.code === 'UNASSIGNED_RECORD_GROUP')
+  const unmatched = dimensions.warnings.find((m) => m.code === 'RECORD_GROUP_LEVEL_UNMATCHED')
+  assert.deepEqual([unassigned?.path.slice(-2), unmatched?.path.slice(-3)], [['recordGroups', '1'], ['recordGroups', '1', 'levels']], q(dimensions.warnings))
+  const expected = [unassigned.message, `Levels: ${unmatched.message}`]
+
+  assert.deepEqual(await page.evaluate(texts(dimensionBox('Batch'))), expected)
+  assert.deepEqual(await page.evaluate(texts(dimensionBox('Block'))), [])
+  assert.equal((await navCounts()).Grouping, 2)
+
+  await page.evaluate(`${dimensionBox('Block')}.querySelector('.box-header .btn-link.danger').click()`)
+  await page.waitFor(`!${dimensionBox('Block')}`)
+  assert.deepEqual(await page.evaluate(texts(dimensionBox('Batch'))), expected)
+  assert.equal((await navCounts()).Grouping, 2)
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })

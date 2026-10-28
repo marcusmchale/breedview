@@ -1,4 +1,4 @@
-import { computed, toValue } from 'vue'
+import { computed, reactive, toValue } from 'vue'
 import { anchoredFormPath, inputPathToFormPath } from '@/composables/analysis/useAnalysisForm'
 
 /** Suggested actions for analysis message codes. */
@@ -87,6 +87,11 @@ export function exclusionMatchCount(message) {
   return match ? Number(match[1]) : null
 }
 
+const pathKey = (path) => (Array.isArray(path) ? path.join('.') : String(path))
+
+// Whether a field showing messages at key, or below it with prefix, shows a message at a path
+const covers = ({ key, prefix }, path) => path === key || (prefix && (key === '' || path.startsWith(`${key}.`)))
+
 /**
  * Index analysis messages by form path. Anchored messages (anchorMessages) are indexed where their items are in the
  * form now, and left out once their items are removed.
@@ -115,7 +120,7 @@ export function useAnalysisMessages(messages, analysisType, form) {
 
   /** Messages at a form path; with prefix, also those nested below it. */
   const messagesAt = (path, { prefix = false } = {}) => {
-    const key = Array.isArray(path) ? path.join('.') : String(path)
+    const key = pathKey(path)
     const { byPath } = indexed.value
     if (!prefix) return byPath.get(key) ?? []
     const out = []
@@ -138,5 +143,41 @@ export function useAnalysisMessages(messages, analysisType, form) {
     return out
   })
 
-  return { messagesAt, unpathed, exclusionFeedback }
+  /* ---------- fields showing messages ---------- */
+
+  // The fields showing messages (FieldErrors), as getters of {path, prefix, fallback}: a fallback field shows the
+  // messages below its path that no other field shows, e.g. a term's about a field it hides
+  const fields = reactive(new Map())
+  let nextField = 0
+
+  /** Register a field showing messages; returns the function that unregisters it. */
+  const registerField = (field) => {
+    const id = nextField++
+    fields.set(id, field)
+    return () => fields.delete(id)
+  }
+
+  // fallback path -> the messages no other field shows, each at the fallback with the longest path above it
+  const unshown = computed(() => {
+    const registered = [...fields.values()].map((field) => {
+      const { path, prefix = false, fallback = false } = field()
+      return { key: pathKey(path), prefix: prefix || fallback, fallback }
+    })
+    const shown = registered.filter((f) => !f.fallback)
+    const fallbacks = registered.filter((f) => f.fallback).sort((a, b) => b.key.length - a.key.length)
+    const out = new Map()
+    for (const [path, list] of indexed.value.byPath) {
+      if (shown.some((f) => covers(f, path))) continue
+      const fallback = fallbacks.find((f) => covers(f, path))
+      if (!fallback) continue
+      if (!out.has(fallback.key)) out.set(fallback.key, [])
+      out.get(fallback.key).push(...list.map((m) => ({ ...m, formPath: path })))
+    }
+    return out
+  })
+
+  /** Messages for the fallback field at a path, each with its formPath. */
+  const unshownAt = (path) => unshown.value.get(pathKey(path)) ?? []
+
+  return { messagesAt, unpathed, exclusionFeedback, registerField, unshownAt }
 }
