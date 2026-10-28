@@ -54,7 +54,7 @@ const submitRegion = async () => {
     })
 
     if (status === 'SUCCESS') {
-      emit('success')
+      emit('success', { code: selectedCountry.value.code, name: selectedCountry.value.name })
       emit('close')
     } else {
       // Handle server errors
@@ -98,7 +98,7 @@ const submitRegion = async () => {
           </select>
           <p class="hint">
             Detailed maps of the country are fetched in the background, which can take some time.
-            You'll get an email when they're ready.
+            The map says how they stand, and shows them once they're ready.
           </p>
         </div>
 

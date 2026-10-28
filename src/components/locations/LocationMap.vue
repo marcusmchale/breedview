@@ -19,11 +19,17 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import { useLocationGeocoding } from '@/composables/locations/useLocationGeocoding'
 import { useLocationSearch } from '@/composables/locations/locationSearch'
 import { addBaseMap, countryBounds } from '@/composables/locations/baseMap'
+import { useMapStatusQuery } from '@/composables/locations/mapStatusQuery'
+import { mapStatusLines } from '@/composables/locations/mapStatus'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
 const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry, nearestPlaced } = useLocationMapQueries()
+
+// Where the detailed maps of the selected location's country stand, said below the map
+const { status: mapStatus } = useMapStatusQuery(computed(() => regionCountry.value?.code ?? null))
+const mapStatusMessages = computed(() => mapStatusLines(mapStatus.value, regionCountry.value?.name))
 
 // Place searches go through the API, which needs an account (breedgraph README.md, Maps)
 const { isAuthenticated } = useAuthStore()
@@ -597,11 +603,15 @@ const geocodedCountries = new Map()
  * box for its name (signed in only, as place searches need an account). Nothing is saved: countries need no
  * coordinates.
  */
+// the country last shown by its extent, rather than by a place search while its extent was not yet written
+let extentShown = null
+
 const fitCountry = async (map, country, stillSelected) => {
   const bounds = await countryBounds(country.code)
   if (!stillSelected()) return
   if (bounds) {
     map.fitBounds(bounds, { ...FIT_PADDING, animate: false })
+    extentShown = country.code
     return
   }
   if (!isAuthenticated.value) return
@@ -666,6 +676,14 @@ watch(childLocations, (newChildren) => {
 
 // The selected location's country loads after it, for a location shown by its country
 watch(() => regionCountry.value?.code, focusSelection)
+
+// As the country's maps are fetched, the regions fetched are drawn, and a country just added, shown by a place search
+// until its extent was written, is shown by its extent once it is
+watch(mapStatus, async () => {
+  await refreshBaseMap?.()
+  const country = selectedLocation.value
+  if (country && !country.parent && extentShown !== country.code) focusSelection()
+})
 
 </script>
 
@@ -779,6 +797,9 @@ watch(() => regionCountry.value?.code, focusSelection)
       </p>
       <p v-else-if="selectedLocation" class="help-text">
         {{ childrenSummary }}
+      </p>
+      <p v-for="message in mapStatusMessages" :key="message" class="help-text map-status">
+        {{ message }}
       </p>
     </div>
   </div>
@@ -1032,6 +1053,10 @@ watch(() => regionCountry.value?.code, focusSelection)
   font-size: 14px;
   color: #666;
   text-align: center;
+}
+
+.map-status {
+  margin-top: 6px;
 }
 
 .marker-popup {

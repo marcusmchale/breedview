@@ -66,8 +66,11 @@ const openCreateRegionModal = () => {
 const closeCreateRegionModal = () => {
     isCreateRegionModalOpen.value = false
 }
-const handleCreateRegionSuccess = async () => {
-  await refetchRegions()
+// The country added is selected, so the map shows it and where its detailed maps stand
+const handleCreateRegionSuccess = async (country) => {
+  const { data } = await refetchRegions() ?? {}
+  const created = data?.locationsRoots?.result?.find((root) => root.code === country?.code)
+  if (created) onLocationSelected(String(created.id))
 }
 
 const updateCoordinatesError = ref(null)

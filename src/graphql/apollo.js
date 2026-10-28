@@ -135,7 +135,9 @@ const cache = new InMemoryCache({
      // disable cache for RecordGroup as id is not unique per RecordGroup, it is the id of the grouping
     RecordGroup: { keyFields: false },
     // an arrival has no id: it is known by its location and start, within the list of a location's arrivals
-    UnitArrival: { keyFields: false }
+    UnitArrival: { keyFields: false },
+    // where a country's detailed maps stand, asked again while they are fetched: each read replaces the last
+    CountryMapStatus: { keyFields: ['code'], fields: { sections: { merge: false } } }
   }
 })
 

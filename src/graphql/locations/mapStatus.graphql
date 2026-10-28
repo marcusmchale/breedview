@@ -1,0 +1,22 @@
+query locationsMapStatus($code: String!) {
+    locationsMapStatus(code: $code) {
+        status
+        result {
+            code
+            state
+            size
+            limit
+            enabled
+            error
+            sections {
+                name
+                state
+                size
+                error
+            }
+        }
+        errors {
+            message
+        }
+    }
+}

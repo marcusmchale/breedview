@@ -98,3 +98,43 @@ test('a country added while the page is open is shown by its extent and drawn in
     await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
   }
 })
+
+// The status the server gives of a country's detailed maps (locationsMapStatus): divided, with a region being fetched
+const dividedStatus = (code) => `(() => {
+  const fetched = window.fetch
+  window.fetch = async (input, init) => {
+    if (typeof init?.body !== 'string' || !init.body.includes('locationsMapStatus')) return fetched(input, init)
+    const result = {
+      __typename: 'CountryMapStatus', code: ${q(code)}, state: 'DIVIDED', size: 5.5e9, limit: 2e9, enabled: true, error: null,
+      sections: [{ __typename: 'MapSectionStatus', name: 'Alpha', state: 'FETCHING', size: 9e8, error: null }]
+    }
+    return new Response(JSON.stringify({ data: { locationsMapStatus: {
+      __typename: 'CountryMapStatusPayload', status: 'SUCCESS', result, errors: null
+    } } }), { headers: { 'Content-Type': 'application/json' } })
+  }
+})()`
+
+test('the map says where the detailed maps of the selected location\'s country stand', async () => {
+  const { result: [country] } = await graphql(page,
+    'query ($ids: [ID!]!) { locationsLocations(ids: $ids) { result { name code } } }', { ids: [String(e.country.id)] })
+  const real = await graphql(page,
+    'query ($code: String!) { locationsMapStatus(code: $code) { status result { code state limit enabled sections { name } } } }',
+    { code: country.code })
+  assert.equal(real.status, 'SUCCESS')
+  assert.equal(real.result.code, country.code)
+
+  const { identifier } = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: dividedStatus(country.code) })
+  try {
+    // a field in the country: its country's maps are spoken of
+    await page.goto(`${config.appUrl}/locations?location=${e.field.id}`)
+    await page.waitFor(`document.querySelectorAll('.map-panel .map-status').length === 2`, 30000)
+    const messages = await page.evaluate(`[...document.querySelectorAll('.map-panel .map-status')].map((p) => p.textContent.trim())`)
+    assert.deepEqual(messages, [
+      `${country.name}'s detailed maps would take 5.5 GB, more than this site's limit of 2.0 GB for one country, so ` +
+        'each of its regions, such as a state or province, is fetched when a location in it is placed on the map.',
+      'Detailed maps of Alpha (0.9 GB) are being fetched, and appear on the map when they are ready.'
+    ])
+  } finally {
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+  }
+})
