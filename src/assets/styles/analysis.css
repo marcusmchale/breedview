@@ -200,6 +200,8 @@
   padding: 8px 10px;
   font-size: 0.85rem;
   margin: 6px 0;
+  /* not centred as the app's .error states are (layout.css) */
+  text-align: start;
 }
 
 .analysis-workspace .message.error {
