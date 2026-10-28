@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { termKey, toReference } from '@/composables/analysis/useAnalysisForm'
 import { termLabel } from '@/composables/analysis/useAnalysisNames'
 
@@ -12,6 +13,11 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const isSelected = (ref) => props.modelValue.some((r) => termKey(r) === termKey(ref))
+
+// Selected terms that are no longer options, e.g. made continuous since: shown, so that they can be removed
+const ineligible = computed(() =>
+  props.modelValue.filter((r) => !props.options.some((t) => termKey(t.reference) === termKey(r)))
+)
 
 const toggle = (ref) => {
   const next = isSelected(ref)
@@ -33,6 +39,22 @@ const toggle = (ref) => {
     >
       {{ termLabel(term.reference) }}
     </button>
-    <span v-if="options.length === 0" class="hint">{{ emptyText }}</span>
+    <button
+      v-for="ref in ineligible"
+      :key="termKey(ref)"
+      type="button"
+      class="chip selected ineligible"
+      title="No longer eligible here: click to remove"
+      @click="toggle(ref)"
+    >
+      {{ termLabel(ref) }}
+    </button>
+    <span v-if="options.length === 0 && ineligible.length === 0" class="hint">{{ emptyText }}</span>
   </div>
 </template>
+
+<style scoped>
+.chip.ineligible {
+  text-decoration: line-through;
+}
+</style>

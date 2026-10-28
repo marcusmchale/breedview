@@ -4,7 +4,7 @@
  * These mirror the server rules only as far as needed to guide the user;
  * the server remains the authority and reports CONFIG_INVALID errors.
  */
-import { sameTerm } from '@/composables/analysis/useAnalysisForm'
+import { sameTerm } from './useAnalysisForm.js'
 
 export const REPRESENTATIONS = ['CONTINUOUS', 'CATEGORICAL', 'ORDINAL']
 export const AGGREGATIONS = ['NONE', 'MEAN', 'MEDIAN', 'MIN', 'MAX', 'SUM', 'COUNT', 'MODE']
@@ -202,6 +202,14 @@ export function analysisHints(form, conceptsById, groupingsById = {}) {
         hints.push('Clustering needs a number of clusters.')
       }
       break
+  }
+  // chosen while they were, and made continuous, random or the response since
+  if (['ANOVA', 'DESCRIPTIVE_STATISTICS'].includes(form.analysisType) && form.estimatedMeans.length) {
+    const categorical = categoricalTerms(form, conceptsById)
+    const eligible = (ref) => categorical.some((t) => sameTerm(t.reference, ref))
+    if (form.estimatedMeans.some((em) => ![...em.terms, ...em.by].every(eligible))) {
+      hints.push('Estimated means are of fixed categorical terms: remove the struck-out terms from them.')
+    }
   }
   return hints
 }
