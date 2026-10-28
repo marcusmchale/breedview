@@ -1,5 +1,7 @@
 <script setup>
 // The guide site's shell: its name, where to try BreedGraph, the projects' repositories, and the guide's pages
+import BreedViewMark from '../branding/BreedViewMark.vue'
+
 // the licences of the code the build bundles (scripts/thirdPartyLicences.js), beside it
 const licencesUrl = `${import.meta.env.BASE_URL}licenses.txt`
 const DEMO = import.meta.env.VITE_GUIDE_DEMO_URL || null
@@ -15,8 +17,11 @@ const REPOSITORIES = [
       <div class="nav-container">
         <div class="nav-brand">
           <router-link to="/guide" class="brand-link">
-            BreedView
-            <span class="brand-note">the user guide</span>
+            <BreedViewMark class="brand-mark" />
+            <span class="brand-name">
+              BreedView
+              <span class="brand-note">the user guide</span>
+            </span>
           </router-link>
         </div>
         <div class="nav-menu">

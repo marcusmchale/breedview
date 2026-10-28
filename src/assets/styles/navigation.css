@@ -39,12 +39,27 @@
 
 .nav-brand .brand-link {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
   font-size: 1.5rem;
   font-weight: bold;
   line-height: 1.15;
   color: var(--brand-header-text);
   text-decoration: none;
+}
+
+/* BreedView's mark (src/branding/BreedViewMark.vue), in the header's text colour, before the name */
+.nav-brand .brand-mark {
+  display: block;
+  flex: none;
+  height: 1.7rem;
+  width: auto;
+  aspect-ratio: 60 / 32;
+}
+
+.nav-brand .brand-name {
+  display: flex;
+  flex-direction: column;
 }
 
 /* under the name: BreedView is one way to work with BreedGraph, which other interfaces can be built on */
@@ -112,8 +127,10 @@
 
 /* Responsive Navigation */
 @media (max-width: 768px) {
+  /* a branding's logos, the mark and the name can fill a phone's width: the menu goes below them then */
   .nav-container {
     padding: 0 0.5rem;
+    flex-wrap: wrap;
   }
   
   .nav-menu {

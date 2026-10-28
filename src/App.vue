@@ -8,6 +8,7 @@ import { useAuthStore } from './composables/user/useAuthStore'
 import { useTermsOfUse } from './composables/system/useTermsOfUse'
 import TermsGate from './components/user/TermsGate.vue'
 import DemoBanner from './components/guide/DemoBanner.vue'
+import BreedViewMark from './branding/BreedViewMark.vue'
 import { branding } from './branding/loadBranding'
 import LOGOUT_MUTATION from './graphql/authentication/logout.graphql'
 
@@ -117,8 +118,11 @@ onMounted(async () => {
             <img :src="logo.src" :alt="logo.alt" :style="{ height: `${logo.height}px` }">
           </component>
           <router-link to="/" class="brand-link">
-            BreedView
-            <span class="brand-note">an app for BreedGraph</span>
+            <BreedViewMark class="brand-mark" />
+            <span class="brand-name">
+              BreedView
+              <span class="brand-note">an app for BreedGraph</span>
+            </span>
           </router-link>
         </div>
 

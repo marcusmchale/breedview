@@ -32,9 +32,10 @@ export async function loadBranding () {
     const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: brand.stylesheet })
     document.head.append(link)
   }
+  // the brand's favicon in place of BreedView's, both of them (index.html), or a browser would keep the SVG
   if (brand.favicon) {
-    const icon = document.querySelector('link[rel~="icon"]') ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'icon' }))
-    icon.href = brand.favicon
+    for (const icon of document.querySelectorAll('link[rel~="icon"]')) icon.remove()
+    document.head.append(Object.assign(document.createElement('link'), { rel: 'icon', href: brand.favicon }))
   }
   branding.logos = brand.logos
   branding.footer = brand.footer

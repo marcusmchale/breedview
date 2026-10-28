@@ -62,12 +62,14 @@ its own, "white-label" look, which `branding.example/branding.json` spells out.
   unless given), `footer` and `footerText`; any CSS colour. The darker shades (`primaryDark`, `accentDark`,
   `accentDarker`) and `accentLight` are worked out from `primary` and `accent` unless given. The colours of what things
   mean (errors, additions, greys) stay as they are.
-- `logos`: `[{ "src": "logo.svg", "alt": "…", "href": "https://…", "height": 40 }]`, shown before BreedView's name.
+- `logos`: `[{ "src": "logo.svg", "alt": "…", "href": "https://…", "height": 40 }]`, shown before BreedView's mark and
+  name. The mark (`src/branding/BreedViewMark.vue`) takes `headerText`, its graph and eye cut through to the header.
 - `footer`: `{ "text": "…", "links": [{ "label": "…", "href": "https://…" }] }`, beside the user guide, the Terms of
   Use and the privacy notice.
 - `font`: `{ "family": "\"Open Sans\", Arial, sans-serif", "stylesheet": "fonts/fonts.css" }`, the stylesheet's
   `@font-face` rules naming font files in the folder.
-- `favicon`: `"favicon.ico"`; `stylesheet`: `"brand.css"`, for anything the colours don't reach (fonts too, then).
+- `favicon`: `"favicon.ico"`, in place of BreedView's (`public/favicon.svg`, and `favicon.ico` for browsers without SVG
+  icons); `stylesheet`: `"brand.css"`, for anything the colours don't reach (fonts too, then).
 
 Files (`src`, `favicon`, `stylesheet`) are paths within the branding folder, as the app contacts no third party; links
 may go anywhere. What can't be used is left out, with a warning in the browser's console. Use each logo in the version
