@@ -2,6 +2,7 @@ import L from 'leaflet'
 import { leafletLayer, paintRules, labelRules } from 'protomaps-leaflet'
 import { namedFlavor } from '@protomaps/basemaps'
 import { PMTiles, SharedPromiseCache } from 'pmtiles'
+import { createTilesReader, countryExtent, regionLayers } from './tilesJson'
 
 // The base map, from tiles served by the API (breedgraph README.md, Maps), so the
 // browser contacts no third party: tiles.json lists a low-detail world file and then the regions fetched in full
@@ -11,24 +12,17 @@ import { PMTiles, SharedPromiseCache } from 'pmtiles'
 const TILES_URL = `${import.meta.env.VITE_API_HOST}/tiles/`
 const FLAVOR = 'light'
 
-let tilesJson = null  // loaded once
-
-async function loadTiles() {
-  // checked at each page load, as regions are added in the background
-  tilesJson ??= fetch(`${TILES_URL}tiles.json`, { cache: 'no-cache' })
-    .then((response) => (response.ok ? response.json() : null))
-    .catch(() => null)
-  return tilesJson
-}
+// read at the first map, and again as regions are added in the background (addBaseMap's refresh)
+const tiles = createTilesReader(`${TILES_URL}tiles.json`)
 
 /**
  * The extent to show a country by, [[south, west], [north, east]] around its main parts, from the outline the server
  * fetched its maps with (tiles.json countries); null when it has none, e.g. where no detailed maps are fetched. East
- * can be above 180 for a country across the antimeridian.
+ * can be above 180 for a country across the antimeridian. A country added since tiles.json was read has its extent
+ * written soon after, so tiles.json is read again for one it lacks.
  */
 export async function countryBounds(code) {
-  const tiles = await loadTiles()
-  return tiles?.countries?.[code]?.bounds ?? null
+  return countryExtent(await tiles.load(), code) ?? countryExtent(await tiles.refresh(), code)
 }
 
 /** [[south, west], [north, east]] of a web map tile */
@@ -70,38 +64,60 @@ class RegionArchives {
   }
 }
 
-/** Adds the base map layers to a Leaflet map; resolves to false when no tiles are served */
+/** The layer drawing the detailed regions, past the world's zooms */
+function regionsLayer(world, regions, flavor) {
+  const bounds = regions.every((region) => region.bounds)
+    ? regions.reduce((all, region) => all.extend(region.bounds), L.latLngBounds(regions[0].bounds))
+    : undefined
+  return leafletLayer({
+    url: new RegionArchives(regions),
+    maxDataZoom: Math.max(...regions.map((region) => region.maxZoom)),
+    minZoom: world.maxZoom + 1,
+    maxZoom: 19,
+    bounds,
+    paintRules: paintRules(flavor),
+    labelRules: labelRules(flavor, 'en'),
+    attribution: ''
+  })
+}
+
+/**
+ * Adds the base map layers to a Leaflet map. Resolves to a function that reads tiles.json again (at most every three
+ * seconds) and redraws the detailed regions if they changed, resolving to what it read; or to null when no tiles are
+ * served.
+ */
 export async function addBaseMap(map) {
-  const tiles = await loadTiles()
-  if (!tiles?.layers?.length) {
+  const served = await tiles.load()
+  if (!served?.layers?.length) {
     console.warn('No map tiles are served (breedgraph scripts/map_tiles.py)')
-    return false
+    return null
   }
   const flavor = namedFlavor(FLAVOR)
-  const [world, ...regions] = tiles.layers
+  const [world] = served.layers
   leafletLayer({
     url: new URL(world.url, TILES_URL).href,
     maxDataZoom: world.maxZoom,
     paintRules: paintRules(flavor),
     labelRules: labelRules(flavor, 'en').map((rule) => ({ ...rule, maxzoom: Math.min(rule.maxzoom ?? world.maxZoom, world.maxZoom) })),
     backgroundColor: flavor.background,
-    attribution: tiles.attribution,
+    attribution: served.attribution,
     maxZoom: 19
   }).addTo(map)
-  if (regions.length) {
-    const bounds = regions.every((region) => region.bounds)
-      ? regions.reduce((all, region) => all.extend(region.bounds), L.latLngBounds(regions[0].bounds))
-      : undefined
-    leafletLayer({
-      url: new RegionArchives(regions),
-      maxDataZoom: Math.max(...regions.map((region) => region.maxZoom)),
-      minZoom: world.maxZoom + 1,
-      maxZoom: 19,
-      bounds,
-      paintRules: paintRules(flavor),
-      labelRules: labelRules(flavor, 'en'),
-      attribution: ''
-    }).addTo(map)
+
+  let layer = null
+  let drawn = null // the regions drawn, as JSON
+  const draw = (read) => {
+    const regions = regionLayers(read)
+    const json = JSON.stringify(regions)
+    if (json === drawn) return
+    drawn = json
+    if (layer) map.removeLayer(layer)
+    layer = regions.length ? regionsLayer(world, regions, flavor).addTo(map) : null
   }
-  return true
+  draw(served)
+  return async () => {
+    const read = await tiles.refresh()
+    if (read?.layers?.length) draw(read)
+    return read
+  }
 }

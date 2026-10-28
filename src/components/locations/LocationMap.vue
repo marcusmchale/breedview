@@ -229,7 +229,18 @@ const goToPlace = (place) => {
 }
 
 let resizeObserver = null
-onBeforeUnmount(() => resizeObserver?.disconnect())
+// Reads tiles.json again and redraws the detailed regions if the server added some meanwhile (addBaseMap), as when a
+// location is selected or the page is shown again, e.g. after the email saying a country's maps are ready
+let refreshBaseMap = null
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') refreshBaseMap?.()
+}
+document.addEventListener('visibilitychange', onVisibilityChange)
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  refreshBaseMap = null
+})
 
 // Initialize map
 const onMapReady = () => {
@@ -239,7 +250,9 @@ const onMapReady = () => {
     const map = toRaw(mapRef.value.leafletObject)
 
     // the base map, from tiles our server serves
-    addBaseMap(map)
+    addBaseMap(map).then((refresh) => {
+      refreshBaseMap = refresh
+    })
 
     // Leaflet notices only window resizes: redraw whenever the layout resizes the map, so no grey area is left
     resizeObserver = new ResizeObserver(() => map.invalidateSize())
@@ -611,6 +624,7 @@ const focusSelection = async () => {
   const location = selectedLocation.value
   if (!location || !mapRef.value?.leafletObject) return
   const map = toRaw(mapRef.value.leafletObject)
+  refreshBaseMap?.()
   // looking up a country's extent can take a moment, by when another location may be selected
   const stillSelected = () => selectedLocation.value?.id === location.id
   if (!location.parent) {

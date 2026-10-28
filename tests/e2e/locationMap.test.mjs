@@ -1,6 +1,8 @@
 // The location map shows a location that has no coordinates where it would be: at the nearest place above it on the
 // map, as a field just added to a farm is drawn there, not by its whole country. As the admin, on the test database's
 // field_registered, which has coordinates and no children: the test adds a location below it each run, left behind.
+// It reads tiles.json again while the page is open, as the server adds a country's extent and detailed maps in the
+// background after the country is added.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -48,4 +50,51 @@ test('a location without coordinates is shown at the nearest place above it on t
   // the view settles once the parent and its children are read
   await page.waitFor(`${map}.getZoom() >= 14 && ${map}.getBounds().contains([${latitude}, ${longitude}])`, 15000)
   assert.ok((await page.text('.map-panel')).includes(`No locations below ${name}`))
+})
+
+// tiles.json as the server rewrites it while the page is open, after a country is added: the first read lacks the
+// country, and each later one has its extent and a detailed region (a file never asked for at the zooms shown)
+const EXTENT = [[30, 50], [31, 51]]
+const addedLater = (code, name) => `(() => {
+  const fetched = window.fetch
+  window.__tilesReads = 0
+  window.fetch = async (input, init) => {
+    const response = await fetched(input, init)
+    if (!String(input).endsWith('/tiles/tiles.json') || !response.ok) return response
+    const tiles = await response.json()
+    window.__tilesReads += 1
+    const countries = { ...tiles.countries }
+    delete countries[${q(code)}]
+    const layers = tiles.layers.filter((layer) => !layer.url.startsWith(${q(`regions/${code}`)}))
+    if (window.__tilesReads > 1) {
+      countries[${q(code)}] = { name: ${q(name)}, bounds: ${q(EXTENT)} }
+      layers.push({ url: ${q(`regions/${code}.pmtiles`)}, name: ${q(name)}, minZoom: layers[0].maxZoom + 1, maxZoom: 15, bounds: ${q(EXTENT)} })
+    }
+    return new Response(JSON.stringify({ ...tiles, countries, layers }), { headers: { 'Content-Type': 'application/json' } })
+  }
+})()`
+
+test('a country added while the page is open is shown by its extent and drawn in detail, without a reload', async (t) => {
+  const served = await fetch(`${config.apiUrl}/tiles/tiles.json`).catch(() => null)
+  if (!served?.ok) return t.skip('the API serves no map tiles (README, Prerequisites)')
+  const { result: [country] } = await graphql(page,
+    'query ($ids: [ID!]!) { locationsLocations(ids: $ids) { result { name code } } }', { ids: [String(e.country.id)] })
+  const { identifier } = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: addedLater(country.code, country.name) })
+  try {
+    await page.goto(`${config.appUrl}/locations?location=${e.field.id}`)
+    const map = `window.__maps.find((m) => m.getContainer().isConnected)`
+    const drawsRegion = `Object.values(${map}._layers).some((layer) => layer.options?.url?.regions?.some((region) => region.url === ${q(`regions/${country.code}.pmtiles`)}))`
+    await page.waitFor(`window.__tilesReads === 1 && window.__maps?.some((m) => m.getContainer().isConnected)`, 30000)
+    assert.equal(await page.evaluate(drawsRegion), false, 'not in the first read')
+    await page.sleep(3500) // past the pause between reads of tiles.json
+
+    // the country chosen in the tree, as when its maps were fetched since the page loaded
+    await page.waitFor(`[...document.querySelectorAll('.regions-tree .location-name')].some((n) => n.innerText.trim() === ${q(country.name)})`, 30000)
+    await page.evaluate(`[...document.querySelectorAll('.regions-tree .location-name')].find((n) => n.innerText.trim() === ${q(country.name)}).click()`)
+    const [[south, west], [north, east]] = EXTENT
+    await page.waitFor(`${map}.getBounds().contains([[${south}, ${west}], [${north}, ${east}]]) && ${map}.getZoom() >= 7`, 15000)
+    assert.equal(await page.evaluate(drawsRegion), true, 'its region drawn')
+  } finally {
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+  }
 })
