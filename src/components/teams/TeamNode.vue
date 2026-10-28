@@ -5,10 +5,12 @@ import { useMutation } from '@vue/apollo-composable'
 import DELETE_TEAM_MUTATION from '../../graphql/teams/deleteTeam.graphql'
 import REMOVE_AFFILIATION_MUTATION from '../../graphql/account/removeAffiliation.graphql'
 import { useTeamData } from '@/composables/teams/useTeamData'
+import { useUserAccess } from '@/composables/user/useUserAccess'
 import AffiliationBadges from '../affiliations/AffiliationBadges.vue'
 import TeamActions from './TeamActions.vue'
 import AffiliationDetailsModal from '../affiliations/AffiliationDetailsModal.vue'
 import ManageAffiliationsModal from '../affiliations/ManageAffiliationsModal.vue'
+import RequestAffiliationModal from '../affiliations/RequestAffiliationModal.vue'
 
 const props = defineProps({
   teamData: { type: Object, required: true },
@@ -16,19 +18,23 @@ const props = defineProps({
   currentUserId: { type: [String, Number], required: true }
 })
 
-const emit = defineEmits(['create-team', 'request-affiliation', 'team-deleted', 'team-created'])
+const emit = defineEmits(['create-team', 'team-deleted', 'team-created'])
 
 // Use the composable for team data management
 const {
   teamInfo, isExpanded, childrenData, childrenLoading, childrenError,
   hasChildren, userIsAdminForTeam, loadChildren, refreshTeamData, toggleExpanded
 } = useTeamData(props.teamData, props.currentUserId)
+// The user's teams by access, read once from the cache and fetched again when the user's own affiliations change, for
+// the panels that offer what they allow
+const { refetch: refetchUserAccess } = useUserAccess({ fetchPolicy: 'cache-first' })
 
 // Modal states
 const showAffiliationModal = ref(false)
 const selectedAffiliation = ref({ accessType: '', data: null })
 const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
+const showRequestAffiliationDialog = ref(false)
 const deleteTeamError = ref('')
 // Bumped to make the teams below again from fresh data: each copies its team when it is made
 const childrenVersion = ref(0)
@@ -50,18 +56,28 @@ const showAffiliationDialog = (accessType, affiliationData) => {
   removeAffiliationError.value = ''
 }
 
-// After the user changes how far their affiliation reaches: the team's affiliations again, the details shown from them,
-// and the teams below, whose inherited affiliations change with it
-const handleAffiliationChanged = async () => {
+// After an affiliation to the team changes: the team's affiliations again, and those of the teams below if they are
+// shown, which inherit a heritable one
+const refreshTeamAndBelow = async () => {
   await refreshTeamData()
-  const { accessType } = selectedAffiliation.value
-  const data = teamInfo.value.affiliations?.[accessType.toLowerCase()]
-    ?.find(affiliation => affiliation.user.id == props.currentUserId)
-  if (data) selectedAffiliation.value = { accessType, data, inherited: isInherited(accessType) }
   if (isExpanded.value) {
     childrenVersion.value++
     await loadChildren()
   }
+}
+
+// After the user changes how far their affiliation reaches: the team and the teams below again, and the details shown
+const handleAffiliationChanged = async () => {
+  await refreshTeamAndBelow()
+  const { accessType } = selectedAffiliation.value
+  const data = teamInfo.value.affiliations?.[accessType.toLowerCase()]
+    ?.find(affiliation => affiliation.user.id == props.currentUserId)
+  if (data) selectedAffiliation.value = { accessType, data, inherited: isInherited(accessType) }
+}
+
+// After the user asks for an affiliation to the team, which an admin of it is given at once
+const handleAffiliationRequested = async () => {
+  await Promise.all([refreshTeamAndBelow(), refetchUserAccess()])
 }
 
 const closeAffiliationDialog = () => {
@@ -79,7 +95,7 @@ const closeManageAffiliationsModal = () => {
 }
 
 const handleAffiliationUpdated = async () => {
-  await refreshTeamData()
+  await refreshTeamAndBelow()
 }
 
 const handleRemoveAffiliation = async () => {
@@ -92,7 +108,7 @@ const handleRemoveAffiliation = async () => {
 
     if (response?.data?.accountsRemoveAffiliation?.status === 'SUCCESS') {
       closeAffiliationDialog()
-      await refreshTeamData()
+      await Promise.all([refreshTeamAndBelow(), refetchUserAccess()])
     } else {
       removeAffiliationError.value = response?.data?.accountsRemoveAffiliation?.errors?.[0]?.message || 'Failed to remove affiliation'
     }
@@ -140,21 +156,12 @@ const handleGlobalTeamCreated = async (event) => {
   }
 }
 
-const handleGlobalAffiliationRequested = async (event) => {
-  const { teamId } = event.detail
-  if (teamId === props.teamData.id) {
-    await refreshTeamData()
-  }
-}
-
 onMounted(() => {
   window.addEventListener('team-created', handleGlobalTeamCreated)
-  window.addEventListener('affiliation-requested', handleGlobalAffiliationRequested)
 })
 
 onUnmounted(() => {
   window.removeEventListener('team-created', handleGlobalTeamCreated)
-  window.removeEventListener('affiliation-requested', handleGlobalAffiliationRequested)
 })
 </script>
 
@@ -195,7 +202,7 @@ onUnmounted(() => {
       :has-children="hasChildren"
       :delete-team-loading="deleteTeamLoading"
       :delete-team-error="deleteTeamError"
-      @request-affiliation="emit('request-affiliation', teamInfo)"
+      @request-affiliation="showRequestAffiliationDialog = true"
       @manage-affiliations="showManageAffiliationsModal"
       @create-team="emit('create-team', teamInfo)"
       @delete-team="handleDeleteTeam"
@@ -212,7 +219,6 @@ onUnmounted(() => {
           :depth="depth + 1"
           :current-user-id="currentUserId"
           @create-team="emit('create-team', $event)"
-          @request-affiliation="emit('request-affiliation', $event)"
           @team-deleted="handleChildTeamDeleted"
           @team-created="handleTeamCreated"
         />
@@ -240,6 +246,14 @@ onUnmounted(() => {
       :current-user-id="currentUserId"
       @close="closeManageAffiliationsModal"
       @affiliation-updated="handleAffiliationUpdated"
+    />
+
+    <RequestAffiliationModal
+      :is-open="showRequestAffiliationDialog"
+      :selected-team="teamInfo"
+      :current-user-id="currentUserId"
+      @close="showRequestAffiliationDialog = false"
+      @affiliation-requested="handleAffiliationRequested"
     />
   </div>
 </template>

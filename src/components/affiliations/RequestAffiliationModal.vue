@@ -21,7 +21,7 @@
           </select>
         </div>
         <!-- Show message if no access types are available -->
-        <div v-if="availableAccessTypes.length === 0" class="info-message">
+        <div v-if="availableAccessTypes.length === 0 && !successMessage" class="info-message">
           You already have all possible access types for this team. To ask for one to reach the teams below it too,
           click its badge.
         </div>
@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { useMutation, useApolloClient } from '@vue/apollo-composable'
+import { useMutation } from '@vue/apollo-composable'
 import REQUEST_AFFILIATION_MUTATION from '../../graphql/account/requestAffiliation.graphql'
 
 const props = defineProps({
@@ -89,7 +89,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'affiliation-requested'])
 
-const { client } = useApolloClient()
 const affiliationRequest = ref({ access: '', heritable: false })
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -149,16 +148,8 @@ onDone((result) => {
   if (response?.status === 'SUCCESS') {
     successMessage.value = 'Affiliation requested successfully!'
     errorMessage.value = ''
-    
-    // Clear cache
-    try {
-      client.cache.evict({ fieldName: 'teams' })
-      client.cache.evict({ fieldName: 'teamsRoots' })
-      client.cache.gc()
-    } catch (error) {
-      console.warn('Error clearing cache:', error)
-    }
-    
+
+    // the team's node fetches the team's affiliations again to show it, and the teams below that inherit it
     emit('affiliation-requested', {
       team: props.selectedTeam,
       access: affiliationRequest.value.access,

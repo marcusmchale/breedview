@@ -30,7 +30,6 @@
             :depth="0"
             :current-user-id="currentUserId"
             @create-team="handleCreateTeam"
-            @request-affiliation="handleRequestAffiliation"
             @team-deleted="refetchTeamRoots()"
             @team-created="refetchTeamRoots()"
           />
@@ -83,15 +82,6 @@
       @close="showCreateTeamModal = false"
       @team-created="refetchTeamRoots()"
     />
-
-    <!-- Request Affiliation Modal -->
-    <RequestAffiliationModal
-      :is-open="showRequestAffiliationModal"
-      :selected-team="selectedTeamForAffiliation"
-      :current-user-id="currentUserId"
-      @close="showRequestAffiliationModal = false"
-      @affiliation-requested="refetchTeamRoots()"
-    />
   </div>
 </template>
 
@@ -103,7 +93,6 @@ import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import CREATE_TEAM_MUTATION from '@/graphql/teams/createTeam.graphql'
 import TeamNode from './TeamNode.vue'
 import CreateTeamModal from './CreateTeamModal.vue'
-import RequestAffiliationModal from '@/components/affiliations/RequestAffiliationModal.vue'
 
 const { currentUserId } = useAuthStore()
 
@@ -114,17 +103,10 @@ const error = computed(() => !!teamRootsError.value && teamRoots.value.length ==
 
 const showCreateTeamModal = ref(false)
 const selectedParentTeam = ref(null)
-const showRequestAffiliationModal = ref(false)
-const selectedTeamForAffiliation = ref(null)
 
 const handleCreateTeam = (parentTeam) => {
   selectedParentTeam.value = parentTeam
   showCreateTeamModal.value = true
-}
-
-const handleRequestAffiliation = (team) => {
-  selectedTeamForAffiliation.value = team
-  showRequestAffiliationModal.value = true
 }
 
 /* ---------- a new team tree ---------- */
