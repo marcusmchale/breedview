@@ -87,6 +87,24 @@ async function connectPage(port, { acceptTerms = true, loadsPerTab = LOADS_PER_T
   await open(list.find((t) => t.type === 'page') ??
     await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json())
 
+  // Scripts run in every new document (Page.addScriptToEvaluateOnNewDocument), as a test's stubs of the API: a tab
+  // keeps its own, so they are added again in each fresh tab. By the identifier the test was given, with the current
+  // tab's.
+  const newDocumentScripts = new Map()
+  const sendKeepingScripts = async (method, params = {}) => {
+    if (method === 'Page.addScriptToEvaluateOnNewDocument') {
+      const result = await send(method, params)
+      newDocumentScripts.set(result.identifier, { params, identifier: result.identifier })
+      return result
+    }
+    if (method === 'Page.removeScriptToEvaluateOnNewDocument') {
+      const script = newDocumentScripts.get(params.identifier)
+      newDocumentScripts.delete(params.identifier)
+      return send(method, { ...params, identifier: script?.identifier ?? params.identifier })
+    }
+    return send(method, params)
+  }
+
   let loads = 0
   const freshTab = async () => {
     const old = target
@@ -94,6 +112,9 @@ async function connectPage(port, { acceptTerms = true, loadsPerTab = LOADS_PER_T
     await open(await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json())
     try { oldWs.close() } catch { /* ignore */ }
     await fetch(`http://127.0.0.1:${port}/json/close/${old.id}`).catch(() => {})
+    for (const script of newDocumentScripts.values()) {
+      script.identifier = (await send('Page.addScriptToEvaluateOnNewDocument', script.params)).identifier
+    }
     loads = 0
   }
 
@@ -132,7 +153,7 @@ async function connectPage(port, { acceptTerms = true, loadsPerTab = LOADS_PER_T
   }
 
   return {
-    send, events, sleep, evaluate,
+    send: sendKeepingScripts, events, sleep, evaluate,
     // call fn with the params of each event of a method, as it comes (on every tab); returns a function that stops it
     on: (method, fn) => {
       listeners.set(method, [...(listeners.get(method) ?? []), fn])
