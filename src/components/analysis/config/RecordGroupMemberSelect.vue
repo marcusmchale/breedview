@@ -24,6 +24,8 @@ const optionLabel = (c) => (c.datasetId ? `${c.code} — ${datasetName(c.dataset
 const selectedValue = computed(() =>
   props.modelValue.code ? `${props.modelValue.datasetId ?? ''}|${props.modelValue.code}` : ''
 )
+// a code the records don't have, e.g. of an analysis loaded since they changed, stays shown as chosen
+const unknownCode = computed(() => !!selectedValue.value && !codes.value.some((c) => optionValue(c) === selectedValue.value))
 
 const setGrouping = (groupingId) => emit('update:modelValue', { groupingId, code: '', datasetId: null })
 
@@ -46,6 +48,7 @@ const update = (patch) => emit('update:modelValue', { ...props.modelValue, ...pa
     <template v-if="modelValue.groupingId">
       <select v-if="codes.length" :value="selectedValue" @change="setCode($event.target.value)">
         <option value="" disabled>Code</option>
+        <option v-if="unknownCode" :value="selectedValue">{{ optionLabel(modelValue) }} (not in the records)</option>
         <option v-for="c in codes" :key="optionValue(c)" :value="optionValue(c)">{{ optionLabel(c) }}</option>
       </select>
       <template v-else>

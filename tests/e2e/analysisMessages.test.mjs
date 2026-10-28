@@ -193,6 +193,10 @@ test('messages about a record group dimension show on it, and stay with it when 
   assert.deepEqual(await page.evaluate(texts(dimensionBox('Batch'))), expected)
   assert.deepEqual(await page.evaluate(texts(dimensionBox('Block'))), [])
   assert.equal((await navCounts()).Grouping, 2)
+  // the level's code, which the records don't have, still shown as chosen among the grouping's codes, once loaded
+  const code = `${dimensionBox('Batch')}.querySelector('.member-select select:nth-of-type(2)')`
+  await page.waitFor(code, 30000)
+  assert.equal(await page.evaluate(`${code}.selectedOptions[0]?.textContent.trim()`), 'no such code (not in the records)')
 
   await page.evaluate(`${dimensionBox('Block')}.querySelector('.box-header .btn-link.danger').click()`)
   await page.waitFor(`!${dimensionBox('Block')}`)
