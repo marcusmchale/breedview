@@ -1,5 +1,5 @@
 import { computed, toValue } from 'vue'
-import { inputPathToFormPath } from '@/composables/analysis/useAnalysisForm'
+import { anchoredFormPath, inputPathToFormPath } from '@/composables/analysis/useAnalysisForm'
 
 /** Suggested actions for analysis message codes. */
 export const MESSAGE_CODES = {
@@ -88,17 +88,21 @@ export function exclusionMatchCount(message) {
 }
 
 /**
- * Index analysis messages by form path.
+ * Index analysis messages by form path. Anchored messages (anchorMessages) are indexed where their items are in the
+ * form now, and left out once their items are removed.
  *
- * @param messages ref/getter of a list of {code, message, path, recordIds, severity}
+ * @param messages ref/getter of a list of {code, message, path, recordIds, severity}, anchored or not
  * @param analysisType ref/getter of the analysis type the paths refer to
+ * @param form ref/getter of the form that anchored messages are pinned to
  */
-export function useAnalysisMessages(messages, analysisType) {
+export function useAnalysisMessages(messages, analysisType, form) {
   const indexed = computed(() => {
     const byPath = new Map()
     const unpathed = []
     for (const m of toValue(messages) ?? []) {
-      const key = inputPathToFormPath(m.path, toValue(analysisType))
+      const key = m.anchor ? anchoredFormPath(m, toValue(form)) : inputPathToFormPath(m.path, toValue(analysisType))
+      // about an item or section that has been removed since
+      if (key === null) continue
       if (!key) {
         unpathed.push(m)
         continue
@@ -123,12 +127,13 @@ export function useAnalysisMessages(messages, analysisType) {
 
   const unpathed = computed(() => indexed.value.unpathed)
 
-  /** EXCLUDED_BY_CONFIG warnings by exclusion rule index. */
+  /** EXCLUDED_BY_CONFIG warnings by the index of their exclusion rule in the form. */
   const exclusionFeedback = computed(() => {
     const out = {}
-    for (const m of toValue(messages) ?? []) {
-      if (m.code !== 'EXCLUDED_BY_CONFIG' || m.path?.[0] !== 'exclusions') continue
-      out[Number(m.path[1])] = { message: m.message, count: exclusionMatchCount(m) }
+    for (const [key, list] of indexed.value.byPath) {
+      const rule = key.match(/^exclusions\.(\d+)$/)
+      const warning = rule && list.find((m) => m.code === 'EXCLUDED_BY_CONFIG')
+      if (warning) out[Number(rule[1])] = { message: warning.message, count: exclusionMatchCount(warning) }
     }
     return out
   })

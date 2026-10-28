@@ -1,10 +1,10 @@
 <script setup>
-import { computed, reactive, ref, toRef } from 'vue'
+import { computed, reactive, ref, toRaw, toRef } from 'vue'
 import { provideAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { useAnalysisDataContext } from '@/composables/analysis/useAnalysisDataContext'
 import { useAnalysisMessages, messageInfo } from '@/composables/analysis/useAnalysisMessages'
 import { useSubmitAnalysis } from '@/composables/analysis/submitAnalysis'
-import { analysisTypeLabel, buildAnalysisInput } from '@/composables/analysis/useAnalysisForm'
+import { analysisTypeLabel, anchorMessages, buildAnalysisInput } from '@/composables/analysis/useAnalysisForm'
 import { analysisHints, blockingProblems } from '@/composables/analysis/useTermRules'
 import DataSection from '@/components/analysis/config/DataSection.vue'
 import GroupingSection from '@/components/analysis/config/GroupingSection.vue'
@@ -17,11 +17,11 @@ import LicenceAgreement from '@/components/licences/LicenceAgreement.vue'
  * Editor for a new analysis, or for editing and resubmitting an earlier one.
  *
  * The form is owned by the caller and edited in place. Messages of the run the form
- * was loaded from are shown on their fields until the next submission.
+ * was loaded from are shown on their fields until the next submission, and follow their items through edits.
  */
 const props = defineProps({
   form: { type: Object, required: true },
-  // errors and warnings of the submission the form was loaded from, with severity
+  // errors and warnings of the submission the form was loaded from, with severity, anchored to the form (anchorMessages)
   previousMessages: { type: Array, default: () => [] },
   title: { type: String, default: 'New analysis' }
 })
@@ -42,7 +42,11 @@ const submitted = ref(false)
 // Previous messages refer to the configuration as it was loaded, so drop them after a submit attempt
 const messages = computed(() => (submitted.value ? submitErrors.value : [...submitErrors.value, ...props.previousMessages]))
 
-const { messagesAt, unpathed, exclusionFeedback } = useAnalysisMessages(messages, () => props.form.analysisType)
+const { messagesAt, unpathed, exclusionFeedback } = useAnalysisMessages(
+  messages,
+  () => props.form.analysisType,
+  () => props.form
+)
 
 const blocking = computed(() => blockingProblems(props.form))
 const hints = computed(() => analysisHints(props.form, data.conceptsById, data.groupingsById).filter((h) => !blocking.value.includes(h)))
@@ -62,12 +66,8 @@ const submit = async () => {
       return
     }
     // Submit errors are {name, message, path}; analysis messages use code
-    submitErrors.value = (payload?.errors ?? []).map((e) => ({
-      code: e.name,
-      message: e.message,
-      path: e.path,
-      severity: 'error'
-    }))
+    const errors = (payload?.errors ?? []).map((e) => ({ code: e.name, message: e.message, path: e.path, severity: 'error' }))
+    submitErrors.value = anchorMessages(errors, toRaw(props.form))
     if (submitErrors.value.length === 0) requestError.value = 'The analysis could not be submitted.'
   } catch (err) {
     console.error('Error submitting analysis:', err)

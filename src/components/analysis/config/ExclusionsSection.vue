@@ -1,5 +1,5 @@
 <script setup>
-import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
+import { itemKey, useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { createEmptyExclusion } from '@/composables/analysis/useAnalysisForm'
 import ExclusionRuleEditor from '@/components/analysis/config/ExclusionRuleEditor.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
@@ -16,10 +16,9 @@ const remove = (i) => form.exclusions.splice(i, 1)
       A record is excluded if it matches any rule. Within a rule all criteria must match, and within a criterion any
       listed value may match.
     </p>
-    <!-- Keyed by index so the rule editors stay aligned with server paths like ["exclusions", "2"] -->
     <ExclusionRuleEditor
       v-for="(rule, i) in form.exclusions"
-      :key="`${i}-${form.exclusions.length}`"
+      :key="itemKey(rule)"
       :index="i"
       @remove="remove(i)"
     />

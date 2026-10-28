@@ -5,6 +5,7 @@ import { useRecentSubmissions } from '@/composables/analysis/recentSubmissionsQu
 import { useDeleteAnalysis } from '@/composables/analysis/deleteAnalysis'
 import {
   analysisTypeLabel,
+  anchorMessages,
   createEmptyExclusion,
   createEmptyForm,
   submissionToForm
@@ -69,29 +70,35 @@ const newAnalysis = () => {
   openEditor(createEmptyForm())
 }
 
-const messagesOf = (submission) => [
-  ...submission.errors.map((m) => ({ ...m, severity: 'error' })),
-  ...submission.warnings.map((m) => ({ ...m, severity: 'warning' }))
-]
+// Pinned to the form loaded from the submission, so that they follow their items through edits
+const messagesOn = (form, submission) =>
+  anchorMessages(
+    [
+      ...submission.errors.map((m) => ({ ...m, severity: 'error' })),
+      ...submission.warnings.map((m) => ({ ...m, severity: 'warning' }))
+    ],
+    form
+  )
 
 const submissionTitle = (s) => s.name || analysisTypeLabel(s.analysisType)
 
 const edit = (submission) => {
-  openEditor(submissionToForm(submission), messagesOf(submission), `Edit: ${submissionTitle(submission)}`)
+  const next = submissionToForm(submission)
+  openEditor(next, messagesOn(next, submission), `Edit: ${submissionTitle(submission)}`)
 }
 
-// Rules are appended, so messages about the existing rules keep their indexes
 const exclude = (submission, rules) => {
   const next = submissionToForm(submission)
+  const messages = messagesOn(next, submission)
   next.exclusions.push(...rules.map((r) => ({ ...createEmptyExclusion(), ...r })))
-  openEditor(next, messagesOf(submission), `Edit: ${submissionTitle(submission)}`)
+  openEditor(next, messages, `Edit: ${submissionTitle(submission)}`)
 }
 
-// Removing a dataset shifts dataset indexes, so drop the messages that refer to them
+// The dataset's messages go with it, and those of the datasets after it move up
 const removeDataset = (submission, datasetId) => {
   const next = submissionToForm(submission)
+  const messages = messagesOn(next, submission)
   next.datasetIds = next.datasetIds.filter((id) => id !== datasetId)
-  const messages = messagesOf(submission).filter((m) => m.path?.[0] !== 'datasetIds')
   openEditor(next, messages, `Edit: ${submissionTitle(submission)}`)
 }
 

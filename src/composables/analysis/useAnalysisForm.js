@@ -417,12 +417,16 @@ export function removeTermReferences(form, ref) {
     t.randomSlopeTerms = (t.randomSlopeTerms ?? []).filter(keep)
   })
   if (form.response && !keep(form.response)) form.response = null
-  form.interactions = form.interactions
-    .map((i) => ({ terms: i.terms.filter(keep) }))
-    .filter((i) => i.terms.length > 1)
-  form.estimatedMeans = form.estimatedMeans
-    .map((em) => ({ ...em, terms: em.terms.filter(keep), by: em.by.filter(keep) }))
-    .filter((em) => em.terms.length > 0)
+  // edited in place, so that messages about the interactions and estimated means that remain stay with them
+  form.interactions.forEach((i) => {
+    i.terms = i.terms.filter(keep)
+  })
+  form.interactions = form.interactions.filter((i) => i.terms.length > 1)
+  form.estimatedMeans.forEach((em) => {
+    em.terms = em.terms.filter(keep)
+    em.by = em.by.filter(keep)
+  })
+  form.estimatedMeans = form.estimatedMeans.filter((em) => em.terms.length > 0)
 }
 
 /** Update references when a record group dimension is renamed. */
@@ -457,4 +461,56 @@ export function inputPathToFormPath(path, analysisType) {
   const optionField = OPTION_FIELDS[info.value ?? analysisType]?.[rest[0]]
   if (optionField) return ['options', optionField, ...rest.slice(1)].join('.')
   return rest.join('.')
+}
+
+/**
+ * Pin messages to what their paths lead to in the form they were raised on, e.g. the term at terms.2, so that
+ * anchoredFormPath can follow it when the items before it are removed. Pass the form itself, not a reactive proxy of
+ * it, so that the items are compared as they are stored.
+ */
+export function anchorMessages(messages, form) {
+  return messages.map((message) => {
+    const path = inputPathToFormPath(message.path)
+    const segments = path ? path.split('.') : []
+    let value = form
+    const anchors = segments.map((segment) => {
+      const container = value
+      value = container?.[segment]
+      const anchor = {}
+      // an item of a list, found again by itself: an object as itself, a value (e.g. a dataset ID) by its value
+      if (Array.isArray(container) && /^\d+$/.test(segment) && value !== undefined) {
+        anchor.index = Number(segment)
+        anchor.item = value
+      }
+      // a section such as a grouping dimension, which goes when it is turned off
+      if (value !== null && typeof value === 'object') anchor.object = true
+      return anchor
+    })
+    return { ...message, anchor: { segments, anchors } }
+  })
+}
+
+/**
+ * Form path of an anchored message (anchorMessages) in the form as it is now, e.g. "terms.1" once the first of three
+ * terms is removed from a message at "terms.2"; null when the item or section the message is about has been removed.
+ */
+export function anchoredFormPath(message, form) {
+  const { segments, anchors } = message.anchor
+  let value = form
+  const path = []
+  for (let i = 0; i < segments.length; i++) {
+    const anchor = anchors[i]
+    let segment = segments[i]
+    if ('item' in anchor) {
+      if (!Array.isArray(value)) return null
+      // a value may be listed twice, so one still at its index stays there
+      const index = value[anchor.index] === anchor.item ? anchor.index : value.indexOf(anchor.item)
+      if (index < 0) return null
+      segment = String(index)
+    }
+    value = value?.[segment]
+    if (anchor.object && (value === null || value === undefined)) return null
+    path.push(segment)
+  }
+  return path.join('.')
 }

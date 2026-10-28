@@ -1,5 +1,5 @@
 <script setup>
-import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
+import { itemKey, useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { createEmptyBinning, removeTermReferences } from '@/composables/analysis/useAnalysisForm'
 import BinningEditor from '@/components/analysis/config/BinningEditor.vue'
 import GermplasmPicker from '@/components/analysis/config/GermplasmPicker.vue'
@@ -135,7 +135,7 @@ const removeDimension = (i) => {
     </p>
     <RecordGroupDimensionEditor
       v-for="(dim, i) in form.grouping.recordGroups"
-      :key="i"
+      :key="itemKey(dim)"
       :index="i"
       @remove="removeDimension(i)"
     />
