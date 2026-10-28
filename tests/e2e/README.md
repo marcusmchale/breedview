@@ -37,7 +37,7 @@ confirmed) and reports an alert's message among the console errors.
    `http://localhost:8000`): set it for a backend on another port.
 5. Map tiles in the backend's `MAP_TILES_PATH`, for the maps: from breedgraph, with its env loaded,
    `scripts/map_tiles.py --build https://build.protomaps.com/YYYYMMDD.pmtiles --world-maxzoom 6` (about 45 MB; needs
-   the `pmtiles` command, see breedgraph's README, Maps).
+   the `pmtiles` command, see breedgraph's docs/maps.md).
 
 ## The test database
 

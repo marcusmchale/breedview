@@ -1,5 +1,5 @@
 // tiles.json, the base map's list of files (baseMap.js), read again while the page is open: the server adds a country's
-// extent and then its detailed regions in the background after the country is added (breedgraph README.md, Maps).
+// extent and then its detailed regions in the background after the country is added (breedgraph docs/maps.md).
 // Apart from the map, so that it can be tested without a browser.
 
 /**

@@ -4,7 +4,7 @@ import { namedFlavor } from '@protomaps/basemaps'
 import { PMTiles, SharedPromiseCache } from 'pmtiles'
 import { createTilesReader, countryExtent, regionLayers } from './tilesJson'
 
-// The base map, from tiles served by the API (breedgraph README.md, Maps), so the
+// The base map, from tiles served by the API (breedgraph docs/maps.md), so the
 // browser contacts no third party: tiles.json lists a low-detail world file and then the regions fetched in full
 // detail, whole countries or sections of large ones, all PMTiles read in byte ranges. The regions are drawn by one
 // layer over the world layer, without a background, so the world shows through outside them; the world draws no

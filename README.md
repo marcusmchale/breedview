@@ -46,6 +46,8 @@ with nginx's configuration.
 BreedView and [breedgraph](https://github.com/marcusmchale/breedgraph) are released together under the same version: a
 BreedView release works with the breedgraph release of the same number, and a release of one comes with a release of
 the other, even one with no changes of its own. The version is in `package.json`, and in breedgraph's `pyproject.toml`.
+How a release is made, and what each needs when upgrading to it: breedgraph's `docs/releasing.md` and
+`docs/upgrading.md`.
 
 ### Branding
 A deployment can carry its own brand, its colours, logos, font and footer links, without changing or rebuilding the app:
@@ -85,7 +87,7 @@ sudo cp -r ~/breedview-branding /etc/breedview/branding
 sudo chmod -R a+rX /etc/breedview/branding
 ```
 
-and serve it at `/branding/`, in the site's nginx server block (breedgraph README.md, Nginx). `^~` keeps nginx's
+and serve it at `/branding/`, in the site's nginx server block (breedgraph docs/deployment.md, nginx). `^~` keeps nginx's
 regular-expression locations, such as one caching `.css` or `.svg` files from the web root, from taking its files, and
 `no-cache` has browsers check for a newer brand at each visit:
 

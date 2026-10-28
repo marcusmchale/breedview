@@ -1,4 +1,4 @@
-// Where a country's detailed maps stand (breedgraph locationsMapStatus, README.md, Maps), said under the location map:
+// Where a country's detailed maps stand (breedgraph locationsMapStatus, docs/maps.md), said under the location map:
 // fetched in the background once the country is added, or for a country too large to fetch whole, by its sections as
 // locations in them are placed. Apart from the map, so that it can be tested without a browser.
 

@@ -31,7 +31,7 @@ const { locationId, selectedLocation, childLocations, childLocationsLoading, reg
 const { status: mapStatus } = useMapStatusQuery(computed(() => regionCountry.value?.code ?? null))
 const mapStatusMessages = computed(() => mapStatusLines(mapStatus.value, regionCountry.value?.name))
 
-// Place searches go through the API, which needs an account (breedgraph README.md, Maps)
+// Place searches go through the API, which needs an account (breedgraph docs/maps.md)
 const { isAuthenticated } = useAuthStore()
 
 const props = defineProps({
