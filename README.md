@@ -1,4 +1,9 @@
-# breedview
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/breedview-mark-dark.svg">
+  <img src="docs/images/breedview-mark.svg" alt="BreedView" height="52">
+</picture>
+
+# BreedView
 
 BreedView is the web front end of [BreedGraph](https://github.com/marcusmchale/breedgraph). Its user guide, a chapter at
 a time with a video of each, is at https://marcusmchale.github.io/breedview/guide/ (guide/README.md).
