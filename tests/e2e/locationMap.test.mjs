@@ -104,6 +104,7 @@ const dividedStatus = (code) => `(() => {
   const fetched = window.fetch
   window.fetch = async (input, init) => {
     if (typeof init?.body !== 'string' || !init.body.includes('locationsMapStatus')) return fetched(input, init)
+    window.__statusReads = (window.__statusReads ?? 0) + 1
     const result = {
       __typename: 'CountryMapStatus', code: ${q(code)}, state: 'DIVIDED', size: 5.5e9, limit: 2e9, enabled: true, error: null,
       sections: [{ __typename: 'MapSectionStatus', name: 'Alpha', state: 'FETCHING', size: 9e8, error: null }],
@@ -135,6 +136,9 @@ test('the map says where the detailed maps of the selected location\'s country s
         'each of its regions, such as a state or province, is fetched when a location in it is placed on the map.',
       'Detailed maps of Alpha (0.9 GB) are being fetched, and appear on the map when they are ready.'
     ])
+    // asked for again while a region is being fetched, every ten seconds
+    const reads = await page.evaluate('window.__statusReads')
+    await page.waitFor(`window.__statusReads > ${reads}`, 15000)
   } finally {
     await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
   }

@@ -11,12 +11,13 @@ const POLL_MS = 10000
  * the country is shown, and again every ten seconds while some are under way
  */
 export function useMapStatusQuery(code) {
-  const { result, startPolling, stopPolling } = useQuery(
+  const { result, query } = useQuery(
     MAP_STATUS_QUERY,
     () => ({ code: code.value }),
     () => ({ enabled: Boolean(code.value), fetchPolicy: 'network-only' })
   )
   const status = computed(() => (code.value ? result.value?.locationsMapStatus?.result ?? null : null))
-  watch(status, (current) => (mapsUnderWay(current) ? startPolling(POLL_MS) : stopPolling()))
+  // polled through Apollo's query itself, as vue-apollo's useQuery has no startPolling or stopPolling
+  watch(status, (current) => (mapsUnderWay(current) ? query.value?.startPolling(POLL_MS) : query.value?.stopPolling()))
   return { status }
 }
