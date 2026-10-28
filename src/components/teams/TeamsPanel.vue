@@ -29,9 +29,7 @@
             :team-data="root"
             :depth="0"
             :current-user-id="currentUserId"
-            @create-team="handleCreateTeam"
             @team-deleted="refetchTeamRoots()"
-            @team-created="refetchTeamRoots()"
           />
         </div>
       </div>
@@ -74,14 +72,6 @@
         </div>
       </details>
     </template>
-
-    <!-- Create Team Modal -->
-    <CreateTeamModal
-      :is-open="showCreateTeamModal"
-      :parent-team="selectedParentTeam"
-      @close="showCreateTeamModal = false"
-      @team-created="refetchTeamRoots()"
-    />
   </div>
 </template>
 
@@ -92,7 +82,6 @@ import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import CREATE_TEAM_MUTATION from '@/graphql/teams/createTeam.graphql'
 import TeamNode from './TeamNode.vue'
-import CreateTeamModal from './CreateTeamModal.vue'
 
 const { currentUserId } = useAuthStore()
 
@@ -100,14 +89,6 @@ const { teamRoots, teamRootsLoading, teamRootsError, refetchTeamRoots } = useTea
 // a refetch keeps the tree shown; only the first load shows the loading state
 const loading = computed(() => teamRootsLoading.value && teamRoots.value.length === 0)
 const error = computed(() => !!teamRootsError.value && teamRoots.value.length === 0)
-
-const showCreateTeamModal = ref(false)
-const selectedParentTeam = ref(null)
-
-const handleCreateTeam = (parentTeam) => {
-  selectedParentTeam.value = parentTeam
-  showCreateTeamModal.value = true
-}
 
 /* ---------- a new team tree ---------- */
 

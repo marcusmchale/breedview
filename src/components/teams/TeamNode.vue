@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import DELETE_TEAM_MUTATION from '../../graphql/teams/deleteTeam.graphql'
 import REMOVE_AFFILIATION_MUTATION from '../../graphql/account/removeAffiliation.graphql'
@@ -11,6 +11,7 @@ import TeamActions from './TeamActions.vue'
 import AffiliationDetailsModal from '../affiliations/AffiliationDetailsModal.vue'
 import ManageAffiliationsModal from '../affiliations/ManageAffiliationsModal.vue'
 import RequestAffiliationModal from '../affiliations/RequestAffiliationModal.vue'
+import CreateTeamModal from './CreateTeamModal.vue'
 
 const props = defineProps({
   teamData: { type: Object, required: true },
@@ -18,7 +19,7 @@ const props = defineProps({
   currentUserId: { type: [String, Number], required: true }
 })
 
-const emit = defineEmits(['create-team', 'team-deleted', 'team-created'])
+const emit = defineEmits(['team-deleted'])
 
 // Use the composable for team data management
 const {
@@ -35,6 +36,7 @@ const selectedAffiliation = ref({ accessType: '', data: null })
 const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
 const showRequestAffiliationDialog = ref(false)
+const showCreateTeamDialog = ref(false)
 const deleteTeamError = ref('')
 // Bumped to make the teams below again from fresh data: each copies its team when it is made
 const childrenVersion = ref(0)
@@ -144,25 +146,12 @@ const handleChildTeamDeleted = (teamId) => {
   }
 }
 
-const handleTeamCreated = (teamId) => {
-  emit('team-created', teamId)
+// After a team is made below this one: the teams below again, shown with the new one among them
+const handleTeamCreated = async () => {
+  await refreshTeamData()
+  isExpanded.value = true
+  await loadChildren()
 }
-
-// Global event listeners (keeping the existing functionality)
-const handleGlobalTeamCreated = async (event) => {
-  const { parentTeamId } = event.detail
-  if (parentTeamId === props.teamData.id) {
-    await refreshTeamData()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('team-created', handleGlobalTeamCreated)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('team-created', handleGlobalTeamCreated)
-})
 </script>
 
 <template>
@@ -204,7 +193,7 @@ onUnmounted(() => {
       :delete-team-error="deleteTeamError"
       @request-affiliation="showRequestAffiliationDialog = true"
       @manage-affiliations="showManageAffiliationsModal"
-      @create-team="emit('create-team', teamInfo)"
+      @create-team="showCreateTeamDialog = true"
       @delete-team="handleDeleteTeam"
     />
 
@@ -218,9 +207,7 @@ onUnmounted(() => {
           :team-data="child"
           :depth="depth + 1"
           :current-user-id="currentUserId"
-          @create-team="emit('create-team', $event)"
           @team-deleted="handleChildTeamDeleted"
-          @team-created="handleTeamCreated"
         />
       </div>
       <div v-else class="no-teams">
@@ -254,6 +241,13 @@ onUnmounted(() => {
       :current-user-id="currentUserId"
       @close="showRequestAffiliationDialog = false"
       @affiliation-requested="handleAffiliationRequested"
+    />
+
+    <CreateTeamModal
+      :is-open="showCreateTeamDialog"
+      :parent-team="teamInfo"
+      @close="showCreateTeamDialog = false"
+      @team-created="handleTeamCreated"
     />
   </div>
 </template>

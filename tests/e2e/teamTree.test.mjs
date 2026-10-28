@@ -1,15 +1,18 @@
 // The team tree under Teams, on Access control, shows what is done from it at once, without reloading the page: an
-// affiliation the admin sets for themselves on the team below the organisation, and one the outsider asks for to the
-// organisation. The affiliations are removed again, leaving the accounts as the test database has them.
+// affiliation the admin sets for themselves on the team below the organisation, one the outsider asks for to the
+// organisation, and a team the admin makes below the team below, which they then delete. The affiliations are removed
+// again, leaving the accounts and teams as the test database has them.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
-import { config, loginAs, logout, graphql, flat } from './lib/app.mjs'
+import { config, loginAs, logout, graphql, flat, uniqueName } from './lib/app.mjs'
 import { teams } from './lib/fixture.mjs'
 
 const q = JSON.stringify
 const root = String(teams.root.id)
 const child = String(teams.child.id)
+const TEAM_PREFIX = 'E2E tree team '
+const newTeam = uniqueName(TEAM_PREFIX)
 
 let browser, page
 
@@ -19,6 +22,10 @@ const removeAffiliation = (team, access) => graphql(page,
 const cleanUp = async () => {
   await loginAs(page, 'admin')
   await removeAffiliation(child, 'CURATE')
+  const below = await graphql(page, 'query ($team: ID!) { teamsTeams(ids: [$team]) { result { children { id name } } } }', { team: child })
+  for (const team of (below.result?.[0]?.children ?? []).filter((t) => t.name.startsWith(TEAM_PREFIX))) {
+    await graphql(page, 'mutation ($team: ID!) { teamsDeleteTeam(id: $team) { status } }', { team: team.id })
+  }
   await loginAs(page, 'outsider')
   await removeAffiliation(root, 'READ')
   await logout(page)
@@ -26,7 +33,7 @@ const cleanUp = async () => {
 
 before(async () => {
   browser = await launchBrowser(); page = browser.page
-  // an affiliation left by an interrupted run would leave nothing to set
+  // an affiliation left by an interrupted run would leave nothing to set, and a team left would be in the way
   await cleanUp()
 })
 after(async () => {
@@ -74,4 +81,23 @@ test('an affiliation the outsider asks for to the organisation shows on it at on
   await askFor('READ')
   await page.waitFor(`!!(${badge(root, 'R')})`, 10000)
   assert.ok(await page.evaluate(`(${badge(root, 'R')}).classList.contains('badge-pending')`), 'shown as waiting for approval')
+})
+
+test('a team the admin makes below the team below shows there at once, and goes once deleted', async () => {
+  await loginAs(page, 'admin')
+  await page.goto(`${config.appUrl}/access`)
+  await page.waitFor(`!!(${teamNode(root)})?.querySelector('.expand-button')`, 30000)
+  await page.evaluate(`(${teamNode(root)}).querySelector('.expand-button').click()`)
+  await page.waitFor(`!!(${teamNode(child)})`, 30000)
+
+  await clickAction(child, 'Create Team')
+  await page.waitFor(`document.querySelector('.modal input')`)
+  await page.type('.modal input', newTeam)
+  await page.click('.modal form button[type=submit]')
+  const made = `[...(${teamNode(child)}).querySelectorAll('.team-node h3')].find((h) => h.innerText.trim() === ${q(newTeam)})`
+  await page.waitFor(`!!(${made})`, 15000)
+
+  const id = flat(await page.evaluate(`(${made}).closest('.team-node').querySelector('.team-meta p').innerText`)).replace('ID: ', '')
+  await clickAction(id, 'Delete Team')
+  await page.waitFor(`!(${made})`, 15000)
 })

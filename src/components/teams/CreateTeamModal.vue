@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { useMutation, useApolloClient } from '@vue/apollo-composable'
+import { useMutation } from '@vue/apollo-composable'
 import CREATE_TEAM_MUTATION from '../../graphql/teams/createTeam.graphql'
 
 const props = defineProps({
@@ -16,7 +16,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'team-created'])
 
-const { client } = useApolloClient()
 const teamData = ref({ name: '', fullname: '' })
 const errorMessage = ref('')
 
@@ -33,15 +32,7 @@ onError((error) => {
 onDone((result) => {
   const response = result.data?.teamsCreateTeam
   if (response?.status === 'SUCCESS') {
-    // Clear cache and emit success
-    try {
-      client.cache.evict({ fieldName: 'teams' })
-      client.cache.evict({ fieldName: 'teamsRoots' })
-      client.cache.gc()
-    } catch (error) {
-      console.warn('Error clearing cache:', error)
-    }
-
+    // the parent team's node fetches the teams below it again, to show the new one among them
     const createdTeam = {
       name: teamData.value.name.trim(),
       fullname: teamData.value.fullname.trim() || null,
