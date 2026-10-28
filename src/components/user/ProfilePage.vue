@@ -7,6 +7,7 @@ import { useMyPersonQuery } from '@/composables/people/myPersonQuery'
 import { useMyClaimsQuery } from '@/composables/people/claimsQuery'
 import { useMutateClaims } from '@/composables/people/mutateClaims'
 import { useMutateOrcid } from '@/composables/people/mutateOrcid'
+import { useOrcidLinkingQuery } from '@/composables/people/orcidLinkingQuery'
 import { personLabel, orcidUrl } from '@/composables/people/personDisplay'
 
 import EditProfileModal from './EditProfileModal.vue'
@@ -25,6 +26,7 @@ const { myPerson, myPersonLoading, refetchMyPerson } = useMyPersonQuery()
 const { myClaims, myClaimsLoading, refetchMyClaims } = useMyClaimsQuery()
 const { withdrawClaim, withdrawClaimLoading, unlinkPerson, unlinkPersonLoading } = useMutateClaims()
 const { startOrcidLink, startOrcidLinkLoading, removeOrcid, removeOrcidLoading } = useMutateOrcid()
+const { orcidLinking } = useOrcidLinkingQuery()
 
 const showEditProfileModal = ref(false)
 const showInviteModal = ref(false)
@@ -204,13 +206,16 @@ const formatDate = (value) => {
               {{ removeOrcidLoading ? 'Removing...' : 'Remove ORCID iD' }}
             </button>
           </template>
-          <template v-else-if="!orcidUnavailable">
+          <template v-else-if="orcidLinking && !orcidUnavailable">
             <button class="btn btn-orcid" :disabled="startOrcidLinkLoading" @click="connectOrcid">
               <span class="orcid-id">iD</span>
               {{ startOrcidLinkLoading ? 'Opening ORCID...' : 'Connect your ORCID iD' }}
             </button>
           </template>
-          <span v-else class="text-muted">{{ orcidUnavailable }}</span>
+          <span v-else-if="orcidUnavailable" class="text-muted">{{ orcidUnavailable }}</span>
+          <span v-else-if="orcidLinking === false" class="text-muted orcid-not-offered">
+            Linking an ORCID iD isn't available on this site.
+          </span>
         </div>
 
         <div class="person-danger">

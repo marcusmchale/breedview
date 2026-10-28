@@ -1,0 +1,9 @@
+query peopleOrcidLinking {
+    peopleOrcidLinking {
+        status
+        result
+        errors {
+            message
+        }
+    }
+}
