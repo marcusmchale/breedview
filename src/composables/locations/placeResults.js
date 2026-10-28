@@ -29,3 +29,37 @@ export function scopeHint(places, countryName) {
     ? `${countryName}'s places are still being fetched, and until they are, ${searched}.`
     : `${countryName}'s places could not be fetched, so ${searched}.`
 }
+
+/** Whether the place is a country itself, as the server gives one: with no country of its own */
+export const isCountry = (place) => Boolean(place.countryCode) && !place.country
+
+/**
+ * A new location's starting values from a place found (Add as a location): its name, its point, which the map's
+ * drawing tools can make a boundary of, its region and country as its address, and the site's location type named as
+ * its kind ("farm"), when there is one. Nothing of GeoNames' own, such as its id, is kept.
+ */
+export function placeLocationInput(place, locationTypes = []) {
+  const kind = place.description?.toLowerCase()
+  const type = kind && locationTypes.find((locationType) =>
+    [locationType.name, ...(locationType.synonyms ?? [])].some((name) => name?.toLowerCase() === kind))
+  return {
+    name: place.name,
+    typeId: type?.id ?? null,
+    address: [place.region, place.country].filter(Boolean).join(', '),
+    coordinates: [{ latitude: place.latitude, longitude: place.longitude }]
+  }
+}
+
+/**
+ * Where a location made from the place goes: { parent } under the selected location when it is in the place's country
+ * (selectedCountryCode), else under that country, among the location trees' roots; or { register } the place's
+ * country first, when it is not one of them. Null for a country already registered, or a place of no known country.
+ */
+export function placeTarget(place, selected, selectedCountryCode, roots = []) {
+  if (!place.countryCode) return null
+  const root = roots.find((location) => location.code === place.countryCode)
+  if (!root) return { register: place.countryCode }
+  if (isCountry(place)) return null
+  if (selected && selectedCountryCode === place.countryCode) return { parent: selected }
+  return { parent: root }
+}

@@ -193,6 +193,7 @@ test('locations: places are searched signed out too, listed with their kind and 
     const places = await page.evaluate(`[...document.querySelectorAll('.place-result:not(.location-result)')].map((e) => e.innerText.trim())`)
     assert.deepEqual(places, ['Ballyduff\nvillage · Kerry, Munster, Ireland'])
     assert.equal(await page.text('.place-results-credit'), 'Places from GeoNames, CC BY 4.0')
+    assert.ok(!(await page.exists('.place-result-add')), 'no location can be made of it signed out')
   } finally {
     await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
   }

@@ -13,6 +13,11 @@ const props = defineProps({
   parentLocation: {
     type: Object,
     required: true
+  },
+  // starting values, as from a place found on the map (placeLocationInput): name, typeId, address and coordinates
+  initial: {
+    type: Object,
+    default: null
   }
 })
 
@@ -34,12 +39,13 @@ const handleControlTeamError = (errorMessage) => {
 
 const addChildFormData = ref({
   parentName: props.parentLocation?.name || '',
-  typeId: null,
-  name: '',
+  typeId: props.initial?.typeId ?? null,
+  name: props.initial?.name ?? '',
   code: '',
-  address: '',
+  address: props.initial?.address ?? '',
   description: ''
 })
+const coordinates = props.initial?.coordinates ?? []
 
 
 const submitAddChild = async () => {
@@ -51,7 +57,8 @@ const submitAddChild = async () => {
         address: addChildFormData.value.address || undefined,
         description: addChildFormData.value.description || undefined,
         typeId: addChildFormData.value.typeId,
-        parentId: props.parentLocation.id
+        parentId: props.parentLocation.id,
+        coordinates: coordinates.length ? coordinates.map(({ latitude, longitude }) => ({ latitude, longitude })) : undefined
     }
 
     const { status, errors } = await createLocation({
@@ -136,6 +143,11 @@ const submitAddChild = async () => {
         placeholder="Enter description"
       />
 
+      <p v-if="coordinates.length" class="place-point">
+        Placed at {{ coordinates[0].latitude }}, {{ coordinates[0].longitude }}, the point of the place found. Its
+        shape can be drawn on the map afterwards.
+      </p>
+
       <div v-if="createLocationError" class="error-message">
         {{ createLocationError }}
       </div>
@@ -167,6 +179,12 @@ const submitAddChild = async () => {
 </template>
 
 <style scoped>
+
+.place-point {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6c757d;
+}
 
 .modal {
   background: white;

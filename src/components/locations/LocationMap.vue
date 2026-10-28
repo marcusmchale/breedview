@@ -21,7 +21,9 @@ import { useLocationSearch } from '@/composables/locations/locationSearch'
 import { addBaseMap, countryBounds } from '@/composables/locations/baseMap'
 import { useMapStatusQuery } from '@/composables/locations/mapStatusQuery'
 import { mapStatusLines } from '@/composables/locations/mapStatus'
-import { placeDetail, placeView, scopeHint, PLACES_CREDIT, PLACES_CREDIT_URL } from '@/composables/locations/placeResults'
+import {
+  placeDetail, placeView, scopeHint, placeTarget, isCountry, PLACES_CREDIT, PLACES_CREDIT_URL
+} from '@/composables/locations/placeResults'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
 
 const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry, nearestPlaced } = useLocationMapQueries()
@@ -39,6 +41,15 @@ const props = defineProps({
   drawable: {
     type: Boolean,
     default: false
+  },
+  // whether to offer to make a location of a place found, and the location trees' roots, the countries it may go in
+  canAddPlaces: {
+    type: Boolean,
+    default: false
+  },
+  roots: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -52,7 +63,8 @@ watch(() => props.selectedLocationId, (newSelectedLocationId) => {
 
 // drawn-change: emits the drawn coordinates (or null when nothing is drawn) so the location card can save them
 // show-card: the user asked to go to the location card to save the drawn shape
-const emit = defineEmits(['drawn-change', 'show-card', 'location-selected'])
+// add-place: { place, parent } to make a location of the place under parent, or { place, register } its country first
+const emit = defineEmits(['drawn-change', 'show-card', 'location-selected', 'add-place'])
 
 // Map state
 // Create a custom emoji icon for markers
@@ -192,6 +204,39 @@ const goToLocation = (location) => {
   placeSearched.value = false
 }
 
+// What may be done with a place found: made a location, or its country registered first (placeTarget)
+const placeAction = (place) => {
+  if (!props.canAddPlaces) return null
+  const target = placeTarget(place, selectedLocation.value, regionCountry.value?.code, props.roots)
+  if (!target) return null
+  const label = target.register ? `Register ${isCountry(place) ? place.name : place.country} first` : 'Add as a location'
+  return { label, add: () => emit('add-place', { place, ...target }) }
+}
+
+// A place's marker, with the action on it, as the list of results is closed once the map moves there
+const placeMarkerContent = (place) => {
+  const content = document.createElement('div')
+  content.className = 'place-marker'
+  const name = document.createElement('strong')
+  name.textContent = place.name
+  content.append(name)
+  if (placeDetail(place)) {
+    const detail = document.createElement('div')
+    detail.textContent = placeDetail(place)
+    content.append(detail)
+  }
+  const action = placeAction(place)
+  if (action) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'place-marker-add'
+    button.textContent = action.label
+    button.addEventListener('click', action.add)
+    content.append(button)
+  }
+  return content
+}
+
 const goToPlace = (place) => {
   if (!mapRef.value?.leafletObject) return
   const map = toRaw(mapRef.value.leafletObject)
@@ -207,7 +252,7 @@ const goToPlace = (place) => {
     fillColor: '#dc3545',
     fillOpacity: 0.4
   })
-  marker.bindTooltip(place.name)
+  marker.bindPopup(placeMarkerContent(place), { autoPan: false })
   searchResultLayer.addLayer(marker)
 
   const view = placeView(place)
@@ -216,6 +261,7 @@ const goToPlace = (place) => {
   } else {
     map.setView(view.center, view.zoom)
   }
+  marker.openPopup()
   locationResults.value = []
   placeResults.value = []
   placeSearched.value = false
@@ -752,6 +798,14 @@ watch(mapStatus, async () => {
           >
             {{ place.name }}
             <span v-if="placeDetail(place)" class="place-result-detail">{{ placeDetail(place) }}</span>
+            <button
+              v-if="placeAction(place)"
+              type="button"
+              class="link-btn place-result-add"
+              @click.stop="placeAction(place).add()"
+            >
+              {{ placeAction(place).label }}
+            </button>
           </li>
           <li v-if="placeResults.length > 0" class="place-results-credit">
             <a :href="PLACES_CREDIT_URL" target="_blank" rel="noopener noreferrer">{{ PLACES_CREDIT }}</a>
@@ -1017,6 +1071,20 @@ watch(mapStatus, async () => {
 .place-result-detail {
   display: block;
   font-size: 12px;
+}
+
+.link-btn.place-result-add {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+:deep(.place-marker-add) {
+  display: block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .place-results-credit {

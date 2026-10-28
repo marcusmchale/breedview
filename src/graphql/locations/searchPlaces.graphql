@@ -9,6 +9,7 @@ query locationsSearchPlaces($query: String!, $viewbox: [Float!], $bounded: Boole
             description
             region
             country
+            countryCode
             zoom
         }
         errors {

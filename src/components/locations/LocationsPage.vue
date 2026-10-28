@@ -2,12 +2,16 @@
 
 import { ref, shallowRef, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useApolloClient } from '@vue/apollo-composable'
 import { plural } from '@/composables/system/counts'
 
 import LocationMap from './LocationMap.vue'
 import LocationTree from './LocationTree.vue'
 import LocationCard from './LocationCard.vue'
 import CreateLocationTreeModal from "@/components/locations/createLocationTreeModal.vue";
+import AddChildModal from '@/components/locations/addChildModal.vue'
+import { placeLocationInput, isCountry } from '@/composables/locations/placeResults'
+import LOCATIONS_QUERY from '@/graphql/locations/locations.graphql'
 import LocationLayoutsPanel from '@/components/layouts/LocationLayoutsPanel.vue'
 import { useLayoutRootsQuery } from '@/composables/layouts/layoutRootsQuery'
 import { useUnitRootsQuery } from '@/composables/units/unitRootsQuery'
@@ -55,22 +59,63 @@ const {
     countries,
     countriesLoading,
     countriesError,
+    regions,
     refetchRegions
 } = useLocationTreeQueries(enableCountries)
 
 const isCreateRegionModalOpen = ref(false)
-const openCreateRegionModal = () => {
+const registerCountryCode = ref(null)  // the country to start the dialog with, for a place found on the map
+const placeWaiting = shallowRef(null)  // that place, waiting for its country to be registered
+const openCreateRegionModal = (code = null) => {
   enableCountries.value = true
+  registerCountryCode.value = code
   isCreateRegionModalOpen.value = true
 }
 const closeCreateRegionModal = () => {
     isCreateRegionModalOpen.value = false
+    registerCountryCode.value = null
+    placeWaiting.value = null
 }
-// The country added is selected, so the map shows it and where its detailed maps stand
+// The country added is selected, so the map shows it and where its detailed maps stand; a place found on the map in
+// it, waiting for it, is then offered to be added under it
 const handleCreateRegionSuccess = async (country) => {
+  const waiting = placeWaiting.value  // read before the dialog closes, which forgets it
   const { data } = await refetchRegions() ?? {}
   const created = data?.locationsRoots?.result?.find((root) => root.code === country?.code)
   if (created) onLocationSelected(String(created.id))
+  if (created && waiting && waiting.countryCode === created.code && !isCountry(waiting)) {
+    await openAddPlace(waiting, created)
+  }
+}
+
+// A place found on the map, made a location (Add as a location): the add dialog filled in from it, under the parent the
+// map chose (placeTarget), or once its country is registered
+const { resolveClient } = useApolloClient()
+const client = resolveClient()
+const placeAdding = shallowRef(null)  // { parent, initial, children: the parent's children before }
+const childIds = async (locationId) => {
+  const { data } = await client.query({ query: LOCATIONS_QUERY, variables: { locationIds: [String(locationId)] }, fetchPolicy: 'network-only' })
+  return (data?.locationsLocations?.result?.[0]?.children ?? []).map((child) => String(child.id))
+}
+const openAddPlace = async (place, parent) => {
+  placeAdding.value = { parent, initial: placeLocationInput(place, locationTypes.value ?? []), children: await childIds(parent.id) }
+}
+const onAddPlace = async ({ place, parent, register }) => {
+  if (register) {
+    placeWaiting.value = place
+    openCreateRegionModal(register)
+  } else {
+    await openAddPlace(place, parent)
+  }
+}
+// The location made is selected, so the map shows it at its point and its card opens: read in full first, as the
+// cache holds only its id and name, as its parent's child
+const handlePlaceAdded = async () => {
+  const { parent, children } = placeAdding.value
+  const added = (await childIds(parent.id)).filter((id) => !children.includes(id))
+  if (added.length !== 1) return
+  await client.query({ query: LOCATIONS_QUERY, variables: { locationIds: added }, fetchPolicy: 'network-only' })
+  onLocationSelected(added[0])
 }
 
 const updateCoordinatesError = ref(null)
@@ -153,9 +198,12 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
             ref="mapRef"
             :selectedLocationId="displayedLocationId"
             :drawable="canCurateDisplayed"
+            :can-add-places="canCreate"
+            :roots="regions ?? []"
             @drawn-change="onDrawnChange"
             @show-card="scrollToCard"
             @location-selected="onLocationSelected"
+            @add-place="onAddPlace"
           />
         </div>
       </div>
@@ -197,8 +245,19 @@ const handleUpdateCoordinates = async ({ locationId, coordinates }) => {
           :countriesLoading="countriesLoading"
           :countriesError="countriesError"
           :enableCountries="enableCountries"
+          :initialCountryCode="registerCountryCode"
           @success="handleCreateRegionSuccess"
           @close="closeCreateRegionModal"
+      />
+    </div>
+
+    <div v-if="placeAdding" class="modal-overlay" @click="placeAdding = null">
+      <AddChildModal
+          :locationTypes="locationTypes ?? []"
+          :parentLocation="placeAdding.parent"
+          :initial="placeAdding.initial"
+          @success="handlePlaceAdded"
+          @close="placeAdding = null"
       />
     </div>
 

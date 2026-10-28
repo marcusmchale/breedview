@@ -1,13 +1,18 @@
 <script setup>
 
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useMutateLocations } from "@/composables/locations/mutateLocations";
 import ControlSelector from "@/components/controls/ControlSelector.vue";
 
-defineProps({
+const props = defineProps({
   countries: {
     type: Object,
     required: true
+  },
+  // the country to start with, by its alpha-3 code, as for a place found on the map in a country not yet registered
+  initialCountryCode: {
+    type: String,
+    default: null
   },
   countriesLoading: {
     type: Boolean,
@@ -27,6 +32,12 @@ const {
 } = useMutateLocations()
 
 const selectedCountry = ref(null)
+// the countries are read once the dialog opens, so the one to start with is chosen when they arrive
+watch(() => props.countries, (countries) => {
+  if (props.initialCountryCode && !selectedCountry.value) {
+    selectedCountry.value = (countries ?? []).find((country) => country.code === props.initialCountryCode) ?? null
+  }
+}, { immediate: true })
 const errorMessage = ref('')
 const selectedControlTeamId = ref(null)
 const selectedRelease = ref(null)

@@ -2,7 +2,8 @@
 // map, as a field just added to a farm is drawn there, not by its whole country. As the admin, on the test database's
 // field_registered, which has coordinates and no children: the test adds a location below it each run, left behind.
 // It reads tiles.json again while the page is open, as the server adds a country's extent and detailed maps in the
-// background after the country is added.
+// background after the country is added. A place found by the place search, at field_registered's own point, is added
+// as a location below it too, each run, left behind.
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { launchBrowser } from './lib/browser.mjs'
@@ -139,6 +140,63 @@ test('the map says where the detailed maps of the selected location\'s country s
     // asked for again while a region is being fetched, every ten seconds
     const reads = await page.evaluate('window.__statusReads')
     await page.waitFor(`window.__statusReads > ${reads}`, 15000)
+  } finally {
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+  }
+})
+
+// A place the server finds (locationsSearchPlaces), as it would among GeoNames' places, whatever this site has fetched
+const foundPlace = (place) => `(() => {
+  const fetched = window.fetch
+  window.fetch = async (input, init) => {
+    if (typeof init?.body !== 'string' || !init.body.includes('locationsSearchPlaces')) return fetched(input, init)
+    return new Response(JSON.stringify({ data: { locationsSearchPlaces: {
+      __typename: 'PlacesPayload', status: 'SUCCESS', result: [{ __typename: 'Place', ...${q(place)} }], errors: null
+    } } }), { headers: { 'Content-Type': 'application/json' } })
+  }
+})()`
+
+test('a place found is added as a location below the one selected, filled in from it, and then selected', async () => {
+  const { result: [country, field, lab] } = await graphql(page,
+    'query ($ids: [ID!]!) { locationsLocations(ids: $ids) { result { id name code type { id name } coordinates { latitude longitude } } } }',
+    { ids: [String(e.country.id), String(e.field_registered.id), String(e.lab.id)] })
+  const name = uniqueName('E2E place ')
+  // its kind is a location type of the site's, so the dialog starts with that type; at the field's own point, so the
+  // field is still shown close up with its children (the first test)
+  const [{ latitude, longitude }] = field.coordinates
+  const place = {
+    name, latitude, longitude, bounds: null, description: lab.type.name.toLowerCase(), region: 'Tehran',
+    country: 'Iran', countryCode: country.code, zoom: 16
+  }
+  const { identifier } = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: foundPlace(place) })
+  try {
+    await page.goto(`${config.appUrl}/locations?location=${field.id}`)
+    await page.waitFor(`document.querySelector('.details-card h2')?.innerText.trim() === ${q(field.name)}`, 30000)
+    await page.type('.place-search-input', 'a place')
+    await page.click('.place-search-form button[type=submit]')
+    await page.waitFor(`document.querySelector('.place-result-add')`, 30000)
+    assert.equal((await page.text('.place-result-add')).trim(), 'Add as a location')
+    await page.click('.place-result-add')
+    await page.waitFor(`document.querySelector('.modal input[name=name]')?.value === ${q(name)}`, 30000)
+    const form = await page.evaluate(`({
+      parent: document.querySelector('.modal input[name=parentName]').value,
+      type: document.querySelector('.modal select[name=typeId]').selectedOptions[0]?.innerText.trim(),
+      address: document.querySelector('.modal input[name=address]').value,
+      point: document.querySelector('.modal .place-point')?.innerText
+    })`)
+    assert.deepEqual({ ...form, point: form.point?.includes(`${latitude}, ${longitude}`) }, {
+      parent: field.name, type: lab.type.name, address: 'Tehran, Iran', point: true
+    })
+    await page.click('.modal button[type=submit]')
+    await page.waitFor(`!document.querySelector('.modal') && document.querySelector('.details-card h2')?.innerText.trim() === ${q(name)}`, 30000)
+    const id = new URL(await page.url()).searchParams.get('location')
+    const { result: [made] } = await graphql(page,
+      'query ($ids: [ID!]!) { locationsLocations(ids: $ids) { result { name address parent { id } type { id } coordinates { latitude longitude } } } }',
+      { ids: [id] })
+    assert.deepEqual(made, {
+      name, address: 'Tehran, Iran', parent: { id: String(field.id) }, type: { id: lab.type.id },
+      coordinates: [{ latitude, longitude }]
+    })
   } finally {
     await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
   }
