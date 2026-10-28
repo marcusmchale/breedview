@@ -58,3 +58,25 @@ test('the status is asked for again while the country\'s maps, or a region\'s, a
   assert.equal(mapsUnderWay(status('DIVIDED', { sections: [{ name: 'Corse', state: 'READY' }] })), false)
   assert.equal(mapsUnderWay(null), false)
 })
+
+test("a country's places for the place search are spoken of while they are fetched, or when they failed", () => {
+  const places = (state, extra = {}) => status('READY', { places: { state, enabled: true, towns: true, error: null, ...extra } })
+  assert.deepEqual(mapStatusLines(places('READY'), 'Iran'), [])
+  assert.deepEqual(mapStatusLines(places('NONE'), 'Iran'), [])
+  assert.deepEqual(mapStatusLines(places('PENDING', { enabled: false }), 'Iran'), [])
+  assert.deepEqual(mapStatusLines(places('PENDING'), 'Iran'), [
+    'The place search finds every place in Iran once its places are fetched, and until then only its towns of 1,000 people or more.'
+  ])
+  assert.deepEqual(mapStatusLines(places('PENDING', { towns: false }), 'Iran'), [
+    'The place search finds every place in Iran once its places are fetched.'
+  ])
+  assert.deepEqual(mapStatusLines(places('FAILED', { error: "an error occurred, and the details are in the server's log" }), 'Iran'), [
+    "Iran's places for the place search could not be fetched: an error occurred, and the details are in the server's log."
+  ])
+  assert.deepEqual(mapStatusLines(status('PENDING', { places: { state: 'PENDING', enabled: true, towns: true } }), 'Iran').length, 2,
+    'after its maps')
+  assert.equal(mapsUnderWay(places('PENDING')), true, 'asked for again until they are there')
+  assert.equal(mapsUnderWay(places('READY')), false)
+  assert.deepEqual(mapStatusLines(status('READY', { enabled: false, places: { state: 'PENDING', enabled: true, towns: true } }), 'Iran').length, 1,
+    'where the site fetches places but no maps')
+})

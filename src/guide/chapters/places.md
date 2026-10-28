@@ -35,7 +35,8 @@ its location tree, with Register a location tree; everything else is added insid
 > A layout has a release of its own: a private one is seen by the teams with Read access to its control team.
 
 > [!NOTE]
-> The map's tiles and its place search come from BreedGraph's own server, so the browser contacts no one else.
+> The map's tiles come from BreedGraph's own server, and its place search is answered there, from its copy of
+> GeoNames' places, so neither your browser nor the server sends what you search for to anyone else.
 
 ## Try it on the demo site
 

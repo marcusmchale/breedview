@@ -16,23 +16,19 @@ import '@geoman-io/leaflet-geoman-free'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 
 
-import { useLocationGeocoding } from '@/composables/locations/useLocationGeocoding'
+import { usePlaceSearch } from '@/composables/locations/usePlaceSearch'
 import { useLocationSearch } from '@/composables/locations/locationSearch'
 import { addBaseMap, countryBounds } from '@/composables/locations/baseMap'
 import { useMapStatusQuery } from '@/composables/locations/mapStatusQuery'
 import { mapStatusLines } from '@/composables/locations/mapStatus'
-import { useAuthStore } from '@/composables/user/useAuthStore'
+import { placeDetail, placeView, scopeHint, PLACES_CREDIT, PLACES_CREDIT_URL } from '@/composables/locations/placeResults'
 import { useLocationMapQueries } from "@/composables/locations/locationMapQueries";
-import { alpha3ToAlpha2 } from "@/composables/locations/countryCodes";
 
 const { locationId, selectedLocation, childLocations, childLocationsLoading, regionCountry, nearestPlaced } = useLocationMapQueries()
 
 // Where the detailed maps of the selected location's country stand, said below the map
 const { status: mapStatus } = useMapStatusQuery(computed(() => regionCountry.value?.code ?? null))
 const mapStatusMessages = computed(() => mapStatusLines(mapStatus.value, regionCountry.value?.name))
-
-// Place searches go through the API, which needs an account (breedgraph docs/maps.md)
-const { isAuthenticated } = useAuthStore()
 
 const props = defineProps({
   selectedLocationId: {
@@ -89,14 +85,15 @@ const hasLayer = ref(false)  // to track if we get drawn items as vue3 isn't pla
 const displayedItems = new L.FeatureGroup()
 
 // Composables
-const { geocodeCountry } = useLocationGeocoding()
-// separate instance so country geocoding doesn't share loading/error state with the search box
+const { countryPlace } = usePlaceSearch()
+// separate instance so a country's extent doesn't share loading/error state with the search box
 const {
   searchPlaces,
   loading: placeSearchLoading,
   error: placeSearchError
-} = useLocationGeocoding()
-// BreedGraph's own locations, found by name for anyone; places (OpenStreetMap) for signed-in users only
+} = usePlaceSearch()
+// BreedGraph's own locations, and places from GeoNames, which the API searches itself (breedgraph docs/maps.md), found
+// by name for anyone
 const { searchLocations, loading: locationSearchLoading, error: locationSearchError } = useLocationSearch()
 const searchLoading = computed(() => placeSearchLoading.value || locationSearchLoading.value)
 const searchError = computed(() => locationSearchError.value || placeSearchError.value)
@@ -111,10 +108,11 @@ const searchResultLayer = new L.FeatureGroup()  // kept separate so results are 
 // Search scope: 'view' (only the visible map area), 'country' (the selected location's country) or 'anywhere'
 const searchScope = ref('anywhere')
 const searchCountry = computed(() => {
-  const alpha2 = alpha3ToAlpha2(regionCountry.value?.code)
-  if (!alpha2) return null
-  return { name: regionCountry.value.name, alpha2 }
+  const country = regionCountry.value
+  return country?.code ? { name: country.name, code: country.code } : null
 })
+// Said when a search of the country finds nothing while its own places are still to come (scopeHint)
+const countryHint = computed(() => scopeHint(mapStatus.value?.places, searchCountry.value?.name))
 const scopeOptions = computed(() => [
   { value: 'view', label: 'This view' },
   ...(searchCountry.value ? [{ value: 'country', label: searchCountry.value.name }] : []),
@@ -137,31 +135,21 @@ const widerScopes = computed(() => {
 })
 
 // Default to the selected location's country, and reset to it when the country changes
-watch(() => searchCountry.value?.alpha2, (alpha2) => {
-  if (alpha2) {
+watch(() => searchCountry.value?.code, (code) => {
+  if (code) {
     searchScope.value = 'country'
   } else if (searchScope.value === 'country') {
     searchScope.value = 'anywhere'
   }
 }, { immediate: true })
 
-// Visible map area as a Nominatim viewbox [west, south, east, north], or null when the whole world is in view
+// Visible map area as a viewbox [west, south, east, north], or null when the whole world is in view. Leaflet's
+// longitudes run past ±180 after panning across the antimeridian, as the API takes them.
 const getViewbox = () => {
   if (!mapRef.value?.leafletObject) return null
   const bounds = toRaw(mapRef.value.leafletObject).getBounds()
-  let west = bounds.getWest()
-  let east = bounds.getEast()
-  if (east - west >= 360) return null
-  // leaflet longitudes run past ±180 after panning across the antimeridian; shift back into range
-  const shift = Math.round((west + east) / 2 / 360) * 360
-  west -= shift
-  east -= shift
-  return [
-    Math.max(-180, west),
-    Math.max(-90, bounds.getSouth()),
-    Math.min(180, east),
-    Math.min(90, bounds.getNorth())
-  ]
+  if (bounds.getEast() - bounds.getWest() >= 360) return null
+  return [bounds.getWest(), Math.max(-90, bounds.getSouth()), bounds.getEast(), Math.min(90, bounds.getNorth())]
 }
 
 let placeSearchRequest = 0  // ignore responses from searches that have since been superseded
@@ -170,13 +158,11 @@ const handlePlaceSearch = async () => {
   const request = ++placeSearchRequest
   const [locations, places] = await Promise.all([
     searchLocations(placeQuery.value),
-    isAuthenticated.value
-      ? searchPlaces(placeQuery.value, {
-        viewbox: getViewbox(),  // also prefers the visible area for the country and anywhere scopes
-        bounded: searchScope.value === 'view',
-        countryCode: searchScope.value === 'country' ? searchCountry.value?.alpha2 : null
-      })
-      : []
+    searchPlaces(placeQuery.value, {
+      viewbox: getViewbox(),  // also prefers the visible area for the country and anywhere scopes
+      bounded: searchScope.value === 'view',
+      country: searchScope.value === 'country' ? searchCountry.value?.code : null
+    })
   ])
   if (request !== placeSearchRequest) return
   locationResults.value = locations
@@ -224,10 +210,11 @@ const goToPlace = (place) => {
   marker.bindTooltip(place.name)
   searchResultLayer.addLayer(marker)
 
-  if (place.bounds) {
-    map.fitBounds(place.bounds, { maxZoom: 16 })
+  const view = placeView(place)
+  if (view.bounds) {
+    map.fitBounds(view.bounds, { maxZoom: 16 })
   } else {
-    map.setView([place.latitude, place.longitude], 14)
+    map.setView(view.center, view.zoom)
   }
   locationResults.value = []
   placeResults.value = []
@@ -595,13 +582,12 @@ const fitPoints = (map, points, maxZoom) => {
   }
 }
 
-// Nominatim's box for a country's name, asked once per country, for countries without an extent in tiles.json
-const geocodedCountries = new Map()
+// GeoNames' extent of a country, asked once per country, for countries without an extent in tiles.json
+const countryPlaces = new Map()
 
 /**
- * Show a country by its extent from the outline its maps were fetched with, or where there is none, by Nominatim's
- * box for its name (signed in only, as place searches need an account). Nothing is saved: countries need no
- * coordinates.
+ * Show a country by its extent from the outline its maps were fetched with, or where there is none, by the extent of
+ * its main parts in GeoNames' outlines (locationsCountryPlace). Nothing is saved: countries need no coordinates.
  */
 // the country last shown by its extent, rather than by a place search while its extent was not yet written
 let extentShown = null
@@ -614,9 +600,8 @@ const fitCountry = async (map, country, stillSelected) => {
     extentShown = country.code
     return
   }
-  if (!isAuthenticated.value) return
-  const place = geocodedCountries.get(country.code) ?? await geocodeCountry(country.name)
-  if (place) geocodedCountries.set(country.code, place)
+  const place = countryPlaces.get(country.code) ?? await countryPlace(country.code)
+  if (place) countryPlaces.set(country.code, place)
   if (!stillSelected()) return
   if (place?.bounds) {
     map.fitBounds(place.bounds, { ...FIT_PADDING, animate: false })
@@ -718,7 +703,7 @@ watch(mapStatus, async () => {
             v-model="placeQuery"
             type="search"
             class="place-search-input"
-            :placeholder="isAuthenticated ? `Search locations, and places ${scopeDescription(searchScope)}…` : 'Search locations…'"
+            :placeholder="`Search locations, and places ${scopeDescription(searchScope)}…`"
             @keydown.esc="clearPlaceSearch"
           />
           <button
@@ -729,7 +714,7 @@ watch(mapStatus, async () => {
             {{ searchLoading ? 'Searching...' : 'Search' }}
           </button>
         </form>
-        <div v-if="isAuthenticated" class="place-search-scope" role="radiogroup" aria-label="Search places in">
+        <div class="place-search-scope" role="radiogroup" aria-label="Search places in">
           <span class="place-search-scope-label">Places in:</span>
           <div class="scope-toggle">
             <button
@@ -766,15 +751,19 @@ watch(mapStatus, async () => {
             @click="goToPlace(place)"
           >
             {{ place.name }}
+            <span v-if="placeDetail(place)" class="place-result-detail">{{ placeDetail(place) }}</span>
+          </li>
+          <li v-if="placeResults.length > 0" class="place-results-credit">
+            <a :href="PLACES_CREDIT_URL" target="_blank" rel="noopener noreferrer">{{ PLACES_CREDIT }}</a>
           </li>
         </ul>
         <p v-else-if="searchError" class="place-search-message error-message">
           {{ searchError }}
         </p>
         <p v-else-if="placeSearched && !searchLoading" class="place-search-message">
-          <template v-if="isAuthenticated">No locations, and no places {{ scopeDescription(searchScope) }}.</template>
-          <template v-else>No locations found.</template>
-          <template v-for="option in (isAuthenticated ? widerScopes : [])" :key="option.value">
+          No locations, and no places {{ scopeDescription(searchScope) }}.
+          <template v-if="searchScope === 'country' && countryHint">{{ countryHint }}</template>
+          <template v-for="option in widerScopes" :key="option.value">
             ·
             <button type="button" class="link-btn" @click="searchScope = option.value">
               Search {{ scopeDescription(option.value) }}
@@ -1020,7 +1009,23 @@ watch(mapStatus, async () => {
   color: #6c757d;
 }
 
-.location-result-context {
+.location-result-context,
+.place-result-detail {
+  color: #6c757d;
+}
+
+.place-result-detail {
+  display: block;
+  font-size: 12px;
+}
+
+.place-results-credit {
+  padding: 4px 10px 6px;
+  font-size: 11px;
+  text-align: right;
+}
+
+.place-results-credit a {
   color: #6c757d;
 }
 

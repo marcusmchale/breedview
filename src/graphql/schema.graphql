@@ -4013,16 +4013,53 @@ type CountryMapStatus {
   For a divided country, the sections fetched, being fetched or that failed
   """
   sections: [MapSectionStatus!]!
+
+  """Its places for the place search"""
+  places: PlacesStatus!
 }
 
-"""A place found by name, to move the location map to"""
+"""
+Where a country's own places for the place search stand: NONE, PENDING, READY or FAILED
+"""
+type PlacesStatus {
+  state: MapState!
+
+  """Whether this site fetches places"""
+  enabled: Boolean!
+
+  """
+  Whether the world's towns of 1,000 people or more are searched, which stand in for a country's own places
+  """
+  towns: Boolean!
+
+  """Why they could not be fetched"""
+  error: String
+}
+
+"""
+A place found by name, to move the location map to, from GeoNames (geonames.org, CC BY 4.0)
+"""
 type Place {
   name: String!
   latitude: Float!
   longitude: Float!
 
-  """[[south, west], [north, east]], when known"""
+  """
+  [[south, west], [north, east]], for a country: around its main parts, east above 180 across the antimeridian
+  """
   bounds: [[Float!]!]
+
+  """What kind of place it is: "town", "farm", "mountain"…"""
+  description: String
+
+  """The sections of its country it is in: "Kerry, Munster" """
+  region: String
+
+  """Its country's name; null for a country"""
+  country: String
+
+  """The map's zoom to show it at, when it has no bounds"""
+  zoom: Int
 }
 
 type Version {
@@ -5652,22 +5689,25 @@ type Query {
   locationsSearch(name: String!, limit: Int): LocationsPayload!
 
   """
-  Places matching a search, to move the location map to: preferring those in viewbox ([west, south, east, north]),
-  or only those there when bounded, and only those in the country with ISO alpha-2 countryCode when given.
-  The server asks OpenStreetMap's Nominatim, so the browser contacts no third party. Requires sign-in, and is
-  limited per user per hour.
+  Places matching a search, to move the location map to (docs/maps.md): GeoNames' places, answered from this
+  server's copy, so no search leaves it. Whole names first, then names started, then other names (in other
+  languages, or older), preferring those in viewbox ([west, south, east, north]), or only those there when bounded,
+  and only those in the country with ISO 3166 alpha-3 code country when given; later words may name the place's
+  county, province or country. The towns of the world are searched, and every place of the countries in the location
+  trees. At most limit (5 by default, 20 at most), and at most 5 searches in a request. Open to visitors.
   """
-  locationsSearchPlaces(query: String!, viewbox: [Float!], bounded: Boolean, countryCode: String, limit: Int): PlacesPayload!
+  locationsSearchPlaces(query: String!, viewbox: [Float!], bounded: Boolean, country: String, limit: Int): PlacesPayload!
 
   """
-  The country with this name, as locationsSearchPlaces finds places. Requires sign-in
+  The country with this ISO 3166 alpha-3 code, with the extent of its main parts, to show it by when its detailed
+  maps give none (null until the world's places are fetched). Open to visitors
   """
-  locationsGeocodeCountry(name: String!): PlacePayload!
+  locationsCountryPlace(code: String!): PlacePayload!
 
   """
   Where the detailed maps of the country with this ISO 3166 alpha-3 code stand on this site (docs/maps.md): fetched
   in the background once the country is added, or for a country too large to fetch whole, by its sections as
-  locations in them are placed on the map
+  locations in them are placed on the map; and where its places for the place search stand
   """
   locationsMapStatus(code: String!): CountryMapStatusPayload!
 

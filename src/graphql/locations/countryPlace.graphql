@@ -1,5 +1,5 @@
-query locationsGeocodeCountry($name: String!) {
-    locationsGeocodeCountry(name: $name) {
+query locationsCountryPlace($code: String!) {
+    locationsCountryPlace(code: $code) {
         status
         result {
             name

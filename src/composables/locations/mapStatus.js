@@ -1,15 +1,20 @@
 // Where a country's detailed maps stand (breedgraph locationsMapStatus, docs/maps.md), said under the location map:
 // fetched in the background once the country is added, or for a country too large to fetch whole, by its sections as
-// locations in them are placed. Apart from the map, so that it can be tested without a browser.
+// locations in them are placed; and its places for the place search, fetched once it is added. Apart from the map, so
+// that it can be tested without a browser.
 
 const UNDER_WAY = ['PENDING', 'FETCHING']
 
 /** Sizes as the server gives them in its messages, e.g. 2.5 GB */
 export const gigabytes = (bytes) => `${(bytes / 10 ** 9).toFixed(1)} GB`
 
-/** Whether the country's maps, or a section's, are still being fetched, so that their status is asked for again */
+/**
+ * Whether the country's maps, or a section's, or its places, are still being fetched, so that their status is asked
+ * for again
+ */
 export const mapsUnderWay = (status) => Boolean(status) && (
-  UNDER_WAY.includes(status.state) || (status.sections ?? []).some((section) => UNDER_WAY.includes(section.state))
+  UNDER_WAY.includes(status.state) || (status.sections ?? []).some((section) => UNDER_WAY.includes(section.state)) ||
+  status.places?.state === 'PENDING'
 )
 
 function regionLines(name, { state, size, error }) {
@@ -26,11 +31,29 @@ function regionLines(name, { state, size, error }) {
   }
 }
 
+/** What to say of the country's places for the place search: while they are fetched, or why they could not be */
+function placesLines(places, name) {
+  if (!places?.enabled) return []
+  const meanwhile = places.towns ? ', and until then only its towns of 1,000 people or more' : ''
+  switch (places.state) {
+    case 'PENDING':
+      return [`The place search finds every place in ${name} once its places are fetched${meanwhile}.`]
+    case 'FAILED':
+      return [`${name}'s places for the place search could not be fetched: ${places.error}.`]
+    default:
+      return []
+  }
+}
+
 /**
- * What to say of the country's detailed maps, named name: nothing when they are shown or never asked for, or where
- * the site fetches none
+ * What to say of the country's detailed maps and places, named name: nothing when they are there or never asked for,
+ * or where the site fetches none
  */
 export function mapStatusLines(status, name) {
+  return [...mapsLines(status, name), ...placesLines(status?.places, name)]
+}
+
+function mapsLines(status, name) {
   if (!status?.enabled) return []
   if (status.state !== 'DIVIDED') return regionLines(name, status)
   const sections = status.sections ?? []

@@ -159,13 +159,43 @@ test('locations: a public location is found by part of its name and opened, a hi
     return page.evaluate(`[...document.querySelectorAll('.location-result')].map((e) => e.innerText.trim())`)
   }
   assert.ok(!(await search(e.state.name.slice(1, -1).toLowerCase())).some((t) => t.includes(e.state.name)), 'the private state is not found')
-  // only BreedGraph's locations: places (OpenStreetMap) are for signed-in users
-  assert.ok(!(await page.exists('.place-search-scope')), 'no place scopes signed out')
   const found = await search(e.field.name.slice(1, -1).toLowerCase())
   assert.ok(found.some((t) => t.includes(e.field.name)), `the public field is found: ${found}`)
   await page.evaluate(`[...document.querySelectorAll('.location-result')].find((r) => r.innerText.includes(${q(e.field.name)})).click()`)
   await page.waitFor(`location.search.includes('location=${e.field.id}') && document.querySelector('.card-panel')?.innerText.includes(${q(e.field.name)})`, 30000)
   assert.deepEqual(await failedRequests(mark), [])
+})
+
+// The places the server finds (locationsSearchPlaces), as it would from GeoNames' places, whatever this site has fetched
+const foundPlaces = `(() => {
+  const fetched = window.fetch
+  window.fetch = async (input, init) => {
+    if (typeof init?.body !== 'string' || !init.body.includes('locationsSearchPlaces')) return fetched(input, init)
+    const result = [{
+      __typename: 'Place', name: 'Ballyduff', latitude: 52.45593, longitude: -9.66399, bounds: null,
+      description: 'village', region: 'Kerry, Munster', country: 'Ireland', zoom: 14
+    }]
+    return new Response(JSON.stringify({ data: { locationsSearchPlaces: {
+      __typename: 'PlacesPayload', status: 'SUCCESS', result, errors: null
+    } } }), { headers: { 'Content-Type': 'application/json' } })
+  }
+})()`
+
+test('locations: places are searched signed out too, listed with their kind and region, and credited', async () => {
+  const { identifier } = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: foundPlaces })
+  try {
+    await page.goto(`${config.appUrl}/locations`)
+    await page.waitFor(`document.querySelector('.place-search-input')`, 30000)
+    assert.ok(await page.exists('.place-search-scope'), 'where to search is offered')
+    await page.type('.place-search-input', 'ballyduff')
+    await page.click('.place-search-form button[type=submit]')
+    await page.waitFor(`document.querySelector('.place-results-credit')`, 30000)
+    const places = await page.evaluate(`[...document.querySelectorAll('.place-result:not(.location-result)')].map((e) => e.innerText.trim())`)
+    assert.deepEqual(places, ['Ballyduff\nvillage · Kerry, Munster, Ireland'])
+    assert.equal(await page.text('.place-results-credit'), 'Places from GeoNames, CC BY 4.0')
+  } finally {
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+  }
 })
 
 test('locations, units and programs: no request fails', async () => {

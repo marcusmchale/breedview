@@ -106,7 +106,8 @@ const dividedStatus = (code) => `(() => {
     if (typeof init?.body !== 'string' || !init.body.includes('locationsMapStatus')) return fetched(input, init)
     const result = {
       __typename: 'CountryMapStatus', code: ${q(code)}, state: 'DIVIDED', size: 5.5e9, limit: 2e9, enabled: true, error: null,
-      sections: [{ __typename: 'MapSectionStatus', name: 'Alpha', state: 'FETCHING', size: 9e8, error: null }]
+      sections: [{ __typename: 'MapSectionStatus', name: 'Alpha', state: 'FETCHING', size: 9e8, error: null }],
+      places: { __typename: 'PlacesStatus', state: 'READY', enabled: true, towns: true, error: null }
     }
     return new Response(JSON.stringify({ data: { locationsMapStatus: {
       __typename: 'CountryMapStatusPayload', status: 'SUCCESS', result, errors: null
