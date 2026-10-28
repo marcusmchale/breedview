@@ -90,7 +90,8 @@ test('the outsider asks to read the organisation from Teams, the first tab of Ac
 
 test("the email to the organisation's admin links to the requests", async () => {
   const mail = await waitForMail(accounts.admin.email, 'read access requested', { after: startedAt })
-  assert.ok(mail.text.includes(`read access to ${teams.root.name}`), `the email names the team: ${mail.text}`)
+  assert.ok(mail.text.includes(`An account requested read access to ${teams.root.name}.`),
+    `the email names the team, not who asked: ${mail.text}`)
   requestsLink = mail.links.find((l) => l.includes('/access?tab=requests'))
   assert.ok(requestsLink?.startsWith(config.appUrl), `the email links to the requests in the app: ${mail.links}`)
 })
@@ -154,8 +155,8 @@ test('the outsider asks from its badge for their read access to reach the teams 
 
 test('the admin is emailed, sees the request in Manage Affiliations, and approves it from the requests', async () => {
   const mail = await waitForMail(accounts.admin.email, 'read access requested', { after: heritableAskedAt })
-  assert.ok(mail.text.includes(`, who has read access to ${teams.root.name}, requested it for the teams below it too.`),
-    `the email says what is asked: ${mail.text}`)
+  assert.ok(mail.text.includes(`An account with read access to ${teams.root.name} requested it for the teams below it too.`),
+    `the email says what is asked, not who asked: ${mail.text}`)
 
   await loginAs(page, 'admin')
   await page.goto(`${config.appUrl}/access`)
