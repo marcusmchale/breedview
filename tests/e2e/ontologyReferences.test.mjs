@@ -86,6 +86,8 @@ test('the commit form starts with the current version\'s licence and copyright',
 
   await page.goto(`${config.appUrl}/ontology`)
   await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
+  // opened once the latest commit has loaded: the button comes before it (the next test opens the form in between)
+  await page.waitFor(`document.querySelector('.latest-commit-info')`, 30000)
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
   assert.deepEqual(await sections(), [
