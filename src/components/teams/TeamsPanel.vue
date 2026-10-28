@@ -17,24 +17,7 @@
     </div>
 
     <template v-else>
-      <!-- Every team tree's root, with the teams the user is affiliated with below it -->
-      <div class="teams-section">
-        <div v-if="teamRoots.length === 0" class="no-teams">
-          <p>No teams found.</p>
-        </div>
-        <div v-else class="teams-list">
-          <TeamNode
-            v-for="root in teamRoots"
-            :key="root.id"
-            :team-data="root"
-            :depth="0"
-            :current-user-id="currentUserId"
-            @team-deleted="refetchTeamRoots()"
-          />
-        </div>
-      </div>
-
-      <!-- A new team tree, collapsed so the trees above stay in view -->
+      <!-- A new team tree, first, as on the Locations page, and collapsed so the trees below stay in view -->
       <details class="create-tree-section" :open="createOpen" @toggle="createOpen = $event.target.open">
         <summary>Create a team tree</summary>
         <form @submit.prevent="submitCreateTree" class="create-tree-form">
@@ -71,6 +54,23 @@
           {{ createSuccess }}
         </div>
       </details>
+
+      <!-- Every team tree's root, with the teams the user is affiliated with below it -->
+      <div class="teams-section">
+        <div v-if="teamRoots.length === 0" class="no-teams">
+          <p>No teams found.</p>
+        </div>
+        <div v-else class="teams-list">
+          <TeamNode
+            v-for="root in teamRoots"
+            :key="root.id"
+            :team-data="root"
+            :depth="0"
+            :current-user-id="currentUserId"
+            @team-deleted="refetchTeamRoots()"
+          />
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -139,6 +139,7 @@ const submitCreateTree = async () => {
 }
 
 .create-tree-section {
+  margin-bottom: 1rem;
   background: #f8f9fa;
   padding: 0.75rem 1rem;
   border-radius: 8px;
