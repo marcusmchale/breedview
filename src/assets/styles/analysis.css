@@ -101,6 +101,10 @@
   border-color: var(--an-error);
 }
 
+.analysis-workspace .has-warning.box {
+  border-color: #f59e0b;
+}
+
 .analysis-workspace .box {
   border: 1px solid var(--an-border);
   border-radius: 6px;

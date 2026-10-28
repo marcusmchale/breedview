@@ -98,6 +98,9 @@ test('messages stay on their terms, datasets and rules as others are removed in 
   assert.deepEqual(await datasetMessages(WIDTH), [])
   assert.deepEqual(await ruleFeedback(), ['Last run: 0 records excluded — check the criteria', `Last run: ${matched(1)} records excluded`])
   assert.deepEqual(await navCounts(), { Data: 1, Grouping: 0, Terms: 2, 'Descriptive statistics options': 0, Exclusions: 2 })
+  // warnings, not errors
+  assert.ok(await page.evaluate(`${termBox(r.concepts.width.name)}.classList.contains('has-warning')`))
+  assert.deepEqual(await page.evaluate(`[...document.querySelectorAll('.section-nav .nav-count')].map((c) => c.classList.contains('warning'))`), [true, true, true])
 
   // the height term removed: the width term keeps its own warning only
   await page.evaluate(`[...${termBox(r.concepts.height.name)}.querySelectorAll('.term-header button')].find((b) => b.innerText.trim() === 'Remove').click()`)

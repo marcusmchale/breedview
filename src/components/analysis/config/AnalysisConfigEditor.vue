@@ -91,8 +91,9 @@ const sections = computed(() => [
   { id: 'analysis-exclusions', label: 'Exclusions', prefixes: ['exclusions'] }
 ])
 
-const sectionMessageCount = (section) =>
-  section.prefixes.reduce((n, p) => n + messagesAt(p, { prefix: true }).length, 0)
+const sectionMessages = (section) => section.prefixes.flatMap((p) => messagesAt(p, { prefix: true }))
+// red with an error among them, amber with only warnings
+const sectionHasError = (section) => sectionMessages(section).some((m) => (m.severity ?? 'error') === 'error')
 
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 </script>
@@ -104,7 +105,9 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
       <nav class="section-nav">
         <button v-for="s in sections" :key="s.id" type="button" class="nav-item" @click="scrollTo(s.id)">
           {{ s.label }}
-          <span v-if="sectionMessageCount(s)" class="nav-count">{{ sectionMessageCount(s) }}</span>
+          <span v-if="sectionMessages(s).length" class="nav-count" :class="{ warning: !sectionHasError(s) }">
+            {{ sectionMessages(s).length }}
+          </span>
         </button>
       </nav>
     </div>
@@ -211,6 +214,10 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
   color: white;
   font-size: 0.7rem;
   text-align: center;
+}
+
+.nav-count.warning {
+  background: #b45309;
 }
 
 .submit-bar {

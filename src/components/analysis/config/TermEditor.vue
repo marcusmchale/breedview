@@ -41,9 +41,14 @@ const scaleType = computed(() => concept.value?.scaleType ?? null)
 
 const isResponse = computed(() => form.analysisType === 'ANOVA' && sameTerm(term.value.reference, form.response))
 const representation = computed(() => effectiveRepresentation(term.value, scaleType.value))
-const hasErrors = computed(() => messagesAt(path.value, { prefix: true }).length > 0)
+const termMessages = computed(() => messagesAt(path.value, { prefix: true }))
+// an error, or only warnings, about the term, for its border
+const severity = computed(() => {
+  if (termMessages.value.length === 0) return null
+  return termMessages.value.some((m) => (m.severity ?? 'error') === 'error') ? 'error' : 'warning'
+})
 
-const expanded = ref(hasErrors.value)
+const expanded = ref(termMessages.value.length > 0)
 
 /* ---------- representation and aggregation ---------- */
 
@@ -222,7 +227,7 @@ const summary = computed(() => {
 </script>
 
 <template>
-  <div class="term box" :class="{ 'has-error': hasErrors }">
+  <div class="term box" :class="{ 'has-error': severity === 'error', 'has-warning': severity === 'warning' }">
     <div class="term-header">
       <button type="button" class="expand" :title="expanded ? 'Collapse' : 'Expand'" @click="expanded = !expanded">
         {{ expanded ? '▾' : '▸' }}
