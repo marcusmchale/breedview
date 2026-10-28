@@ -71,8 +71,15 @@ async function aDesign() {
   return (await designs('PUBLISHED')).find((d) => d.name === DESIGN)
 }
 
-const fieldValue = (card, label) => page.evaluate(`[...document.querySelectorAll(${q(`${card} .fields-grid .field`)})]
-  .find((f) => f.querySelector('.field-label').textContent.trim() === ${q(label)})?.querySelector('.field-value').textContent.trim() ?? null`)
+const fieldExpression = (card, label) => `[...document.querySelectorAll(${q(`${card} .fields-grid .field`)})]
+  .find((f) => f.querySelector('.field-label').textContent.trim() === ${q(label)})?.querySelector('.field-value').textContent.trim() ?? null`
+const fieldValue = (card, label) => page.evaluate(fieldExpression(card, label))
+// the card's field once it shows what was saved, or as it is after 15 seconds: the card follows the save, which a busy
+// machine can take more than submitModal's second over
+async function savedFieldValue(card, label, expected) {
+  await page.waitFor(`(${fieldExpression(card, label)}) === ${q(expected)}`, 15000).catch(() => {})
+  return fieldValue(card, label)
+}
 
 async function submitModal() {
   await page.click('.modal button[type=submit]')
@@ -135,7 +142,7 @@ test('unit: Edit removes its germplasm with the clear button', async () => {
   await submitModal()
 
   assert.equal((await unitOf()).germplasm, null, 'the germplasm is removed')
-  assert.equal(await fieldValue(card, 'Germplasm'), null, 'the card shows none')
+  assert.equal(await savedFieldValue(card, 'Germplasm', null), null, 'the card shows none')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 
@@ -159,6 +166,6 @@ test('germplasm: Edit removes its origin with the clear button', async () => {
   await submitModal()
 
   assert.equal((await entryOf()).origin, null, 'the origin is removed')
-  assert.equal(await fieldValue(card, 'Origin'), null, 'the card shows none')
+  assert.equal(await savedFieldValue(card, 'Origin', null), null, 'the card shows none')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
