@@ -88,8 +88,14 @@ async function submit() {
   return shown
 }
 
-// the result rows other than the overall one, by label: [n, mean] as the table shows them
-const rows = () => page.evaluate(`Object.fromEntries([...document.querySelectorAll('.submission-view table.result-table tbody tr')]
+// the result rows other than the overall one, by label: [n, mean] as the table shows them, once the germplasm levels
+// are named: until their entries load, the table numbers them ("Germplasm 2")
+const rows = async () => {
+  await page.waitFor(`[...document.querySelectorAll('.submission-view table.result-table tbody tr td:first-child')]
+    .every((td) => !/^Germplasm \\d+$/.test(td.innerText.trim()))`, 30000)
+  return rowCells()
+}
+const rowCells = () => page.evaluate(`Object.fromEntries([...document.querySelectorAll('.submission-view table.result-table tbody tr')]
   .map((tr) => [...tr.querySelectorAll('td')].map((td) => td.innerText.trim()))
   .filter((cells) => cells[0] !== 'All observations')
   .map((cells) => [cells[0], [cells[1], cells[3]]]))`)
