@@ -38,11 +38,12 @@ test('a chapter is its title, then its blocks in order: text, video, steps, text
   ])
 })
 
-test('chapter 1 renders, with its video and nine steps', () => {
+test('chapter 1 renders, with its video and ten steps', () => {
   const page = renderGuide(readFileSync(new URL('../../src/guide/chapters/looking-around.md', import.meta.url), 'utf8'))
   assert.equal(page.title, 'Looking around as a visitor')
   assert.equal(page.blocks.filter((block) => block.type === 'video').length, 1)
-  assert.equal(page.steps.length, 9)
+  assert.equal(page.steps.length, 10)
+  assert.equal(page.steps.find((step) => step.id === 'search')?.lead, "The map's search finds places.")
 })
 
 test('a link to a chapter not yet written shows as its text, until it is written', () => {

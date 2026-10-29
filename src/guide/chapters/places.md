@@ -11,7 +11,9 @@ map, and lays out its trial.
 ## Before you start
 
 The farm needs to exist: here, Example Research Farm, in County Offaly. A country is registered once, as the root of
-its location tree, with Register a location tree; everything else is added inside it.
+its location tree, with Register a location tree; everything else is added inside it. A place the map's search finds,
+such as a town or a farm, can be added as it is: its Add as a location fills in the new location's name, point and
+address, and registers its country first if it isn't there yet.
 
 ![Sites, fields and layouts](places.mp4)
 

@@ -1,5 +1,6 @@
 // Chapter 1, "Looking around as a visitor" (src/guide/chapters/looking-around.md): a visitor accepts the Terms, opens
-// the public 2024 study and its data, then looks at the places, the units there, the plant material and the ontology.
+// the public 2024 study and its data, then looks at the places and searches the map for one, then the units there,
+// the plant material and the ontology.
 // Nothing is changed, so it plays from any load of the demonstration database (manifest workflows.visitor_tour).
 import { byText, clearOf, expandLocation, gatherLinked, loadStudyData, locationHeader, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
 
@@ -92,6 +93,20 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
     // the Cooperative's county is public, but its farm and field are not, so the county has nothing to open
     await input.click(`${locationHeader('County Kildare')}.querySelector('.location-name')`)
     await input.pause(3500)
+  })
+
+  // the map's search, anywhere: the county town among GeoNames' places, with what it is and where, then shown on the map
+  await step('search', async () => {
+    await input.type('document.querySelector(".place-search-input")', 'Tullamore')
+    await input.pause(500)
+    await input.click('document.querySelector(".place-search-form button[type=submit]")')
+    const town = `[...document.querySelectorAll('.place-results .place-result:not(.location-result)')].find((e) => e.firstChild?.textContent.trim() === 'Tullamore')`
+    await page.waitFor(town, 30000)
+    await input.pause(1500)
+    await input.hover(`${town}.querySelector('.place-result-detail')`, 2000)
+    await input.hover('document.querySelector(".place-results-credit")', 1500)
+    await input.click(town)
+    await input.pause(4000)
   })
 
   await step('units', async () => {

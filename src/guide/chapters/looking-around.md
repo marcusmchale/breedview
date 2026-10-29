@@ -28,15 +28,19 @@ Open BreedView in your browser. You need nothing else.
 5. **Locations shows the farm and its fields.** Choose the farm to see its fields on the map. The maps come from
    BreedGraph's own server, so your browser contacts no one else. Places a team keeps private are not shown.
    {#locations}
-6. **Units shows what is at each place.** A unit graph links the levels at which an experiment is managed and
+6. **The map's search finds places.** Search for one by name, such as Tullamore, the county town: locations in
+   BreedGraph are listed first, then GeoNames' places, in the chosen location's country, this view or anywhere, each
+   with what it is and where. Choosing one shows it on the map. BreedGraph's own server answers the search, so it goes
+   to no one else. {#search}
+7. **Units shows what is at each place.** A unit graph links the levels at which an experiment is managed and
    observed: here, the 2024 trial area holds its plots. Each unit inherits its location, germplasm and factors from
    the units above it. {#units}
-7. **Germplasm shows how the lines were bred.** Search for a line, then drag it clear of its neighbours to see its
+8. **Germplasm shows how the lines were bred.** Search for a line, then drag it clear of its neighbours to see its
    parents and offspring. {#germplasm}
-8. **The ontology says what each variable means.** Search for a variable and drag it clear to see the trait, method
+9. **The ontology says what each variable means.** Search for a variable and drag it clear to see the trait, method
    and scale it links to. Its card gives its description. {#ontology}
-9. **Sign in to see more.** People, private studies and who controls each record are shown only to users who are
-   signed in. {#log-in}
+10. **Sign in to see more.** People, private studies and who controls each record are shown only to users who are
+    signed in. {#log-in}
 
 ## Who sees what
 
@@ -49,7 +53,8 @@ Open BreedView in your browser. You need nothing else.
 > [!DATA]
 > No personal data is shown to visitors: Persons, who contributed to each dataset and who controls each record are
 > shown only to users who are signed in. Accepting the Terms of Use, or a study's licence, is kept in a cookie in your
-> browser, for 7 days if you are not signed in. BreedGraph keeps no record of who accepted.
+> browser, for 7 days if you are not signed in. BreedGraph keeps no record of who accepted, nor of what anyone searches
+> for on the map.
 
 ## Try it on the demo site
 
