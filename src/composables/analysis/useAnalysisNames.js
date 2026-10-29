@@ -203,15 +203,24 @@ export function recordGroupAssignmentLabel(a, shownUnitId = null) {
   return `${groupingName(a.groupingId)}: ${a.code}${unit}${scope ? ` (${scope})` : ''}`
 }
 
+// A record group level's key, as breedgraph's RecordGroupLevelKey writes it: groupingId|scope|code, or
+// groupingId|scope|unitId|code for a grouping whose codes mean something only within a unit or its graph's root
+// (WITHIN_UNIT, WITHIN_GRAPH); unit|unitId for a unit level. Null for any other level.
+function recordGroupKey(level) {
+  const parts = String(level).split('|')
+  if (parts.length === 2 && parts[0] === 'unit') return { unitId: parts[1] }
+  if (parts.length < 3) return null
+  const [groupingId, , ...rest] = parts
+  if (rest.length >= 2 && /^\d+$/.test(rest[0])) return { groupingId, unitId: rest[0], code: rest.slice(1).join('|') }
+  return { groupingId, code: rest.join('|') }
+}
+
 // Level keys are composite only when no structured group is available; split for display
 function keyLabel(type, level) {
-  const parts = String(level).split('|')
-  if (type === 'RECORD_GROUP' && parts.length === 2 && parts[0] === 'unit') return unitName(parts[1])
-  if (type === 'RECORD_GROUP' && parts.length === 3) {
-    const [groupingId, , code] = parts
-    return `${groupingName(groupingId)}: ${code}`
-  }
-  return level
+  const key = type === 'RECORD_GROUP' ? recordGroupKey(level) : null
+  if (!key) return level
+  if (key.groupingId == null) return unitName(key.unitId)
+  return `${groupingName(key.groupingId)}: ${key.code}${key.unitId != null ? ` of ${unitName(key.unitId)}` : ''}`
 }
 
 /** Display label of a term level, using the structured group when available. */
@@ -276,8 +285,8 @@ export function collectIds({ groups = [], levels = [] }) {
     if (l.term.type === 'LOCATION') ids.location.add(l.level)
     if (l.term.type === 'LAYOUT_AXIS') ids.layout.add(String(l.level).split('|')[0])
     if (l.term.type === 'RECORD_GROUP') {
-      const parts = String(l.level).split('|')
-      if (parts.length === 2 && parts[0] === 'unit') ids.unit.add(parts[1])
+      const unitId = recordGroupKey(l.level)?.unitId
+      if (unitId != null) ids.unit.add(unitId)
     }
   }
   return Object.fromEntries(Object.entries(ids).map(([k, v]) => [k, [...v]]))
