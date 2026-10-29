@@ -38,7 +38,7 @@ test('a chapter shows its text and steps, and Play on a step plays the video fro
   await page.waitFor(`document.querySelector('.guide-steps li')`, 30000)
   assert.equal(flat(await page.text('main h1')), titles['looking-around'])
   assert.ok(await page.exists('main aside.callout-who'), 'who can do this')
-  assert.equal(await page.evaluate(`document.querySelectorAll('.guide-steps li').length`), 9)
+  assert.equal(await page.evaluate(`document.querySelectorAll('.guide-steps li').length`), 10)
   assert.ok(!(await page.text('main')).includes('{#'), 'no step ids are shown')
   assert.deepEqual(page.consoleErrors(mark), [])
 
