@@ -1,6 +1,7 @@
 <script setup>
 import ControlTeamSelector from './ControlTeamSelector.vue'
 import ReadReleaseSelector from './ReadReleaseSelector.vue'
+import ReleaseTermsNote from './ReleaseTermsNote.vue'
 
 defineProps( {
   fixedRelease: String,
@@ -22,20 +23,23 @@ const handleLoading = (isLoading) => {
 </script>
 
 <template>
-  <div class="control-selector">
-    <div class="selector-item">
-      <label>Control Team</label>
-      <ControlTeamSelector
-        v-model="controlTeamId"
-        @error="handleError"
-        @loading="handleLoading"
-      />
-    </div>
+  <div class="control-selector-container">
+    <div class="control-selector">
+      <div class="selector-item">
+        <label>Control Team</label>
+        <ControlTeamSelector
+          v-model="controlTeamId"
+          @error="handleError"
+          @loading="handleLoading"
+        />
+      </div>
 
-    <div class="selector-item">
-      <label>Release</label>
-      <ReadReleaseSelector v-model="readRelease" :fixedRelease=fixedRelease :max-release="maxRelease" />
+      <div class="selector-item">
+        <label>Release</label>
+        <ReadReleaseSelector v-model="readRelease" :fixedRelease=fixedRelease :max-release="maxRelease" />
+      </div>
     </div>
+    <ReleaseTermsNote :release="readRelease" />
   </div>
 </template>
 

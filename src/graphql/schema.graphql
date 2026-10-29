@@ -1390,6 +1390,11 @@ type Mutation {
   one is defined by.
   """
   ontologyRestoreEntries(ids: [ID!]!): BooleanPayload!
+
+  """
+  Commit the drafts as a new version. The licence and copyright must be public references. The version keeps the
+  latest version's licence unless licenceId names another, so the ontology's licence can be changed but not removed.
+  """
   ontologyCommitVersion(versionChange: VersionChange!, comment: String, licenceId: ID, copyrightId: ID): BooleanPayload!
 
   """
@@ -3543,6 +3548,12 @@ type Controller {
   """
   access: [Access!]!
   release: ReadRelease!
+
+  """
+  Whether the entity has no controls: then everyone reads it and no one changes it, sets its release or transfers it,
+  as for the standard licences (docs/read-access.md, rule 11). Its release is PUBLIC and its access READ alone.
+  """
+  fixed: Boolean!
 
   """ The first and latest writes: null for an entity you cannot read, whose history is hidden 
   """
@@ -5881,6 +5892,12 @@ type Query {
 
   """ Get a users recently created/updated file references """
   referencesRecentFiles(referenceTypes: [ReferenceType!]): ReferencesPayload!
+
+  """
+  The standard licences every deployment starts with, CC BY 4.0 then CC0 1.0: legal references without controls,
+  which everyone reads and no one changes, for licence pickers to offer first
+  """
+  referencesStandardLicences: ReferencesPayload!
 
   """ Search for references by text in description. Also searches for filename, url and externalId where relevant. 
   """

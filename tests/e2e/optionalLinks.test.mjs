@@ -1,6 +1,7 @@
-// An update removes an optional link with null (breedgraph 2026-10-20): a study's design and licence, a unit's
-// germplasm and a germplasm entry's origin. Each link is set through the API, removed in its edit form, and checked
-// through the API and on the page. Signed in as the writer, who curates the child team's study, unit and entry; the
+// An update removes an optional link with null (breedgraph 2026-10-20): a study's design, a unit's germplasm and a
+// germplasm entry's origin. Each link is set through the API, removed in its edit form, and checked through the API
+// and on the page. The study is released with its datasets, so removing its licence is refused (breedgraph
+// docs/licences.md §1), as the form shows. Signed in as the writer, who curates the child team's study, unit and entry; the
 // links they had are put back afterwards. The test database publishes no design, and a study can't be linked to a draft
 // (breedgraph 2026-10-23), so a design is created and committed once, by the admin, an ontology admin, and stays.
 import { test, before, after } from 'node:test'
@@ -87,7 +88,7 @@ async function submitModal() {
   await page.sleep(1000)
 }
 
-test('study: Edit removes its design with "None" and its licence with Remove', async () => {
+test('study: Edit removes its design with "None", and the licence of a released study can\'t be removed', async () => {
   const design = await aDesign()
   assert.ok(design, 'a design to set')
   // the study and its datasets are released to registered users, so its licence must be at least (breedgraph e3da216)
@@ -109,14 +110,25 @@ test('study: Edit removes its design with "None" and its licence with Remove', a
   await page.sleep(500)
   assert.equal(await page.evaluate(`document.querySelector('.modal select[name=designId]').value`), design.id, 'the form shows the design')
   await page.type('.modal select[name=designId]', '')
+  await submitModal()
+
+  const licence = { id: String(e.reference_registered.id) }
+  assert.deepEqual(await studyLinks(), { design: null, licence }, 'the design is removed')
+  const content = await page.evaluate(`${studyCard}.querySelector('.study-content').innerText`)
+  assert.ok(!/Design:/.test(content), `the card shows no design: ${content}`)
+
+  // the licence of a released study stays: the API refuses its removal, and the form says so
+  await page.evaluate(`${studyCard}.querySelector('.study-actions button').click()`)
+  await page.waitFor(`document.querySelector('.modal .selected-item .btn-danger-link')`)
   await page.evaluate(`document.querySelector('.modal .selected-item .btn-danger-link').click()`)
   await page.sleep(200)
   assert.ok(await page.exists('.modal .reference-section .btn-outline'), 'the licence is replaced by "+ Select Licence"')
-  await submitModal()
-
-  assert.deepEqual(await studyLinks(), { design: null, licence: null }, 'both links are removed')
-  const content = await page.evaluate(`${studyCard}.querySelector('.study-content').innerText`)
-  assert.ok(!/Design:/.test(content) && !(await page.evaluate(`!!${studyCard}.querySelector('.licence-display')`)), `the card shows neither: ${content}`)
+  await page.click('.modal button[type=submit]')
+  await page.waitFor(`document.querySelector('.modal .error-message')`, 30000)
+  assert.match(await page.text('.modal .error-message'), new RegExp(`Study ${STUDY} has no licence`))
+  await page.evaluate(`[...document.querySelectorAll('.modal .form-actions button')].find((b) => b.innerText.trim() === 'Cancel').click()`)
+  await page.waitFor(`!document.querySelector('.modal')`, 15000)
+  assert.deepEqual(await studyLinks(), { design: null, licence }, 'the licence is kept')
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
 

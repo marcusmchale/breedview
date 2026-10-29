@@ -46,11 +46,8 @@ const handleLicenceSave = ({ references }) => {
   selectedLicence.value = references[0] ?? null
 }
 
-// the version without the licence or copyright the form started with: the chooser can't untick its one choice
-const clearLicence = () => {
-  chosen.licence = true
-  selectedLicence.value = null
-}
+// the version without the copyright the form started with: the chooser can't untick its one choice. The licence can't
+// be removed: a version without one keeps the latest's (breedgraph docs/licences.md §6)
 const clearCopyright = () => {
   chosen.copyright = true
   selectedCopyright.value = null
@@ -125,13 +122,18 @@ const handleCancel = () => {
 
         <!-- Licence Section -->
         <div class="reference-section">
-          <label class="section-label">Licence (Optional)</label>
+          <label class="section-label">Licence</label>
+          <p class="reference-help licence-note">
+            The ontology is published under CC BY 4.0 unless changed here, and the new version keeps the current
+            licence unless another is chosen; it can't be removed. Entries contributed under CC BY 4.0, and the CRediT
+            roles from NISO, stay under CC BY 4.0 with their attribution, whatever licence a new version names, so
+            choose one that allows this.
+          </p>
           <div class="section-content">
             <div v-if="selectedLicence" class="selected-item">
               <span class="item-icon">⚖️</span>
               <span class="item-description">{{ selectedLicence.description || 'Legal Reference #' + selectedLicence.id }}</span>
               <button type="button" class="btn-link" @click="isLicenceModalOpen = true">Change</button>
-              <button type="button" class="btn-link" @click="clearLicence">Remove</button>
             </div>
             <button
               v-else
@@ -182,6 +184,7 @@ const handleCancel = () => {
     selectionMode="single"
     title="Select Licence"
     public-only
+    offer-standard-licences
     :notice="PUBLIC_ONLY"
     @close="isLicenceModalOpen = false"
     @save="handleLicenceSave"

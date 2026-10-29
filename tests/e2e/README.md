@@ -199,6 +199,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to
   `child`; the grant is removed afterwards.
+- `licenceOnRelease.test.mjs`, as the admin, on a study it makes in the public trial: without a licence its release
+  beyond the team is refused, the API's message shown with the note linking to the Terms of Use; the licence chooser
+  offers the standard licences first, CC BY 4.0 then CC0 1.0, each with a fixed badge and nothing to change it; with
+  CC BY 4.0 chosen the study is released. Creating a study released beyond the team without a licence asks for one
+  first. The study is deleted afterwards.
 - `bulkControl.test.mjs`, as the admin: the Bulk control counts by kind and release as the API gives them; a scale
   study dataset's release set and set back; the unit tree opened past a root another team controls to the unit the
   child team does; a scale tree and its units set to a release and back; a tree's control shared with the root team,

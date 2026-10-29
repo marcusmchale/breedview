@@ -174,8 +174,16 @@ test('curation: the readable dataset with all its records, hidden units as place
   await page.click('.btn-done')
   await page.sleep(300)
 
-  // enabled once what the datasets' licences ask of the user is known (LicenceAgreement)
-  await page.waitFor(`!([...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))?.disabled ?? true)`, 30000)
+  // enabled once what the datasets' licences ask of the user is known (LicenceAgreement): the study is released, so it
+  // has a licence, the standard CC BY 4.0, which the outsider accepts once
+  const loadTableEnabled = `!([...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table'))?.disabled ?? true)`
+  await page.waitFor(`document.querySelector('.licence-agreement') || ${loadTableEnabled}`, 30000)
+  if (await page.exists('.licence-agreement')) {
+    assert.equal(await page.text('.licence-agreement .licence-title'), 'Creative Commons Attribution 4.0 International (CC BY 4.0)')
+    await page.check('.licence-agreement input[name=licencesAgreed]')
+    await page.click('.licence-agreement .accept-licences')
+  }
+  await page.waitFor(loadTableEnabled, 30000)
   await page.evaluate(`[...document.querySelectorAll('.selection-actions button')].find((e) => e.innerText.includes('Load Table')).click()`)
   await page.waitFor(`document.querySelector('.table-wrapper tbody tr:not(.spacer-row)')`, 60000)
   const rows = await page.evaluate(`[...document.querySelectorAll('.table-wrapper tbody tr:not(.spacer-row)')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)

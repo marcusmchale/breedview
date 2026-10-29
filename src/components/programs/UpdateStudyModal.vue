@@ -202,6 +202,9 @@ const submitForm = async (values) => {
         <!-- Licence Section -->
         <div class="reference-section">
           <label class="section-label">Licence</label>
+          <p class="section-help">
+            Needed before the study, or its datasets, is released beyond the team, and kept while they are: a standard licence, or your own.
+          </p>
           <div class="section-content">
             <div v-if="selectedLicence" class="selected-item">
               <span class="item-icon">⚖️</span>
@@ -273,6 +276,7 @@ const submitForm = async (values) => {
       :selected-reference-ids="selectedLicence ? [selectedLicence.id] : []"
       :initial-references="selectedLicence ? [selectedLicence] : []"
       :selection-mode="'single'"
+      offer-standard-licences
       title="Select Licence"
       @close="closeLicenceModal"
       @save="handleLicenceSave"
@@ -338,6 +342,12 @@ const submitForm = async (values) => {
   font-weight: 600;
   margin-bottom: 8px;
   color: #333;
+}
+
+.section-help {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #666;
 }
 
 .section-content {

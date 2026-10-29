@@ -56,7 +56,16 @@ const handleReleaseUpdated = async () => {
 
 <template>
   <div v-if="isAuthenticated" class="controller-badge-container" >
+    <!-- no team controls a fixed entity, such as a standard licence: everyone reads it and no one changes it -->
+    <span
+      v-if="releaseController?.fixed"
+      class="controller-badge fixed-badge release-public"
+      title="No team controls this: everyone can read it, and no one can change it"
+    >
+      <span class="badge-text">PUBLIC · fixed</span>
+    </span>
     <button
+      v-else
       @click="openModal"
       class="controller-badge"
       :title="'Click to view controller details'"
@@ -120,6 +129,15 @@ const handleReleaseUpdated = async () => {
 
 .controller-badge:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.fixed-badge {
+  cursor: default;
+}
+
+.controller-badge.fixed-badge:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .controller-badge:disabled {

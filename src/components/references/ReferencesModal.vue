@@ -4,6 +4,7 @@ import { useApolloClient } from '@vue/apollo-composable'
 import { useReferencesSearchQuery } from '@/composables/references/referencesSearchQuery'
 import { useRecentFileReferencesQuery } from '@/composables/references/recentFileReferencesQuery'
 import { useReferencesQuery } from '@/composables/references/referencesQuery'
+import { useStandardLicencesQuery } from '@/composables/references/standardLicencesQuery'
 import { useReferencesModalConfig } from '@/composables/references/useReferencesModalConfig'
 import { RELEASE_LABELS } from '@/composables/controls/releases'
 import { useAuthStore } from '@/composables/user/useAuthStore'
@@ -72,6 +73,11 @@ const props = defineProps({
   notice: {
     type: String,
     default: null
+  },
+  // for licence pickers: the standard licences, CC BY 4.0 and CC0 1.0, offered first in the legal tab
+  offerStandardLicences: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -112,6 +118,10 @@ const undescribedIds = computed(() => props.visible
 )
 const { references: describedReferences } = useReferencesQuery(undescribedIds)
 
+const { standardLicences } = useStandardLicencesQuery({
+  enabled: () => props.visible && props.offerStandardLicences
+})
+
 // Computed
 const filteredSearchResults = computed(() => {
   return searchResults.value.filter(ref => !selectedIds.value.includes(ref.id))
@@ -132,7 +142,7 @@ const recentFilesOf = (tab) => filteredRecentFiles.value.filter(ref => ref.__typ
 const { resolveClient } = useApolloClient()
 const releases = ref({})
 const offeredIds = computed(() => props.visible && props.publicOnly
-  ? [...new Set([...filteredSearchResults.value, ...filteredRecentFiles.value].map(ref => ref.id))]
+  ? [...new Set([...filteredSearchResults.value, ...filteredRecentFiles.value, ...standardLicences.value].map(ref => ref.id))]
   : []
 )
 watch(offeredIds, async (ids) => {
@@ -353,6 +363,30 @@ const getFormComponent = (typeKey) => {
           <!-- Dynamic Type Tabs -->
           <template v-for="tab in orderedTabs" :key="tab.id">
             <div v-if="activeTab === tab.id" class="tab-content">
+              <!-- the standard licences, before a licence of one's own -->
+              <div
+                v-if="offerStandardLicences && tab.id === 'LEGAL' && standardLicences.length > 0 && !editingReference"
+                class="standard-licences"
+              >
+                <h4>Standard licences</h4>
+                <p class="standard-licences-hint">
+                  Open licences anyone can read, fixed so that no one can change them. Or give a licence of your own
+                  below.
+                </p>
+                <div class="reference-list">
+                  <ReferenceItem
+                    v-for="ref in standardLicences"
+                    :key="ref.id"
+                    :reference="ref"
+                    :selectable="true"
+                    :selected="selectedIds.includes(ref.id)"
+                    :disabled="!choosable(ref)"
+                    :note="unchoosableNote(ref)"
+                    @toggle-select="toggleSelection(ref.id, ref)"
+                  />
+                </div>
+                <h4>Your own licence</h4>
+              </div>
               <component
                 v-if="getFormComponent(tab.id)"
                 :is="getFormComponent(tab.id)"
@@ -633,6 +667,25 @@ const getFormComponent = (typeKey) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.standard-licences {
+  margin-bottom: 16px;
+}
+
+.standard-licences h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.standard-licences .reference-list {
+  margin-bottom: 16px;
+}
+
+.standard-licences-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #666;
 }
 
 .recent-section {

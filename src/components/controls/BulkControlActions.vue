@@ -3,6 +3,7 @@
 import { ref, computed } from 'vue'
 
 import OfferTransferModal from './OfferTransferModal.vue'
+import ReleaseTermsNote from './ReleaseTermsNote.vue'
 import { useBulkControlActions, RELEASE_LABELS, releasesFor } from '@/composables/controls/bulkControl'
 
 const props = defineProps({
@@ -92,6 +93,7 @@ const offered = (accepted) => {
     </button>
     <span v-if="actionLoading" class="text-muted">Working…</span>
   </div>
+  <ReleaseTermsNote v-if="selection" :release="release" />
   <div v-if="message" class="action-message">{{ message }}</div>
   <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 

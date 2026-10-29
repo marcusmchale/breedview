@@ -10,6 +10,7 @@ import ControllerBadge from '@/components/controls/ControllerBadge.vue'
 import FileDownloadButton from '@/components/references/FileDownloadButton.vue'
 import LegalText from '@/components/references/LegalText.vue'
 import ContributionsList from '@/components/people/ContributionsList.vue'
+import { useCanCurate } from '@/composables/controls/useWriteAccess'
 
 const props = defineProps({
     reference: {
@@ -51,6 +52,12 @@ const referenceType = computed(() => getReferenceType(props.reference))
 const typeLabel = computed(() => getReferenceTypeLabel(props.reference))
 const typeIcon = computed(() => getReferenceTypeIcon(props.reference))
 const hasFileDownload = computed(() => isFileReference(props.reference))
+// editing is offered to its curators alone, as the API refuses others: never for a fixed reference, a standard licence
+// say, which no one changes. Read only where the actions are shown, with the badge's query.
+const canEdit = useCanCurate({
+    entityLabel: 'REFERENCE',
+    entityId: () => (props.showActions ? props.reference.id : null)
+})
 
 const toggleExpand = () => {
     isExpanded.value = !isExpanded.value
@@ -175,7 +182,7 @@ const toggleExpand = () => {
             </template>
 
             <div v-if="showActions" class="reference-actions">
-                <button class="btn btn-sm btn-outline" @click="$emit('edit', reference)">
+                <button v-if="canEdit" class="btn btn-sm btn-outline" @click="$emit('edit', reference)">
                     Edit
                 </button>
                 <button class="btn btn-sm btn-warning" @click="$emit('remove', reference.id)">

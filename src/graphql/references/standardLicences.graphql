@@ -1,0 +1,15 @@
+#import "./referenceFragment.graphql"
+# The standard licences every deployment starts with, CC BY 4.0 then CC0 1.0: fixed, so everyone reads them and no
+# one changes them (breedgraph docs/licences.md §6)
+query referencesStandardLicences {
+  referencesStandardLicences {
+    status
+    result {
+      ...ReferenceFields
+    }
+    errors {
+      name
+      message
+    }
+  }
+}

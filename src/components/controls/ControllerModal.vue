@@ -9,6 +9,7 @@ import { useMutateTransfers } from '@/composables/controls/mutateTransfers'
 import OfferTransferModal from './OfferTransferModal.vue'
 import { writerLabel } from '@/composables/people/personDisplay'
 import { RELEASE_LABELS, releasesFor } from '@/composables/controls/releases'
+import ReleaseTermsNote from './ReleaseTermsNote.vue'
 
 const props = defineProps({
   isVisible: {
@@ -266,6 +267,7 @@ const formatDate = (dateString) => {
               >
                 <option v-for="option in releaseOptions" :key="option" :value="option">{{ RELEASE_LABELS[option] }}</option>
               </select>
+              <ReleaseTermsNote :release="selectedRelease" />
             </div>
 
             <div v-if="releaseError" class="error-message">

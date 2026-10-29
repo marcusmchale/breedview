@@ -1,11 +1,12 @@
-# The release of controlled entities and what the user may do with them, for badges and write access checks:
-# the full controllers are slow to resolve
+# The release of controlled entities, what the user may do with them, and whether they are fixed (without controls, so
+# no one changes them), for badges and write access checks: the full controllers are slow to resolve
 query controlsControllerRelease($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
   controlsControllers(entityLabel: $entityLabel, entityIds: $entityIds) {
     status
     result {
       release
       access
+      fixed
     }
     errors {
       message

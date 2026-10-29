@@ -1,7 +1,8 @@
 // The ontology cites public references only (breedgraph 5ddb940, docs/read-access.md rule 10): signed in as the admin,
 // an ontology admin who reads the scenario's legal references of every release, the commit form's licence chooser
-// offers the public ones only. The others are listed but can't be chosen, and a licence made there is public. The form
-// is cancelled, so nothing is committed. An entry's references are chosen the same way: the entry form is closed
+// offers the public ones only, the standard licences first (breedgraph docs/licences.md §6). The others are listed but
+// can't be chosen, and a licence made there is public. The licence can be changed but not removed. The form is
+// cancelled, so nothing is committed. An entry's references are chosen the same way: the entry form is closed
 // unsaved. The form starts with the current version's licence and copyright: that test commits a version citing the
 // scenario's, which stays in the ontology's history.
 import { test, before, after } from 'node:test'
@@ -28,17 +29,31 @@ test('the commit form\'s licence chooser offers public references only', { skip 
   await page.waitFor(`[...document.querySelectorAll('.version-actions button')].some((b) => b.innerText.includes('Commit Changes'))`, 30000)
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container h2')?.innerText.includes('Commit Ontology Version')`, 30000)
-  // the current version's licence, if it has one, removed (the next test commits one), then a licence chosen afresh
-  await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
-  await page.sleep(1000)
-  const remove = `[...document.querySelectorAll('.form-container .reference-section')][0].querySelector('.selected-item button:last-child')`
-  if (await page.evaluate(`!!(${remove})`)) {
-    await page.evaluate(`${remove}.click()`)
-    await page.waitFor(`![...document.querySelectorAll('.form-container .reference-section')][0].querySelector('.selected-item')`, 10000)
-  }
-  await page.clickText('+ Select Licence')
+  // the version's licence, CC BY 4.0 from setting up or the scenario's, can be changed but not removed
+  const licenceSection = `[...document.querySelectorAll('.form-container .reference-section')][0]`
+  await page.waitFor(`${licenceSection}?.querySelector('.selected-item')`, 30000)
+  assert.deepEqual(await page.evaluate(`[...${licenceSection}.querySelectorAll('.selected-item button')].map((b) => b.innerText.trim())`), ['Change'])
+  assert.match(await page.evaluate(`${licenceSection}.querySelector('.licence-note').innerText`), /stay under CC BY 4\.0/)
+  await page.evaluate(`[...${licenceSection}.querySelectorAll('.selected-item button')].find((b) => b.innerText.trim() === 'Change').click()`)
   await page.waitFor(`${chooser}?.querySelector('.modal-notice')`, 30000)
   assert.match(await page.evaluate(`${chooser}.querySelector('.modal-notice').innerText`), /must be public/)
+
+  // the standard licences come first, and can be chosen, as they are public
+  await page.waitFor(`${chooser}.querySelector('.standard-licences .reference-item')`, 30000)
+  await page.waitFor(`![...${chooser}.querySelectorAll('.standard-licences .reference-note')].some((n) => n.innerText.includes('Checking'))`, 30000)
+  assert.deepEqual(await page.evaluate(`[...${chooser}.querySelectorAll('.standard-licences .reference-item')].map((item) => ({
+    name: item.querySelector('.reference-externalId').innerText.trim(), disabled: item.querySelector('.select-checkbox input').disabled
+  }))`), [
+    { name: 'Creative Commons Attribution 4.0 International (CC BY 4.0)', disabled: false },
+    { name: 'Creative Commons CC0 1.0 Universal (CC0 1.0), a public domain dedication', disabled: false }
+  ])
+  // one chosen closes the chooser; opened again, the scenario's references, the current one no longer chosen
+  await page.evaluate(`[...${chooser}.querySelectorAll('.standard-licences .reference-item')][0].querySelector('.select-checkbox input').click()`)
+  await page.waitFor(`!(${chooser})`, 15000)
+  assert.equal(await page.evaluate(`${licenceSection}.querySelector('.selected-item .item-description').innerText.trim()`),
+    'Creative Commons Attribution 4.0 International (CC BY 4.0)')
+  await page.evaluate(`[...${licenceSection}.querySelectorAll('.selected-item button')].find((b) => b.innerText.trim() === 'Change').click()`)
+  await page.waitFor(`${chooser}?.querySelector('.modal-notice')`, 30000)
 
   // a licence made here is public: the release is fixed
   await page.waitFor(`${chooser}.querySelector('.control-selector')`, 30000)
@@ -91,7 +106,7 @@ test('the commit form starts with the current version\'s licence and copyright',
   await page.clickText('Commit Changes')
   await page.waitFor(`document.querySelector('.form-container .reference-section')`, 30000)
   assert.deepEqual(await sections(), [
-    { label: 'Licence (Optional)', chosen: licence.name },
+    { label: 'Licence', chosen: licence.name },
     { label: 'Copyright (Optional)', chosen: copyright.name }
   ])
   await page.evaluate(`document.querySelector('.form-container .btn-cancel').click()`)
