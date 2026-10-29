@@ -48,7 +48,6 @@ const selectedReferenceIds = ref(props.study.references?.map(r => r.id) || [])
 const selectedReferences = ref(props.study.references || [])
 const isReferencesModalOpen = ref(false)
 
-console.log('study', props.study)
 // Licence state - initialize from study data
 const selectedLicence = ref(props.study.licence || null)
 const isLicenceModalOpen = ref(false)
