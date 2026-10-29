@@ -4,6 +4,7 @@ import { plural } from '@/composables/system/counts'
 import { useAnalysisEditor } from '@/composables/analysis/useAnalysisEditor'
 import { removeTermReferences } from '@/composables/analysis/useAnalysisForm'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
+import SubjectChips from '@/components/analysis/config/SubjectChips.vue'
 
 /**
  * Where the units of records were (breedgraph docs/analysis.md §3): the location types whose nearest location places
@@ -17,13 +18,11 @@ const position = () => form.grouping.position
 const toggle = (list, id) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
 
 const toggleLocationType = (id) => (position().locationTypeIds = toggle(position().locationTypeIds, id))
-const toggleSubject = (id) => (position().subjectIds = toggle(position().subjectIds, id))
 
 // Ids selected in a loaded analysis that the ontology doesn't list
 const unknownLocationTypeIds = computed(() =>
   position().locationTypeIds.filter((id) => !data.locationTypesById[id])
 )
-const unknownSubjectIds = computed(() => position().subjectIds.filter((id) => !data.subjectsById[id]))
 
 /* ---------- axes ---------- */
 
@@ -91,22 +90,7 @@ const setTime = (value) => {
         A unit below a unit of these subjects is placed where that unit was, e.g. a sample analysed in a lab abroad
         by the tree it came from. Without them, a sample's own position counts first.
       </p>
-      <div class="chip-list">
-        <button
-          v-for="s in data.subjects"
-          :key="s.id"
-          type="button"
-          class="chip"
-          :class="{ selected: form.grouping.position.subjectIds.includes(s.id) }"
-          @click="toggleSubject(s.id)"
-        >
-          {{ s.name }}
-        </button>
-        <span v-for="id in unknownSubjectIds" :key="id" class="chip selected">
-          Subject {{ id }}
-          <button type="button" class="chip-remove" title="Remove" @click="toggleSubject(id)">×</button>
-        </span>
-      </div>
+      <SubjectChips v-model="form.grouping.position.subjectIds" />
       <FieldErrors path="grouping.position.subjectIds" prefix />
     </div>
 

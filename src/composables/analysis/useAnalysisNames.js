@@ -7,6 +7,7 @@ import LOCATIONS_QUERY from '@/graphql/locations/locations.graphql'
 import LAYOUTS_QUERY from '@/graphql/layouts/layouts.graphql'
 import STUDY_QUERY from '@/graphql/programs/study.graphql'
 import ANALYSIS_DATASETS_QUERY from '@/graphql/analysis/analysisDatasets.graphql'
+import ONTOLOGY_ENTRIES_QUERY from '@/graphql/ontology/entries.graphql'
 import { TERM_TYPE_LABELS } from '@/composables/analysis/useAnalysisForm'
 
 /**
@@ -21,7 +22,8 @@ const store = reactive({
   study: {},
   grouping: {},
   concept: {},
-  dataset: {}
+  dataset: {},
+  subject: {}
 })
 
 const requested = {
@@ -30,7 +32,8 @@ const requested = {
   location: new Set(),
   layout: new Set(),
   study: new Set(),
-  dataset: new Set()
+  dataset: new Set(),
+  subject: new Set()
 }
 
 export function registerNames(kind, entries) {
@@ -119,8 +122,16 @@ export function useAnalysisNames() {
       datasets.forEach((d) => (store.dataset[d.id] = d.concept?.name ?? `Dataset ${d.id}`))
     })
 
+  // the ontology's subjects, which are few, all at once
+  const ensureSubjects = (ids) =>
+    fetchMissing('subject', ids, async (client) => {
+      const { data } = await client.query({ query: ONTOLOGY_ENTRIES_QUERY, variables: { labels: ['SUBJECT'] } })
+      registerNames('subject', data?.ontologyEntries?.result)
+    })
+
   return {
     names: store,
+    ensureSubjects,
     ensureGermplasm,
     ensureUnits,
     ensureLocations,
@@ -142,6 +153,7 @@ export const groupingName = (id) => named('grouping', id, 'Grouping')
 export const conceptName = (id) => named('concept', id, 'Concept')
 export const locationName = (id) => named('location', id, 'Location')
 export const layoutName = (id) => named('layout', id, 'Layout')
+export const subjectName = (id) => named('subject', id, 'Subject')
 
 export function datasetName(id) {
   if (id == null) return ''
@@ -181,6 +193,8 @@ export function formPathLabel(path, { datasetIds = [], terms = [], grouping = nu
     const list = items[segments[i - 1]]
     if (/^\d+$/.test(segment)) parts.push(list ? list(Number(segment)) : `${Number(segment) + 1}`)
     // a list is named by its items, unless the path ends at it; the options by themselves
+    // the grouping's unit is the observation unit
+    else if (segment === 'unit' && segments[i - 1] === 'grouping') parts.push('observation unit')
     else if ((!items[segment] || i === segments.length - 1) && segment !== 'options') parts.push(words(segment))
   })
   const label = parts.join(' › ')

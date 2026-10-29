@@ -215,7 +215,7 @@ const groupingInput = (g) => {
     out.time = { assignment: g.time.assignment, binning: binningInput(g.time.binning) }
   }
   if (g.germplasm) out.germplasm = { germplasmIds: [...g.germplasm.germplasmIds] }
-  if (g.unit) out.unit = { unitIds: [...g.unit.unitIds] }
+  if (g.unit) out.unit = { subjectIds: [...g.unit.subjectIds] }
   if (g.position) {
     const p = g.position
     const position = { locationTypeIds: [...p.locationTypeIds] }
@@ -335,7 +335,7 @@ const groupingFromOutput = (g) => {
   if (!g) return out
   if (g.time) out.time = { assignment: g.time.assignment, binning: binningFromOutput(g.time.binning) }
   if (g.germplasm) out.germplasm = { germplasmIds: [...g.germplasm.germplasmIds] }
-  if (g.unit) out.unit = { unitIds: [...g.unit.unitIds] }
+  if (g.unit) out.unit = { subjectIds: [...g.unit.subjectIds] }
   if (g.position) {
     const p = g.position
     out.position = {

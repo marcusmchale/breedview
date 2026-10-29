@@ -176,16 +176,33 @@ test('the settings name the terms, dimensions, model options, estimated means an
       estimatedMeans: [{ terms: [GERMPLASM], by: [], contrast: 'PAIRWISE', adjustment: 'TUKEY' }]
     }
   }
-  const settings = Object.fromEntries(analysisSettings(submission, {
-    termLabel, analysisTypeLabel: () => 'ANOVA', termTypeLabel: (type) => (type === 'GERMPLASM' ? 'Germplasm' : 'Record group')
-  }))
+  const labelled = {
+    termLabel,
+    analysisTypeLabel: () => 'ANOVA',
+    termTypeLabel: (type) => (type === 'GERMPLASM' ? 'Germplasm' : 'Record group'),
+    subjectName: (id) => ({ 31: 'Plot', 32: 'Field' })[id]
+  }
+  const settings = Object.fromEntries(analysisSettings(submission, labelled))
   assert.equal(settings.Terms, 'germplasm (germplasm), Block (record group)')
   assert.equal(settings.Dimensions, "Germplasm (each unit's own), Record group: Block")
   assert.equal(settings.Response, 'Plant height (cm)')
   assert.equal(settings.Interactions, 'germplasm × Block')
   assert.equal(settings['Estimated means'], 'Means of germplasm, pairwise contrasts, tukey adjustment')
   assert.equal(settings.Exclusions, '2 rules')
+  assert.equal(settings['Observation unit'], "Each record's unit")
   assert.deepEqual(groupingDimensions(null), [])
+
+  // observed at plots or fields, the observation unit is a setting of its own, not a dimension; the dimensions come
+  // in the editor's order
+  submission.config.grouping = {
+    ...submission.config.grouping,
+    unit: { subjectIds: [31, 32] },
+    time: { binning: { boundaries: ['2025-06-01'], labels: null } },
+    position: { axes: ['Row'] }
+  }
+  const observed = Object.fromEntries(analysisSettings(submission, labelled))
+  assert.equal(observed['Observation unit'], 'Nearest unit of Plot or Field')
+  assert.equal(observed.Dimensions, "Germplasm (each unit's own), Location, Row, Time (2 bins), Record group: Block")
 })
 
 test('the report escapes every text, formats the tables, marks significant rows and lists the files', () => {

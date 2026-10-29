@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createEmptyForm, createEstimatedMeans, createTerm } from '../../src/composables/analysis/useAnalysisForm.js'
-import { analysisHints } from '../../src/composables/analysis/useTermRules.js'
+import { analysisHints, blockingProblems } from '../../src/composables/analysis/useTermRules.js'
 
 const HEIGHT = { type: 'CONCEPT', conceptId: '43' }
 const LIGHT = { type: 'CONCEPT', conceptId: '53' }
@@ -35,4 +35,14 @@ test('estimated means conditioned on the response are hinted at', () => {
   const form = anova()
   form.estimatedMeans[0].by = [{ ...HEIGHT }]
   assert.ok(analysisHints(form, conceptsById).includes(HINT))
+})
+
+test('an observation unit by subject needs its subjects before the analysis is submitted', () => {
+  const form = anova()
+  const problem = "Choose the subjects of the observation unit, or observe each record's unit."
+  assert.ok(!blockingProblems(form).includes(problem), "each record's unit by default")
+  form.grouping.unit = { subjectIds: [] }
+  assert.ok(blockingProblems(form).includes(problem))
+  form.grouping.unit.subjectIds.push('31')
+  assert.ok(!blockingProblems(form).includes(problem))
 })

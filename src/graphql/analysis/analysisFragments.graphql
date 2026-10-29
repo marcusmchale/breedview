@@ -35,7 +35,7 @@ fragment AnalysisGroupingFields on AnalysisGrouping {
     binning { ...AnalysisBinningFields }
   }
   germplasm { germplasmIds }
-  unit { unitIds }
+  unit { subjectIds }
   position {
     locationTypeIds
     subjectIds

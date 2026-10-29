@@ -220,5 +220,8 @@ export function blockingProblems(form) {
   if (form.datasetIds.length === 0) problems.push('Select at least one dataset.')
   if (form.terms.length === 0) problems.push('Add at least one term.')
   if (form.analysisType === 'ANOVA' && !form.response) problems.push('Choose a response term.')
+  if (form.grouping?.unit && form.grouping.unit.subjectIds.length === 0) {
+    problems.push('Choose the subjects of the observation unit, or observe each record\'s unit.')
+  }
   return problems
 }

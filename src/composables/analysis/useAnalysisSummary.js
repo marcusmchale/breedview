@@ -8,6 +8,7 @@ import {
   groupLabel,
   levelsLabel,
   studyName,
+  subjectName,
   termLabel
 } from '@/composables/analysis/useAnalysisNames'
 import { analysisSettings, resultTables } from '@/composables/analysis/summaryTables'
@@ -70,7 +71,8 @@ export function useAnalysisSummary() {
         settings: analysisSettings(submission, {
           termLabel,
           analysisTypeLabel,
-          termTypeLabel: (termType) => TERM_TYPE_LABELS[termType] ?? termType
+          termTypeLabel: (termType) => TERM_TYPE_LABELS[termType] ?? termType,
+          subjectName
         }),
         errors: (submission.errors ?? []).map((m) => m.message),
         warnings: (submission.warnings ?? []).map((m) => m.message),

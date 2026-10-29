@@ -6,6 +6,7 @@ import { datasetName, groupingName, studyName } from '@/composables/analysis/use
 import { RECORD_GROUP_EXTENT_DESCRIPTIONS, extentLabel } from '@/composables/ontology/recordGroupExtent'
 import RecordGroupMemberSelect from '@/components/analysis/config/RecordGroupMemberSelect.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
+import SubjectChips from '@/components/analysis/config/SubjectChips.vue'
 
 const props = defineProps({
   index: { type: Number, required: true }
@@ -88,7 +89,7 @@ const selectedGroupings = computed(() =>
 
 const withinUnitSelected = computed(() => selectedGroupings.value.some((g) => g.extent === 'WITHIN_UNIT'))
 
-/* ---------- units as levels ---------- */
+/* ---------- units of a subject as levels ---------- */
 
 // Dimensions from before subjects existed have none
 const subjectIds = computed(() => dimension.value.subjectIds ?? [])
@@ -97,21 +98,8 @@ const subjectsUsedElsewhere = computed(
   () => new Set(form.grouping.recordGroups.filter((_, i) => i !== props.index).flatMap((d) => d.subjectIds ?? []))
 )
 
-const isSubjectSelected = (id) => subjectIds.value.includes(id)
-
 // A subject belongs to only one dimension
-const isSubjectDisabled = (s) => !isSubjectSelected(s.id) && subjectsUsedElsewhere.value.has(s.id)
-
-const toggleSubject = (s) => {
-  dimension.value.subjectIds = isSubjectSelected(s.id)
-    ? subjectIds.value.filter((id) => id !== s.id)
-    : [...subjectIds.value, s.id]
-}
-
-// Subjects selected in the dimension that aren't in the ontology (e.g. from a loaded analysis)
-const unknownSubjectIds = computed(() => subjectIds.value.filter((id) => !data.subjectsById[id]))
-
-const removeSubject = (id) => (dimension.value.subjectIds = subjectIds.value.filter((s) => s !== id))
+const subjectDisabledReason = (s) => (subjectsUsedElsewhere.value.has(s.id) ? 'Used by another dimension' : null)
 
 // Each study has one source of levels: records of a study without one of the dimension's groupings take units
 const unitLevelStudyIds = computed(() => {
@@ -183,32 +171,13 @@ const removeMember = (level, i) => level.members.splice(i, 1)
     </div>
 
     <div class="field">
-      <span class="field-label">Units as levels</span>
+      <span class="field-label">Units of a subject as levels</span>
       <p class="hint">
         Records of a study without one of the selected groupings take as their level the nearest unit of one of these
-        subjects: their own unit or an ancestor, e.g. the plots of a field as blocks.
+        subjects: their own unit or an ancestor, e.g. the plots of a field as blocks. Each unit keeps its own
+        observations, labelled by that unit; to merge units instead, set the observation unit.
       </p>
-      <p v-if="data.subjects.length === 0" class="hint">
-        {{ data.subjectsLoading ? 'Loading subjects…' : 'No subjects are defined in the ontology.' }}
-      </p>
-      <div v-else class="chip-list">
-        <button
-          v-for="s in data.subjects"
-          :key="s.id"
-          type="button"
-          class="chip"
-          :class="{ selected: isSubjectSelected(s.id) }"
-          :disabled="isSubjectDisabled(s)"
-          :title="isSubjectDisabled(s) ? 'Used by another dimension' : ''"
-          @click="toggleSubject(s)"
-        >
-          {{ s.name }}
-        </button>
-        <span v-for="id in unknownSubjectIds" :key="id" class="chip selected">
-          Subject {{ id }}
-          <button type="button" class="chip-remove" title="Remove" @click="removeSubject(id)">×</button>
-        </span>
-      </div>
+      <SubjectChips v-model="dimension.subjectIds" :disabled-reason="subjectDisabledReason" />
       <template v-if="subjectIds.length">
         <p v-if="unitLevelStudyIds.length" class="hint">
           Units are the levels for {{ unitLevelStudyIds.map(studyName).join(', ') }}.

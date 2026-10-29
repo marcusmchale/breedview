@@ -199,6 +199,11 @@ browser: that the pages render it, which actions they offer, the modals and labe
   creating needs a write affiliation, changing or adding to a program needs curate access to a team controlling it.
   The admin can edit the organisation's program but not the child team's, until the test grants it curate access to
   `child`; the grant is removed afterwards.
+- `observationUnit.test.mjs`, on the replicates study, as the writer, with the analysis worker: an analysis observed
+  at the plot subject has each plot's mean as the manifest's `plot_means` gives it, and its page names the observation
+  unit. Edit & resubmit shows the observation unit first, the subject chosen, then the dimensions (germplasm, position,
+  time) and record group dimensions; choosing subjects again starts with none, which the editor asks for. The analysis
+  is deleted afterwards.
 - `analysisSummary.test.mjs`, on the replicates study (manifest `replicates`), as the writer, with the analysis worker:
   Download summary gives a zip of `summary.html`, `analysis.json` and a CSV a result table, caught in the page rather
   than saved: a descriptive analysis's report names its data, their study and its licence (CC BY 4.0); a correlation's

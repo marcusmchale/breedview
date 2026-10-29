@@ -2,12 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { useAnalysisSubmissionQuery } from '@/composables/analysis/analysisSubmissionQuery'
 import { useAnalysisSummary } from '@/composables/analysis/useAnalysisSummary'
-import { groupingDimensions } from '@/composables/analysis/summaryTables'
+import { groupingDimensions, observationUnit } from '@/composables/analysis/summaryTables'
 import { analysisTypeLabel, TERM_TYPE_LABELS } from '@/composables/analysis/useAnalysisForm'
 import {
   collectIds,
   datasetConcepts,
   datasetName,
+  subjectName,
   termLabel,
   useAnalysisNames
 } from '@/composables/analysis/useAnalysisNames'
@@ -31,7 +32,15 @@ const { submission, status, isTerminal, notFound, queryErrors, loading, error } 
 
 /* ---------- names ---------- */
 
-const { ensureDatasets, ensureStudies, ensureGermplasm, ensureUnits, ensureLocations, ensureLayouts } = useAnalysisNames()
+const { ensureDatasets, ensureStudies, ensureGermplasm, ensureUnits, ensureLocations, ensureLayouts, ensureSubjects } =
+  useAnalysisNames()
+
+// the subjects of the observation unit
+watch(
+  () => submission.value?.config?.grouping?.unit?.subjectIds,
+  (ids) => ids?.length && ensureSubjects(ids),
+  { immediate: true }
+)
 
 watch(
   () => submission.value?.datasetIds,
@@ -99,6 +108,8 @@ const warnings = computed(() => submission.value?.warnings ?? [])
 const notConverged = computed(() => warnings.value.some((w) => w.code === 'MODEL_NOT_CONVERGED'))
 
 const dimensions = computed(() => groupingDimensions(config.value?.grouping))
+// shown only when it isn't each record's own
+const rolledUpTo = computed(() => (config.value?.grouping?.unit ? observationUnit(config.value.grouping, subjectName) : null))
 
 // the summary download: a zip of a printable report, the settings and each result table as CSV, with the charts as
 // drawn in the results section
@@ -159,6 +170,7 @@ const resultView = computed(() => (result.value ? RESULT_VIEWS[result.value.__ty
             <span class="muted">Terms</span>
             {{ config.terms.map((t) => `${termLabel(t.reference)}${t.reference.type === 'CONCEPT' ? '' : ` (${TERM_TYPE_LABELS[t.reference.type].toLowerCase()})`}`).join(', ') }}
           </span>
+          <span v-if="rolledUpTo"><span class="muted">Observation unit</span> {{ rolledUpTo }}</span>
           <span v-if="dimensions.length"><span class="muted">Dimensions</span> {{ dimensions.join(', ') }}</span>
           <span v-if="submission.exclusions.length">
             <span class="muted">Exclusions</span> {{ submission.exclusions.length }} rule{{

@@ -28,7 +28,11 @@ export const MESSAGE_CODES = {
     hint: 'Exclude these records, or adjust the selected germplasm or give their units germplasm.',
     excludeRecords: true
   },
-  UNASSIGNED_UNIT: { hint: 'Exclude these records, or adjust the selected parent units.', excludeRecords: true },
+  UNASSIGNED_UNIT: {
+    hint: 'Exclude these records, or choose other subjects for the observation unit: their units have no unit of them ' +
+      'at or above, or lie on separate lineages.',
+    excludeRecords: true
+  },
   UNASSIGNED_POSITION: {
     hint: 'Exclude these records, or adjust the position grouping: other location types, place by a subject, or fewer axes.',
     excludeRecords: true

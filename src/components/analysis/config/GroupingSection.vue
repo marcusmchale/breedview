@@ -3,31 +3,23 @@ import { itemKey, useAnalysisEditor } from '@/composables/analysis/useAnalysisEd
 import { createEmptyBinning, removeTermReferences } from '@/composables/analysis/useAnalysisForm'
 import BinningEditor from '@/components/analysis/config/BinningEditor.vue'
 import GermplasmPicker from '@/components/analysis/config/GermplasmPicker.vue'
-import UnitPicker from '@/components/analysis/config/UnitPicker.vue'
 import PositionGroupingEditor from '@/components/analysis/config/PositionGroupingEditor.vue'
 import RecordGroupDimensionEditor from '@/components/analysis/config/RecordGroupDimensionEditor.vue'
 import FieldErrors from '@/components/analysis/config/FieldErrors.vue'
+import SubjectChips from '@/components/analysis/config/SubjectChips.vue'
 
 const { form, data } = useAnalysisEditor()
 
+// The dimensions, in the order the editor shows them, each saying what it does to observations: gives each unit one
+// level, or splits a unit's records (breedgraph docs/analysis.md §2). Record group dimensions come last.
 const DIMENSIONS = {
-  time: {
-    label: 'Time',
-    termTypes: () => [{ type: 'TIME' }],
-    description: 'Bins records by their start/end time, e.g. to separate repeated measurements.',
-    create: () => ({ assignment: 'MIDPOINT', binning: createEmptyBinning() })
-  },
   germplasm: {
     label: 'Germplasm',
     termTypes: () => [{ type: 'GERMPLASM' }],
-    description: "Groups records by each unit's germplasm, or by the closest selected germplasm above it.",
+    description:
+      "Gives each unit one level: its germplasm, its own or inherited, or the closest selected germplasm above it. " +
+      'Units of the same germplasm stay separate observations, its replicates.',
     create: () => ({ germplasmIds: [] })
-  },
-  unit: {
-    label: 'Parent unit',
-    termTypes: () => [],
-    description: 'Replaces each base unit with its closest selected parent unit, e.g. plants to plots.',
-    create: () => ({ unitIds: [] })
   },
   position: {
     label: 'Position',
@@ -36,9 +28,23 @@ const DIMENSIONS = {
       { type: 'LOCATION' },
       ...(position?.axes ?? []).map((axis) => ({ type: 'LAYOUT_AXIS', layoutAxis: axis }))
     ],
-    description: 'Groups records by where their units were: at locations of chosen types, and by layout axes.',
+    description:
+      'Gives each unit one level, where it was: at locations of chosen types, and by layout axes. A unit that moved ' +
+      'has its records split by the position each falls in.',
     create: () => ({ locationTypeIds: [], subjectIds: [], axes: [], time: null })
+  },
+  time: {
+    label: 'Time',
+    termTypes: () => [{ type: 'TIME' }],
+    description: "Splits a unit's records into bins by their start or end time, e.g. to separate repeated measurements.",
+    create: () => ({ assignment: 'MIDPOINT', binning: createEmptyBinning() })
   }
+}
+
+// The observation unit isn't a dimension: it has no levels or term, and merges units, rolling each up into its nearest
+// unit of a chosen subject (breedgraph docs/analysis.md §3)
+const setObservationUnit = (bySubject) => {
+  form.grouping.unit = bySubject ? { subjectIds: [] } : null
 }
 
 const toggle = (key, enabled) => {
@@ -67,9 +73,37 @@ const removeDimension = (i) => {
 <template>
   <div>
     <p class="hint intro">
-      An observation is a unit together with the level of every configured dimension. Values of a concept are taken
-      once per observation, so configuring a dimension changes what counts as one observation even if no term uses it.
-      Records that can't be assigned to a configured dimension are dropped and reported.
+      An observation is a unit at one level of each configured dimension, and a concept's values are taken once per
+      observation. Records that can't be assigned are dropped and reported.
+    </p>
+
+    <h4 class="subsection-title">Observation unit</h4>
+    <div class="box observation-unit" :class="{ active: form.grouping.unit }">
+      <label class="toggle">
+        <input type="radio" name="observationUnit" :checked="!form.grouping.unit" @change="setObservationUnit(false)" />
+        Each record's unit
+      </label>
+      <label class="toggle">
+        <input type="radio" name="observationUnit" :checked="!!form.grouping.unit" @change="setObservationUnit(true)" />
+        The nearest unit of one of these subjects
+      </label>
+      <p class="hint">
+        Merges units: each record's unit is rolled up into its nearest unit of a chosen subject, the unit itself or an
+        ancestor, e.g. the trees of a plot into one observation of the plot, their values aggregated. A unit with none,
+        or whose nearest lie on separate lineages (a sample from the trees of two plots), is unassigned. The units
+        recorded are still reported in results.
+      </p>
+      <template v-if="form.grouping.unit">
+        <SubjectChips v-model="form.grouping.unit.subjectIds" />
+        <FieldErrors path="grouping.unit" prefix />
+      </template>
+    </div>
+
+    <h4 class="subsection-title">Dimensions</h4>
+    <p class="hint">
+      Germplasm and units of a subject give each unit one level, so units of the same germplasm stay separate
+      observations: its replicates. Time bins, record group codes and a unit's moves can split a unit's records into
+      several observations, even when no term uses them.
     </p>
 
     <div v-for="(dim, key) in DIMENSIONS" :key="key" class="box" :class="{ active: form.grouping[key] }">
@@ -117,20 +151,15 @@ const removeDimension = (i) => {
         <FieldErrors path="grouping.germplasm" prefix />
       </template>
 
-      <template v-if="key === 'unit' && form.grouping.unit">
-        <UnitPicker v-model="form.grouping.unit.unitIds" :block-ids="data.blockIds" />
-        <p class="hint">Base units are still reported in results.</p>
-        <FieldErrors path="grouping.unit" prefix />
-      </template>
-
       <PositionGroupingEditor v-if="key === 'position' && form.grouping.position" />
 
-      <FieldErrors v-if="form.grouping[key] && key !== 'germplasm' && key !== 'unit'" :path="`grouping.${key}`" fallback />
+      <FieldErrors v-if="form.grouping[key] && key !== 'germplasm'" :path="`grouping.${key}`" fallback />
     </div>
 
     <h4 class="subsection-title">Record group dimensions</h4>
     <p class="hint">
-      Group records by study record groupings such as replicate or batch, or by units such as the plots of a field.
+      Group records by study record groupings such as block, batch or replicate, whose codes can split a unit's records
+      (replicate codes always do), or by units of a subject such as the plots of a field, which give each unit one level.
       Terms refer to a dimension by its name.
     </p>
     <RecordGroupDimensionEditor
@@ -159,5 +188,9 @@ const removeDimension = (i) => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+}
+
+.observation-unit .toggle {
+  margin-bottom: 4px;
 }
 </style>

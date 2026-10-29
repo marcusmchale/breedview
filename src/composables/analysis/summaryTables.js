@@ -4,21 +4,28 @@
 // (useAnalysisNames, useAnalysisForm), so this imports nothing from Vue or the app, and the unit tests can load it.
 import { descriptiveTables, columnValue } from './descriptiveTables.js'
 
-/** The grouping dimensions of a configuration in words, as the submission view lists them */
+/**
+ * The grouping dimensions of a configuration in words, in the editor's order, as the submission view lists them. The
+ * observation unit isn't one of them (observationUnit).
+ */
 export function groupingDimensions (grouping) {
   if (!grouping) return []
   const out = []
-  if (grouping.time) {
-    out.push(`Time (${grouping.time.binning.labels?.length ?? grouping.time.binning.boundaries.length + 1} bins)`)
-  }
   if (grouping.germplasm) {
     out.push(grouping.germplasm.germplasmIds.length ? `Germplasm (${grouping.germplasm.germplasmIds.length})` : "Germplasm (each unit's own)")
   }
-  if (grouping.unit) out.push(`Parent unit (${grouping.unit.unitIds.length})`)
   if (grouping.position) out.push(['Location', ...(grouping.position.axes ?? [])].join(', '))
+  if (grouping.time) {
+    out.push(`Time (${grouping.time.binning.labels?.length ?? grouping.time.binning.boundaries.length + 1} bins)`)
+  }
   grouping.recordGroups.forEach((d) => out.push(`Record group: ${d.name}`))
   return out
 }
+
+/** The observation unit in words: each record's unit, or the nearest unit of the subjects */
+export const observationUnit = (grouping, subjectName) => (grouping?.unit
+  ? `Nearest unit of ${grouping.unit.subjectIds.map(subjectName).join(' or ')}`
+  : "Each record's unit")
 
 const lower = (text) => String(text ?? '').toLowerCase().replace(/_/g, '-')
 
@@ -31,13 +38,14 @@ function meansTitle (em, { termLabel }) {
 }
 
 /** The settings of a submission as [label, value] pairs, for the report */
-export function analysisSettings (submission, { termLabel, analysisTypeLabel, termTypeLabel }) {
+export function analysisSettings (submission, { termLabel, analysisTypeLabel, termTypeLabel, subjectName }) {
   const config = submission.config
   const settings = [['Type', analysisTypeLabel(submission.analysisType)]]
   if (!config) return settings
   settings.push(['Terms', config.terms.map((t) =>
     `${termLabel(t.reference)}${t.reference.type === 'CONCEPT' ? '' : ` (${termTypeLabel(t.reference.type).toLowerCase()})`}`
   ).join(', ')])
+  settings.push(['Observation unit', observationUnit(config.grouping, subjectName)])
   const dimensions = groupingDimensions(config.grouping)
   if (dimensions.length) settings.push(['Dimensions', dimensions.join(', ')])
   if (config.response) settings.push(['Response', termLabel(config.response)])
