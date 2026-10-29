@@ -29,8 +29,8 @@ Centimetres scale here, is reused rather than made again.
 4. **Drafts are kept out of the forms.** Showing the draft phase alone picks out the three new entries. Until a commit
    makes them part of a version, nothing can be recorded with them, as a draft may yet be changed or removed. {#drafts}
 5. **Commit Changes makes the drafts a new version.** A minor version, as it adds entries, with a comment saying why.
-   The version keeps the ontology's licence and copyright, which the form starts with; they must be public, as the
-   ontology is shared. {#commit}
+   The version keeps the ontology's licence, CC BY 4.0 unless an admin has named another, and its copyright, which
+   the form starts with; they must be public, as the ontology is shared. {#commit}
 6. **View History lists the versions.** The new version 2.2.0 heads the list, with its comment. Display shows the
    ontology as any version had it. {#history}
 

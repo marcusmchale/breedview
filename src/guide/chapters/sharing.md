@@ -1,8 +1,9 @@
 # Sharing results with a partner
 
-A study's records stay private to the teams that control them until those teams release them more widely. Before
-sharing, a study can be given a licence, which everyone outside the controlling teams must accept before reading its
-data or files.
+A study's records stay private to the teams that control them until those teams release them more widely. While they
+are private, the teams decide who reads them, and agree their own terms with those readers. Before the study, or its
+datasets, can be released, the study needs a licence: a standard one, CC BY 4.0 or CC0 1.0, or the team's own.
+Everyone outside the controlling teams accepts it before reading the data or files.
 
 > [!WHO]
 > To give a study a licence, those who curate it. To change a release, an administrator of the team that controls the
@@ -18,8 +19,9 @@ to either team.
 
 ## Steps
 
-1. **A licence is chosen when editing the study.** Bridget edits North Field Yield Trial 2025, chooses + Select
-   Licence, and uploads the Partner Data Licence, a PDF, released to registered users. {#licence}
+1. **A licence is chosen when editing the study.** Bridget edits North Field Yield Trial 2025 and chooses + Select
+   Licence. Rather than one of the standard licences offered first, she uploads the Partner Data Licence, a PDF,
+   released to registered users. {#licence}
 2. **A record's controller badge changes its release.** Bridget raises the study, its trial and its field plan to
    Registered, from each badge's release. {#release}
 3. **Bulk control releases many records at once.** Dara, who administers the Institute above Field Operations, sets
@@ -34,8 +36,9 @@ to either team.
 > [!SEES]
 > Released to registered users, the study, its trial, its field plan, its datasets and its plots are seen by anyone
 > signed in.
-> A licence must be released at least as widely as its study and datasets, so that everyone who can see the data can
-> read its terms.
+> A study, or its datasets, can be released beyond the team only once the study has a licence, and the licence must
+> be released at least as widely as them, so that everyone who can see the data can read its terms. Other information
+> released, such as plots and locations, comes under the Terms of Use.
 
 > [!DATA]
 > BreedGraph keeps no record of who accepted a licence. The acceptance is kept in a cookie in your browser, for your
