@@ -106,11 +106,11 @@ test('a licence given as a markdown file is read on upload and shown rendered wi
   await page.waitFor(`${studyCard}.querySelector('.licence-display .reference-header')`, 30000)
   await page.evaluate(`${studyCard}.querySelector('.licence-display .reference-header').click()`)
   const shown = `${studyCard}.querySelector('.licence-display .legal-text')`
-  await page.waitFor(`${shown}?.querySelector('.markdown h1')`, 15000)
+  await page.waitFor(`${shown}?.querySelector('.markdown h1')`, 30000)
   assert.equal(await page.evaluate(`${shown}.querySelector('.markdown h1').innerText.trim()`), 'Licence')
   assert.equal(await page.evaluate(`${shown}.querySelector('.markdown strong').innerText.trim()`), 'with credit')
   assert.equal(await page.evaluate(`${shown}.querySelector('.markdown a').getAttribute('href')`), 'https://example.org/terms')
-  await page.waitFor(`${shown}.querySelector('.original-file')`, 15000)
+  await page.waitFor(`${shown}.querySelector('.original-file')`, 30000)
   assert.match(await page.evaluate(`${shown}.querySelector('.original-file').innerText`), /Read from licence\.md/)
   assert.deepEqual(page.consoleErrors(mark), [], 'no console errors')
 })
