@@ -1,6 +1,6 @@
 // Chapter 1, "Looking around as a visitor" (src/guide/chapters/looking-around.md): a visitor accepts the Terms, opens
-// the public 2024 study and its data, then looks at the places and searches the map for one, then the units there,
-// the plant material and the ontology.
+// the public 2024 study, with whom to credit for it, and its data, then looks at the places and searches the map for
+// one, then the units there, the plant material and the ontology.
 // Nothing is changed, so it plays from any load of the demonstration database (manifest workflows.visitor_tour).
 import { byText, clearOf, expandLocation, gatherLinked, loadStudyData, locationHeader, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
 
@@ -55,6 +55,9 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
   await step('programmes', async () => {
     cards = await openStudy({ page, input, ...study })
     await input.pause(800)
+    // whom to credit, where a signed-in user sees the controls
+    await page.waitFor(`${cards.studyCard}?.querySelector('.credit-line')`, 30000)
+    await input.hover(`${cards.studyCard}.querySelector('.credit-line')`, 1800)
     await input.scroll(null, 380)
     await input.pause(2500)
   })

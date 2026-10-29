@@ -1,5 +1,6 @@
-# The datasets of an analysis for its summary download: each one's study and the study's licence, by name
-query AnalysisSummaryDatasets($datasetIds: [ID!]) {
+# The datasets of an analysis for its summary download: each one's study and the study's licence, by name, and whom to
+# credit for each, its controlling teams' attributions
+query AnalysisSummaryDatasets($datasetIds: [ID!]!) {
   datasets(ids: $datasetIds) {
     status
     result {
@@ -9,6 +10,16 @@ query AnalysisSummaryDatasets($datasetIds: [ID!]) {
         id
         description
       }
+    }
+    errors {
+      message
+    }
+  }
+  controlsAttributions(entityLabel: DATASET, entityIds: $datasetIds) {
+    status
+    result {
+      entityId
+      attributions
     }
     errors {
       message

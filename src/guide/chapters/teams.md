@@ -44,6 +44,11 @@ invitation, asks the Example Plant Breeding Institute for Read access, and Dara,
 > administrators decide, while you keep it for the team; access that reaches them can be kept to the team alone at
 > once.
 
+> [!NOTE]
+> A team's administrators set how it is credited under Edit Team: its attribution, which anyone sees with what the
+> team releases, as whom to credit for it. The teams below take it unless they set their own. It is public, so it
+> names an organisation or a group, and a person only with their agreement.
+
 ## Try it on the demo site
 
 Sign in with a reviewer account and ask a team for Read access: the request is listed for its administrators.

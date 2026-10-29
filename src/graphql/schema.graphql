@@ -2454,17 +2454,24 @@ input TeamInput {
   """ Optional full name for the team """
   fullname: String
 
+  """
+  Optional text to credit the team by, shown to anyone with what it controls (Team.attribution). It is public, so it
+  should name people only with their agreement.
+  """
+  attribution: String
+
   """ Optional parent team to extend a team tree"""
   parentId: ID
 }
 
 """
-Fields left out are unchanged; null, or an empty string, clears fullname
+Fields left out are unchanged; null, or an empty string, clears fullname or attribution
 """
 input TeamUpdate {
   id: ID!
   name: String
   fullname: String
+  attribution: String
 }
 
 input PositionInput {
@@ -3544,6 +3551,10 @@ type Controller {
   """ What your affiliations let you do with the entity through the teams that control it 
   """
   access: [Access!]!
+
+  """ How to credit the entity: its controlling teams' attributions, as controlsAttributions gives them 
+  """
+  attributions: [String!]!
   release: ReadRelease!
 
   """
@@ -3556,6 +3567,13 @@ type Controller {
   """
   created: DateTime
   updated: DateTime
+}
+
+""" How to credit an entity: the attributions of the teams that control it, each its own or inherited 
+"""
+type EntityAttributions {
+  entityId: ID!
+  attributions: [String!]!
 }
 
 enum ControlTransferStatus {
@@ -5340,6 +5358,12 @@ type ControllersPayload {
   errors: [Error!]
 }
 
+type AttributionsPayload {
+  status: QueryStatus!
+  result: [EntityAttributions!]
+  errors: [Error!]
+}
+
 type ControlTransferPayload {
   status: QueryStatus!
   result: ControlTransfer
@@ -5843,6 +5867,12 @@ type Query {
   controlsControllers(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): ControllersPayload!
 
   """
+  How to credit each entity, for anyone, signed in or not: the attributions of the teams that control it, which they
+  make public by setting them (Team.attribution). An entity you cannot read, or an id of no entity, has none.
+  """
+  controlsAttributions(entityLabel: ControlledModelLabel!, entityIds: [ID!]!): AttributionsPayload!
+
+  """
   How many entities of each label teams control, by release. Only for teams the user is an admin of: a request
   naming any other team is refused.
   """
@@ -6101,6 +6131,16 @@ type Team {
   id: ID!
   name: String!
   fullname: String
+
+  """
+  The team's own text to credit it by. It is public: controlsAttributions gives it to anyone, with what the team
+  controls (docs/read-access.md, rule 9). Teams below it use it unless they set their own.
+  """
+  attribution: String
+
+  """ The nearest attribution above the team in its tree, which credits the team when it has none of its own 
+  """
+  inheritedAttribution: String
   parent: Team
   children: [Team!]
   affiliations: Affiliations

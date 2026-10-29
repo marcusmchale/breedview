@@ -212,7 +212,10 @@ test('the report escapes every text, formats the tables, marks significant rows 
     generated: new Date(Date.UTC(2026, 9, 29, 14, 30)),
     site: 'https://example.org/breedview/',
     analysis: { id: '12', type: 'ANOVA' },
-    datasets: [{ name: 'Plant height (cm) (#4)', study: 'Field & Lab 2025', licence: 'Creative Commons Attribution 4.0 International (CC BY 4.0)' }, { name: 'Score (#5)', study: 'Private', licence: null }],
+    datasets: [
+      { name: 'Plant height (cm) (#4)', study: 'Field & Lab 2025', licence: 'Creative Commons Attribution 4.0 International (CC BY 4.0)', credit: ['Wheat Group, Example & Co', 'Example Cooperative'] },
+      { name: 'Score (#5)', study: 'Private', licence: null, credit: [] }
+    ],
     settings: [['Type', 'ANOVA']],
     errors: [],
     warnings: ['The model did not <converge>'],
@@ -225,6 +228,8 @@ test('the report escapes every text, formats the tables, marks significant rows 
   assert.ok(html.includes('Field &amp; Lab 2025'))
   assert.ok(html.includes('Creative Commons Attribution 4.0 International (CC BY 4.0)'))
   assert.ok(html.includes('None: private to the teams that hold it'))
+  assert.ok(html.includes('<th>Credit</th>'))
+  assert.ok(html.includes('<td>Wheat Group, Example &amp; Co; Example Cooperative</td>'))
   assert.ok(html.includes('The model did not &lt;converge&gt;'))
   assert.ok(html.includes('Downloaded 2026-10-29 14:30 UTC'))
   assert.match(html, /<tr class="significant"><td>germplasm<\/td>/)

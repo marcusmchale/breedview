@@ -9,6 +9,7 @@ query controlsControllers($entityLabel: ControlledModelLabel!, $entityIds: [ID!]
       teams { team { id name fullname } standIn }
       access
       release
+      attributions
       created
       updated
     }

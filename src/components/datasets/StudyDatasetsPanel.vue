@@ -53,6 +53,10 @@
                 {{ detailsById[dataset.id].unitRoots.map(b => b.name).join(', ') }}
               </span>
             </div>
+            <div v-if="attributionsById[dataset.id]?.length" class="detail-row dataset-credit">
+              <span class="label">Credit:</span>
+              <span class="value">{{ attributionsById[dataset.id].join('; ') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -64,6 +68,7 @@
 import { ref, computed } from 'vue'
 import { plural } from '@/composables/system/counts'
 import { useDatasetSummariesQuery } from '@/composables/datasets/datasetSummariesQuery'
+import { useAttributionsQuery } from '@/composables/controls/useAttributionsQuery'
 import STUDY_DATASETS_SUMMARIES_QUERY from '@/graphql/datasets/studyDatasetsSummaries.graphql'
 import RetiredTag from '@/components/ontology/RetiredTag.vue'
 
@@ -88,6 +93,12 @@ const {
   summariesLoading: detailsLoading
 } = useDatasetSummariesQuery(() => (detailsWanted.value ? props.studyId : null))
 const detailsById = computed(() => Object.fromEntries(detailedSummaries.value.map((s) => [s.id, s])))
+// whom to credit for each dataset, for anyone, asked for once for the study's datasets when one is first expanded
+const { attributionsById } = useAttributionsQuery({
+  entityLabel: 'DATASET',
+  entityIds: () => datasetSummaries.value.map((s) => s.id),
+  enabled: detailsWanted
+})
 
 
 const expandedDatasets = ref(new Set())

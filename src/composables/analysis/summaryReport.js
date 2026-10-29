@@ -71,13 +71,15 @@ code { font-size: 9pt; }
 `
 
 /**
- * The report: { title, generated (Date), site, analysis: { id, type }, datasets: [{ name, study, licence }], settings:
+ * The report: { title, generated (Date), site, analysis: { id, type }, datasets: [{ name, study, licence, credit:
+ * [attributions] }], settings:
  * [[label, value]], errors, warnings, tables, charts: [svg markup], files: [file names in the archive] }
  */
 export function summaryReport ({ title, generated, site, analysis, datasets, settings, errors, warnings, tables, charts, files }) {
   const when = generated.toISOString().replace('T', ' ').slice(0, 16)
   const datasetRows = datasets.map((d) => `<tr><td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.study)}</td>` +
-    `<td>${escapeHtml(d.licence ?? 'None: private to the teams that hold it')}</td></tr>`).join('\n')
+    `<td>${escapeHtml(d.licence ?? 'None: private to the teams that hold it')}</td>` +
+    `<td>${escapeHtml((d.credit ?? []).join('; '))}</td></tr>`).join('\n')
   const settingRows = settings.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join('\n')
   const messages = [
     ...errors.map((m) => `<li><strong>Error:</strong> ${escapeHtml(m)}</li>`),
@@ -98,14 +100,14 @@ ${escapeHtml(site)}.</p>
 
 <h2>Data</h2>
 <table>
-<thead><tr><th>Dataset</th><th>Study</th><th>Licence of the study</th></tr></thead>
+<thead><tr><th>Dataset</th><th>Study</th><th>Licence of the study</th><th>Credit</th></tr></thead>
 <tbody>
 ${datasetRows}
 </tbody>
 </table>
 <p class="note">These results come from the data of the studies above. Give the credit their licences ask, and use and
-pass on the results only as the licences allow. Cite BreedGraph, and the studies, the people credited and the
-references the data names.</p>
+pass on the results only as the licences allow. Cite BreedGraph, the teams credited above, and the studies, the people
+credited and the references the data names.</p>
 
 <h2>Settings</h2>
 <dl>

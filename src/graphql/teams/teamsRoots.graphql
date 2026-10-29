@@ -5,6 +5,8 @@ query teamsRoots {
             id
             name
             fullname
+            attribution
+            inheritedAttribution
             children { id }
             affiliations {
                 read { user { id name fullname } authorisation heritable heritableRequested }

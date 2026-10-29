@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import CREATE_TEAM_MUTATION from '../../graphql/teams/createTeam.graphql'
+import AttributionField from './AttributionField.vue'
 
 const props = defineProps({
   isOpen: {
@@ -16,7 +17,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'team-created'])
 
-const teamData = ref({ name: '', fullname: '' })
+const teamData = ref({ name: '', fullname: '', attribution: '' })
 const errorMessage = ref('')
 
 // Use the createTeam mutation
@@ -51,7 +52,7 @@ onDone((result) => {
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     // Reset form when modal opens
-    teamData.value = { name: '', fullname: '' }
+    teamData.value = { name: '', fullname: '', attribution: '' }
     errorMessage.value = ''
   }
 })
@@ -66,6 +67,7 @@ const submitCreateTeam = async () => {
       team: {
         name: teamData.value.name.trim(),
         fullname: teamData.value.fullname.trim() || null,
+        attribution: teamData.value.attribution.trim() || null,
         parentId: props.parentTeam.id
       }
     })
@@ -77,7 +79,7 @@ const submitCreateTeam = async () => {
 
 const handleCancel = () => {
   if (!loading.value) {
-    teamData.value = { name: '', fullname: '' }
+    teamData.value = { name: '', fullname: '', attribution: '' }
     errorMessage.value = ''
     emit('close')
   }
@@ -108,6 +110,11 @@ const handleCancel = () => {
             :disabled="loading"
           />
         </div>
+        <AttributionField
+          v-model="teamData.attribution"
+          :inherited="parentTeam?.attribution || parentTeam?.inheritedAttribution"
+          :disabled="loading"
+        />
         <div class="form-group">
           <label>Parent Team:</label>
           <p class="info-display">{{ parentTeam?.fullname || parentTeam?.name }}</p>

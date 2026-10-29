@@ -17,10 +17,10 @@ import { toCsv } from '@/composables/system/csv'
 import { zipStored } from '@/composables/system/zip'
 
 /**
- * An analysis's summary, downloaded as one zip: summary.html, a printable report of its data and their studies'
- * licences, its settings, messages, result tables and charts; analysis.json, its settings in full as submitted; and a
+ * An analysis's summary, downloaded as one zip: summary.html, a printable report of its data, their studies' licences
+ * and whom to credit for them, its settings, messages, result tables and charts; analysis.json, its settings in full as submitted; and a
  * CSV of each result table at full precision. Made in the browser from the submission as the page holds it, with the
- * names the page has read, so the API is asked only for the datasets' licences.
+ * names the page has read, so the API is asked only for the datasets' licences and credit.
  */
 export function useAnalysisSummary() {
   const { resolveClient } = useApolloClient()
@@ -36,12 +36,14 @@ export function useAnalysisSummary() {
         variables: { datasetIds: submission.datasetIds }
       })
       const read = new Map((data?.datasets?.result ?? []).filter(Boolean).map((d) => [d.id, d]))
+      const credits = new Map((data?.controlsAttributions?.result ?? []).map((a) => [String(a.entityId), a.attributions]))
       const datasets = submission.datasetIds.map((id) => {
         const studyId = read.get(id)?.studyId ?? datasetConcepts[id]?.studyId
         return {
           name: datasetName(id),
           study: studyId ? studyName(studyId) : '',
-          licence: read.get(id)?.licence?.description ?? null
+          licence: read.get(id)?.licence?.description ?? null,
+          credit: credits.get(String(id)) ?? []
         }
       })
 

@@ -1,0 +1,14 @@
+# How to credit entities, for anyone, signed in or not: the attributions of the teams that control each one the user
+# can read, and none for the others
+query controlsAttributions($entityLabel: ControlledModelLabel!, $entityIds: [ID!]!) {
+  controlsAttributions(entityLabel: $entityLabel, entityIds: $entityIds) {
+    status
+    result {
+      entityId
+      attributions
+    }
+    errors {
+      message
+    }
+  }
+}

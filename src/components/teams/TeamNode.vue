@@ -12,6 +12,7 @@ import AffiliationDetailsModal from '../affiliations/AffiliationDetailsModal.vue
 import ManageAffiliationsModal from '../affiliations/ManageAffiliationsModal.vue'
 import RequestAffiliationModal from '../affiliations/RequestAffiliationModal.vue'
 import CreateTeamModal from './CreateTeamModal.vue'
+import EditTeamModal from './EditTeamModal.vue'
 
 const props = defineProps({
   teamData: { type: Object, required: true },
@@ -37,6 +38,7 @@ const removeAffiliationError = ref('')
 const showManageAffiliationsDialog = ref(false)
 const showRequestAffiliationDialog = ref(false)
 const showCreateTeamDialog = ref(false)
+const showEditTeamDialog = ref(false)
 const deleteTeamError = ref('')
 // Bumped to make the teams below again from fresh data: each copies its team when it is made
 const childrenVersion = ref(0)
@@ -146,6 +148,11 @@ const handleChildTeamDeleted = (teamId) => {
   }
 }
 
+// After the team's details change: the team, and the teams below if they are shown, which may inherit its attribution
+const handleTeamUpdated = async () => {
+  await refreshTeamAndBelow()
+}
+
 // After a team is made below this one: the teams below again, shown with the new one among them
 const handleTeamCreated = async () => {
   await refreshTeamData()
@@ -182,6 +189,10 @@ const handleTeamCreated = async () => {
         <p><strong>ID:</strong> {{ teamInfo.id }}</p>
         <p><strong>Name:</strong> {{ teamInfo.name }}</p>
         <p v-if="teamInfo.fullname"><strong>Full Name:</strong> {{ teamInfo.fullname }}</p>
+        <p v-if="teamInfo.attribution || teamInfo.inheritedAttribution" class="team-credit">
+          <strong>Credit:</strong> {{ teamInfo.attribution || teamInfo.inheritedAttribution }}
+          <span v-if="!teamInfo.attribution" class="text-muted">(from the team above)</span>
+        </p>
         <p><strong>Children:</strong> {{ teamInfo.children?.length || 0 }}</p>
       </div>
     </div>
@@ -193,6 +204,7 @@ const handleTeamCreated = async () => {
       :delete-team-error="deleteTeamError"
       @request-affiliation="showRequestAffiliationDialog = true"
       @manage-affiliations="showManageAffiliationsModal"
+      @edit-team="showEditTeamDialog = true"
       @create-team="showCreateTeamDialog = true"
       @delete-team="handleDeleteTeam"
     />
@@ -241,6 +253,13 @@ const handleTeamCreated = async () => {
       :current-user-id="currentUserId"
       @close="showRequestAffiliationDialog = false"
       @affiliation-requested="handleAffiliationRequested"
+    />
+
+    <EditTeamModal
+      :is-open="showEditTeamDialog"
+      :team="teamInfo"
+      @close="showEditTeamDialog = false"
+      @team-updated="handleTeamUpdated"
     />
 
     <CreateTeamModal

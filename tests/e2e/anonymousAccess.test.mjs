@@ -1,6 +1,7 @@
 // What someone who is not signed in sees: the germplasm, programs, locations, units and datasets pages
 // are open to them, showing what has been released to the public, with placeholders and skipped members as for anyone
-// else (breedgraph docs/read-access.md), and no badges or write actions. The ontology page shows them the published
+// else (breedgraph docs/read-access.md), and no badges or write actions; whom to credit stands where the badge would
+// (teamAttribution.test.mjs). The ontology page shows them the published
 // version, without its drafts, commit history or roles. They see no people at all: no contributors or
 // contacts, and no people page (docs/person.md §3). Other pages, the people page among them, send them to log in. The
 // browser contacts no third party: maps and place searches come from our own servers. What the API returns is tested

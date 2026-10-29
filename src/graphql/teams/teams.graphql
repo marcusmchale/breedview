@@ -5,6 +5,8 @@ query teamsTeams($teamIds: [ID!]) {
             id
             name
             fullname
+            attribution
+            inheritedAttribution
             parent { id }
             children { id }
             affiliations {

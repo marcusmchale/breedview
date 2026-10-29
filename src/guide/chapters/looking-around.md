@@ -19,7 +19,8 @@ Open BreedView in your browser. You need nothing else.
    Terms of Use", then Accept. The privacy notice is linked from the same page: you consent to it only when you
    register an account. {#terms}
 2. **Programs lists what teams have made public.** Open the Winter Wheat Breeding Programme, then its trial,
-   Preliminary Yield Trial 2024, and its study, Long Meadow Yield Trial 2024. {#programmes}
+   Preliminary Yield Trial 2024, and its study, Long Meadow Yield Trial 2024. Each says whom to credit when you use
+   it: the team that holds it, here the Wheat Breeding Group, Example Plant Breeding Institute. {#programmes}
 3. **A study's Datasets say what was recorded.** Each variable and factor is listed with its number of records and
    the dates they cover. {#datasets}
 4. **View datasets shows the records themselves.** Choose the variables and the factor. The study's licence must be

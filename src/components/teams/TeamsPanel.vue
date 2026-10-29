@@ -40,6 +40,7 @@
               />
             </div>
           </div>
+          <AttributionField v-model="newTree.attribution" :disabled="createLoading" />
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="createLoading">
@@ -82,6 +83,7 @@ import { useAuthStore } from '@/composables/user/useAuthStore'
 import { useTeamRootsQuery } from '@/composables/teams/teamRootsQuery'
 import CREATE_TEAM_MUTATION from '@/graphql/teams/createTeam.graphql'
 import TeamNode from './TeamNode.vue'
+import AttributionField from './AttributionField.vue'
 
 const { currentUserId } = useAuthStore()
 
@@ -93,7 +95,7 @@ const error = computed(() => !!teamRootsError.value && teamRoots.value.length ==
 /* ---------- a new team tree ---------- */
 
 const createOpen = ref(false)
-const newTree = ref({ name: '', fullname: '' })
+const newTree = ref({ name: '', fullname: '', attribution: '' })
 const createError = ref('')
 const createSuccess = ref('')
 
@@ -105,13 +107,14 @@ const submitCreateTree = async () => {
   createSuccess.value = ''
   const team = {
     name: newTree.value.name.trim(),
-    fullname: newTree.value.fullname.trim() || null
+    fullname: newTree.value.fullname.trim() || null,
+    attribution: newTree.value.attribution.trim() || null
   }
   try {
     const response = (await createTeam({ team }))?.data?.teamsCreateTeam
     if (response?.status === 'SUCCESS') {
       createSuccess.value = 'Team tree created.'
-      newTree.value = { name: '', fullname: '' }
+      newTree.value = { name: '', fullname: '', attribution: '' }
       refetchTeamRoots()
     } else {
       createError.value = response?.errors?.[0]?.message || 'Failed to create the team tree'

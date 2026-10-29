@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ControllerModal from './ControllerModal.vue'
 import { useControllerQuery } from '@/composables/controls/useControllerQuery'
+import { useAttributionsQuery } from '@/composables/controls/useAttributionsQuery'
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import CONTROLLER_RELEASE_QUERY from '@/graphql/controls/controllerRelease.graphql'
 
@@ -21,7 +22,7 @@ const props = defineProps({
 })
 
 const showModal = ref(false)
-// Anonymous users only ever see what is public, so the badge would tell them nothing
+// Anonymous users only ever see what is public, so the badge would tell them nothing: they see whom to credit alone
 const { isAuthenticated } = useAuthStore()
 // The badge shows the release alone; the controls, writes and teams are read when the details are opened
 const { controller: releaseController, loading, refetch: refetchRelease } = useControllerQuery({
@@ -30,6 +31,17 @@ const { controller: releaseController, loading, refetch: refetchRelease } = useC
   query: CONTROLLER_RELEASE_QUERY,
   enabled: isAuthenticated
 })
+// the controlling teams' attributions: with the release for signed-in users, on their own for visitors
+const { attributionsById } = useAttributionsQuery({
+  entityLabel: () => props.entityLabel,
+  entityIds: () => [props.entityId],
+  enabled: () => !isAuthenticated.value
+})
+const credit = computed(() =>
+  (isAuthenticated.value ? releaseController.value?.attributions : attributionsById.value[String(props.entityId)]) ?? []
+)
+const creditText = computed(() => (credit.value.length ? `Credit: ${credit.value.join('; ')}` : ''))
+
 // the latest writes, until all of them are asked for
 const allWrites = ref(false)
 const { controller, loading: detailsLoading, error, refetch: refetchDetails } = useControllerQuery({
@@ -68,7 +80,7 @@ const handleReleaseUpdated = async () => {
       v-else
       @click="openModal"
       class="controller-badge"
-      :title="'Click to view controller details'"
+      :title="creditText ? `${creditText}. Click to view controller details` : 'Click to view controller details'"
       :disabled="loading"
 
       :class="{
@@ -102,6 +114,7 @@ const handleReleaseUpdated = async () => {
       @show-all-writes="allWrites = true"
     />
   </div>
+  <span v-else-if="creditText" class="credit-line">{{ creditText }}</span>
 </template>
 
 <style scoped>
@@ -148,6 +161,15 @@ const handleReleaseUpdated = async () => {
 .badge-text {
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* for visitors, in place of the badge */
+.credit-line {
+  display: inline-block;
+  max-width: 28em;
+  font-size: 0.8em;
+  color: #555;
+  line-height: 1.3;
 }
 
 .release-private {

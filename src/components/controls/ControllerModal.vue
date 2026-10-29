@@ -255,6 +255,12 @@ const formatDate = (dateString) => {
             </span>
           </div>
 
+          <!-- the controlling teams' attributions, which anyone sees with the record -->
+          <div v-if="controller.attributions?.length" class="detail-row controller-credit">
+            <strong>Credit:</strong>
+            <span>{{ controller.attributions.join('; ') }}</span>
+          </div>
+
           <!-- Release Change Form -->
           <div v-if="showReleaseForm" class="release-form">
             <h3>Change Release Level</h3>

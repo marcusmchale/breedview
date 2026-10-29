@@ -20,6 +20,14 @@
     <button
       v-if="userIsAdmin"
       class="btn btn-secondary"
+      @click="$emit('edit-team')"
+    >
+      Edit Team
+    </button>
+
+    <button
+      v-if="userIsAdmin"
+      class="btn btn-secondary"
       @click="$emit('create-team')"
     >
       Create Team
@@ -66,7 +74,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['request-affiliation', 'manage-affiliations', 'create-team', 'delete-team'])
+defineEmits(['request-affiliation', 'manage-affiliations', 'edit-team', 'create-team', 'delete-team'])
 
 const deleteRefusedForControl = computed(() => /control/i.test(props.deleteTeamError || ''))
 </script>
