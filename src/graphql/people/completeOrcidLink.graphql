@@ -1,5 +1,5 @@
-mutation peopleCompleteOrcidLink($code: String!, $state: String!) {
-    peopleCompleteOrcidLink(code: $code, state: $state) {
+mutation peopleCompleteOrcidLink($idToken: String!, $state: String!) {
+    peopleCompleteOrcidLink(idToken: $idToken, state: $state) {
         status
         errors {
             message

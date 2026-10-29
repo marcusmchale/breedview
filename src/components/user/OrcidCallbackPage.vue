@@ -3,10 +3,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutateOrcid } from '@/composables/people/mutateOrcid'
 
-// ORCID redirects here after sign-in with code and state, or error when the user cancelled.
-// The verified iD is stored by completing the link, then the user returns to their profile.
+// ORCID redirects here after sign-in with an id_token it signed and the state, or error when the user cancelled.
+// The API checks the id_token and stores the iD it names, then the user returns to their profile, which also takes
+// this page, with the id_token in its address, out of the history. ORCID's access token is not used.
 const props = defineProps({
-  code: { type: String, default: null },
+  idToken: { type: String, default: null },
   state: { type: String, default: null },
   error: { type: String, default: null }
 })
@@ -26,12 +27,12 @@ onMounted(async () => {
     await backToProfile({ orcid: 'error', message })
     return
   }
-  if (!props.code || !props.state) {
-    failure.value = 'The ORCID redirect is missing its code or state.'
+  if (!props.idToken || !props.state) {
+    failure.value = 'The ORCID redirect is missing its id_token or state.'
     return
   }
   try {
-    const { status, errors } = await completeOrcidLink({ code: props.code, state: props.state })
+    const { status, errors } = await completeOrcidLink({ idToken: props.idToken, state: props.state })
     if (status === 'SUCCESS') {
       await backToProfile({ orcid: 'linked' })
     } else {

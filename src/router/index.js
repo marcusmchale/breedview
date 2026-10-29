@@ -191,11 +191,19 @@ const routes = [
     }
   },
   {
-    // ORCID's redirect after sign-in, configured as ORCID_REDIRECT_URI on the API
+    // ORCID's redirect after sign-in, configured as ORCID_REDIRECT_URI on the API. ORCID puts its answer in the
+    // fragment, which the browser sends to no server; an error may come in the query instead.
     path: '/orcid',
     name: 'OrcidCallback',
     component: OrcidCallbackPage,
-    props: route => ({ code: route.query.code, state: route.query.state, error: route.query.error }),
+    props: route => {
+      const fragment = new URLSearchParams(route.hash.slice(1))
+      return {
+        idToken: fragment.get('id_token'),
+        state: fragment.get('state'),
+        error: fragment.get('error') || route.query.error
+      }
+    },
     meta: {
       requiresAuth: true,
       title: 'ORCID',

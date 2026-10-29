@@ -19,8 +19,8 @@ export function useMutateOrcid() {
     return { status: payload.status, url: payload.result, errors: payload.errors }
   }
 
-  const completeOrcidLink = async ({ code, state }) => {
-    const payload = (await completeMutation({ code, state }))?.data?.peopleCompleteOrcidLink
+  const completeOrcidLink = async ({ idToken, state }) => {
+    const payload = (await completeMutation({ idToken, state }))?.data?.peopleCompleteOrcidLink
     return payload ? { status: payload.status, errors: payload.errors } : noResponse
   }
 
