@@ -59,6 +59,8 @@ export async function run ({ page, input, recorder, step, session, manifest, app
     await input.pause(1500)
     const orcid = `${section('Your person record')}.querySelector('.btn-orcid')`
     if (await page.evaluate(`!!(${orcid})`)) await input.hover(orcid, 2200)
+    // the choice to be named among the ontology's contributors, left as it is: Nina has added nothing to it
+    await input.hover(`${section('Your person record')}.querySelector('.ontology-credit label')`, 2200)
   })
 
   await step('erase', async () => {

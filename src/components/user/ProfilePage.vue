@@ -8,6 +8,7 @@ import { useMyClaimsQuery } from '@/composables/people/claimsQuery'
 import { useMutateClaims } from '@/composables/people/mutateClaims'
 import { useMutateOrcid } from '@/composables/people/mutateOrcid'
 import { useOrcidLinkingQuery } from '@/composables/people/orcidLinkingQuery'
+import { useMutatePeople } from '@/composables/people/mutatePeople'
 import { personLabel, orcidUrl } from '@/composables/people/personDisplay'
 
 import EditProfileModal from './EditProfileModal.vue'
@@ -26,6 +27,7 @@ const { myPerson, myPersonLoading, refetchMyPerson } = useMyPersonQuery()
 const { myClaims, myClaimsLoading, refetchMyClaims } = useMyClaimsQuery()
 const { withdrawClaim, withdrawClaimLoading, unlinkPerson, unlinkPersonLoading } = useMutateClaims()
 const { startOrcidLink, startOrcidLinkLoading, removeOrcid, removeOrcidLoading } = useMutateOrcid()
+const { setOntologyCredit, setOntologyCreditLoading } = useMutatePeople()
 const { orcidLinking } = useOrcidLinkingQuery()
 
 const showEditProfileModal = ref(false)
@@ -147,6 +149,20 @@ const handleRemoveOrcid = async () => {
   }
 }
 
+// Named among the ontology's contributors, for the versions the user's work is in, or no longer
+const handleOntologyCredit = async (listed) => {
+  clearMessages()
+  const { status, errors } = await setOntologyCredit(listed)
+  if (status === 'SUCCESS') {
+    personMessage.value = listed
+      ? "You are named among the ontology's contributors, for the versions your work is in."
+      : "You are no longer named among the ontology's contributors."
+  } else {
+    personError.value = errors?.[0]?.message || 'Failed to change how you are credited for the ontology'
+  }
+  await refetchMyPerson()
+}
+
 const formatDate = (value) => {
   if (!value) return ''
   const date = new Date(value)
@@ -216,6 +232,24 @@ const formatDate = (value) => {
           <span v-else-if="orcidLinking === false" class="text-muted orcid-not-offered">
             Linking an ORCID iD isn't available on this site.
           </span>
+        </div>
+
+        <div class="ontology-credit">
+          <label>
+            <input
+              type="checkbox"
+              name="ontologyCredit"
+              :checked="!!myPerson.ontologyCredit"
+              :disabled="setOntologyCreditLoading"
+              @change="handleOntologyCredit($event.target.checked)"
+            />
+            Name me among the ontology's contributors
+          </label>
+          <p class="text-muted">
+            What you add to the ontology is credited to its contributors together. If you choose this, the ontology
+            page also names you, with your institution and ORCID iD, for the versions your work is in, to anyone. You
+            can stop at any time.
+          </p>
         </div>
 
         <div class="person-danger">
@@ -376,6 +410,22 @@ const formatDate = (value) => {
   align-items: center;
   gap: 10px;
   margin-top: 12px;
+}
+
+.ontology-credit {
+  margin-top: 12px;
+}
+
+.ontology-credit label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.ontology-credit p {
+  margin: 4px 0 0;
+  font-size: 0.9em;
 }
 
 .person-danger {

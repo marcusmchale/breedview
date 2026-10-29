@@ -4,6 +4,7 @@ query peopleMyPerson {
         status
         result {
             ...PersonFields
+            ontologyCredit
         }
         errors {
             message

@@ -19,7 +19,8 @@ You need an account: here, Nina's, from [Joining BreedGraph](/guide/joining), wi
    you belong to, with the access you hold in each. {#profile}
 2. **Edit account changes your account's details.** Your username, full name, email address and password. {#account}
 3. **Your person record is how you are credited.** Edit name and institution corrects it; you can also connect your
-   ORCID iD to it. {#person}
+   ORCID iD to it. If you add to the ontology, you can choose to be named among its contributors, which shows your
+   record's name, institution and ORCID iD to anyone, with the versions your work is in. {#person}
 4. **Unlinking keeps the record; erasing removes you from it.** Unlink leaves the record in place, to be claimed again.
    Erase removes its name, institution, teams and ORCID iD, keeping only an anonymous id, so research data stays
    attributed without identifying you. {#erase}

@@ -1,6 +1,6 @@
 // Chapter 1, "Looking around as a visitor" (src/guide/chapters/looking-around.md): a visitor accepts the Terms, opens
 // the public 2024 study, with whom to credit for it, and its data, then looks at the places and searches the map for
-// one, then the units there, the plant material and the ontology.
+// one, then the units there, the plant material and the ontology, with its named contributors.
 // Nothing is changed, so it plays from any load of the demonstration database (manifest workflows.visitor_tour).
 import { byText, clearOf, expandLocation, gatherLinked, loadStudyData, locationHeader, navLink, openStudy, startsWith } from '../lib/storyboard.mjs'
 
@@ -16,6 +16,7 @@ export const meta = {
 }
 
 export async function check ({ manifest }) {
+  if (!manifest.ontology.contributors?.length) throw new Error('The build names no ontology contributors')
   const tour = manifest.workflows.visitor_tour
   for (const key of [tour.programme, tour.trial, tour.study, tour.licence, tour.location, 'farm', TRIAL_AREA]) {
     if (!manifest.entities[key]?.readable_by.includes('anonymous')) throw new Error(`A visitor can't read ${key}`)
@@ -158,7 +159,10 @@ export async function run ({ page, input, recorder, step, manifest, app }) {
   await step('ontology', async () => {
     await input.click(navLink('Ontology'))
     await page.waitFor(`document.querySelector('.search-box .search-input')`, 30000)
-    await input.pause(2500)
+    await input.pause(1500)
+    // its contributors, credited together, and those who chose to be named
+    await page.waitFor(`document.querySelector('.ontology-contributors .contributor')`, 30000)
+    await input.hover(`document.querySelector('.ontology-contributors .contributor')`, 2200)
     await input.type('document.querySelector(".search-box .search-input")', 'Plant height (cm)')
     await page.waitFor(`document.querySelector('.search-result-item')`, 15000)
     await input.click(byText('.search-result-item .result-name', 'Plant height (cm)'))

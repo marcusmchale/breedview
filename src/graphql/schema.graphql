@@ -1451,6 +1451,13 @@ type Mutation {
   peopleRemoveOrcid: BooleanPayload!
 
   """
+  The user agrees (listed true), or no longer agrees, to be listed by name among the contributors to the ontology
+  versions their work is in (ontologyContributors): their linked Person's name, institution and ORCID iD are then
+  shown to anyone. Only the linked user sets it, and unlinking or erasing the Person withdraws it.
+  """
+  peopleSetOntologyCredit(listed: Boolean!): BooleanPayload!
+
+  """
   Send a message to a contact of a Program or Trial the sender can read (entityLabel PROGRAM or TRIAL).
   BreedGraph emails the linked user without revealing their address. The sender's name and email address
   are included, so the recipient can reply: tell the sender this before sending.
@@ -4103,6 +4110,14 @@ type Version {
   patch: Int!
 }
 
+""" A person listed as a contributor to an ontology version, by their own agreement: their name, institution and ORCID iD 
+"""
+type OntologyContributor {
+  name: String!
+  institution: String
+  orcid: String
+}
+
 type OntologyCommit {
   version: Version!
   comment: String
@@ -5358,6 +5373,12 @@ type ControllersPayload {
   errors: [Error!]
 }
 
+type OntologyContributorsPayload {
+  status: QueryStatus!
+  result: [OntologyContributor!]
+  errors: [Error!]
+}
+
 type AttributionsPayload {
   status: QueryStatus!
   result: [EntityAttributions!]
@@ -5512,6 +5533,12 @@ type Person {
   In the full view: whether a user is linked to this Person, whether or not the viewer may see who
   """
   linked: Boolean
+
+  """
+  In the full view: the linked user agreed to be listed by name among the contributors to the ontology
+  (peopleSetOntologyCredit, ontologyContributors)
+  """
+  ontologyCredit: Boolean
 
   """
   The user linked to this Person, who has rights over the record: shown to that user and admins of their teams
@@ -5704,6 +5731,15 @@ type Query {
 
   """Get ontology commit history, use lastVersionId to paginate"""
   ontologyCommitHistory(limit: Int, lastVersionId: ID): OntologyCommitsPayload!
+
+  """
+  The people listed as contributors to an ontology version, the current one by default, for anyone, signed in or
+  not: those who agreed to be listed (Person.ontologyCredit) and whose work is in that version, as they created or
+  changed one of its entries or relationships, or committed that version. Authors of entries and relationships since
+  removed are named for the versions that had them, not later ones. Everyone who contributes is credited together,
+  as the contributors to the BreedGraph ontology; these are the ones named.
+  """
+  ontologyContributors(versionId: ID): OntologyContributorsPayload!
 
   """
   Get a list of users requesting new ontology roles.

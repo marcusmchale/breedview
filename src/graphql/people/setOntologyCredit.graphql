@@ -1,0 +1,9 @@
+# The user's own linked Person: named among the ontology's contributors (listed true), or no longer
+mutation peopleSetOntologyCredit($listed: Boolean!) {
+    peopleSetOntologyCredit(listed: $listed) {
+        status
+        errors {
+            message
+        }
+    }
+}

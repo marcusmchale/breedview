@@ -1,0 +1,14 @@
+# The people named among the contributors to an ontology version, the current one by default, by their own choice
+query ontologyContributors($versionId: ID) {
+  ontologyContributors(versionId: $versionId) {
+    status
+    result {
+      name
+      institution
+      orcid
+    }
+    errors {
+      message
+    }
+  }
+}

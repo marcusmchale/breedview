@@ -10,6 +10,7 @@ import ReferencesDisplay from "@/components/references/ReferencesDisplay.vue";
 import { useOntologyQuery } from "@/composables/ontology/ontologyQuery";
 import { useAuthStore } from '@/composables/user/useAuthStore'
 import RestoreEntriesModal from '@/components/ontology/RestoreEntriesModal.vue'
+import OntologyContributors from '@/components/ontology/OntologyContributors.vue'
 
 // Pagination
 const lastVersionId = ref(null)
@@ -115,6 +116,7 @@ const restoring = ref(null)
             <div v-if="commit.copyright">
               <ReferencesDisplay :references="[commit.copyright]" title="Copyright"/>
             </div>
+            <OntologyContributors :version-id="commit.version.id" />
           </div>
         </div>
       </div>

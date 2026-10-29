@@ -39,7 +39,8 @@ Open BreedView in your browser. You need nothing else.
 8. **Germplasm shows how the lines were bred.** Search for a line, then drag it clear of its neighbours to see its
    parents and offspring. {#germplasm}
 9. **The ontology says what each variable means.** Search for a variable and drag it clear to see the trait, method
-   and scale it links to. Its card gives its description. {#ontology}
+   and scale it links to. Its card gives its description. Its contributors are credited together, and those who chose
+   to be are named: here, Dara Data. {#ontology}
 10. **Sign in to see more.** People, private studies and who controls each record are shown only to users who are
     signed in. {#log-in}
 

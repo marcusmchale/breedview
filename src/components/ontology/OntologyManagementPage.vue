@@ -11,6 +11,7 @@ import OntologyGraphTools from '@/components/ontology/OntologyGraphTools.vue'
 import LatestCommit from '@/components/ontology/LatestCommit.vue'
 import CommitVersion from '@/components/ontology/CommitVersion.vue'
 import OntologyRole from '@/components/ontology/OntologyRole.vue'
+import OntologyContributors from '@/components/ontology/OntologyContributors.vue'
 
 // Signed in, the editorial view with the latest commit and roles; for visitors, the published version only
 const { user, isAuthenticated } = useAuthStore()
@@ -52,6 +53,7 @@ const handleCommitSuccess = async () => {
       <ontologyRole/>
 
       <LatestCommit :latestCommit="latestCommit" @commit="showCommitVersionForm = true" />
+      <OntologyContributors :key="version?.id" />
 
       <CommitVersion
         v-if="showCommitVersionForm"
@@ -76,6 +78,7 @@ const handleCommitSuccess = async () => {
         in version {{ formatVersion(publishedOntology.version) }}</template>. Click an entry to see it, or sign in to
         see the drafts, the commit history and ontology roles.
       </p>
+      <OntologyContributors :version-id="version?.id ?? null" />
       <OntologyGraphTools
         v-if="publishedOntology || publishedLoading || publishedErrors?.length"
         :ontology="publishedOntology"
