@@ -1,6 +1,8 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAnalysisSubmissionQuery } from '@/composables/analysis/analysisSubmissionQuery'
+import { useAnalysisSummary } from '@/composables/analysis/useAnalysisSummary'
+import { groupingDimensions } from '@/composables/analysis/summaryTables'
 import { analysisTypeLabel, TERM_TYPE_LABELS } from '@/composables/analysis/useAnalysisForm'
 import {
   collectIds,
@@ -96,17 +98,12 @@ const errors = computed(() => submission.value?.errors ?? [])
 const warnings = computed(() => submission.value?.warnings ?? [])
 const notConverged = computed(() => warnings.value.some((w) => w.code === 'MODEL_NOT_CONVERGED'))
 
-const dimensions = computed(() => {
-  const g = config.value?.grouping
-  if (!g) return []
-  const out = []
-  if (g.time) out.push(`Time (${g.time.binning.labels?.length ?? g.time.binning.boundaries.length + 1} bins)`)
-  if (g.germplasm) out.push(g.germplasm.germplasmIds.length ? `Germplasm (${g.germplasm.germplasmIds.length})` : "Germplasm (each unit's own)")
-  if (g.unit) out.push(`Parent unit (${g.unit.unitIds.length})`)
-  if (g.position) out.push(['Location', ...(g.position.axes ?? [])].join(', '))
-  g.recordGroups.forEach((d) => out.push(`Record group: ${d.name}`))
-  return out
-})
+const dimensions = computed(() => groupingDimensions(config.value?.grouping))
+
+// the summary download: a zip of a printable report, the settings and each result table as CSV, with the charts as
+// drawn in the results section
+const resultsSection = ref(null)
+const { downloadSummary, preparing, summaryError } = useAnalysisSummary()
 
 const RESULT_VIEWS = {
   AnovaResult: AnovaResultView,
@@ -135,11 +132,21 @@ const resultView = computed(() => (result.value ? RESULT_VIEWS[result.value.__ty
           <h2>{{ submission.name || `${analysisTypeLabel(submission.analysisType)} analysis` }}</h2>
           <AnalysisStatusBadge :status="status" />
           <div class="header-actions">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline download-summary"
+              :disabled="!result || preparing"
+              title="A zip of a printable report, the settings, and each result table as CSV"
+              @click="downloadSummary(submission, resultsSection)"
+            >
+              {{ preparing ? 'Preparing…' : 'Download summary' }}
+            </button>
             <button type="button" class="btn btn-sm btn-outline" :disabled="!config" @click="emit('edit', submission)">
               Edit &amp; resubmit
             </button>
           </div>
         </div>
+        <p v-if="summaryError" class="message error">{{ summaryError }}</p>
         <div class="meta">
           <span class="meta-item"><span class="muted">Type</span> {{ analysisTypeLabel(submission.analysisType) }}</span>
           <span class="meta-item"><span class="muted">ID</span> {{ analysisId }}</span>
@@ -185,7 +192,7 @@ const resultView = computed(() => (result.value ? RESULT_VIEWS[result.value.__ty
         <p class="message error">{{ STATUS_TEXT.FAILED }}</p>
       </div>
 
-      <div v-if="result && resultView" class="section">
+      <div v-if="result && resultView" ref="resultsSection" class="section">
         <h3 class="section-title">Results</h3>
         <p v-if="notConverged" class="message warning">
           The model did not converge; interpret these results with caution.

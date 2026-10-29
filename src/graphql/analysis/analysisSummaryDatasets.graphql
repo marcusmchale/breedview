@@ -1,0 +1,17 @@
+# The datasets of an analysis for its summary download: each one's study and the study's licence, by name
+query AnalysisSummaryDatasets($datasetIds: [ID!]) {
+  datasets(ids: $datasetIds) {
+    status
+    result {
+      id
+      studyId
+      licence {
+        id
+        description
+      }
+    }
+    errors {
+      message
+    }
+  }
+}
