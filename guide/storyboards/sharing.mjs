@@ -1,5 +1,6 @@
 // Chapter 8, "Sharing results with a partner" (src/guide/chapters/sharing.md), from a fresh load of the demonstration
-// database (manifest workflows.sharing): Bridget gives North Field Yield Trial 2025 the Partner Data Licence and raises
+// database (manifest workflows.sharing): Bridget gives North Field Yield Trial 2025 the Partner Data Licence, passing
+// over the standard licences the chooser offers first, as a team can give its own, and raises
 // the study, its trial and its field plan to Registered; Dara releases its datasets and plots through Bulk control;
 // Petra then finds the study, and accepts the licence before reading its data.
 import { join } from 'node:path'
@@ -83,7 +84,14 @@ export async function run ({ page, input, recorder, step, session, manifest, app
     await input.click(`[...document.querySelector('.modal .reference-section').querySelectorAll('button')].find((b) => /Select Licence/.test(b.innerText))`)
     const form = '.modal-container .legal-reference-form'
     await page.waitFor(`document.querySelector(${q(form)})`, 15000)
+    // the standard licences come first, CC BY 4.0 and CC0 1.0; the partner's own is given below them
+    const standard = `document.querySelector('.modal-container .standard-licences')`
+    await page.waitFor(`${standard}?.querySelectorAll('.reference-item').length === 2`, 15000)
     await input.pause(800)
+    for (const i of [0, 1]) {
+      await input.hover(`${standard}.querySelectorAll('.reference-item .reference-externalId')[${i}]`, 1600)
+    }
+    await input.hover(`[...${standard}.querySelectorAll('h4')].at(-1)`, 900)
     await input.type(`document.querySelector(${q(`${form} #legal-description`)})`, licence.description)
     await input.click(`document.querySelector(${q(`${form} input[name=legal-source][value=file]`)})`)
     await input.chooseFile(`document.querySelector(${q(`${form} #legal-file`)})`, join(breedgraph, licence.path))
